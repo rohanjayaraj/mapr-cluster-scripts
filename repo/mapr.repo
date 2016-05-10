@@ -1,0 +1,27 @@
+[MapRv5.1.0]
+name=MapR Technologies
+baseurl=http://package.mapr.com/releases/v5.1.0/redhat/
+enabled=1
+gpgcheck=0
+protect=1
+
+[MapR-Ecosystem]
+name=MapR Technologies
+baseurl=http://package.mapr.com/releases/ecosystem-5.x/redhat
+enabled=1
+gpgcheck=0
+protect=1
+
+[QA-5.1.0]
+name=MapR v5.1.0 QA Repository
+baseurl=http://yum.qa.lab/v5.1.0
+enabled=1
+gpgcheck=0
+protect=1
+
+[QA-5.0.0]
+name=MapR v5.0.0 QA Repository
+baseurl=http://yum.qa.lab/v5.0.0
+enabled=1
+gpgcheck=0
+protect=1

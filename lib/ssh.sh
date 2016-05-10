@@ -1,0 +1,114 @@
+#!/bin/bash
+
+
+################  
+#
+#   ssh utilities
+#
+################
+
+# @param user
+# @param ip
+function ssh_check(){
+	if [ -z "$1" ] || [ -z "$2" ]; then
+		return 1
+	fi
+	
+	local retval=$(ssh -oBatchMode=yes -l $1 $2 exit)
+	retval=$?
+	if [ "$retval" = 0 ]; then
+		echo "enabled"
+	else
+		echo "disabled"
+	fi
+}
+
+# @param user
+# @param host ip
+# @param command to execute
+function ssh_executeCommand(){
+	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+		return 1
+	fi
+	
+	local retval=$(ssh $1@$2 $3)
+	echo $retval
+}
+
+# @param host ip
+# @param command to execute
+function ssh_executeCommandasRoot(){
+	ssh_executeCommand "root" "$1" "$2"
+}
+
+# @param user
+# @param host ip
+# @param path to script
+function ssh_executeScript(){
+	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+		return 1
+	fi
+	
+	local retval=$(ssh $1@$2 'bash -s' < $3)
+	echo $retval
+}
+
+# @param host ip
+# @param path to script
+function ssh_executeScriptasRoot(){
+	ssh_executeScript "root" "$1" "$2"
+}
+
+# @param user
+# @param host ip
+# @param path to script
+function ssh_executeScriptInBG(){
+	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+		return 1
+	fi
+	
+	ssh $1@$2 'bash -s' < $3 &
+}
+
+# @param host ip
+# @param path to script
+function ssh_executeScriptasRootInBG(){
+	if [ -z "$1" ] || [ -z "$2" ]; then
+		return 1
+	fi
+	
+	ssh root@$1 'bash -s' < $2 &
+	
+}
+
+# @param .ssh dir path
+function ssh_createkey(){
+	if [ -z "$1" ]; then
+		echo "NULL path specified. "
+		return 1
+	fi
+
+	local keydir="$1"
+	local key="$keydir/id_rsa"
+	if [ -e  "$key" ]; then
+		echo 
+	else
+		if [ ! -d "$keydir" ]; then
+			mkdir $keydir
+		fi
+		ssh-keygen -t rsa -N "" -f $key
+	fi
+}
+
+# @param host user
+# @param host ip
+function ssh_copyPrivateKey(){
+	if [ -z "$1" ] || [ -z "$2" ]; then
+		return 1
+	fi
+	ssh-copy-id $1@$2
+	local retval=$?
+	if [ "$retval" != 0 ]; then
+		cat ~/.ssh/id_rsa.pub | ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
+	fi
+}
