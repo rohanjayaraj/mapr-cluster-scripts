@@ -6,19 +6,25 @@
 #   utilities
 #
 ################
+function getOSFromNode(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    echo "$(ssh root@$1 lsb_release -a | grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2 )"
+}
 
 function getOS(){
-    echo $(lsb_release -a | grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2)
+    echo "$(lsb_release -a | grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2)"
 }
 
 function util_getHostIP(){
-    echo `/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1" | head -n 1 | awk '{print $2}' | cut -c6-`
+    echo "$(/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1" | head -n 1 | awk '{print $2}' | cut -c6-)"
 }
 
 # @param ip_address_string
 function util_validip(){
 	local retval=$(ipcalc -cs $1 && echo valid || echo invalid)
-	echo $retval
+	echo "$retval"
 }
 
 # @param searchkey
@@ -174,7 +180,7 @@ function util_fileExists(){
     if [ -z "$1" ]; then
         return
     fi
-    if [ -e "$1" ]; then
+    if [ -e "$1" ] && [ -f "$1" ]; then
         echo "exists"
     fi
 }

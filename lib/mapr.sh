@@ -16,12 +16,16 @@ function maprutil_getCLDBMasterNode() {
     local master=
     local hostip=$(util_getHostIP)
     if [ -n "$1" ] && [ "$hostip" != "$1" ]; then
-        master=$(ssh_executeCommand "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4")
+        master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
     else
-        master=$(maprcli node cldbmaster | grep HostName | cut -d' ' -f4)
+        master=$(timeout 10 maprcli node cldbmaster | grep HostName | cut -d' ' -f4)
     fi
     if [ ! -z "$master" ]; then
-            echo $master
+            if [[ "$master" =~ ^Killed.* ]] || [[ "$master" =~ ^Terminate.* ]]; then
+                echo
+            else
+                echo $master
+            fi
     fi
 }
 
@@ -264,10 +268,29 @@ function maprutil_installBinariesOnNode(){
     fi
 }
 
+function maprutil_configureMultiMFS(){
+     if [ -z "$1" ]; then
+        return
+    fi
+    local nummfs=$1
+    local failcnt=2;
+    local iter=0;
+    while [ $failcnt -gt 0 ] && [ $iter -lt 5 ]; do
+        failcnt=0;
+        maprcli  config save -values {multimfs.numinstances.pernode:${nummfs}}
+        let failcnt=$failcnt+`echo $?`
+        maprcli  config save -values {multimfs.numsps.perinstance:1}
+        let failcnt=$failcnt+`echo $?`
+        sleep 30;
+        let iter=$iter+1;
+    done
+}
+
 function maprutil_configureNode2(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
     fi
+    local diskfile="/tmp/disklist"
     local hostip=$(util_getHostIP)
     local cldbnodes=$(util_getCommaSeparated "$1")
     local zknodes=$(util_getCommaSeparated "$2")
@@ -278,7 +301,19 @@ function maprutil_configureNode2(){
     /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
 
     #echo "/opt/mapr/server/disksetup -FM /tmp/disklist"
-    /opt/mapr/server/disksetup -FM /tmp/disklist
+    local multimfs=$MULTIMFS
+    if [ -n "$multimfs" ]; then
+        local numdisks=`wc -l $diskfile | cut -f1 -d' '`
+        if [ $multimfs -gt $numdisks ]; then
+            echo "[ERROR] Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
+            multimfs=$numdisks
+        fi
+        local numdiskspermfs=`echo $numdisks/$multimfs|bc`
+        
+        /opt/mapr/server/disksetup -FW $numdiskspermfs $diskfile
+    else
+        /opt/mapr/server/disksetup -FM $diskfile
+    fi
 
     # Start zookeeper
     /etc/init.d/mapr-zookeeper start;
@@ -288,6 +323,9 @@ function maprutil_configureNode2(){
     local cldbnode=$(util_getFirstElement "$1")
     if [ "$hostip" = "$cldbnode" ]; then
         maprutil_applyLicense
+        if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
+            maprutil_configureMultiMFS "$multimfs"
+        fi
     fi
 }
 
@@ -296,7 +334,7 @@ function maprutil_configureNode2(){
 # @param cluster name
 # @param don't wait
 function maprutil_configureNode(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
         return
     fi
      # build full script for node
@@ -307,13 +345,14 @@ function maprutil_configureNode(){
         return
     fi
 
+    local hostip=$(util_getHostIP)
     local cldbnodes=$(maprutil_getCLDBNodes "$2")
     local zknodes=$(maprutil_getZKNodes "$2")
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
+    echo "MULTIMFS=$GLB_MULTI_MFS" >> $scriptpath
     echo "maprutil_configureNode2 \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
-
-    local hostip=$(util_getHostIP)
+   
     if [ "$hostip" != "$1" ]; then
         ssh_executeScriptasRootInBG "$1" "$scriptpath"
         if [ -z "$4" ]; then
@@ -327,6 +366,20 @@ function maprutil_configureNode(){
 function maprutil_getBuildID(){
     local buildid=`yum info mapr-core installed  | grep Version | tr "." " " | awk '{print $6}'`
     echo "$buildid"
+}
+
+function maprutil_copyRepoFile(){
+     if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local node=$1
+    local repofile=$2
+    local nodeos=$(getOSFromNode $node)
+    if [ "$nodeos" = "centos" ]; then
+        ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/"
+    elif [ "$nodeos" = "ubuntu" ]; then
+         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
+    fi
 }
 
 function maprutil_applyLicense(){

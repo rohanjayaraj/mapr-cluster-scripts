@@ -14,13 +14,18 @@ function ssh_check(){
 		return 1
 	fi
 	
-	local retval=$(ssh -oBatchMode=yes -l $1 $2 exit)
+	local retval=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=no -l $1 $2 exit)
 	retval=$?
 	if [ "$retval" = 0 ]; then
 		echo "enabled"
 	else
 		echo "disabled"
 	fi
+}
+
+# Install sshpass
+function ssh_installsshpass(){
+	command -v sshpass >/dev/null 2>&1 || yum install sshpass -y -q
 }
 
 # @param user
@@ -32,7 +37,40 @@ function ssh_executeCommand(){
 	fi
 	
 	local retval=$(ssh $1@$2 $3)
-	echo $retval
+	echo "$retval"
+}
+
+# @param user
+# @param host ip
+# @param local file/dir to copy
+# @param remote file/dir to copy
+function ssh_copyCommand(){
+	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+		return 1
+	fi
+	local isdir=
+	if [ -e "$3" ] && [ -d "$3" ]; then
+		isdir="-r"
+	fi
+	
+	local retval=$(scp $isdir $3 $1@$2:$4)
+	echo "$retval"
+}
+
+# @param host ip
+# @param local file/dir to copy
+# @param remote file/dir to copy
+function ssh_copyCommandasRoot(){
+	ssh_copyCommand "root" "$1" "$2" "$3"
+}
+
+function ssh_executeCommandWithTimeout(){
+	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+		return 1
+	fi
+	
+	local retval=$(timeout $4 ssh $1@$2 $3)
+	echo "$retval"
 }
 
 # @param host ip
@@ -50,7 +88,7 @@ function ssh_executeScript(){
 	fi
 	
 	local retval=$(ssh $1@$2 'bash -s' < $3)
-	echo $retval
+	echo "$retval"
 }
 
 # @param host ip
@@ -106,9 +144,19 @@ function ssh_copyPrivateKey(){
 	if [ -z "$1" ] || [ -z "$2" ]; then
 		return 1
 	fi
-	ssh-copy-id $1@$2
-	local retval=$?
-	if [ "$retval" != 0 ]; then
-		cat ~/.ssh/id_rsa.pub | ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
+	sshpass -pmapr ssh -o StrictHostKeyChecking=no -l $1 $2 exit
+	local sshpassret=$?
+	if [ "$sshpassret" -eq 0 ]; then
+		local sshpval=$(sshpass -pmapr ssh-copy-id $1@$2)
+		local retval=$?
+		if [ "$retval" != 0 ]; then
+			cat ~/.ssh/id_rsa.pub | sshpass -pmapr ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
+		fi
+	else
+		local sshpval=$(ssh-copy-id $1@$2)
+		local retval=$?
+		if [ "$retval" != 0 ]; then
+			cat ~/.ssh/id_rsa.pub | ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
+		fi
 	fi
 }

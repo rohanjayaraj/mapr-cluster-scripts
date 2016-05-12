@@ -3,9 +3,11 @@
 
 ################  
 #
-#   Main Script
+#   Main Executor Script
 #
 ################
+
+#set -x
 
 basedir=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 #echo "BASEDIR : $basedir"
@@ -16,7 +18,7 @@ if [ "$isLibDir" = "/lib" ]; then
 	len=`expr $basedirlen - 4`
 	basedir=${basedir:0:$len}
 fi
-echo "BASEDIR : $basedir"
+#echo "BASEDIR : $basedir"
 
 libdir=$basedir"/lib"
 repodir=$basedir"/repo"
@@ -29,22 +31,22 @@ do
   	continue
   fi
   #echo "Souring : $srcfile"
-
   source $srcfile
 done
 
 
 # Get the roles files
-# first check $1 file exists
-rolefile=$rolesdir"/"$1
+rolefile=$1
 if [ -z "$(util_fileExists $rolefile)" ]; then
-	rolefile=$rolesdir"/mapr_roles."$1
+	rolefile=$rolesdir"/"$1
 	if [ -z "$(util_fileExists $rolefile)" ]; then
-		echo "Role file specified doesn't exist. Scooting!"
-		exit 1
+		rolefile=$rolesdir"/mapr_roles."$1
+		if [ -z "$(util_fileExists $rolefile)" ]; then
+			echo "Role file specified doesn't exist. Scooting!"
+			exit 1
+		fi
 	fi
 fi
-
 
 # Fetch the nodes to be configured
 echo "Using cluster coniguration file : $rolefile "
@@ -72,6 +74,9 @@ if [ -z "$keyexists" ]; then
 #	echo "SSH key exists"
 fi
 
+# Install sshpass if not already there
+ssh_installsshpass
+
 # Check if SSH is configured
 #echo "Checking Key-based authentication to all nodes listed... "
 for node in ${nodes[@]}
@@ -83,10 +88,14 @@ do
 	fi
 done
 
+# Global Variables
+GLB_CLUSTER_NAME="archerx"
+GLB_MULTI_MFS=
 
 ############################### ALL functions to be defined below this ###############################
 
 function main_install(){
+	#set -x
 	# Warn user 
 	echo
 	echo "Installing MapR on the following N-O-D-E-S : "
@@ -123,30 +132,20 @@ function main_install(){
 		exit 1
 	fi
 
-	# Copy mapr.repo if it doen't exist
-
-
 	# Read properties
-	local clustername="archerx"
-
-	# Identify CLDB Master
-	#local cldbnode=$(util_getFirstElement "$(maprutil_getCLDBNodes "$rolefile")")
-
-	#echo "CLDB Node : $cldbnode"
-
-	# Install MapR on CLDB Node
-	#local cldbbins=$(maprutil_getNodeBinaries "$rolefile" "$cldbnode")
-	#maprutil_installBinariesOnNode "$cldbnode" "$cldbbins"
-	#maprutil_configureNode "$cldbnode" "$rolefile" "$clustername"
+	local clustername=$GLB_CLUSTER_NAME
 
 	# Install required binaries on other nodes
+	local maprrepo=$repodir"/mapr.repo"
 	for node in ${nodes[@]}
 	do
-		#if [ "$node" != "$cldbnode" ]; then
-			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
-			maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
-			sleep 2
-		#fi
+		# Copy mapr.repo if it doen't exist
+		maprutil_copyRepoFile "$node" "$maprrepo"
+		
+		local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
+		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
+		sleep 2
+		
 	done
 	wait
 
@@ -169,6 +168,8 @@ function main_install(){
 
 
 	# Execute post install script 
+
+	#set +x
 
 }
 
@@ -213,28 +214,43 @@ function main_uninstall(){
 	fi
 
 	local cldbnode=
+	local nocldblist=
 	# Check if each node points to the same CLDB master and the master is part of the cluster
 	for node in ${nodes[@]}
 	do
 		local cldbhost=$(maprutil_getCLDBMasterNode "$node")
-		local cldbip=$(util_getIPfromHostName "$cldbhost")
-		local isone="false"
-		for nd in ${nodes[@]}
-		do
-			if [ "$nd" = "$cldbip" ]; then
-				isone="true"
-				break
-			fi
-		done
-		if [ "$isone" = "false" ]; then
-			echo " Node [$node] is not part of the same cluster. Scooting"
-			#exit 1
+		if [ -z "$cldbhost" ]; then
+			echo " Unable to identifiy CLDB master on node [$node]"
+			nocldblist=$nocldblist$node" "
 		else
-			cldbnode="$cldbip"
+			local cldbip=$(util_getIPfromHostName "$cldbhost")
+			local isone="false"
+			for nd in ${nodes[@]}
+			do
+				if [ "$nd" = "$cldbip" ]; then
+					isone="true"
+					break
+				fi
+			done
+			if [ "$isone" = "false" ]; then
+				echo " Node [$node] is not part of the same cluster. Scooting"
+				exit 1
+			else
+				cldbnode="$cldbip"
+			fi
 		fi
 	done
 
-	echo "CLDB Master : $cldbnode"
+	if [ -n "$nocldblist" ]; then
+		echo "{WARNING} CLDB not found on nodes [$nocldblist]. May be uninstalling another cluster's nodes."
+		read -p "Press 'y' to confirm... " -n 1 -r
+	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+	    	echo "Over & Out!"
+	    	return
+	    fi
+	else
+		echo "CLDB Master : $cldbnode"
+	fi
 
 	# Start MapR Unistall for each node
 	local hostip=$(util_getHostIP)
@@ -275,18 +291,32 @@ function main_usage () {
     
 }
 
+doInstall=0
+doUninstall=0
+
 while [ "$2" != "" ]; do
-    OPTION=`echo $2`
+	OPTION=`echo $2 | awk -F= '{print $1}'`
+    VALUE=`echo $2 | awk -F= '{print $2}'`
     case $OPTION in
         h | help)
             main_usage
             exit
-            ;;
+        ;;
     	install)
-    		main_install
+    		doInstall=1
     	;;
     	uninstall)
-    		main_uninstall
+    		doUninstall=1
+    	;;
+    	-c)
+			if [ -n "$VALUE" ]; then
+    			GLB_CLUSTER_NAME=$VALUE
+    		fi
+    	;;
+    	-m)
+			if [ -n "$VALUE" ]; then
+    			GLB_MULTI_MFS=$VALUE
+    		fi
     	;;
         *)
             echo "ERROR: unknown option \"$OPTION\""
@@ -297,4 +327,11 @@ while [ "$2" != "" ]; do
     shift
 done
 
+if [ "$doInstall" -eq 1 ]; then
+	echo " *************** Starting Cluster Installation **************** "
+	main_install
+elif [ "$doUninstall" -eq 1 ]; then
+	echo " *************** Starting Cluster Uninstallation **************** "
+	main_uninstall
+fi
 #echo "Completed!"
