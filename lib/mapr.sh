@@ -302,7 +302,7 @@ function maprutil_configureNode2(){
 
     #echo "/opt/mapr/server/disksetup -FM /tmp/disklist"
     local multimfs=$MULTIMFS
-    if [ -n "$multimfs" ]; then
+    if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
         local numdisks=`wc -l $diskfile | cut -f1 -d' '`
         if [ $multimfs -gt $numdisks ]; then
             echo "[ERROR] Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
@@ -326,6 +326,22 @@ function maprutil_configureNode2(){
         if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
             maprutil_configureMultiMFS "$multimfs"
         fi
+        maprutil_configureTopology
+    fi
+}
+
+function maprutil_configureTopology(){
+    local clustersize=`maprcli node list -json | grep 'id'| wc -l`
+    local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
+    maprcli node move -serverids "$datanodes" -topology /data
+    if [ $clustersize -gt 1 ]; then
+        ### Moving CLDB Node to CLDB topology
+        local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
+        maprcli node move -serverids "$cldbnode" -topology /cldb
+        sleep 5;
+        ### Moving CLDB Volume as well
+        maprcli volume move -name mapr.cldb.internal -topology /cldb
+        sleep 5;
     fi
 }
 
@@ -383,7 +399,7 @@ function maprutil_copyRepoFile(){
 }
 
 function maprutil_applyLicense(){
-    wget http://stage.mapr.com/license/LatestDemoLicense-M7.txt --user=maprqa --password=maprqa -O /tmp/LatestDemoLicense-M7.txt
+    wget http://stage.mapr.com/license/LatestDemoLicense-M7.txt --user=maprqa --password=maprqa -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
     local buildid=$(maprutil_getBuildID)
     local i=0
     local jobs=1

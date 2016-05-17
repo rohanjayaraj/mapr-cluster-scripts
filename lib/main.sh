@@ -111,7 +111,7 @@ function main_install(){
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     	echo
     	echo "Abandoning install! "
-        return
+        return 1
     else
     	echo
     fi
@@ -141,7 +141,7 @@ function main_install(){
 	do
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo"
-		
+
 		local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
 		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
 		sleep 2
@@ -166,9 +166,6 @@ function main_install(){
 
 	# Perform custom executions
 
-
-	# Execute post install script 
-
 	#set +x
 
 }
@@ -190,7 +187,7 @@ function main_uninstall(){
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     	echo
     	echo "Uninstall C-A-N-C-E-L-L-E-D! "
-        return
+        return 1
     else
     	echo
     fi
@@ -274,6 +271,17 @@ function main_uninstall(){
 	echo "Uninstall is complete!"
 }
 
+function main_createYCSBVolume () {
+	maprcli volume create -name tables -path /tables -replication 3 -topology /data
+	hadoop mfs -setcompression off /tables
+}
+
+function main_createTableWithCompression(){
+	main_createYCSBVolume
+	maprcli table create -path /tables/usertable
+	maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1
+}
+
 function main_usage () {
 	local me=$(basename $BASH_SOURCE)
 	echo 
@@ -293,10 +301,13 @@ function main_usage () {
 
 doInstall=0
 doUninstall=0
+doYCSBVolCreate=0
+doTableCreate=0
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
     VALUE=`echo $2 | awk -F= '{print $2}'`
+    #echo "OPTION : $OPTION; VALUE : $VALUE"
     case $OPTION in
         h | help)
             main_usage
@@ -307,6 +318,16 @@ while [ "$2" != "" ]; do
     	;;
     	uninstall)
     		doUninstall=1
+    	;;
+    	-e)
+			for i in ${VALUE}; do
+				#echo " extra option : $i"
+				if [ "$i" = "ycsb" ]; then
+    				doYCSBVolCreate=1
+    			elif [[ "$i" = "tablecreate" ]]; then
+    				doTableCreate=1
+    			fi
+    		done
     	;;
     	-c)
 			if [ -n "$VALUE" ]; then
@@ -333,5 +354,20 @@ if [ "$doInstall" -eq 1 ]; then
 elif [ "$doUninstall" -eq 1 ]; then
 	echo " *************** Starting Cluster Uninstallation **************** "
 	main_uninstall
+fi
+
+exitcode=`echo $?`
+if [ "$exitcode" -ne 0 ]; then
+	#echo "exiting with exit code $exitcode"
+	exit
+fi
+
+if [ "$doYCSBVolCreate" -eq 1 ]; then
+	echo " *************** Creating YCSB Volume **************** "
+	main_createYCSBVolume
+fi
+if [ "$doTableCreate" -eq 1 ]; then
+	echo " *************** Creating UserTable (/tables/usertable) **************** "
+	main_createTableWithCompression
 fi
 #echo "Completed!"
