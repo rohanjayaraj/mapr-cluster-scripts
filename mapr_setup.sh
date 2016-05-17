@@ -108,3 +108,4 @@ if [[ "$setupop" =~ ^uninstall.* ]]; then
 	exit
 fi
 
+echo "Setup Complete!"

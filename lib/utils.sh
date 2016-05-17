@@ -18,7 +18,14 @@ function getOS(){
 }
 
 function util_getHostIP(){
-    echo "$(/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1" | head -n 1 | awk '{print $2}' | cut -c6-)"
+    local ipadd=$(/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1" | head -n 1 | awk '{print $2}' | cut -c6-)
+    if [ -z "$ipadd" ]; then
+        ipadd=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
+    fi
+    if [ -z "$ipadd" ] && [ -n "$HOSTIP" ]; then
+        ipadd=$HOSTIP
+    fi
+    echo "$ipadd"
 }
 
 # @param ip_address_string
@@ -64,7 +71,7 @@ function util_removeBinaries(){
     bins=$(util_getInstalledBinaries $1)
     echo "[$(util_getHostIP)] Removing packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
-        rpm -e $bins
+        rpm -ef $bins
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         dpkg -r $bins
     fi
@@ -98,15 +105,15 @@ function util_kill(){
             let i=i+1 
         fi
         if [ -z "$ignore" ]; then
-            ignore =  "grep -vi \""$i"\""
+            ignore="grep -vi \""$i"\""
         else
             ignore=$ignore"| grep -vi \""$i"\""
         fi
     done
     if [ -z "$ignore" ]; then
-        ps aux | grep $1 | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9
+        ps aux | grep $1 | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 2>/dev/null
     else
-        ps aux | grep $1 | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9
+        ps aux | grep $1 | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 2>/dev/null
     fi
 }
 
@@ -114,7 +121,7 @@ function util_kill(){
 # @param path to copy
 # @param script to ignore
 function util_builtSingleScript(){
-    if [ -z "$1" ] || [ -z "$2" ]; then
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return 1
     fi
     local script=$2
@@ -137,7 +144,10 @@ function util_builtSingleScript(){
       echo >> $script
     done
 
-    echo  >> $script
+    echo >> $script
+    echo >> $script
+    echo >> $script
+    echo "HOSTIP=$3" >> $script
     return 0
 }
 
@@ -235,8 +245,9 @@ function util_getFirstElement(){
     for val in ${vals[@]}
     do
         echo "$val"
-        break
+        return
     done
+    echo "$vals"
 }
 
 # @param space separated string values
@@ -254,6 +265,9 @@ function util_getCommaSeparated(){
             retval=$retval","$val
         fi
     done
+    if [ -z "$retval" ]; then
+        retval=$vals
+    fi
     echo $retval
 }
 

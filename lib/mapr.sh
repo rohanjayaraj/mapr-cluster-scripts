@@ -125,25 +125,22 @@ function maprutil_removedirs(){
         return
     fi
 
-    while [ "$1" != "" ]; do
-        local OPTION=`echo $1 | awk -F= '{print substr($1,2)}'`
-        case $OPTION in
-            all)
-                rm -rfv $(maprutil_knowndirs)
-                rm -rfv $(maprutil_tempdirs)
-               ;;
-             known)
-                rm -rfv $(maprutil_knowndirs)
-               ;;
-             temp)
-                rm -rfv $(maprutil_tempdirs)
-               ;;
-            *)
-                echo "ERROR: unknown parameter \"$PARAM\""
-                ;;
-        esac
-        shift
-    done
+   case $OPTION in
+        all)
+            rm -rfv $(maprutil_knowndirs)
+            rm -rfv $(maprutil_tempdirs)
+           ;;
+         known)
+            rm -rfv $(maprutil_knowndirs)
+           ;;
+         temp)
+            rm -rfv $(maprutil_tempdirs)
+           ;;
+        *)
+            echo "ERROR: unknown parameter passed to removedirs \"$PARAM\""
+            ;;
+    esac
+       
 }
 
 # @param host ip
@@ -154,7 +151,7 @@ function maprutil_isMapRInstalledOnNode(){
     
     # build full script for node
     local scriptpath="/tmp/isinstalled.sh"
-    util_builtSingleScript "$lib_dir" "$scriptpath" 
+    util_builtSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
@@ -187,10 +184,10 @@ function maprutil_isNodePartofCluster(){
 function maprutil_uninstallNode2(){
     
     # Stop warden
-    /etc/init.d/mapr-warden stop
+    service mapr-warden stop
 
     # Stop zookeeper
-    /etc/init.d/mapr-zookeeper stop
+    service mapr-zookeeper stop  2>/dev/null
 
     # Remove MapR Binaries
     maprutil_removemMapRPackages
@@ -218,7 +215,7 @@ function maprutil_uninstallNode(){
     
     # build full script for node
     local scriptpath="/tmp/uninstallnode.sh"
-    util_builtSingleScript "$lib_dir" "$scriptpath" 
+    util_builtSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
@@ -316,9 +313,9 @@ function maprutil_configureNode2(){
     fi
 
     # Start zookeeper
-    /etc/init.d/mapr-zookeeper start;
+    service mapr-zookeeper start 2>/dev/null
     
-    /etc/init.d/mapr-warden restart
+    service mapr-warden restart
 
     local cldbnode=$(util_getFirstElement "$1")
     if [ "$hostip" = "$cldbnode" ]; then
@@ -355,7 +352,7 @@ function maprutil_configureNode(){
     fi
      # build full script for node
     local scriptpath="/tmp/configurenode.sh"
-    util_builtSingleScript "$lib_dir" "$scriptpath" 
+    util_builtSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
