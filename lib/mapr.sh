@@ -244,7 +244,7 @@ function maprutil_installBinariesOnNode(){
     
     # build full script for node
     local scriptpath="/tmp/installbinnode.sh"
-    util_builtSingleScript "$lib_dir" "$scriptpath" 
+    util_builtSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return

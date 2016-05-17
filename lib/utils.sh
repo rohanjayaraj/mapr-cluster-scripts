@@ -268,7 +268,7 @@ function util_getCommaSeparated(){
     if [ -z "$retval" ]; then
         retval=$vals
     fi
-    echo $retval
+    echo "$retval"
 }
 
 
