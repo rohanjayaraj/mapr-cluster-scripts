@@ -25,7 +25,7 @@ function ssh_check(){
 
 # Install sshpass
 function ssh_installsshpass(){
-	command -v sshpass >/dev/null 2>&1 || yum install sshpass -y -q
+	command -v sshpass >/dev/null 2>&1 || yum install sshpass -y -q 2>/dev/null
 }
 
 # @param user
@@ -134,7 +134,7 @@ function ssh_createkey(){
 		if [ ! -d "$keydir" ]; then
 			mkdir $keydir
 		fi
-		ssh-keygen -t rsa -N "" -f $key
+		ssh-keygen -t rsa -N "" -f $key 2>/dev/null
 	fi
 }
 
