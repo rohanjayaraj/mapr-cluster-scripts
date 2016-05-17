@@ -1,7 +1,6 @@
 #MapR Cluster Management Scripts
 
-Single 
-
+MapR cluster setup with a single bash script
 
 ## Steps:
 * Create a role file similar to the sample file [roles](roles/mapr_roles.maprdb).
