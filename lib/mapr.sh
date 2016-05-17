@@ -125,7 +125,7 @@ function maprutil_removedirs(){
         return
     fi
 
-   case $OPTION in
+   case $1 in
         all)
             rm -rfv $(maprutil_knowndirs)
             rm -rfv $(maprutil_tempdirs)
