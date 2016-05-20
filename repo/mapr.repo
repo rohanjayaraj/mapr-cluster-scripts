@@ -8,7 +8,7 @@ protect=1
 [MapRv5.x-Ecosystem]
 name=MapR Technologies
 baseurl=http://package.mapr.com/releases/ecosystem-5.x/redhat
-enabled=0
+enabled=1
 gpgcheck=0
 protect=1
 

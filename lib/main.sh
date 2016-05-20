@@ -88,9 +88,14 @@ do
 	fi
 done
 
-# Global Variables
+trap stopall SIGHUP SIGINT SIGTERM SIGKILL
+
+# Global Variables : All need to start with 'GLB_' as they are replayed back to other cluster nodes during setup
 GLB_CLUSTER_NAME="archerx"
 GLB_MULTI_MFS=
+GLB_TABLE_NS=
+GLB_PONTIS=
+GLB_BG_PIDS=
 
 ############################### ALL functions to be defined below this ###############################
 
@@ -206,8 +211,12 @@ function main_uninstall(){
 	done
 
 	if [ -n "$notlist" ]; then
-		echo "MapR not installed on the node(s) [ $notlist]. Scooting!"
-		exit 1
+		if [ "$doForce" -eq 0 ]; then
+			echo "MapR not installed on the node(s) [ $notlist]. Scooting!"
+			exit 1
+		else
+			echo "MapR not installed on the node(s) [ $notlist]."
+		fi
 	fi
 
 	local cldbnode=
@@ -230,8 +239,12 @@ function main_uninstall(){
 				fi
 			done
 			if [ "$isone" = "false" ]; then
-				echo " Node [$node] is not part of the same cluster. Scooting"
-				exit 1
+				if [ "$doForce" -eq 0 ]; then
+					echo " Node [$node] is not part of the same cluster. Scooting"
+					exit 1
+				else
+					echo " Node [$node] is not part of the same cluster"
+				fi
 			else
 				cldbnode="$cldbip"
 			fi
@@ -282,6 +295,16 @@ function main_createTableWithCompression(){
 	maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1
 }
 
+function stopall() {
+	local me=$(basename $BASH_SOURCE)
+    echo "$me script interrupted!!! Stopping... "
+    for i in $GLB_BG_PIDS
+    do
+        echo "[$me] kill -9 $i"
+        kill -9 $i 2>/dev/null
+    done
+}
+
 function main_usage () {
 	local me=$(basename $BASH_SOURCE)
 	echo 
@@ -303,6 +326,8 @@ doInstall=0
 doUninstall=0
 doYCSBVolCreate=0
 doTableCreate=0
+doPontis=0
+doForce=0
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
@@ -326,6 +351,10 @@ while [ "$2" != "" ]; do
     				doYCSBVolCreate=1
     			elif [[ "$i" = "tablecreate" ]]; then
     				doTableCreate=1
+    			elif [[ "$i" = "force" ]]; then
+    				doForce=1
+    			elif [[ "$i" = "pontis" ]]; then
+    				GLB_PONTIS=1
     			fi
     		done
     	;;
@@ -337,6 +366,11 @@ while [ "$2" != "" ]; do
     	-m)
 			if [ -n "$VALUE" ]; then
     			GLB_MULTI_MFS=$VALUE
+    		fi
+    	;;
+    	-n)
+			if [ -n "$VALUE" ]; then
+    			GLB_TABLE_NS=$VALUE
     		fi
     	;;
         *)

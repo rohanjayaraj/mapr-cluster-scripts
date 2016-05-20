@@ -209,7 +209,7 @@ function maprutil_uninstallNode2(){
 
 # @param host ip
 function maprutil_uninstallNode(){
-    if [ -z "$1" ] ; then
+    if [ -z "$1" ]; then
         return
     fi
     
@@ -229,6 +229,7 @@ function maprutil_uninstallNode(){
     local hostip=$(util_getHostIP)
     if [ "$hostip" != "$1" ]; then
         ssh_executeScriptasRootInBG "$1" "$scriptpath"
+        maprutil_addToPIDList "$!"
     else
         maprutil_uninstallNode2
     fi
@@ -257,6 +258,7 @@ function maprutil_installBinariesOnNode(){
     local hostip=$(util_getHostIP)
     if [ "$hostip" != "$1" ]; then
         ssh_executeScriptasRootInBG "$1" "$scriptpath"
+        maprutil_addToPIDList "$!"
         if [ -z "$3" ]; then
             wait
         fi
@@ -283,6 +285,70 @@ function maprutil_configureMultiMFS(){
     done
 }
 
+function maprutil_configurePontis(){
+    sed -i 's|mfs.cache.lru.sizes=|#mfs.cache.lru.sizes=|g' /opt/mapr/conf/mfs.conf
+    # Adding Specific Cache Settings
+    cat >> /opt/mapr/conf/mfs.conf << EOL
+#[PONTIS]
+mfs.cache.lru.sizes=inode:3:log:3:dir:3:meta:3:small:5:db:5:valc:1
+EOL
+}
+
+# @param filename
+# @param table namespace 
+function maprutil_addTableNS(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local filelist=$(find /opt/mapr/ -name $1 -type f ! -path "*/templates/*")
+    local tablens=$2
+    for i in $filelist; do
+        local present=$(cat $i | grep "hbase.table.namespace.mappings")
+        if [ -n "$present" ]; then
+            continue;
+        fi
+        sed -i '/<\/configuration>/d' $i
+        cat >> $i << EOL
+    <!-- MapRDB -->
+    <property>
+        <name>hbase.table.namespace.mappings</name>
+        <value>*:${tablens}</value>
+    </property>
+</configuration>
+EOL
+    done
+}
+
+
+function maprutil_customConfigure(){
+
+    local tablens=$GLB_TABLE_NS
+    if [ -n "$tablens" ]; then
+        maprutil_addTableNS "core-site.xml" "$tablens"
+        maprutil_addTableNS "hbase-site.xml" "$tablens"
+    fi
+
+    local pontis=$GLB_PONTIS
+    if [ -n "$pontis" ]; then
+        maprutil_configurePontis
+    fi 
+}
+
+function maprutil_configureTopology(){
+    local clustersize=`maprcli node list -json | grep 'id'| wc -l`
+    local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
+    maprcli node move -serverids "$datanodes" -topology /data
+    if [ $clustersize -gt 1 ]; then
+        ### Moving CLDB Node to CLDB topology
+        local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
+        maprcli node move -serverids "$cldbnode" -topology /cldb
+        sleep 5;
+        ### Moving CLDB Volume as well
+        maprcli volume move -name mapr.cldb.internal -topology /cldb
+        sleep 5;
+    fi
+}
+
 function maprutil_configureNode2(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
@@ -298,7 +364,7 @@ function maprutil_configureNode2(){
     /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
 
     #echo "/opt/mapr/server/disksetup -FM /tmp/disklist"
-    local multimfs=$MULTIMFS
+    local multimfs=$GLB_MULTI_MFS
     if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
         local numdisks=`wc -l $diskfile | cut -f1 -d' '`
         if [ $multimfs -gt $numdisks ]; then
@@ -312,6 +378,9 @@ function maprutil_configureNode2(){
         /opt/mapr/server/disksetup -FM $diskfile
     fi
 
+    # Perform series of custom configuration based on selected options
+    maprutil_customConfigure
+
     # Start zookeeper
     service mapr-zookeeper start 2>/dev/null
     
@@ -324,21 +393,6 @@ function maprutil_configureNode2(){
             maprutil_configureMultiMFS "$multimfs"
         fi
         maprutil_configureTopology
-    fi
-}
-
-function maprutil_configureTopology(){
-    local clustersize=`maprcli node list -json | grep 'id'| wc -l`
-    local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
-    maprcli node move -serverids "$datanodes" -topology /data
-    if [ $clustersize -gt 1 ]; then
-        ### Moving CLDB Node to CLDB topology
-        local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
-        maprcli node move -serverids "$cldbnode" -topology /cldb
-        sleep 5;
-        ### Moving CLDB Volume as well
-        maprcli volume move -name mapr.cldb.internal -topology /cldb
-        sleep 5;
     fi
 }
 
@@ -363,11 +417,18 @@ function maprutil_configureNode(){
     local zknodes=$(maprutil_getZKNodes "$2")
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
-    echo "MULTIMFS=$GLB_MULTI_MFS" >> $scriptpath
+    local glbvars=$( set -o posix ; set  | grep GLB_)
+    for i in $glbvars
+    do
+        echo "$i" >> $scriptpath
+    done
+    #echo "GLB_MULTI_MFS=$GLB_MULTI_MFS" >> $scriptpath
+    #echo "GLB_TABLE_NS=\"$GLB_TABLE_NS\"" >> $scriptpath
     echo "maprutil_configureNode2 \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
    
     if [ "$hostip" != "$1" ]; then
         ssh_executeScriptasRootInBG "$1" "$scriptpath"
+        maprutil_addToPIDList "$!"
         if [ -z "$4" ]; then
             wait
         fi
@@ -391,7 +452,7 @@ function maprutil_copyRepoFile(){
     if [ "$nodeos" = "centos" ]; then
         ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/"
     elif [ "$nodeos" = "ubuntu" ]; then
-         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
+        ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
     fi
 }
 
@@ -424,7 +485,7 @@ function maprutil_applyLicense(){
 
 ## @param optional hostip
 function maprutil_restartWardenOnNode() {
-     if [ -z "$1" ]; then
+    if [ -z "$1" ]; then
         return
     fi
     local hostip=$(util_getHostIP)
@@ -438,6 +499,18 @@ function maprutil_restartWardenOnNode() {
 function maprutil_removemMapRPackages(){
    
     util_removeBinaries "mapr-"
+}
+
+# @param PID 
+function maprutil_addToPIDList(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    if [ -z "$GLB_BG_PIDS" ]; then
+        GLB_BG_PIDS=$1
+    else
+        GLB_BG_PIDS=$GLB_BG_PIDS" "$1
+    fi
 }
 
 ### 
