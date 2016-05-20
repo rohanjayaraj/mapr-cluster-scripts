@@ -19,11 +19,9 @@
 
 #### TODO:
 1. Full support for Ubuntu
-..* Repo file for ubuntu
-..* Binary add/remove
-..* Ttesting
+  * Repo file for ubuntu
+  * Binary add/remove
+  * Testing
 2. Automatically enable/disable required repo based on the command line input
-3. Support custom configurations on the cluster nodes
-4. Reduce errors logged on stdout
-5. Read certain configs from a conf/env file
-6. Support install of binaries from a local dir
+3. Read certain configs from a conf/env file
+4. Support install of binaries from a local dir
