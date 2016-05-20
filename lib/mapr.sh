@@ -274,7 +274,7 @@ function maprutil_configureMultiMFS(){
     local nummfs=$1
     local failcnt=2;
     local iter=0;
-    while [ $failcnt -gt 0 ] && [ $iter -lt 5 ]; do
+    while [ "$failcnt" -gt 0 ] && [ "$iter" -lt 5 ]; do
         failcnt=0;
         maprcli  config save -values {multimfs.numinstances.pernode:${nummfs}}
         let failcnt=$failcnt+`echo $?`
@@ -338,7 +338,7 @@ function maprutil_configureTopology(){
     local clustersize=`maprcli node list -json | grep 'id'| wc -l`
     local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
     maprcli node move -serverids "$datanodes" -topology /data
-    if [ $clustersize -gt 1 ]; then
+    if [ "$clustersize" -gt 1 ]; then
         ### Moving CLDB Node to CLDB topology
         local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
         maprcli node move -serverids "$cldbnode" -topology /cldb
@@ -367,7 +367,7 @@ function maprutil_configureNode2(){
     local multimfs=$GLB_MULTI_MFS
     if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
         local numdisks=`wc -l $diskfile | cut -f1 -d' '`
-        if [ $multimfs -gt $numdisks ]; then
+        if [ "$multimfs" -gt "$numdisks" ]; then
             echo "[ERROR] Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
             multimfs=$numdisks
         fi
@@ -454,6 +454,96 @@ function maprutil_copyRepoFile(){
     elif [ "$nodeos" = "ubuntu" ]; then
         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
     fi
+}
+
+# @param host node
+# @param ycsb/tablecreate
+function maprutil_runCommandsOnNode(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    
+    local node=$1
+    
+     # build full script for node
+    local scriptpath="/tmp/cmdonnode.sh"
+    util_builtSingleScript "$lib_dir" "$scriptpath" "$node"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    local hostip=$(util_getHostIP)
+    echo >> $scriptpath
+    echo "##########  Adding execute steps below ########### " >> $scriptpath
+    
+    echo "maprutil_runCommands \"$2\"" >> $scriptpath
+   
+    if [ "$hostip" != "$node" ]; then
+        ssh_executeScriptasRoot "$node" "$scriptpath"
+    else
+        maprutil_runCommands "$2"
+    fi
+}
+
+# @param command
+function maprutil_runMapRCmd(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local cmd=`$1 > /dev/null;echo $?`;
+    local i=0
+    while [ "${cmd}" -ne "0" ]; do
+        sleep 5
+        let i=i+1
+        if [ "$i" -gt 3 ]; then
+            echo "Failed to run command [ $1 ]"
+           return
+        fi
+    done
+}
+
+function maprutil_runCommands(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    for i in $1
+    do
+        case $i in
+            ycsb)
+                maprutil_createYCSBVolume
+            ;;
+            tablecreate)
+                maprutil_createTableWithCompressionOff
+            ;;
+            tablelz4)
+                maprutil_createTableWithCompression
+            ;;
+             *)
+            echo "Nothing to do!!"
+            ;;
+        esac
+    done
+}
+
+function maprutil_createYCSBVolume () {
+    echo " *************** Creating YCSB Volume **************** "
+    maprutil_runMapRCmd "maprcli volume create -name tables -path /tables -replication 3 -topology /data"
+    maprutil_runMapRCmd "hadoop mfs -setcompression off /tables"
+}
+
+function maprutil_createTableWithCompression(){
+    echo " *************** Creating UserTable (/tables/usertable) with lz4 compression **************** "
+    maprutil_createYCSBVolume
+    maprutil_runMapRCmd "maprcli table create -path /tables/usertable"
+    maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1"
+}
+
+function maprutil_createTableWithCompressionOff(){
+    echo " *************** Creating UserTable (/tables/usertable) with compression off **************** "
+    maprutil_createYCSBVolume
+    maprutil_runMapRCmd "maprcli table create -path /tables/usertable"
+    maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression off -maxversions 1"
 }
 
 function maprutil_applyLicense(){

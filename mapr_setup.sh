@@ -76,7 +76,9 @@ function usage () {
     echo -e "\t -y | --ycsbvol" 
     echo -e "\t\t - Create YCSB related volumes "
     echo -e "\t -t | --tablecreate" 
-    echo -e "\t\t - Create usertable with lz4 compression "
+    echo -e "\t\t - Create /tables/usertable [cf->family] with compression off"
+    echo -e "\t -tlz | --tablelz4" 
+    echo -e "\t\t - Create /tables/usertable [cf->family] with lz4 compression"
     echo -e "\t -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
     echo -e "\t -f | --force" 
@@ -120,6 +122,9 @@ while [ "$1" != "" ]; do
     	-t | --tablecreate)
 			extraarg=$extraarg"tablecreate "
     	;;
+        -tlz | --tablelz4)
+            extraarg=$extraarg"tablelz4 "
+        ;;
         -p | --pontis)
             extraarg=$extraarg"pontis "
         ;;
@@ -146,11 +151,11 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-	$libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-n=$tablens"
+    $libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-n=$tablens"
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then
 	exit
 fi
 
-echo "Setup Complete!"
+echo "DONE!"

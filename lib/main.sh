@@ -88,7 +88,7 @@ do
 	fi
 done
 
-trap stopall SIGHUP SIGINT SIGTERM SIGKILL
+trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 
 # Global Variables : All need to start with 'GLB_' as they are replayed back to other cluster nodes during setup
 GLB_CLUSTER_NAME="archerx"
@@ -284,18 +284,22 @@ function main_uninstall(){
 	echo "Uninstall is complete!"
 }
 
-function main_createYCSBVolume () {
-	maprcli volume create -name tables -path /tables -replication 3 -topology /data
-	hadoop mfs -setcompression off /tables
+function main_runCommandExec(){
+	if [ -z "$1" ]; then
+        return
+    fi
+    local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	local cldbnode=$(util_getFirstElement "$cldbnodes")
+	local isInstalled=$(maprutil_isMapRInstalledOnNode "$cldbnode")
+	if [ "$isInstalled" = "false" ]; then
+		echo "{ERROR} MapR is not installed on the cluster"
+		return
+	fi
+	
+	maprutil_runCommandsOnNode "$cldbnode" "$1"
 }
 
-function main_createTableWithCompression(){
-	main_createYCSBVolume
-	maprcli table create -path /tables/usertable
-	maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1
-}
-
-function stopall() {
+function main_stopall() {
 	local me=$(basename $BASH_SOURCE)
     echo "$me script interrupted!!! Stopping... "
     for i in $GLB_BG_PIDS
@@ -324,8 +328,7 @@ function main_usage () {
 
 doInstall=0
 doUninstall=0
-doYCSBVolCreate=0
-doTableCreate=0
+doCmdExec=
 doPontis=0
 doForce=0
 
@@ -347,10 +350,12 @@ while [ "$2" != "" ]; do
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
-				if [ "$i" = "ycsb" ]; then
-    				doYCSBVolCreate=1
-    			elif [[ "$i" = "tablecreate" ]]; then
-    				doTableCreate=1
+				if [[ "$i" = "ycsb" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]]; then
+    				if [ -z "$doCmdExec" ]; then
+    					doCmdExec=$i
+    				else
+    					doCmdExec=$doCmdExec" "$i
+    				fi
     			elif [[ "$i" = "force" ]]; then
     				doForce=1
     			elif [[ "$i" = "pontis" ]]; then
@@ -396,12 +401,6 @@ if [ "$exitcode" -ne 0 ]; then
 	exit
 fi
 
-if [ "$doYCSBVolCreate" -eq 1 ]; then
-	echo " *************** Creating YCSB Volume **************** "
-	main_createYCSBVolume
+if [ -n "$doCmdExec" ]; then
+	main_runCommandExec "$doCmdExec"
 fi
-if [ "$doTableCreate" -eq 1 ]; then
-	echo " *************** Creating UserTable (/tables/usertable) **************** "
-	main_createTableWithCompression
-fi
-#echo "Completed!"
