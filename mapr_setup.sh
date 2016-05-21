@@ -24,6 +24,7 @@ restartnodes=
 clustername=
 multimfs=
 tablens=
+maxdisks=
 extraarg=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
@@ -71,6 +72,8 @@ function usage () {
     #echo -e "\t\t - Restart warden on all or specified nodes"
     echo -e "\t -n=CLUSTER_NAME | --name=CLUSTER_NAME (default : archerx)" 
     echo -e "\t\t - Specify cluster name"
+    echo -e "\t -d=<#ofDisks> | --maxdisks=<#ofDisks>" 
+    echo -e "\t\t - Specify number of disks to use (Default : all available disks)"
     echo -e "\t -m=<#ofMFS> | --multimfs=<#ofMFS>" 
     echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
     echo -e "\t -y | --ycsbvol" 
@@ -116,6 +119,9 @@ while [ "$1" != "" ]; do
     	-m | --multimfs)
     		multimfs=$VALUE
     	;;
+        -d | --maxdisks)
+            maxdisks=$VALUE
+        ;;
     	-y | --ycsbvol)
     		extraarg=$extraarg"ycsb "
     	;;
@@ -151,7 +157,7 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-    $libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-n=$tablens"
+    $libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-n=$tablens" "-d=$maxdisks"
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then

@@ -96,6 +96,7 @@ GLB_MULTI_MFS=
 GLB_TABLE_NS=
 GLB_PONTIS=
 GLB_BG_PIDS=
+GLB_MAX_DISKS=
 
 ############################### ALL functions to be defined below this ###############################
 
@@ -376,6 +377,11 @@ while [ "$2" != "" ]; do
     	-n)
 			if [ -n "$VALUE" ]; then
     			GLB_TABLE_NS=$VALUE
+    		fi
+    	;;
+    	-d)
+			if [ -n "$VALUE" ]; then
+    			GLB_MAX_DISKS=$VALUE
     		fi
     	;;
         *)

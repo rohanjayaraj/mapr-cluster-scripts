@@ -349,6 +349,23 @@ function maprutil_configureTopology(){
     fi
 }
 
+# @param diskfile
+# @param disk limit
+function maprutil_buildDiskList() {
+    if [ -z "$1" ]; then
+        return
+    fi
+    local diskfile=$1
+    local disklist=$(util_getRawDisks)
+
+    local limit=$GLB_MAX_DISKS
+    local numdisks=$(wc -l $diskfile | cut -f1 -d' ')
+    if [ -n "$limit" ] && [ "$numdisks" -gt "$limit" ]; then
+         local newlist=$(head -n $limit $diskfile)
+         echo "$newlist" > $diskfile
+    fi
+}
+
 function maprutil_configureNode2(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
@@ -357,9 +374,8 @@ function maprutil_configureNode2(){
     local hostip=$(util_getHostIP)
     local cldbnodes=$(util_getCommaSeparated "$1")
     local zknodes=$(util_getCommaSeparated "$2")
-    local disklist=$(util_getCommaSeparated "$(util_getRawDisks)")
-    echo "$disklist" > /tmp/disklist.txt
-
+    maprutil_buildDiskList "$diskfile"
+    
     echo "/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
     /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
 
@@ -494,7 +510,7 @@ function maprutil_runMapRCmd(){
     local cmd=`$1 > /dev/null;echo $?`;
     local i=0
     while [ "${cmd}" -ne "0" ]; do
-        sleep 5
+        sleep 20
         let i=i+1
         if [ "$i" -gt 3 ]; then
             echo "Failed to run command [ $1 ]"
