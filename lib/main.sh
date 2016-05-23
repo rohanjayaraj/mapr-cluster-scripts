@@ -94,6 +94,7 @@ trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 GLB_CLUSTER_NAME="archerx"
 GLB_MULTI_MFS=
 GLB_TABLE_NS=
+GLB_CLDB_TOPO=
 GLB_PONTIS=
 GLB_BG_PIDS=
 GLB_MAX_DISKS=
@@ -361,6 +362,9 @@ while [ "$2" != "" ]; do
     				doForce=1
     			elif [[ "$i" = "pontis" ]]; then
     				GLB_PONTIS=1
+    			elif [[ "$i" = "cldbtopo" ]]; then
+    				GLB_CLDB_TOPO=1
+    			
     			fi
     		done
     	;;

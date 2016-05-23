@@ -76,6 +76,8 @@ function usage () {
     echo -e "\t\t - Specify number of disks to use (Default : all available disks)"
     echo -e "\t -m=<#ofMFS> | --multimfs=<#ofMFS>" 
     echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
+    echo -e "\t -ct | --cldbtopo" 
+    echo -e "\t\t - Move CLDB node & volume to /cldb topology (enabled by default for ycsbvol) "
     echo -e "\t -y | --ycsbvol" 
     echo -e "\t\t - Create YCSB related volumes "
     echo -e "\t -t | --tablecreate" 
@@ -121,6 +123,9 @@ while [ "$1" != "" ]; do
     	;;
         -d | --maxdisks)
             maxdisks=$VALUE
+        ;;
+        -ct | --cldbtopo)
+            extraarg=$extraarg"cldbtopo "
         ;;
     	-y | --ycsbvol)
     		extraarg=$extraarg"ycsb "

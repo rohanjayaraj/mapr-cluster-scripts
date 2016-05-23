@@ -334,17 +334,17 @@ function maprutil_customConfigure(){
     fi 
 }
 
-function maprutil_configureTopology(){
+function maprutil_configureCLDBTopology(){
     local clustersize=`maprcli node list -json | grep 'id'| wc -l`
     local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
-    maprcli node move -serverids "$datanodes" -topology /data
+    maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
     if [ "$clustersize" -gt 1 ]; then
         ### Moving CLDB Node to CLDB topology
         local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
-        maprcli node move -serverids "$cldbnode" -topology /cldb
+        maprcli node move -serverids "$cldbnode" -topology /cldb 2>/dev/null
         sleep 5;
         ### Moving CLDB Volume as well
-        maprcli volume move -name mapr.cldb.internal -topology /cldb
+        maprcli volume move -name mapr.cldb.internal -topology /cldb 2>/dev/null
         sleep 5;
     fi
 }
@@ -408,7 +408,10 @@ function maprutil_configureNode2(){
         if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
             maprutil_configureMultiMFS "$multimfs"
         fi
-        maprutil_configureTopology
+        local cldbtopo=$GLB_CLDB_TOPO
+        if [ -n "$cldbtopo" ]; then
+            maprutil_configureCLDBTopology
+        fi
     fi
 }
 
@@ -527,6 +530,7 @@ function maprutil_runCommands(){
     do
         case $i in
             ycsb)
+                maprutil_configureCLDBTopology
                 maprutil_createYCSBVolume
             ;;
             tablecreate)
