@@ -364,7 +364,6 @@ while [ "$2" != "" ]; do
     				GLB_PONTIS=1
     			elif [[ "$i" = "cldbtopo" ]]; then
     				GLB_CLDB_TOPO=1
-    			
     			fi
     		done
     	;;
@@ -378,7 +377,7 @@ while [ "$2" != "" ]; do
     			GLB_MULTI_MFS=$VALUE
     		fi
     	;;
-    	-n)
+    	-ns)
 			if [ -n "$VALUE" ]; then
     			GLB_TABLE_NS=$VALUE
     		fi

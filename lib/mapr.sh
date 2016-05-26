@@ -102,6 +102,14 @@ function maprutil_getNodesFromRole() {
     echo $nodes
 }
 
+function maprutil_coresdirs(){
+    local dirlist=()
+    dirlist+=("/opt/cores/guts*")
+    dirlist+=("/opt/cores/mfs*")
+    dirlist+=("/opt/cores/java.core.*")
+    echo ${dirlist[*]}
+}
+
 function maprutil_knowndirs(){
     local dirlist=()
     dirlist+=("/maprdev/")
@@ -116,7 +124,11 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/hsperfdata*")
     dirlist+=("/tmp/hadoop*")
     dirlist+=("/tmp/mapr*")
+    dirlist+=("/tmp/*mapr-disk.rules*")
     dirlist+=("/tmp/*.lck")
+    dirlist+=("/tmp/mfs*")
+    dirlist+=("/opt/cores/guts*")
+    dirlist+=("/opt/cores/mfs*")
     echo  ${dirlist[*]}
 }  
 
@@ -129,12 +141,16 @@ function maprutil_removedirs(){
         all)
             rm -rfv $(maprutil_knowndirs)
             rm -rfv $(maprutil_tempdirs)
+            rm -rfv $(maprutil_coresdirs)
            ;;
          known)
             rm -rfv $(maprutil_knowndirs)
            ;;
          temp)
             rm -rfv $(maprutil_tempdirs)
+           ;;
+         cores)
+            rm -rfv $(maprutil_coresdirs)
            ;;
         *)
             echo "ERROR: unknown parameter passed to removedirs \"$PARAM\""
@@ -436,13 +452,9 @@ function maprutil_configureNode(){
     local zknodes=$(maprutil_getZKNodes "$2")
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
-    local glbvars=$( set -o posix ; set  | grep GLB_)
-    for i in $glbvars
-    do
-        echo "$i" >> $scriptpath
-    done
-    #echo "GLB_MULTI_MFS=$GLB_MULTI_MFS" >> $scriptpath
-    #echo "GLB_TABLE_NS=\"$GLB_TABLE_NS\"" >> $scriptpath
+
+    maprutil_addGlobalVars "$scriptpath"
+    
     echo "maprutil_configureNode2 \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
    
     if [ "$hostip" != "$1" ]; then
@@ -454,6 +466,25 @@ function maprutil_configureNode(){
     else
         maprutil_configureNode2 "$cldbnodes" "$zknodes" "$3"
     fi
+}
+
+# @param script path
+function maprutil_addGlobalVars(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local scriptpath=$1
+    local glbvars=$( set -o posix ; set  | grep GLB_)
+    for i in $glbvars
+    do
+        #echo "%%%%%%%%%% -> $i <- %%%%%%%%%%%%%"
+        if [[ "$i" =~ ^GLB_BG_PIDS.* ]]; then
+            continue
+        elif [[ ! "$i" =~ ^GLB_.* ]]; then
+            continue
+        fi
+        echo $i >> $scriptpath
+    done
 }
 
 function maprutil_getBuildID(){

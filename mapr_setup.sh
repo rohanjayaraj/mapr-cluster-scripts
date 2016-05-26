@@ -162,7 +162,7 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-    $libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-n=$tablens" "-d=$maxdisks"
+    $libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks"
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then
