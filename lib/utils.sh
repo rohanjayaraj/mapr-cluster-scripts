@@ -79,13 +79,15 @@ function util_removeBinaries(){
 
 function util_getDefaultDisks(){
     blkid | tr -d ':' | cut -d' ' -f1 | tr -d '[0-9]' | uniq | sort > /tmp/defdisks
+    df -x tmpfs | grep -v : | cut -d' ' -f1 | sed -e /Filesystem/d |  sed '/^$/d' |  tr -d '[0-9]' >> /tmp/defdisks
+    lsblk -nl | grep -v disk | cut -d' ' -f1  >> /tmp/defdisks
     echo $(cat /tmp/defdisks)
 }
 
 # returns space separated list of raw disks
 function util_getRawDisks(){
     util_getDefaultDisks
-    sfdisk -l | grep Disk | tr -d ':' | cut -d' ' -f2 | grep -v mapper | grep -v -f /tmp/defdisks | sort > /tmp/disklist
+    sfdisk -l | grep Disk | tr -d ':' | cut -d' ' -f2 | grep -v -f /tmp/defdisks | sort > /tmp/disklist
     echo $(cat /tmp/disklist)
 }
 

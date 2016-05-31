@@ -247,7 +247,8 @@ function maprutil_uninstallNode(){
         ssh_executeScriptasRootInBG "$1" "$scriptpath"
         maprutil_addToPIDList "$!"
     else
-        maprutil_uninstallNode2
+        maprutil_uninstallNode2 &
+        maprutil_addToPIDList "$!"
     fi
 }
 
@@ -279,7 +280,13 @@ function maprutil_installBinariesOnNode(){
             wait
         fi
     else
-        util_installBinaries "$2"
+        if [ -z "$3" ]; then
+            util_installBinaries "$2"
+        else
+            util_installBinaries "$2" &
+            maprutil_addToPIDList "$!"
+        fi
+       
     fi
 }
 
@@ -436,7 +443,7 @@ function maprutil_configureNode2(){
 # @param cluster name
 # @param don't wait
 function maprutil_configureNode(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
     fi
      # build full script for node
@@ -464,7 +471,12 @@ function maprutil_configureNode(){
             wait
         fi
     else
-        maprutil_configureNode2 "$cldbnodes" "$zknodes" "$3"
+        if [ -z "$4" ]; then
+            maprutil_configureNode2 "$cldbnodes" "$zknodes" "$3"
+        else
+            maprutil_configureNode2 "$cldbnodes" "$zknodes" "$3" &
+            maprutil_addToPIDList "$!"
+        fi
     fi
 }
 
