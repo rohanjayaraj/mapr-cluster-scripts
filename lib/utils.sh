@@ -85,7 +85,7 @@ function util_getDefaultDisks(){
 # returns space separated list of raw disks
 function util_getRawDisks(){
     util_getDefaultDisks
-    sfdisk -l | grep Disk | tr -d ':' | cut -d' ' -f2 | grep -v -f /tmp/defdisks | sort > /tmp/disklist
+    sfdisk -l | grep Disk | tr -d ':' | cut -d' ' -f2 | grep -v mapper | grep -v -f /tmp/defdisks | sort > /tmp/disklist
     echo $(cat /tmp/disklist)
 }
 
