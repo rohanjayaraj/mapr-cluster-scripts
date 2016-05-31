@@ -167,7 +167,7 @@ function maprutil_isMapRInstalledOnNode(){
     
     # build full script for node
     local scriptpath="/tmp/isinstalled.sh"
-    util_builtSingleScript "$lib_dir" "$scriptpath" "$1"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
@@ -231,7 +231,7 @@ function maprutil_uninstallNode(){
     
     # build full script for node
     local scriptpath="/tmp/uninstallnode.sh"
-    util_builtSingleScript "$lib_dir" "$scriptpath" "$1"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
@@ -261,7 +261,7 @@ function maprutil_installBinariesOnNode(){
     
     # build full script for node
     local scriptpath="/tmp/installbinnode.sh"
-    util_builtSingleScript "$lib_dir" "$scriptpath" "$1"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
@@ -441,7 +441,7 @@ function maprutil_configureNode(){
     fi
      # build full script for node
     local scriptpath="/tmp/configurenode.sh"
-    util_builtSingleScript "$lib_dir" "$scriptpath" "$1"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
@@ -517,7 +517,7 @@ function maprutil_runCommandsOnNode(){
     
      # build full script for node
     local scriptpath="/tmp/cmdonnode.sh"
-    util_builtSingleScript "$lib_dir" "$scriptpath" "$node"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return

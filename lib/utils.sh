@@ -120,7 +120,7 @@ function util_kill(){
 # @param directory containing shell scripts with functions
 # @param path to copy
 # @param script to ignore
-function util_builtSingleScript(){
+function util_buildSingleScript(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return 1
     fi
