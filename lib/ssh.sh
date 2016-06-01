@@ -150,13 +150,13 @@ function ssh_copyPrivateKey(){
 		local sshpval=$(sshpass -pmapr ssh-copy-id $1@$2)
 		local retval=$?
 		if [ "$retval" != 0 ]; then
-			cat ~/.ssh/id_rsa.pub | sshpass -pmapr ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
+			cat /root/.ssh/id_rsa.pub | sshpass -pmapr ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
 		fi
 	else
 		local sshpval=$(ssh-copy-id $1@$2)
 		local retval=$?
 		if [ "$retval" != 0 ]; then
-			cat ~/.ssh/id_rsa.pub | ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
+			cat /root/.ssh/id_rsa.pub | ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
 		fi
 	fi
 }

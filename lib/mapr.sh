@@ -246,6 +246,7 @@ function maprutil_uninstallNode(){
     if [ "$hostip" != "$1" ]; then
         ssh_executeScriptasRootInBG "$1" "$scriptpath"
         maprutil_addToPIDList "$!"
+        sleep 2
     else
         maprutil_uninstallNode2 &
         maprutil_addToPIDList "$!"
@@ -512,6 +513,7 @@ function maprutil_copyRepoFile(){
     local repofile=$2
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
+        ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled = 0/g' /etc/yum.repos.d/*mapr*.repo"
         ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/"
     elif [ "$nodeos" = "ubuntu" ]; then
         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"

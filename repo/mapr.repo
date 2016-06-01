@@ -32,3 +32,10 @@ baseurl=http://yum.qa.lab/mapr
 enabled=1
 gpgcheck=0
 protect=1
+
+[RohanJ]
+name=Rohan's Hosted Repository
+baseurl=http://10.10.88.136/repo/yum/latest/
+enabled=0
+gpgcheck=0
+protect=1
