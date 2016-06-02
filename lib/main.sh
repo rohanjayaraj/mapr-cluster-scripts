@@ -159,9 +159,11 @@ function main_install(){
 	# Configure all nodes
 	for node in ${nodes[@]}
 	do
+		echo "****** Running configure on node -> $node ****** "
 		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
 		sleep 2
 	done
+
 	wait
 
 	# Configure all nodes

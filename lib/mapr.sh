@@ -192,13 +192,15 @@ function maprutil_isMapRInstalledOnNode(){
     fi
 }
 
-# @param host ip
-function maprutil_isNodePartofCluster(){
-    echo
+function maprutil_unmountNFS(){
+    umount -l /mnt/mapr
 }
 
 function maprutil_uninstallNode2(){
     
+    # Unmount NFS
+    maprutil_unmountNFS
+
     # Stop warden
     service mapr-warden stop
 
@@ -243,14 +245,14 @@ function maprutil_uninstallNode(){
 
     local bins=
     local hostip=$(util_getHostIP)
-    if [ "$hostip" != "$1" ]; then
+    #if [ "$hostip" != "$1" ]; then
         ssh_executeScriptasRootInBG "$1" "$scriptpath"
         maprutil_addToPIDList "$!"
         sleep 2
-    else
-        maprutil_uninstallNode2 &
-        maprutil_addToPIDList "$!"
-    fi
+    #else
+    #    maprutil_uninstallNode2 &
+    #    maprutil_addToPIDList "$!"
+    #fi
 }
 
 # @param host ip
@@ -271,24 +273,25 @@ function maprutil_installBinariesOnNode(){
 
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
+    echo "util_installprereq" >> $scriptpath
     echo "util_installBinaries \""$2"\"" >> $scriptpath
 
     local hostip=$(util_getHostIP)
-    if [ "$hostip" != "$1" ]; then
+    #if [ "$hostip" != "$1" ]; then
         ssh_executeScriptasRootInBG "$1" "$scriptpath"
         maprutil_addToPIDList "$!"
         if [ -z "$3" ]; then
             wait
         fi
-    else
-        if [ -z "$3" ]; then
-            util_installBinaries "$2"
-        else
-            util_installBinaries "$2" &
-            maprutil_addToPIDList "$!"
-        fi
-       
-    fi
+    #else
+    #    if [ -z "$3" ]; then
+    #        util_installBinaries "$2"
+    #    else
+    #        util_installBinaries "$2" &
+    #        maprutil_addToPIDList "$!"
+    #    fi
+    #   
+    #fi
 }
 
 function maprutil_configureMultiMFS(){
@@ -465,20 +468,20 @@ function maprutil_configureNode(){
     
     echo "maprutil_configureNode2 \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
    
-    if [ "$hostip" != "$1" ]; then
+    #if [ "$hostip" != "$1" ]; then
         ssh_executeScriptasRootInBG "$1" "$scriptpath"
         maprutil_addToPIDList "$!"
         if [ -z "$4" ]; then
             wait
         fi
-    else
-        if [ -z "$4" ]; then
-            maprutil_configureNode2 "$cldbnodes" "$zknodes" "$3"
-        else
-            maprutil_configureNode2 "$cldbnodes" "$zknodes" "$3" &
-            maprutil_addToPIDList "$!"
-        fi
-    fi
+    #else
+    #    if [ -z "$4" ]; then
+    #        maprutil_configureNode2 "$cldbnodes" "$zknodes" "$3"
+    #    else
+     #       maprutil_configureNode2 "$cldbnodes" "$zknodes" "$3" &
+    #        maprutil_addToPIDList "$!"
+    #   fi
+    #fi
 }
 
 # @param script path

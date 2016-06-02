@@ -29,6 +29,14 @@ function util_getHostIP(){
     echo "$ipadd"
 }
 
+function util_installprereq(){
+    if [ "$(getOS)" = "centos" ]; then
+        yum install net-tools bzip2 screen sshpass -y -q 2>/dev/null
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        apt-get install net-tools bzip2 screen sshpass -y 2>/dev/null
+    fi
+}
+
 # @param ip_address_string
 function util_validip(){
 	local retval=$(ipcalc -cs $1 && echo valid || echo invalid)
