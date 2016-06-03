@@ -163,8 +163,18 @@ function main_install(){
 		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
 		sleep 2
 	done
-
 	wait
+
+	# Configure ES & OpenTSDB nodes
+	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getESNodes $rolefile)" ]; then  
+		for node in ${nodes[@]}
+		do
+			echo "****** Running configure on node -> $node ****** "
+			maprutil_postConfigureNode "$node" "$rolefile" "bg"
+			sleep 2
+		done
+		wait
+	fi
 
 	# Configure all nodes
 	for node in ${nodes[@]}

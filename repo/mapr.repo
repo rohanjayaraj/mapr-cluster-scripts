@@ -8,20 +8,27 @@ protect=1
 [MapRv5.x-Ecosystem]
 name=MapR Technologies
 baseurl=http://package.mapr.com/releases/ecosystem-5.x/redhat
-enabled=1
+enabled=0
 gpgcheck=0
 protect=1
 
-[QA-5.1.0]
-name=MapR v5.1.0 QA Repository
-baseurl=http://yum.qa.lab/v5.1.0
-enabled=0
+[QA-Opensource]
+name=MapR Latest Build QA Repository
+baseurl=http://yum.qa.lab/opensource
+enabled=1
 gpgcheck=0
 protect=1
 
 [QA-5.0.0]
 name=MapR v5.0.0 QA Repository
 baseurl=http://yum.qa.lab/v5.0.0
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.1.0]
+name=MapR v5.1.0 QA Repository
+baseurl=http://yum.qa.lab/v5.1.0
 enabled=0
 gpgcheck=0
 protect=1
@@ -33,9 +40,16 @@ enabled=1
 gpgcheck=0
 protect=1
 
-[RohanJ]
+[RohanJ-Latest]
 name=Rohan's Hosted Repository
 baseurl=http://10.10.88.136/repo/yum/latest/
+enabled=0
+gpgcheck=0
+protect=1
+
+[RohanJ-v5.2.0]
+name=Rohan's Hosted Repository
+baseurl=http://10.10.88.136/repo/yum/v5.2.0/
 enabled=0
 gpgcheck=0
 protect=1

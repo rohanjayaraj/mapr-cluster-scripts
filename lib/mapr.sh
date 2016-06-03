@@ -41,6 +41,28 @@ function maprutil_getCLDBNodes() {
 }
 
 ## @param path to config
+function maprutil_getESNodes() {
+    if [ -z "$1" ]; then
+        return 1
+    fi
+    local esnodes=$(grep elastic $1 | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    if [ ! -z "$esnodes" ]; then
+            echo $esnodes
+    fi
+}
+
+## @param path to config
+function maprutil_getOTSDBNodes() {
+    if [ -z "$1" ]; then
+        return 1
+    fi
+    local otnodes=$(grep opentsdb $1 | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    if [ ! -z "$otnodes" ]; then
+            echo $otnodes
+    fi
+}
+
+## @param path to config
 ## @param host ip
 function maprutil_getNodeBinaries() {
     if [ -z "$1" ] || [ -z "$2" ]; then
@@ -346,6 +368,17 @@ EOL
     done
 }
 
+function maprutil_addRootUserToCntrExec(){
+
+    local execfile="container-executor.cfg"
+    local execfilelist=$(find /opt/mapr/hadoop -name $execfile -type f ! -path "*/templates/*")
+    for i in $execfilelist; do
+        local present=$(cat $i | grep "allowed.system.users" | grep -v root)
+        if [ -n "$present" ]; then
+            sed -i '/^allowed.system.users/ s/$/,root/' $i
+        fi
+    done
+}
 
 function maprutil_customConfigure(){
 
@@ -362,7 +395,15 @@ function maprutil_customConfigure(){
 }
 
 function maprutil_configureCLDBTopology(){
-    local clustersize=`maprcli node list -json | grep 'id'| wc -l`
+    
+    local datatopo=$(maprcli node list -json | grep racktopo | grep "/data/" | wc -l)
+    local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
+    let numdnodes=numdnodes-1
+
+    if [ "$datatopo" -eq "$numdnodes" ]; then
+        return
+    fi
+    local clustersize=$(maprcli node list -json | grep 'id'| wc -l)
     local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
     maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
     if [ "$clustersize" -gt 1 ]; then
@@ -420,6 +461,9 @@ function maprutil_configureNode2(){
     else
         /opt/mapr/server/disksetup -FM $diskfile
     fi
+
+    # Add root user to container-executor.cfg
+    maprutil_addRootUserToCntrExec
 
     # Perform series of custom configuration based on selected options
     maprutil_customConfigure
@@ -482,6 +526,60 @@ function maprutil_configureNode(){
     #        maprutil_addToPIDList "$!"
     #   fi
     #fi
+}
+
+function maprutil_postConfigureNode2(){
+    if [ -z "$1" ] && [ -z "$2" ]; then
+        return
+    fi
+    local esnodes=$(util_getCommaSeparated "$1")
+    local otnodes=$(util_getCommaSeparated "$2")
+    
+    local cmd="/opt/mapr/server/configure.sh "
+    if [ -n "$esnodes" ]; then
+        cmd=$cmd" -ES "$esnodes
+    fi
+    if [ -n "$otnodes" ]; then
+        cmd=$cmd" -OT "$otnodes
+    fi
+    cmd=$cmd" -R"
+
+    echo "$cmd"
+    local ret=$($cmd)
+
+    service mapr-warden restart
+}
+
+# @param host ip
+# @param config file path
+# @param cluster name
+# @param don't wait
+function maprutil_postConfigureNode(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+     # build full script for node
+    local scriptpath="/tmp/postconfigurenode.sh"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    local esnodes=$(maprutil_getESNodes "$2")
+    local otnodes=$(maprutil_getOTSDBNodes "$2")
+    echo >> $scriptpath
+    echo "##########  Adding execute steps below ########### " >> $scriptpath
+
+    maprutil_addGlobalVars "$scriptpath"
+    
+    echo "maprutil_postConfigureNode2 \""$esnodes"\" \""$otnodes"\"" >> $scriptpath
+   
+    ssh_executeScriptasRootInBG "$1" "$scriptpath"
+    maprutil_addToPIDList "$!"
+    if [ -z "$3" ]; then
+        wait
+    fi
 }
 
 # @param script path
