@@ -29,11 +29,31 @@ function util_getHostIP(){
     echo "$ipadd"
 }
 
-function util_installprereq(){
+# @param command
+# @param package
+function util_checkAndInstall(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
     if [ "$(getOS)" = "centos" ]; then
-        yum install net-tools bzip2 screen sshpass words vim -y -q 2>/dev/null
+        command -v $1 >/dev/null 2>&1 || yum install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get install net-tools bzip2 screen sshpass words vim -y 2>/dev/null
+        command -v $1 >/dev/null 2>&1 || apt-get install $2 -y 2>/dev/null
+    fi
+}
+
+function util_installprereq(){
+   
+    util_checkAndInstall "ifconfig" "net-tools"
+    util_checkAndInstall "bzip2" "bzip2"
+    util_checkAndInstall "screen" "screen"
+    util_checkAndInstall "sshpass" "sshpass"
+    util_checkAndInstall "vim" "vim"
+
+    if [ "$(getOS)" = "centos" ]; then
+        yum install words -y -q 2>/dev/null
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        apt-get install words -y 2>/dev/null
     fi
 }
 
