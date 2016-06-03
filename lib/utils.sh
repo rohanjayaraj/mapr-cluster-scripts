@@ -31,9 +31,9 @@ function util_getHostIP(){
 
 function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
-        yum install net-tools bzip2 screen sshpass -y -q 2>/dev/null
+        yum install net-tools bzip2 screen sshpass words vim -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get install net-tools bzip2 screen sshpass -y 2>/dev/null
+        apt-get install net-tools bzip2 screen sshpass words vim -y 2>/dev/null
     fi
 }
 

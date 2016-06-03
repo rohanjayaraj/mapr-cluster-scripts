@@ -215,7 +215,11 @@ function maprutil_isMapRInstalledOnNode(){
 }
 
 function maprutil_unmountNFS(){
-    umount -l /mnt/mapr
+    local nfslist=$(mount | grep nfs | grep mapr | cut -d' ' -f3)
+    for i in $nfslist
+    do
+        umount -l $i
+    done
 }
 
 function maprutil_uninstallNode2(){
