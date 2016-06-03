@@ -408,12 +408,9 @@ function maprutil_configureCLDBTopology(){
         return
     fi
     local clustersize=$(maprcli node list -json | grep 'id'| wc -l)
-    if [ "$clustersize" -lt 5 ]; then
-        return
-    fi
     local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
     maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
-    if [ "$clustersize" -gt 1 ]; then
+    if [ "$clustersize" -gt 4 ]; then
         ### Moving CLDB Node to CLDB topology
         local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
         maprcli node move -serverids "$cldbnode" -topology /cldb 2>/dev/null
