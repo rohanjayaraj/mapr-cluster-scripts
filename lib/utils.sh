@@ -49,6 +49,7 @@ function util_installprereq(){
     util_checkAndInstall "screen" "screen"
     util_checkAndInstall "sshpass" "sshpass"
     util_checkAndInstall "vim" "vim"
+    util_checkAndInstall "dstat" "dstat"
 
     if [ "$(getOS)" = "centos" ]; then
         yum install words -y -q 2>/dev/null
