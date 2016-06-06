@@ -14,8 +14,8 @@ function ssh_check(){
 		return 1
 	fi
 	
-	local retval=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=no -l $1 $2 exit)
-	retval=$?
+	ssh -o BatchMode=yes -o StrictHostKeyChecking=no -l $1 $2 exit
+	local retval=$?
 	if [ "$retval" = 0 ]; then
 		echo "enabled"
 	else
