@@ -364,7 +364,7 @@ while [ "$2" != "" ]; do
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
-				if [[ "$i" = "ycsb" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]]; then
+				if [[ "$i" = "ycsb" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontablecreate" ]] || [[ "$i" = "jsontablecf" ]]; then
     				if [ -z "$doCmdExec" ]; then
     					doCmdExec=$i
     				else

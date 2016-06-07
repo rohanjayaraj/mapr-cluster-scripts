@@ -84,6 +84,10 @@ function usage () {
     echo -e "\t\t - Create /tables/usertable [cf->family] with compression off"
     echo -e "\t -tlz | --tablelz4" 
     echo -e "\t\t - Create /tables/usertable [cf->family] with lz4 compression"
+    echo -e "\t -j | --jsontablecreate" 
+    echo -e "\t\t - Create YCSB JSON Table with default family"
+    echo -e "\t -jcf | --jsontablecf" 
+    echo -e "\t\t - Create YCSB JSON Table with second CF family cfother"
     echo -e "\t -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
     echo -e "\t -f | --force" 
@@ -133,6 +137,12 @@ while [ "$1" != "" ]; do
     	-t | --tablecreate)
 			extraarg=$extraarg"tablecreate "
     	;;
+        -j | --jsontablecreate)
+            extraarg=$extraarg"jsontable "
+        ;;
+        -jcf | --jsontablecf)
+            extraarg=$extraarg"jsontablecf "
+        ;;
         -tlz | --tablelz4)
             extraarg=$extraarg"tablelz4 "
         ;;

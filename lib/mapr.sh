@@ -688,6 +688,13 @@ function maprutil_runCommands(){
             tablecreate)
                 maprutil_createTableWithCompressionOff
             ;;
+            jsontable)
+                maprutil_createJSONTable
+            ;;
+            jsontablecf)
+                maprutil_createJSONTable
+                maprutil_addCFtoJSONTable
+            ;;
             tablelz4)
                 maprutil_createTableWithCompression
             ;;
@@ -716,6 +723,17 @@ function maprutil_createTableWithCompressionOff(){
     maprutil_createYCSBVolume
     maprutil_runMapRCmd "maprcli table create -path /tables/usertable"
     maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression off -maxversions 1"
+}
+
+function maprutil_createJSONTable(){
+    echo " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
+    maprutil_createYCSBVolume
+    maprutil_runMapRCmd "maprcli table create -path /tables/usertable -tabletype json "
+}
+
+function maprutil_addCFtoJSONTable(){
+    echo " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
+    maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname cfother -jsonpath field0 -compression off -inmemory true"
 }
 
 function maprutil_applyLicense(){
