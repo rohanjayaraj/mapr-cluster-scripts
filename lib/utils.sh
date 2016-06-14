@@ -51,11 +51,11 @@ function util_installprereq(){
     util_checkAndInstall "vim" "vim"
     util_checkAndInstall "dstat" "dstat"
 
-    if [ "$(getOS)" = "centos" ]; then
-        yum install words -y -q 2>/dev/null
-    elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get install words -y 2>/dev/null
-    fi
+    #if [ "$(getOS)" = "centos" ]; then
+    #    yum install words -y -q 2>/dev/null
+    #elif [[ "$(getOS)" = "ubuntu" ]]; then
+    #    apt-get install words -y 2>/dev/null
+    #fi
 }
 
 # @param ip_address_string
