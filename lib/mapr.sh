@@ -372,6 +372,29 @@ EOL
     done
 }
 
+# @param filename
+function maprutil_addFSThreads(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local filelist=$(find /opt/mapr/ -name $1 -type f ! -path "*/templates/*")
+    for i in $filelist; do
+        local present=$(cat $i | grep "fs.mapr.threads")
+        if [ -n "$present" ]; then
+            continue;
+        fi
+        sed -i '/<\/configuration>/d' $i
+        cat >> $i << EOL
+    <!-- MapRDB -->
+    <property>
+        <name>fs.mapr.threads</name>
+        <value>64</value>
+    </property>
+</configuration>
+EOL
+    done
+}
+
 function maprutil_addRootUserToCntrExec(){
 
     local execfile="container-executor.cfg"
@@ -396,6 +419,8 @@ function maprutil_customConfigure(){
     if [ -n "$pontis" ]; then
         maprutil_configurePontis
     fi 
+
+    maprutil_addFSThreads "core-site.xml"
 }
 
 function maprutil_configureCLDBTopology(){
