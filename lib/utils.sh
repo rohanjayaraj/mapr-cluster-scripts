@@ -42,6 +42,24 @@ function util_checkAndInstall(){
     fi
 }
 
+
+# @param command
+# @param package
+function util_checkAndInstall2(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    if [ "$(getOS)" = "centos" ]; then
+        if [ ! -e "$1" ]; then
+            yum install $2 -y -q 2>/dev/null
+        fi
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        if [ ! -e "$1" ]; then
+            apt-get install $2 -y 2>/dev/null
+        fi
+    fi
+}
+
 function util_installprereq(){
    
     util_checkAndInstall "ifconfig" "net-tools"
@@ -51,11 +69,7 @@ function util_installprereq(){
     util_checkAndInstall "vim" "vim"
     util_checkAndInstall "dstat" "dstat"
 
-    #if [ "$(getOS)" = "centos" ]; then
-    #    yum install words -y -q 2>/dev/null
-    #elif [[ "$(getOS)" = "ubuntu" ]]; then
-    #    apt-get install words -y 2>/dev/null
-    #fi
+    util_checkAndInstall2 "/usr/share/dict/words" "words"
 }
 
 # @param ip_address_string

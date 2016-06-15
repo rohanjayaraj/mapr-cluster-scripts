@@ -188,7 +188,8 @@ function maprutil_isMapRInstalledOnNode(){
     fi
     
     # build full script for node
-    local scriptpath="/tmp/isinstalled.sh"
+    local hostnode=$1
+    local scriptpath="/tmp/isinstalled_${hostnode:-3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -258,7 +259,8 @@ function maprutil_uninstallNode(){
     fi
     
     # build full script for node
-    local scriptpath="/tmp/uninstallnode.sh"
+    local hostnode=$1
+    local scriptpath="/tmp/uninstallnode_${hostnode:-3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -290,7 +292,8 @@ function maprutil_installBinariesOnNode(){
     fi
     
     # build full script for node
-    local scriptpath="/tmp/installbinnode.sh"
+    local hostnode=$1
+    local scriptpath="/tmp/installbinnode_${hostnode:-3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -526,7 +529,8 @@ function maprutil_configureNode(){
         return
     fi
      # build full script for node
-    local scriptpath="/tmp/configurenode.sh"
+    local hostnode=$1
+    local scriptpath="/tmp/configurenode_${hostnode:-3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -590,7 +594,8 @@ function maprutil_postConfigureNode(){
         return
     fi
      # build full script for node
-    local scriptpath="/tmp/postconfigurenode.sh"
+    local hostnode=$1
+    local scriptpath="/tmp/postconfigurenode_${hostnode:-3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -662,7 +667,7 @@ function maprutil_runCommandsOnNode(){
     local node=$1
     
      # build full script for node
-    local scriptpath="/tmp/cmdonnode.sh"
+    local scriptpath="/tmp/cmdonnode_${node:-3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
