@@ -711,8 +711,10 @@ function maprutil_runCommands(){
     for i in $1
     do
         case $i in
-            ycsb)
+            cldbtopo)
                 maprutil_configureCLDBTopology
+            ;;
+            ycsb)
                 maprutil_createYCSBVolume
             ;;
             tablecreate)

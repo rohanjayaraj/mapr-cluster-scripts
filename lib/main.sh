@@ -364,7 +364,10 @@ while [ "$2" != "" ]; do
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
-				if [[ "$i" = "ycsb" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "jsontablecf" ]]; then
+				if [[ "$i" = "ycsb" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]]; then
+					if [[ "$i" = "cldbtopo" ]]; then
+    					GLB_CLDB_TOPO=1
+    				fi
     				if [ -z "$doCmdExec" ]; then
     					doCmdExec=$i
     				else
@@ -374,8 +377,6 @@ while [ "$2" != "" ]; do
     				doForce=1
     			elif [[ "$i" = "pontis" ]]; then
     				GLB_PONTIS=1
-    			elif [[ "$i" = "cldbtopo" ]]; then
-    				GLB_CLDB_TOPO=1
     			fi
     		done
     	;;
