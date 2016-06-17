@@ -189,7 +189,7 @@ function maprutil_isMapRInstalledOnNode(){
     
     # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/isinstalled_${hostnode:-3}.sh"
+    local scriptpath="/tmp/isinstalled_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -260,7 +260,7 @@ function maprutil_uninstallNode(){
     
     # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/uninstallnode_${hostnode:-3}.sh"
+    local scriptpath="/tmp/uninstallnode_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -293,7 +293,7 @@ function maprutil_installBinariesOnNode(){
     
     # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/installbinnode_${hostnode:-3}.sh"
+    local scriptpath="/tmp/installbinnode_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -530,7 +530,7 @@ function maprutil_configureNode(){
     fi
      # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/configurenode_${hostnode:-3}.sh"
+    local scriptpath="/tmp/configurenode_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -595,7 +595,7 @@ function maprutil_postConfigureNode(){
     fi
      # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/postconfigurenode_${hostnode:-3}.sh"
+    local scriptpath="/tmp/postconfigurenode_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -667,7 +667,7 @@ function maprutil_runCommandsOnNode(){
     local node=$1
     
      # build full script for node
-    local scriptpath="/tmp/cmdonnode_${node:-3}.sh"
+    local scriptpath="/tmp/cmdonnode_${node: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
