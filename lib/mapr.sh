@@ -181,9 +181,9 @@ function maprutil_removedirs(){
 
    case $1 in
         all)
-            rm -rfv $(maprutil_knowndirs) 2>/dev/null
-            rm -rfv $(maprutil_tempdirs)  2>/dev/null
-            rm -rfv $(maprutil_coresdirs) 2>/dev/null
+            rm -rfv $(maprutil_knowndirs) > /dev/null 2>&1
+            rm -rfv $(maprutil_tempdirs)  > /dev/null 2>&1
+            rm -rfv $(maprutil_coresdirs) > /dev/null 2>&1
            ;;
          known)
             rm -rfv $(maprutil_knowndirs) 
