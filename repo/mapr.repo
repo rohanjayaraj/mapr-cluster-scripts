@@ -33,6 +33,20 @@ enabled=0
 gpgcheck=0
 protect=1
 
+[QA-5.1.0-PATCH]
+name=MapR v5.1.0 QA Repository
+baseurl=http://yum.qa.lab/v5.1.0-patch-EBF
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.2.0-Special]
+name=MapR Latest Build QA Repository
+baseurl=http://yum.qa.lab/default-5.2.0-special
+enabled=0
+gpgcheck=0
+protect=1
+
 [QA-Latest]
 name=MapR Latest Build QA Repository
 baseurl=http://yum.qa.lab/mapr
