@@ -151,8 +151,6 @@ function main_install(){
 
 		local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
 		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
-		sleep 2
-		
 	done
 	wait
 
@@ -161,7 +159,6 @@ function main_install(){
 	do
 		echo "****** Running configure on node -> $node ****** "
 		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
-		sleep 2
 	done
 	wait
 
@@ -171,7 +168,6 @@ function main_install(){
 		do
 			echo "****** Running configure on node -> $node ****** "
 			maprutil_postConfigureNode "$node" "$rolefile" "bg"
-			sleep 2
 		done
 		wait
 	fi

@@ -87,6 +87,19 @@ function maprutil_getZKNodes() {
     fi
 }
 
+## @param path to config
+## @param host ip
+function maprutil_isClientNode() {
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return 1
+    fi
+    
+    local isclient=$(grep $2 $1 | grep 'mapr-client\|mapr-loopbacknfs' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    if [ -n "$isclient" ]; then
+        echo $isclient
+    fi
+}
+
 # @param ip_address_string
 # @param cldb host ip
 function maprutil_isClusterNode(){
@@ -149,8 +162,15 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/*mapr-disk.rules*")
     dirlist+=("/tmp/*.lck")
     dirlist+=("/tmp/mfs*")
-    dirlist+=("/opt/cores/guts*")
-    dirlist+=("/opt/cores/mfs*")
+    dirlist+=("/tmp/isinstalled_*")
+    dirlist+=("/tmp/uninstallnode_*")
+    dirlist+=("/tmp/installbinnode_*")
+    dirlist+=("/tmp/disklist*")
+    dirlist+=("/tmp/configurenode_*")
+    dirlist+=("/tmp/postconfigurenode_*")
+    dirlist+=("/tmp/cmdonnode_*")
+    dirlist+=("/tmp/defdisks*")
+
     echo  ${dirlist[*]}
 }  
 
@@ -273,14 +293,8 @@ function maprutil_uninstallNode(){
 
     local bins=
     local hostip=$(util_getHostIP)
-    #if [ "$hostip" != "$1" ]; then
-        ssh_executeScriptasRootInBG "$1" "$scriptpath"
-        maprutil_addToPIDList "$!"
-        sleep 2
-    #else
-    #    maprutil_uninstallNode2 &
-    #    maprutil_addToPIDList "$!"
-    #fi
+    ssh_executeScriptasRootInBG "$1" "$scriptpath"
+    maprutil_addToPIDList "$!"
 }
 
 # @param host ip
@@ -306,21 +320,11 @@ function maprutil_installBinariesOnNode(){
     echo "util_installBinaries \""$2"\"" >> $scriptpath
 
     local hostip=$(util_getHostIP)
-    #if [ "$hostip" != "$1" ]; then
-        ssh_executeScriptasRootInBG "$1" "$scriptpath"
-        maprutil_addToPIDList "$!"
-        if [ -z "$3" ]; then
-            wait
-        fi
-    #else
-    #    if [ -z "$3" ]; then
-    #        util_installBinaries "$2"
-    #    else
-    #        util_installBinaries "$2" &
-    #        maprutil_addToPIDList "$!"
-    #    fi
-    #   
-    #fi
+    ssh_executeScriptasRootInBG "$1" "$scriptpath"
+    maprutil_addToPIDList "$!"
+    if [ -z "$3" ]; then
+        wait
+    fi
 }
 
 function maprutil_configureMultiMFS(){
@@ -477,9 +481,16 @@ function maprutil_configureNode2(){
     local cldbnodes=$(util_getCommaSeparated "$1")
     local zknodes=$(util_getCommaSeparated "$2")
     maprutil_buildDiskList "$diskfile"
+
+    if [ "$ISCLIENT" -eq 1 ]; then
+        echo "/opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
+        /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
+        return 
+    else
+        echo "/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
+        /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
+    fi
     
-    echo "/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
-    /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
 
     #echo "/opt/mapr/server/disksetup -FM /tmp/disklist"
     local multimfs=$GLB_MULTI_MFS
@@ -540,27 +551,24 @@ function maprutil_configureNode(){
     local hostip=$(util_getHostIP)
     local cldbnodes=$(maprutil_getCLDBNodes "$2")
     local zknodes=$(maprutil_getZKNodes "$2")
+    local client=$(maprutil_isClientNode "$2" "$hostnode")
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
 
     maprutil_addGlobalVars "$scriptpath"
+    if [ -n "$client" ]; then
+         echo "ISCLIENT=1" >> $scriptpath
+    else
+        echo "ISCLIENT=0" >> $scriptpath
+    fi
     
     echo "maprutil_configureNode2 \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
    
-    #if [ "$hostip" != "$1" ]; then
-        ssh_executeScriptasRootInBG "$1" "$scriptpath"
-        maprutil_addToPIDList "$!"
-        if [ -z "$4" ]; then
-            wait
-        fi
-    #else
-    #    if [ -z "$4" ]; then
-    #        maprutil_configureNode2 "$cldbnodes" "$zknodes" "$3"
-    #    else
-     #       maprutil_configureNode2 "$cldbnodes" "$zknodes" "$3" &
-    #        maprutil_addToPIDList "$!"
-    #   fi
-    #fi
+    ssh_executeScriptasRootInBG "$1" "$scriptpath"
+    maprutil_addToPIDList "$!"
+    if [ -z "$4" ]; then
+        wait
+    fi
 }
 
 function maprutil_postConfigureNode2(){
