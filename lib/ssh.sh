@@ -128,9 +128,7 @@ function ssh_createkey(){
 
 	local keydir="$1"
 	local key="$keydir/id_rsa"
-	if [ -e  "$key" ]; then
-		echo 
-	else
+	if [ ! -e  "$key" ]; then
 		if [ ! -d "$keydir" ]; then
 			mkdir $keydir
 		fi

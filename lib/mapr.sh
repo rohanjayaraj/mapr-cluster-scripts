@@ -504,9 +504,12 @@ function maprutil_configureNode2(){
             multimfs=$numdisks
         fi
         local numdiskspermfs=`echo $numdisks/$multimfs|bc`
-            
+
         /opt/mapr/server/disksetup -FW $numdiskspermfs $diskfile
     elif [[ -n "$numsps" ]]; then
+        if [ $((numdisks%2)) -eq 1 ] && [ $((numsps%2)) -eq 0 ]; then
+            numdisks=$(echo "$numdisks+1" | bc)
+        fi
         local numstripe=$(echo "$numdisks/$numsps"|bc)
         /opt/mapr/server/disksetup -FW $numstripe $diskfile
     else
