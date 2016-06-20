@@ -68,6 +68,8 @@ function util_installprereq(){
     util_checkAndInstall "sshpass" "sshpass"
     util_checkAndInstall "vim" "vim"
     util_checkAndInstall "dstat" "dstat"
+    util_checkAndInstall "iftop" "iftop"
+    util_checkAndInstall "lsof" "lsof"
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
 }

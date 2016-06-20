@@ -23,6 +23,7 @@ rolefile=
 restartnodes=
 clustername=
 multimfs=
+numsps=
 tablens=
 maxdisks=
 extraarg=
@@ -74,6 +75,8 @@ function usage () {
     echo -e "\t\t - Specify cluster name"
     echo -e "\t -d=<#ofDisks> | --maxdisks=<#ofDisks>" 
     echo -e "\t\t - Specify number of disks to use (Default : all available disks)"
+    echo -e "\t -sp=<#ofSPs> | --storagepool=<#ofSPs>" 
+    echo -e "\t\t - Specify number of storage pools per node (ignored for multi mfs)"
     echo -e "\t -m=<#ofMFS> | --multimfs=<#ofMFS>" 
     echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
     echo -e "\t -ct | --cldbtopo" 
@@ -93,7 +96,7 @@ function usage () {
     echo -e "\t -f | --force" 
     echo -e "\t\t - Force uninstall a node"
     echo -e "\t -p | --pontis" 
-    echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase"
+    echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
     echo 
     echo " Example(s) : "
     echo -e "\t ./$me -c=maprdb install -n=Performance -m=3" 
@@ -146,8 +149,13 @@ while [ "$1" != "" ]; do
         -tlz | --tablelz4)
             extraarg=$extraarg"tablelz4 "
         ;;
+        -sp | --storagepool)
+            numsps=$VALUE
+        ;;
         -p | --pontis)
             extraarg=$extraarg"pontis "
+            numsps=2
+            maxdisks=6
         ;;
         -ns | --tablens)
             if [ -z "$VALUE" ]; then
@@ -172,7 +180,7 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-    $libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks"
+    $libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps"
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then

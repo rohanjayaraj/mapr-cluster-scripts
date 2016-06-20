@@ -495,15 +495,20 @@ function maprutil_configureNode2(){
 
     #echo "/opt/mapr/server/disksetup -FM /tmp/disklist"
     local multimfs=$GLB_MULTI_MFS
+    local numsps=$GLB_NUM_SP
+    local numdisks=`wc -l $diskfile | cut -f1 -d' '`
     if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
-        local numdisks=`wc -l $diskfile | cut -f1 -d' '`
+       
         if [ "$multimfs" -gt "$numdisks" ]; then
             echo "[ERROR] Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
             multimfs=$numdisks
         fi
         local numdiskspermfs=`echo $numdisks/$multimfs|bc`
-        
+            
         /opt/mapr/server/disksetup -FW $numdiskspermfs $diskfile
+    elif [[ -n "$numsps" ]]; then
+        local numstripe=$(echo "$numdisks/$numsps"|bc)
+        /opt/mapr/server/disksetup -FW $numstripe $diskfile
     else
         /opt/mapr/server/disksetup -FM $diskfile
     fi

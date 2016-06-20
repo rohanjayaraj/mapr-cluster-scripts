@@ -93,6 +93,7 @@ trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 # Global Variables : All need to start with 'GLB_' as they are replayed back to other cluster nodes during setup
 GLB_CLUSTER_NAME="archerx"
 GLB_MULTI_MFS=
+GLB_NUM_SP=
 GLB_TABLE_NS=
 GLB_CLDB_TOPO=
 GLB_PONTIS=
@@ -159,7 +160,7 @@ function main_install(){
 	do
 		echo "****** Running configure on node -> $node ****** "
 		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
-		sleep 2
+		sleep 1
 	done
 	wait
 
@@ -385,6 +386,11 @@ while [ "$2" != "" ]; do
     	-m)
 			if [ -n "$VALUE" ]; then
     			GLB_MULTI_MFS=$VALUE
+    		fi
+    	;;
+    	-sp)
+			if [ -n "$VALUE" ]; then
+    			GLB_NUM_SP=$VALUE
     		fi
     	;;
     	-ns)
