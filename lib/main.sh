@@ -152,6 +152,7 @@ function main_install(){
 
 		local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
 		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
+		sleep 1
 	done
 	wait
 
@@ -355,6 +356,7 @@ while [ "$2" != "" ]; do
         ;;
     	install)
     		doInstall=1
+    		GLB_CLDB_TOPO=1
     	;;
     	uninstall)
     		doUninstall=1
