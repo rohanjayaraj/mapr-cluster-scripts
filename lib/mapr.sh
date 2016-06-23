@@ -756,22 +756,19 @@ function maprutil_runCommands(){
 
 function maprutil_createYCSBVolume () {
     echo " *************** Creating YCSB Volume **************** "
-    maprutil_runMapRCmd "maprcli volume create -name tables -path /tables -replication 3 -topology /data"
-    maprutil_runMapRCmd "hadoop mfs -setcompression off /tables"
+    maprutil_runMapRCmd "maprcli volume create -name tables -path /tables -replication 3 -topology /data && hadoop mfs -setcompression off /tables"
 }
 
 function maprutil_createTableWithCompression(){
     echo " *************** Creating UserTable (/tables/usertable) with lz4 compression **************** "
     maprutil_createYCSBVolume
-    maprutil_runMapRCmd "maprcli table create -path /tables/usertable"
-    maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1"
+    maprutil_runMapRCmd "maprcli table create -path /tables/usertable && maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1"
 }
 
 function maprutil_createTableWithCompressionOff(){
     echo " *************** Creating UserTable (/tables/usertable) with compression off **************** "
     maprutil_createYCSBVolume
-    maprutil_runMapRCmd "maprcli table create -path /tables/usertable"
-    maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression off -maxversions 1"
+    maprutil_runMapRCmd "maprcli table create -path /tables/usertable && maprcli table cf create -path /tables/usertable -cfname family -compression off -maxversions 1"
 }
 
 function maprutil_createJSONTable(){
