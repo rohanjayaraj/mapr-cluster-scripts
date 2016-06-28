@@ -535,6 +535,7 @@ function maprutil_configureNode2(){
         fi
         local cldbtopo=$GLB_CLDB_TOPO
         if [ -n "$cldbtopo" ]; then
+            sleep 30
             maprutil_configureCLDBTopology
         fi
     fi
