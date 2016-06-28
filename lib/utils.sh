@@ -21,7 +21,7 @@ function util_getHostIP(){
     command -v ifconfig >/dev/null 2>&1 || yum install net-tools -y -q 2>/dev/null
     local ipadd=$(/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1" | head -n 1 | awk '{print $2}' | cut -c6-)
     if [ -z "$ipadd" ]; then
-        ipadd=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
+        ipadd=$(ip addr | grep 'state UP' -A2 | head -n 3 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
     fi
     if [ -z "$ipadd" ] && [ -n "$HOSTIP" ]; then
         ipadd=$HOSTIP
