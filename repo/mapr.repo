@@ -40,9 +40,9 @@ enabled=0
 gpgcheck=0
 protect=1
 
-[QA-5.2.0-Special]
+[QA-5.2.0-ProdBuilds]
 name=MapR Latest Build QA Repository
-baseurl=http://yum.qa.lab/default-5.2.0-special
+baseurl=http://yum.qa.lab/default-prodmode/
 enabled=0
 gpgcheck=0
 protect=1
@@ -67,3 +67,4 @@ baseurl=http://10.10.88.136/repo/yum/v5.2.0/
 enabled=0
 gpgcheck=0
 protect=1
+
