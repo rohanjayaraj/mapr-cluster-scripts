@@ -66,8 +66,18 @@ function usage () {
     echo -e "\t\t - Install cluster"
     echo -e "\t -u | --uninstall" 
     echo -e "\t\t - Uninstall cluster"
+    echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
+    echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
     echo -e "\t -h --help"
     echo -e "\t\t - Print this"
+    
+    echo 
+    echo " Install/Uninstall Explicit Options : "
+    echo -e "\t -f | --force" 
+    echo -e "\t\t - Force uninstall a node/cluster"
+    echo -e "\t -e | --enabletrace" 
+    echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (WARN: may fill the root partition)"
+    
     echo 
 	echo " More Options : "
     #echo -e "\t -r=[all|{IP}] | --restart  (default : all)" 
@@ -99,11 +109,6 @@ function usage () {
     
     echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
-    
-    echo -e "\t -f | --force" 
-    echo -e "\t\t - Force uninstall a node/cluster"
-    echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
-    echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
     
     echo 
     echo " Example(s) : "
@@ -158,6 +163,9 @@ while [ "$1" != "" ]; do
         ;;
         -tlz | --tablelz4)
             extraarg=$extraarg"tablelz4 "
+        ;;
+        -e | --enabletrace)
+            extraarg=$extraarg"traceon "
         ;;
         -sp | --storagepool)
             numsps=$VALUE

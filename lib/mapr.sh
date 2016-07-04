@@ -488,7 +488,7 @@ function maprutil_buildDiskList() {
 function maprutil_startTraces() {
     /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all > /opt/mapr/logs/guts.log 2>&1 &
     dstat -tcpldrngims --ipc > /opt/mapr/logs/dstat.log 2>&1 &
-    iostat -dmxt 1 > /opt/mapr/logs/iostat.log 2>&1 &
+    iostat -dmxt 10 > /opt/mapr/logs/iostat.log 2>&1 &
 }
 
 function maprutil_configureNode2(){
@@ -558,7 +558,9 @@ function maprutil_configureNode2(){
         fi
     fi
 
-    maprutil_startTraces
+    if [ -n "$GLB_TRACE_ON" ]; then
+        maprutil_startTraces
+    fi
 }
 
 # @param host ip
