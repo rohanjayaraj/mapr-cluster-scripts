@@ -389,6 +389,7 @@ while [ "$2" != "" ]; do
 		    		doUninstall=1
 		    	;;
 		    esac
+		    ;;
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
