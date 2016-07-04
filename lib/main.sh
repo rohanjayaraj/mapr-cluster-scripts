@@ -379,13 +379,16 @@ while [ "$2" != "" ]; do
             main_usage
             exit
         ;;
-    	install)
-    		doInstall=1
-    		GLB_CLDB_TOPO=1
-    	;;
-    	uninstall)
-    		doUninstall=1
-    	;;
+        -s)
+			case $VALUE in
+		    	install)
+		    		doInstall=1
+		    		GLB_CLDB_TOPO=1
+		    	;;
+		    	uninstall)
+		    		doUninstall=1
+		    	;;
+		    esac
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
