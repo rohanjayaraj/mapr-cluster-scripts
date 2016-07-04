@@ -266,13 +266,33 @@ function main_uninstall(){
 
 	if [ -n "$nocldblist" ]; then
 		echo "{WARNING} CLDB not found on nodes [$nocldblist]. May be uninstalling another cluster's nodes."
-		read -p "Press 'y' to confirm... " -n 1 -r
-	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-	    	echo "Over & Out!"
-	    	return
-	    fi
+		if [ "$doForce" -eq 0 ]; then
+			read -p "Press 'y' to confirm... " -n 1 -r
+		    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+		    	echo "Over & Out!"
+		    	exit 1
+		    fi
+		else
+			echo "Continuing uninstallation..."
+		fi
 	else
 		echo "CLDB Master : $cldbnode"
+	fi
+
+
+	if [ -n "$doBackup" ]; then
+		echo "Backing up MapR log directory on all nodes to $doBackup"
+		local timestamp=$(date +%Y-%m-%d-%H-%M)
+		for node in ${nodes[@]}
+		do	
+	    	maprutil_zipLogsDirectoryOnNode "$node" "$timestamp"
+		done
+		wait
+		for node in ${nodes[@]}
+		do	
+	    	maprutil_copyZippedLogsFromNode "$node" "$timestamp" "$doBackup"
+		done
+		wait
 	fi
 
 	# Start MapR Unistall for each node
@@ -344,6 +364,7 @@ doUninstall=0
 doCmdExec=
 doPontis=0
 doForce=0
+doBackup=
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
@@ -404,6 +425,11 @@ while [ "$2" != "" ]; do
 			if [ -n "$VALUE" ]; then
     			GLB_MAX_DISKS=$VALUE
     		fi
+    	;;
+    	-b)
+			if [ -n "$VALUE" ]; then
+				doBackup=$VALUE
+			fi
     	;;
         *)
             echo "ERROR: unknown option \"$OPTION\""

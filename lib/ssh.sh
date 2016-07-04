@@ -57,6 +57,18 @@ function ssh_copyCommand(){
 	echo "$retval"
 }
 
+# @param user
+# @param host ip
+# @param remote file/dir to copy
+# @param local file/dir to copy
+function ssh_copyFromCommandinBG(){
+	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+		return 1
+	fi
+	
+	scp -r $1@$2:$3 $4 &
+}
+
 # @param host ip
 # @param local file/dir to copy
 # @param remote file/dir to copy

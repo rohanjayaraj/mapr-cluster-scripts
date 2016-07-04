@@ -27,6 +27,7 @@ numsps=
 tablens=
 maxdisks=
 extraarg=
+backupdir=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -79,10 +80,14 @@ function usage () {
     echo -e "\t\t - Specify number of storage pools per node (ignored for multi mfs)"
     echo -e "\t -m=<#ofMFS> | --multimfs=<#ofMFS>" 
     echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
+    
     echo -e "\t -ct | --cldbtopo" 
     echo -e "\t\t - Move CLDB node & volume to /cldb topology"
     echo -e "\t -y | --ycsbvol" 
     echo -e "\t\t - Create YCSB related volumes "
+    echo -e "\t -p | --pontis" 
+    echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
+
     echo -e "\t -t | --tablecreate" 
     echo -e "\t\t - Create /tables/usertable [cf->family] with compression off"
     echo -e "\t -tlz | --tablelz4" 
@@ -91,16 +96,21 @@ function usage () {
     echo -e "\t\t - Create YCSB JSON Table with default family"
     echo -e "\t -jcf | --jsontablecf" 
     echo -e "\t\t - Create YCSB JSON Table with second CF family cfother"
-    echo -e "\t -ns=TABLENS | --tablens=TABLENS" 
+    
+    echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
+    
     echo -e "\t -f | --force" 
-    echo -e "\t\t - Force uninstall a node"
-    echo -e "\t -p | --pontis" 
-    echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
+    echo -e "\t\t - Force uninstall a node/cluster"
+    echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
+    echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR before uninstalling the cluster (default COPYTODIR : /tmp/)"
+    
     echo 
     echo " Example(s) : "
-    echo -e "\t ./$me -c=maprdb install -n=Performance -m=3" 
-    echo -e "\t ./$me -c=maprdb uninstall" 
+    echo -e "\t ./$me -c=maprdb -i -n=Performance -m=3" 
+    echo -e "\t ./$me -c=maprdb -u"
+    echo -e "\t ./$me -c=roles/pontis.roles -i -p -n=Pontis" 
+    echo -e "\t ./$me -c=/root/configs/cluster.role -i -d=4 -sp=2" 
 }
 
 while [ "$1" != "" ]; do
@@ -166,6 +176,12 @@ while [ "$1" != "" ]; do
         -f | --force)
            extraarg=$extraarg"force "
         ;;
+        -b | --backuplogs)
+            if [ -z "$VALUE" ]; then
+                VALUE="/tmp"
+            fi
+            backupdir=$VALUE
+        ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
             usage
@@ -180,7 +196,7 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-    $libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps"
+    $libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps" "-b=$backupdir"
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then

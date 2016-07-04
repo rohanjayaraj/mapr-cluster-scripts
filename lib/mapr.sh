@@ -268,9 +268,10 @@ function maprutil_uninstallNode2(){
 
     # kill all processes
     util_kill "guts"
+    util_kill "dstat"
+    util_kill "iostat"
     util_kill "initaudit.sh"
     util_kill "java" "jenkins" "elasticsearch"
-
 }
 
 # @param host ip
@@ -473,6 +474,12 @@ function maprutil_buildDiskList() {
     fi
 }
 
+function maprutil_startTraces() {
+    /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all > /opt/mapr/logs/guts.log 2>&1 &
+    dstat -tcpldrngims --ipc > /opt/mapr/logs/dstat.log 2>&1 &
+    iostat -dmxt 1 > /opt/mapr/logs/iostat.log 2>&1 &
+}
+
 function maprutil_configureNode2(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
@@ -539,6 +546,8 @@ function maprutil_configureNode2(){
             maprutil_configureCLDBTopology
         fi
     fi
+
+    maprutil_startTraces
 }
 
 # @param host ip
@@ -841,6 +850,63 @@ function maprutil_addToPIDList(){
     else
         GLB_BG_PIDS=$GLB_BG_PIDS" "$1
     fi
+}
+
+# @param timestamp
+function maprutil_zipDirectory(){
+    local timestamp=$1
+    local tmpdir="/tmp/maprlogs/$(hostname -f)/"
+    local logdir="/opt/mapr/logs/"
+    local tarfile="maprlogs_$(hostname -f)_$(maprutil_getBuildID)_$timestamp.tar.bz2"
+
+    mkdir -p $tmpdir > /dev/null 2>&1
+    
+    cd $tmpdir && tar -cjf $tarfile $logdir > /dev/null 2>&1
+}
+
+# @param host ip
+# @param timestamp
+function maprutil_zipLogsDirectoryOnNode(){
+    if [ -z "$1" ]; then
+        echo "Node not specified."
+        return
+    fi
+
+    local node=$1
+    local timestamp=$2
+    
+    local scriptpath="/tmp/zipdironnode_${node: -3}.sh"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    echo >> $scriptpath
+    echo "##########  Adding execute steps below ########### " >> $scriptpath
+
+    echo "maprutil_zipDirectory \"$timestamp\"" >> $scriptpath
+   
+    ssh_executeScriptasRootInBG "$node" "$scriptpath"
+    maprutil_addToPIDList "$!"
+}
+
+
+# @param host ip
+# @param local directory to copy the zip file
+function maprutil_copyZippedLogsFromNode(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        echo "Incorrect or null arguments. Ignoring copy of the files"
+        return
+    fi
+
+    local node=$1
+    local timestamp=$2
+    local copyto=$3
+    local host=$(ssh_executeCommandasRoot "$node" "cat /etc/hostname")
+    local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
+    
+    ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto"
 }
 
 ### 

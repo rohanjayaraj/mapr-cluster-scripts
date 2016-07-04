@@ -158,10 +158,12 @@ function util_kill(){
             ignore=$ignore"| grep -vi \""$i"\""
         fi
     done
+    local key=$1
+    local esckey="[${key:0:1}]${key:1}"
     if [ -z "$ignore" ]; then
-        ps aux | grep $1 | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 2>/dev/null
+        ps aux | grep $esckey | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 2>/dev/null
     else
-        ps aux | grep $1 | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 2>/dev/null
+        ps aux | grep $esckey | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 2>/dev/null
     fi
 }
 
