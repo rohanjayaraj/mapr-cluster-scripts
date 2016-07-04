@@ -92,6 +92,7 @@ trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 
 # Global Variables : All need to start with 'GLB_' as they are replayed back to other cluster nodes during setup
 GLB_CLUSTER_NAME="archerx"
+GLB_CLUSTER_SIZE=${#nodes[@]}
 GLB_MULTI_MFS=
 GLB_NUM_SP=
 GLB_TABLE_NS=

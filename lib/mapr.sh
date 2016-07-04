@@ -170,6 +170,7 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/postconfigurenode_*")
     dirlist+=("/tmp/cmdonnode_*")
     dirlist+=("/tmp/defdisks*")
+    dirlist+=("/tmp/zipdironnode_*")
 
     echo  ${dirlist[*]}
 }  
@@ -432,17 +433,28 @@ function maprutil_customConfigure(){
     maprutil_addFSThreads "core-site.xml"
 }
 
+# @param force move CLDB topology
 function maprutil_configureCLDBTopology(){
     
     local datatopo=$(maprcli node list -json | grep racktopo | grep "/data/" | wc -l)
     local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
+    local j=0
+    while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ] && [ -z "$1" ]; do
+        sleep 20
+        numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
+        let j=j+1
+        if [ "$j" -gt 3 ]; then
+            break
+        fi
+    done
     let numdnodes=numdnodes-1
 
     if [ "$datatopo" -eq "$numdnodes" ]; then
         return
     fi
-    local clustersize=$(maprcli node list -json | grep 'id'| wc -l)
-    if [ "$clustersize" -gt 4 ]; then
+    #local clustersize=$(maprcli node list -json | grep 'id'| wc -l)
+    local clustersize=$GLB_CLUSTER_SIZE
+    if [ "$clustersize" -gt 4 ] || [ -n "$1" ]; then
         ## Move all nodes under /data topology
         local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
         maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
@@ -453,7 +465,6 @@ function maprutil_configureCLDBTopology(){
         sleep 5;
         ### Moving CLDB Volume as well
         maprcli volume move -name mapr.cldb.internal -topology /cldb 2>/dev/null
-        sleep 5;
     fi
 }
 
@@ -739,7 +750,7 @@ function maprutil_runCommands(){
     do
         case $i in
             cldbtopo)
-                maprutil_configureCLDBTopology
+                maprutil_configureCLDBTopology "force"
             ;;
             ycsb)
                 maprutil_createYCSBVolume
