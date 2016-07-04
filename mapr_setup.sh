@@ -103,7 +103,7 @@ function usage () {
     echo -e "\t -f | --force" 
     echo -e "\t\t - Force uninstall a node/cluster"
     echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
-    echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR before uninstalling the cluster (default COPYTODIR : /tmp/)"
+    echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
     
     echo 
     echo " Example(s) : "

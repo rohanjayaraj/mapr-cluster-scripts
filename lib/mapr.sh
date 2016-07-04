@@ -857,7 +857,8 @@ function maprutil_zipDirectory(){
     local timestamp=$1
     local tmpdir="/tmp/maprlogs/$(hostname -f)/"
     local logdir="/opt/mapr/logs/"
-    local tarfile="maprlogs_$(hostname -f)_$(maprutil_getBuildID)_$timestamp.tar.bz2"
+    local buildid=$(cat /opt/mapr/MapRBuildVersion)
+    local tarfile="maprlogs_$(hostname -f)_$buildid_$timestamp.tar.bz2"
 
     mkdir -p $tmpdir > /dev/null 2>&1
     
@@ -895,7 +896,7 @@ function maprutil_zipLogsDirectoryOnNode(){
 # @param host ip
 # @param local directory to copy the zip file
 function maprutil_copyZippedLogsFromNode(){
-    if [ -z "$1" ] || [ -z "$2" ]; then
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         echo "Incorrect or null arguments. Ignoring copy of the files"
         return
     fi
@@ -903,7 +904,7 @@ function maprutil_copyZippedLogsFromNode(){
     local node=$1
     local timestamp=$2
     local copyto=$3
-    local host=$(ssh_executeCommandasRoot "$node" "cat /etc/hostname")
+    local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
     
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto"

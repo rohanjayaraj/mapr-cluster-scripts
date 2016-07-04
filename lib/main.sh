@@ -281,18 +281,7 @@ function main_uninstall(){
 
 
 	if [ -n "$doBackup" ]; then
-		echo "Backing up MapR log directory on all nodes to $doBackup"
-		local timestamp=$(date +%Y-%m-%d-%H-%M)
-		for node in ${nodes[@]}
-		do	
-	    	maprutil_zipLogsDirectoryOnNode "$node" "$timestamp"
-		done
-		wait
-		for node in ${nodes[@]}
-		do	
-	    	maprutil_copyZippedLogsFromNode "$node" "$timestamp" "$doBackup"
-		done
-		wait
+		main_backuplogs
 	fi
 
 	# Start MapR Unistall for each node
@@ -315,6 +304,21 @@ function main_uninstall(){
 	wait
 
 	echo "Uninstall is complete!"
+}
+
+function main_backuplogs(){
+	echo "Backing up MapR log directory on all nodes to $doBackup"
+	local timestamp=$(date +%Y-%m-%d-%H-%M)
+	for node in ${nodes[@]}
+	do	
+    	maprutil_zipLogsDirectoryOnNode "$node" "$timestamp"
+	done
+	wait
+	for node in ${nodes[@]}
+	do	
+    	maprutil_copyZippedLogsFromNode "$node" "$timestamp" "$doBackup"
+	done
+	wait
 }
 
 function main_runCommandExec(){
@@ -446,6 +450,9 @@ if [ "$doInstall" -eq 1 ]; then
 elif [ "$doUninstall" -eq 1 ]; then
 	echo " *************** Starting Cluster Uninstallation **************** "
 	main_uninstall
+elif [ -n "$doBackup" ]; then
+	echo " *************** Starting logs backup **************** "
+	main_backuplogs	
 fi
 
 exitcode=`echo $?`
