@@ -57,9 +57,12 @@ function handleInterrupt() {
 function usage () {
 	echo 
 	echo "Usage : "
-    echo "./$me -c=<ClusterConfig> <Arguments> [More Options]"
+    echo "./$me -c=<ClusterConfig> <Arguments> [Options]"
 
     echo " Arguments : "
+    echo -e "\t -h --help"
+    echo -e "\t\t - Print this"
+
     echo -e "\t -c=<file> | --clusterconfig=<file>" 
     echo -e "\t\t - Cluster Configuration Name/Filepath"
     echo -e "\t -i | --install" 
@@ -68,36 +71,35 @@ function usage () {
     echo -e "\t\t - Uninstall cluster"
     echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
     echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
-    echo -e "\t -h --help"
-    echo -e "\t\t - Print this"
     
     echo 
-    echo " Install/Uninstall Explicit Options : "
+    echo " Install/Uninstall Options : "
+    echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
+    echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
+    echo -e "\t -n=CLUSTER_NAME | --name=CLUSTER_NAME (default : archerx)" 
+    echo -e "\t\t - Specify cluster name"
+    echo -e "\t -d=<#ofDisks> | --maxdisks=<#ofDisks>" 
+    echo -e "\t\t - Specify number of disks to use (default : all available disks)"
+    echo -e "\t -sp=<#ofSPs> | --storagepool=<#ofSPs>" 
+    echo -e "\t\t - Specify number of storage pools per node (ignored for multi mfs)"
+    echo -e "\t -m=<#ofMFS> | --multimfs=<#ofMFS>" 
+    echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
+    echo -e "\t -p | --pontis" 
+    echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
     echo -e "\t -f | --force" 
     echo -e "\t\t - Force uninstall a node/cluster"
     echo -e "\t -e | --enabletrace" 
     echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (WARN: may fill the root partition)"
     
     echo 
-	echo " More Options : "
+	echo " Post install Options : "
     #echo -e "\t -r=[all|{IP}] | --restart  (default : all)" 
-    #echo -e "\t\t - Restart warden on all or specified nodes"
-    echo -e "\t -n=CLUSTER_NAME | --name=CLUSTER_NAME (default : archerx)" 
-    echo -e "\t\t - Specify cluster name"
-    echo -e "\t -d=<#ofDisks> | --maxdisks=<#ofDisks>" 
-    echo -e "\t\t - Specify number of disks to use (Default : all available disks)"
-    echo -e "\t -sp=<#ofSPs> | --storagepool=<#ofSPs>" 
-    echo -e "\t\t - Specify number of storage pools per node (ignored for multi mfs)"
-    echo -e "\t -m=<#ofMFS> | --multimfs=<#ofMFS>" 
-    echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
-    
+    #echo -e "\t\t - Restart warden on all or specified nodes" 
     echo -e "\t -ct | --cldbtopo" 
     echo -e "\t\t - Move CLDB node & volume to /cldb topology"
     echo -e "\t -y | --ycsbvol" 
     echo -e "\t\t - Create YCSB related volumes "
-    echo -e "\t -p | --pontis" 
-    echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
-
+    
     echo -e "\t -t | --tablecreate" 
     echo -e "\t\t - Create /tables/usertable [cf->family] with compression off"
     echo -e "\t -tlz | --tablelz4" 
@@ -107,11 +109,8 @@ function usage () {
     echo -e "\t -jcf | --jsontablecf" 
     echo -e "\t\t - Create YCSB JSON Table with second CF family cfother"
     
-    echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
-    echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
-    
     echo 
-    echo " Example(s) : "
+    echo " Examples : "
     echo -e "\t ./$me -c=maprdb -i -n=Performance -m=3" 
     echo -e "\t ./$me -c=maprdb -u"
     echo -e "\t ./$me -c=roles/pontis.roles -i -p -n=Pontis" 
