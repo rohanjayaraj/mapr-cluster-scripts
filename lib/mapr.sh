@@ -856,13 +856,13 @@ function maprutil_addToPIDList(){
 function maprutil_zipDirectory(){
     local timestamp=$1
     local tmpdir="/tmp/maprlogs/$(hostname -f)/"
-    local logdir="/opt/mapr/logs/"
+    local logdir="/opt/mapr/logs"
     local buildid=$(cat /opt/mapr/MapRBuildVersion)
     local tarfile="maprlogs_$(hostname -f)_$buildid_$timestamp.tar.bz2"
 
     mkdir -p $tmpdir > /dev/null 2>&1
     
-    cd $tmpdir && tar -cjf $tarfile $logdir > /dev/null 2>&1
+    cd $tmpdir && tar -cjf $tarfile -C $logdir . > /dev/null 2>&1
 }
 
 # @param host ip
