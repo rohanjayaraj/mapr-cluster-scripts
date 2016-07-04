@@ -904,6 +904,7 @@ function maprutil_copyZippedLogsFromNode(){
     local node=$1
     local timestamp=$2
     local copyto=$3
+    mkdir -p $copyto > /dev/null 2>&1
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
     
