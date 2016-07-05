@@ -88,7 +88,7 @@ function usage () {
     echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
     echo -e "\t -f | --force" 
     echo -e "\t\t - Force uninstall a node/cluster"
-    echo -e "\t -e | --enabletrace" 
+    echo -e "\t -et | --enabletrace" 
     echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (WARN: may fill the root partition)"
     
     echo 
@@ -163,7 +163,7 @@ while [ "$1" != "" ]; do
         -tlz | --tablelz4)
             extraarg=$extraarg"tablelz4 "
         ;;
-        -e | --enabletrace)
+        -et | --enabletrace)
             extraarg=$extraarg"traceon "
         ;;
         -sp | --storagepool)
