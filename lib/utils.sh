@@ -148,7 +148,8 @@ function util_kill(){
     local ignore=
     while [ "$1" != "" ]; do
         if [ "$i" -eq 0 ]; then 
-            let i=i+1  
+            let i=i+1
+            shift  
             continue 
         else
             let i=i+1 
