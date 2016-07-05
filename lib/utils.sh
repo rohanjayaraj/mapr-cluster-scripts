@@ -164,9 +164,9 @@ function util_kill(){
     done
     local esckey="[${key:0:1}]${key:1}"
     if [ -n "$ignore" ]; then
-        ps aux | grep $esckey | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 &>/dev/null
+        ps aux | grep $esckey | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 > /dev/null 2>&1
     else
-        ps aux | grep $esckey | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 &>/dev/null
+        ps aux | grep $esckey | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 > /dev/null 2>&1
     fi
 }
 
