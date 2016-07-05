@@ -246,6 +246,11 @@ function maprutil_unmountNFS(){
 
 function maprutil_uninstallNode2(){
     
+    # Kill running traces 
+    util_kill "guts"
+    util_kill "dstat"
+    util_kill "iostat"
+    
     # Unmount NFS
     maprutil_unmountNFS
 
@@ -268,9 +273,6 @@ function maprutil_uninstallNode2(){
     maprutil_removedirs "all"
 
     # kill all processes
-    util_kill "guts"
-    util_kill "dstat"
-    util_kill "iostat"
     util_kill "initaudit.sh"
     util_kill "java" "jenkins" "elasticsearch"
 }
@@ -486,9 +488,11 @@ function maprutil_buildDiskList() {
 }
 
 function maprutil_startTraces() {
-    /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all > /opt/mapr/logs/guts.log 2>&1 &
-    dstat -tcpldrngims --ipc > /opt/mapr/logs/dstat.log 2>&1 &
-    iostat -dmxt 10 > /opt/mapr/logs/iostat.log 2>&1 &
+    if [ "$ISCLIENT" -eq 0 ]; then
+        /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all > /opt/mapr/logs/guts.log 2>&1 &
+        dstat -tcpldrngims --ipc > /opt/mapr/logs/dstat.log 2>&1 &
+        iostat -dmxt 10 > /opt/mapr/logs/iostat.log 2>&1 &
+    fi
 }
 
 function maprutil_configureNode2(){
