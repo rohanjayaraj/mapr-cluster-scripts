@@ -41,7 +41,7 @@ gpgcheck=0
 protect=1
 
 [QA-5.2.0]
-name=MapR v5.1.0 QA Repository
+name=MapR v5.2.0 QA Repository
 baseurl=http://yum.qa.lab/v5.2.0
 enabled=1
 gpgcheck=0
@@ -50,13 +50,6 @@ protect=1
 [QA-Latest]
 name=MapR Latest Build QA Repository
 baseurl=http://yum.qa.lab/mapr
-enabled=0
-gpgcheck=0
-protect=1
-
-[QA-5.2.0-ProdBuilds]
-name=MapR Latest Build QA Repository
-baseurl=http://yum.qa.lab/default-prodmode/
 enabled=0
 gpgcheck=0
 protect=1
