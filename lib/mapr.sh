@@ -489,7 +489,7 @@ function maprutil_buildDiskList() {
 
 function maprutil_startTraces() {
     if [ "$ISCLIENT" -eq 0 ]; then
-        ec=124; while [ "$ec" -eq 124 ]; do timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all >> /opt/mapr/logs/guts.log; ec=$?; done &
+        nohup sh -c 'ec=124; while [ "$ec" -eq 124 ]; do timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all >> /opt/mapr/logs/guts.log; ec=$?; done'  > /dev/null &
         nohup dstat -tcpldrngims --ipc > /opt/mapr/logs/dstat.log &
         nohup iostat -dmxt 10 > /opt/mapr/logs/iostat.log &
     fi
