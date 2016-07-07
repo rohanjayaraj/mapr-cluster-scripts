@@ -92,6 +92,8 @@ trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 
 # Global Variables : All need to start with 'GLB_' as they are replayed back to other cluster nodes during setup
 GLB_CLUSTER_NAME="archerx"
+GLB_CLUSTER_SIZE=$(cat $rolefile |  grep -v 'mapr-client\|mapr-loopbacknfs' | wc -l)
+GLB_TRACE_ON=
 GLB_MULTI_MFS=
 GLB_NUM_SP=
 GLB_TABLE_NS=
@@ -152,6 +154,7 @@ function main_install(){
 
 		local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
 		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
+		sleep 1
 	done
 	wait
 
@@ -265,13 +268,22 @@ function main_uninstall(){
 
 	if [ -n "$nocldblist" ]; then
 		echo "{WARNING} CLDB not found on nodes [$nocldblist]. May be uninstalling another cluster's nodes."
-		read -p "Press 'y' to confirm... " -n 1 -r
-	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-	    	echo "Over & Out!"
-	    	return
-	    fi
+		if [ "$doForce" -eq 0 ]; then
+			read -p "Press 'y' to confirm... " -n 1 -r
+		    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+		    	echo "Over & Out!"
+		    	exit 1
+		    fi
+		else
+			echo "Continuing uninstallation..."
+		fi
 	else
 		echo "CLDB Master : $cldbnode"
+	fi
+
+
+	if [ -n "$doBackup" ]; then
+		main_backuplogs
 	fi
 
 	# Start MapR Unistall for each node
@@ -294,6 +306,28 @@ function main_uninstall(){
 	wait
 
 	echo "Uninstall is complete!"
+}
+
+function main_backuplogs(){
+	echo "Backing up MapR log directory on all nodes to $doBackup"
+	local timestamp=$(date +%Y-%m-%d-%H-%M)
+	for node in ${nodes[@]}
+	do	
+    	maprutil_zipLogsDirectoryOnNode "$node" "$timestamp"
+	done
+	wait
+	for node in ${nodes[@]}
+	do	
+    	maprutil_copyZippedLogsFromNode "$node" "$timestamp" "$doBackup"
+	done
+	wait
+
+	local scriptfile="$doBackup/extract.sh"
+	echo "echo \"extracting bzip2\"" >> $scriptfile
+	echo "for i in \`ls *\`;do bzip2 -d \$i;done " >> $scriptfile
+	echo "echo \"extracting tar\"" >> $scriptfile
+	echo "for i in \`ls *.tar\`;do DIR=\`echo \$i| sed 's/.tar//g'\`;echo \$DIR;mkdir -p \$DIR;tar -xf \$i -C \`pwd\`/\$DIR;done" >> $scriptfile
+	chmod +x $scriptfile
 }
 
 function main_runCommandExec(){
@@ -343,6 +377,7 @@ doUninstall=0
 doCmdExec=
 doPontis=0
 doForce=0
+doBackup=
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
@@ -353,12 +388,17 @@ while [ "$2" != "" ]; do
             main_usage
             exit
         ;;
-    	install)
-    		doInstall=1
-    	;;
-    	uninstall)
-    		doUninstall=1
-    	;;
+        -s)
+			case $VALUE in
+		    	install)
+		    		doInstall=1
+		    		GLB_CLDB_TOPO=1
+		    	;;
+		    	uninstall)
+		    		doUninstall=1
+		    	;;
+		    esac
+		    ;;
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
@@ -373,6 +413,8 @@ while [ "$2" != "" ]; do
     				fi
     			elif [[ "$i" = "force" ]]; then
     				doForce=1
+    			elif [[ "$i" = "traceon" ]]; then
+    				GLB_TRACE_ON=1
     			elif [[ "$i" = "pontis" ]]; then
     				GLB_PONTIS=1
     			fi
@@ -403,6 +445,11 @@ while [ "$2" != "" ]; do
     			GLB_MAX_DISKS=$VALUE
     		fi
     	;;
+    	-b)
+			if [ -n "$VALUE" ]; then
+				doBackup=$VALUE
+			fi
+    	;;
         *)
             echo "ERROR: unknown option \"$OPTION\""
             main_usage
@@ -418,6 +465,9 @@ if [ "$doInstall" -eq 1 ]; then
 elif [ "$doUninstall" -eq 1 ]; then
 	echo " *************** Starting Cluster Uninstallation **************** "
 	main_uninstall
+elif [ -n "$doBackup" ]; then
+	echo " *************** Starting logs backup **************** "
+	main_backuplogs	
 fi
 
 exitcode=`echo $?`

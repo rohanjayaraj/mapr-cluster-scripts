@@ -21,7 +21,7 @@ function util_getHostIP(){
     command -v ifconfig >/dev/null 2>&1 || yum install net-tools -y -q 2>/dev/null
     local ipadd=$(/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1" | head -n 1 | awk '{print $2}' | cut -c6-)
     if [ -z "$ipadd" ]; then
-        ipadd=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
+        ipadd=$(ip addr | grep 'state UP' -A2 | head -n 3 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
     fi
     if [ -z "$ipadd" ] && [ -n "$HOSTIP" ]; then
         ipadd=$HOSTIP
@@ -143,25 +143,32 @@ function util_kill(){
     if [ -z "$1" ]; then
         return
     fi
+    local key=$1
     local i=0
     local ignore=
-    while [  $i -lt "$#" ]; do
+    while [ "$1" != "" ]; do
         if [ "$i" -eq 0 ]; then 
-            let i=i+1  
+            let i=i+1
+            shift  
             continue 
         else
             let i=i+1 
         fi
+        local ig=$1
         if [ -z "$ignore" ]; then
-            ignore="grep -vi \""$i"\""
+            ignore="grep -vi \""$ig"\""
         else
-            ignore=$ignore"| grep -vi \""$i"\""
+            ignore=$ignore"| grep -vi \""$ig"\""
         fi
+        shift
     done
-    if [ -z "$ignore" ]; then
-        ps aux | grep $1 | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 2>/dev/null
-    else
-        ps aux | grep $1 | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 2>/dev/null
+    local esckey="[${key:0:1}]${key:1}"
+    if [ -n "$(ps aux | grep $esckey)" ]; then
+        if [ -n "$ignore" ]; then
+            ps aux | grep $esckey | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 > /dev/null 2>&1
+        else
+            ps aux | grep $esckey | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 > /dev/null 2>&1
+        fi
     fi
 }
 

@@ -142,6 +142,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/guts*")
     dirlist+=("/opt/cores/mfs*")
     dirlist+=("/opt/cores/java.core.*")
+    dirlist+=("/opt/cores/*mrconfig*")
     echo ${dirlist[*]}
 }
 
@@ -170,6 +171,7 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/postconfigurenode_*")
     dirlist+=("/tmp/cmdonnode_*")
     dirlist+=("/tmp/defdisks*")
+    dirlist+=("/tmp/zipdironnode_*")
 
     echo  ${dirlist[*]}
 }  
@@ -236,7 +238,7 @@ function maprutil_isMapRInstalledOnNode(){
 }
 
 function maprutil_unmountNFS(){
-    local nfslist=$(mount | grep nfs | grep mapr | cut -d' ' -f3)
+    local nfslist=$(mount | grep nfs | grep mapr | grep -v '10.10.10.20' | cut -d' ' -f3)
     for i in $nfslist
     do
         umount -l $i
@@ -244,6 +246,12 @@ function maprutil_unmountNFS(){
 }
 
 function maprutil_uninstallNode2(){
+    
+    # Kill running traces 
+    util_kill "timeout"
+    util_kill "guts"
+    util_kill "dstat"
+    util_kill "iostat"
     
     # Unmount NFS
     maprutil_unmountNFS
@@ -267,10 +275,8 @@ function maprutil_uninstallNode2(){
     maprutil_removedirs "all"
 
     # kill all processes
-    util_kill "guts"
     util_kill "initaudit.sh"
     util_kill "java" "jenkins" "elasticsearch"
-
 }
 
 # @param host ip
@@ -431,17 +437,28 @@ function maprutil_customConfigure(){
     maprutil_addFSThreads "core-site.xml"
 }
 
+# @param force move CLDB topology
 function maprutil_configureCLDBTopology(){
     
     local datatopo=$(maprcli node list -json | grep racktopo | grep "/data/" | wc -l)
     local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
+    local j=0
+    while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ] && [ -z "$1" ]; do
+        sleep 20
+        numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
+        let j=j+1
+        if [ "$j" -gt 3 ]; then
+            break
+        fi
+    done
     let numdnodes=numdnodes-1
 
     if [ "$datatopo" -eq "$numdnodes" ]; then
         return
     fi
-    local clustersize=$(maprcli node list -json | grep 'id'| wc -l)
-    if [ "$clustersize" -gt 4 ]; then
+    #local clustersize=$(maprcli node list -json | grep 'id'| wc -l)
+    local clustersize=$GLB_CLUSTER_SIZE
+    if [ "$clustersize" -gt 4 ] || [ -n "$1" ]; then
         ## Move all nodes under /data topology
         local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
         maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
@@ -452,7 +469,6 @@ function maprutil_configureCLDBTopology(){
         sleep 5;
         ### Moving CLDB Volume as well
         maprcli volume move -name mapr.cldb.internal -topology /cldb 2>/dev/null
-        sleep 5;
     fi
 }
 
@@ -470,6 +486,15 @@ function maprutil_buildDiskList() {
     if [ -n "$limit" ] && [ "$numdisks" -gt "$limit" ]; then
          local newlist=$(head -n $limit $diskfile)
          echo "$newlist" > $diskfile
+    fi
+}
+
+function maprutil_startTraces() {
+    if [ "$ISCLIENT" -eq 0 ] && [ -e "/opt/mapr/roles" ]; then
+        nohup sh -c 'ec=124; while [ "$ec" -eq 124 ]; do timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all >> /opt/mapr/logs/guts.log; ec=$?; done'  > /dev/null &
+        nohup dstat -tcpldrngims --ipc > /opt/mapr/logs/dstat.log &
+        nohup iostat -dmxt 1 > /opt/mapr/logs/iostat.log &
+        nohup sh -c 'rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 10 top -bH -p $mfspid -d 1 >> /opt/mapr/logs/mfstop.log; rc=$?; else sleep 10; done' > /dev/null &
     fi
 }
 
@@ -535,8 +560,13 @@ function maprutil_configureNode2(){
         fi
         local cldbtopo=$GLB_CLDB_TOPO
         if [ -n "$cldbtopo" ]; then
+            sleep 30
             maprutil_configureCLDBTopology
         fi
+    fi
+
+    if [ -n "$GLB_TRACE_ON" ]; then
+        maprutil_startTraces
     fi
 }
 
@@ -729,7 +759,7 @@ function maprutil_runCommands(){
     do
         case $i in
             cldbtopo)
-                maprutil_configureCLDBTopology
+                maprutil_configureCLDBTopology "force"
             ;;
             ycsb)
                 maprutil_createYCSBVolume
@@ -763,7 +793,7 @@ function maprutil_createYCSBVolume () {
 function maprutil_createTableWithCompression(){
     echo " *************** Creating UserTable (/tables/usertable) with lz4 compression **************** "
     maprutil_createYCSBVolume
-    maprutil_runMapRCmd "maprcli table create -path /tables/usertable"
+    maprutil_runMapRCmd "maprcli table create -path /tables/usertable" 
     maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1"
 }
 
@@ -840,6 +870,65 @@ function maprutil_addToPIDList(){
     else
         GLB_BG_PIDS=$GLB_BG_PIDS" "$1
     fi
+}
+
+# @param timestamp
+function maprutil_zipDirectory(){
+    local timestamp=$1
+    local tmpdir="/tmp/maprlogs/$(hostname -f)/"
+    local logdir="/opt/mapr/logs"
+    local buildid=$(cat /opt/mapr/MapRBuildVersion)
+    local tarfile="maprlogs_$(hostname -f)_$buildid_$timestamp.tar.bz2"
+
+    mkdir -p $tmpdir > /dev/null 2>&1
+    
+    cd $tmpdir && tar -cjf $tarfile -C $logdir . > /dev/null 2>&1
+}
+
+# @param host ip
+# @param timestamp
+function maprutil_zipLogsDirectoryOnNode(){
+    if [ -z "$1" ]; then
+        echo "Node not specified."
+        return
+    fi
+
+    local node=$1
+    local timestamp=$2
+    
+    local scriptpath="/tmp/zipdironnode_${node: -3}.sh"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    echo >> $scriptpath
+    echo "##########  Adding execute steps below ########### " >> $scriptpath
+
+    echo "maprutil_zipDirectory \"$timestamp\"" >> $scriptpath
+   
+    ssh_executeScriptasRootInBG "$node" "$scriptpath"
+    maprutil_addToPIDList "$!"
+}
+
+
+# @param host ip
+# @param local directory to copy the zip file
+function maprutil_copyZippedLogsFromNode(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        echo "Incorrect or null arguments. Ignoring copy of the files"
+        return
+    fi
+
+    local node=$1
+    local timestamp=$2
+    local copyto=$3
+    mkdir -p $copyto > /dev/null 2>&1
+    local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+    local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
+    
+    ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto"
 }
 
 ### 

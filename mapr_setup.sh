@@ -27,6 +27,7 @@ numsps=
 tablens=
 maxdisks=
 extraarg=
+backupdir=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -56,33 +57,49 @@ function handleInterrupt() {
 function usage () {
 	echo 
 	echo "Usage : "
-    echo "./$me -c=<ClusterConfig> <Arguments> [More Options]"
+    echo "./$me -c=<ClusterConfig> <Arguments> [Options]"
 
     echo " Arguments : "
+    echo -e "\t -h --help"
+    echo -e "\t\t - Print this"
+
     echo -e "\t -c=<file> | --clusterconfig=<file>" 
     echo -e "\t\t - Cluster Configuration Name/Filepath"
     echo -e "\t -i | --install" 
     echo -e "\t\t - Install cluster"
     echo -e "\t -u | --uninstall" 
     echo -e "\t\t - Uninstall cluster"
-    echo -e "\t -h --help"
-    echo -e "\t\t - Print this"
+    echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
+    echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
+    
     echo 
-	echo " More Options : "
-    #echo -e "\t -r=[all|{IP}] | --restart  (default : all)" 
-    #echo -e "\t\t - Restart warden on all or specified nodes"
+    echo " Install/Uninstall Options : "
+    echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
+    echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
     echo -e "\t -n=CLUSTER_NAME | --name=CLUSTER_NAME (default : archerx)" 
     echo -e "\t\t - Specify cluster name"
     echo -e "\t -d=<#ofDisks> | --maxdisks=<#ofDisks>" 
-    echo -e "\t\t - Specify number of disks to use (Default : all available disks)"
+    echo -e "\t\t - Specify number of disks to use (default : all available disks)"
     echo -e "\t -sp=<#ofSPs> | --storagepool=<#ofSPs>" 
     echo -e "\t\t - Specify number of storage pools per node (ignored for multi mfs)"
     echo -e "\t -m=<#ofMFS> | --multimfs=<#ofMFS>" 
     echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
+    echo -e "\t -p | --pontis" 
+    echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
+    echo -e "\t -f | --force" 
+    echo -e "\t\t - Force uninstall a node/cluster"
+    echo -e "\t -et | --enabletrace" 
+    echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (WARN: may fill the root partition)"
+    
+    echo 
+	echo " Post install Options : "
+    #echo -e "\t -r=[all|{IP}] | --restart  (default : all)" 
+    #echo -e "\t\t - Restart warden on all or specified nodes" 
     echo -e "\t -ct | --cldbtopo" 
     echo -e "\t\t - Move CLDB node & volume to /cldb topology"
     echo -e "\t -y | --ycsbvol" 
     echo -e "\t\t - Create YCSB related volumes "
+    
     echo -e "\t -t | --tablecreate" 
     echo -e "\t\t - Create /tables/usertable [cf->family] with compression off"
     echo -e "\t -tlz | --tablelz4" 
@@ -91,16 +108,13 @@ function usage () {
     echo -e "\t\t - Create YCSB JSON Table with default family"
     echo -e "\t -jcf | --jsontablecf" 
     echo -e "\t\t - Create YCSB JSON Table with second CF family cfother"
-    echo -e "\t -ns=TABLENS | --tablens=TABLENS" 
-    echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
-    echo -e "\t -f | --force" 
-    echo -e "\t\t - Force uninstall a node"
-    echo -e "\t -p | --pontis" 
-    echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
+    
     echo 
-    echo " Example(s) : "
-    echo -e "\t ./$me -c=maprdb install -n=Performance -m=3" 
-    echo -e "\t ./$me -c=maprdb uninstall" 
+    echo " Examples : "
+    echo -e "\t ./$me -c=maprdb -i -n=Performance -m=3" 
+    echo -e "\t ./$me -c=maprdb -u"
+    echo -e "\t ./$me -c=roles/pontis.roles -i -p -n=Pontis" 
+    echo -e "\t ./$me -c=/root/configs/cluster.role -i -d=4 -sp=2" 
 }
 
 while [ "$1" != "" ]; do
@@ -149,6 +163,9 @@ while [ "$1" != "" ]; do
         -tlz | --tablelz4)
             extraarg=$extraarg"tablelz4 "
         ;;
+        -et | --enabletrace)
+            extraarg=$extraarg"traceon "
+        ;;
         -sp | --storagepool)
             numsps=$VALUE
         ;;
@@ -166,6 +183,12 @@ while [ "$1" != "" ]; do
         -f | --force)
            extraarg=$extraarg"force "
         ;;
+        -b | --backuplogs)
+            if [ -z "$VALUE" ]; then
+                VALUE="/tmp"
+            fi
+            backupdir=$VALUE
+        ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
             usage
@@ -180,7 +203,7 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-    $libdir/main.sh "$rolefile" "-e=$extraarg" "$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps"
+    $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps" "-b=$backupdir"
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then
