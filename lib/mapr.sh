@@ -142,6 +142,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/guts*")
     dirlist+=("/opt/cores/mfs*")
     dirlist+=("/opt/cores/java.core.*")
+    dirlist+=("/opt/cores/*mrconfig*")
     echo ${dirlist[*]}
 }
 
@@ -237,7 +238,7 @@ function maprutil_isMapRInstalledOnNode(){
 }
 
 function maprutil_unmountNFS(){
-    local nfslist=$(mount | grep nfs | grep mapr | cut -d' ' -f3)
+    local nfslist=$(mount | grep nfs | grep mapr | grep -v '10.10.10.20' | cut -d' ' -f3)
     for i in $nfslist
     do
         umount -l $i
