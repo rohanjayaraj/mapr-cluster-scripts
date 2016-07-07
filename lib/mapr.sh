@@ -247,6 +247,7 @@ function maprutil_unmountNFS(){
 function maprutil_uninstallNode2(){
     
     # Kill running traces 
+    util_kill "timeout"
     util_kill "guts"
     util_kill "dstat"
     util_kill "iostat"
@@ -488,10 +489,11 @@ function maprutil_buildDiskList() {
 }
 
 function maprutil_startTraces() {
-    if [ "$ISCLIENT" -eq 0 ]; then
+    if [ "$ISCLIENT" -eq 0 ] && [ -e "/opt/mapr/roles" ]; then
         nohup sh -c 'ec=124; while [ "$ec" -eq 124 ]; do timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all >> /opt/mapr/logs/guts.log; ec=$?; done'  > /dev/null &
         nohup dstat -tcpldrngims --ipc > /opt/mapr/logs/dstat.log &
-        nohup iostat -dmxt 10 > /opt/mapr/logs/iostat.log &
+        nohup iostat -dmxt 1 > /opt/mapr/logs/iostat.log &
+        nohup sh -c 'rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 10 top -bH -p $mfspid -d 1 >> /opt/mapr/logs/mfstop.log; rc=$?; else sleep 10; done' > /dev/null &
     fi
 }
 
