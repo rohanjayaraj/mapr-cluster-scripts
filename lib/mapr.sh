@@ -698,12 +698,13 @@ function maprutil_checkBuildExists(){
     local node=$1
     local buildid=$2
     local retval=
+    local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
         retval=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep $build")
     elif [ "$nodeos" = "ubuntu" ]; then
-         retval=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core | grep $build")
+        retval=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core | grep $build")
     fi
-    echo $retval
+    echo "$retval"
 }
 
 function maprutil_copyRepoFile(){
