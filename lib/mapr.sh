@@ -789,9 +789,11 @@ function maprutil_downloadBinaries(){
     local repourl=$2
     local searchkey=$3
     if [ "$nodeos" = "centos" ]; then
+        echo "Downloading binaries for version [$searchkey]"
         pushd $dlddir
-        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl}
+        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
         popd
+        createrepo $dlddir > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
         echo "maprutil_downloadBinaries Not implmented"
         exit
