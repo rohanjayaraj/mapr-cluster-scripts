@@ -80,6 +80,20 @@ function util_validip(){
 	echo "$retval"
 }
 
+# @param packagename
+# @param verion number
+function util_checkPackageExists(){
+     if [ -z "$1" ] || [ -z "$2" ] ; then
+        return
+    fi
+     if [ "$(getOS)" = "centos" ]; then
+        yum --showduplicates list $1 | grep $2 && echo "true" || echo "false"
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        apt-cache policy $1 | grep $2 && echo "true" || echo "false"
+    fi
+   
+}
+
 # @param searchkey
 function util_getInstalledBinaries(){
     if [ -z "$1" ]; then
@@ -93,12 +107,42 @@ function util_getInstalledBinaries(){
     fi
 }
 
+function util_appendVersionToPackage(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local bins=$1
+    local version=$2
+
+    local newbins=
+    for bin in $bins
+    do
+        if [ "$(util_checkPackageExists $bin $version)" = "true" ]; then
+            if [ -z "$newbins" ]; then
+                newbins="$bin*$version*"
+            else
+                newbins=$newbins" $bin*$version*"
+            fi
+        else
+            if [ -z "$newbins" ]; then
+                newbins="$bin"
+            else
+                newbins=$newbins" $bin"
+            fi
+        fi
+    done
+    echo "$newbins"
+}
+
 # @param list of binaries
 function util_installBinaries(){
     if [ -z "$1" ]; then
         return
     fi
     local bins=$1
+    if [ -n "$2" ]; then
+        bins=$(util_appendVersionToPackage "$1" "$2")
+    fi
     echo "[$(util_getHostIP)] Installing packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
         yum clean all

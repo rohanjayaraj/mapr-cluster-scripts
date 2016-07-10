@@ -324,7 +324,7 @@ function maprutil_installBinariesOnNode(){
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
     echo "util_installprereq" >> $scriptpath
-    echo "util_installBinaries \""$2"\"" >> $scriptpath
+    echo "util_installBinaries \""$2"\" \""$GLB_BUILD_VERSION"\"" >> $scriptpath
 
     local hostip=$(util_getHostIP)
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
@@ -687,6 +687,23 @@ function maprutil_addGlobalVars(){
 function maprutil_getBuildID(){
     local buildid=`yum info mapr-core installed  | grep Version | tr "." " " | awk '{print $6}'`
     echo "$buildid"
+}
+
+# @param node
+# @param build id
+function maprutil_checkBuildExists(){
+     if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local node=$1
+    local buildid=$2
+    local retval=
+    if [ "$nodeos" = "centos" ]; then
+        retval=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep $build")
+    elif [ "$nodeos" = "ubuntu" ]; then
+         retval=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core | grep $build")
+    fi
+    echo $retval
 }
 
 function maprutil_copyRepoFile(){

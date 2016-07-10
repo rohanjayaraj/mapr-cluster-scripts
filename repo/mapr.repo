@@ -42,14 +42,14 @@ protect=1
 
 [QA-5.2.0]
 name=MapR v5.2.0 QA Repository
-baseurl=http://yum.qa.lab/v5.2.0
+baseurl=http://artifactory.devops.lab/artifactory/list/local-rpm-core/v5.2.0/
 enabled=1
 gpgcheck=0
 protect=1
 
-[QA-Latest]
+[QA-6.0.0]
 name=MapR Latest Build QA Repository
-baseurl=http://yum.qa.lab/mapr
+baseurl=http://artifactory.devops.lab/artifactory/list/local-rpm-core/v6.0.0/
 enabled=0
 gpgcheck=0
 protect=1

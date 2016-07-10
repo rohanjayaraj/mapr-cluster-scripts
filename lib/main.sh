@@ -101,6 +101,7 @@ GLB_CLDB_TOPO=
 GLB_PONTIS=
 GLB_BG_PIDS=
 GLB_MAX_DISKS=
+GLB_BUILD_VERSION=
 
 ############################### ALL functions to be defined below this ###############################
 
@@ -147,11 +148,18 @@ function main_install(){
 
 	# Install required binaries on other nodes
 	local maprrepo=$repodir"/mapr.repo"
+	local i=0
 	for node in ${nodes[@]}
 	do
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo"
-
+		if [ -n "$GLB_BUILD_VERSION" ] && [ "$i" -eq 0 ]; then
+			local buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
+			if [ -z "$buildexists" ]; then
+				echo "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
+				exit 1
+			fi
+		fi
 		local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
 		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
 		sleep 1
@@ -378,6 +386,7 @@ doCmdExec=
 doPontis=0
 doForce=0
 doBackup=
+useBuildID=
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
@@ -448,6 +457,11 @@ while [ "$2" != "" ]; do
     	-b)
 			if [ -n "$VALUE" ]; then
 				doBackup=$VALUE
+			fi
+    	;;
+    	-bld)
+			if [ -n "$VALUE" ]; then
+				GLB_BUILD_VERSION=$VALUE
 			fi
     	;;
         *)
