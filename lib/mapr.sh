@@ -172,6 +172,7 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/cmdonnode_*")
     dirlist+=("/tmp/defdisks*")
     dirlist+=("/tmp/zipdironnode_*")
+    dirlist+=("/tmp/maprbuilds*")
 
     echo  ${dirlist[*]}
 }  
@@ -323,6 +324,10 @@ function maprutil_installBinariesOnNode(){
 
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
+    maprutil_addGlobalVars "$scriptpath"
+    if [ -n "$GLB_BUILD_VERSION" ]; then
+        echo "maprutil_setupLocalRepo" >> $scriptpath
+    fi
     echo "util_installprereq" >> $scriptpath
     echo "util_installBinaries \""$2"\" \""$GLB_BUILD_VERSION"\"" >> $scriptpath
 
@@ -708,7 +713,7 @@ function maprutil_checkBuildExists(){
 }
 
 function maprutil_copyRepoFile(){
-     if [ -z "$1" ] || [ -z "$2" ]; then
+    if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
     local node=$1
@@ -720,6 +725,84 @@ function maprutil_copyRepoFile(){
     elif [ "$nodeos" = "ubuntu" ]; then
         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
     fi
+}
+
+function maprutil_getRepoURL(){
+    local nodeos=$(getOS)
+    if [ "$nodeos" = "centos" ]; then
+        local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv opensource | grep Repo-baseurl | cut -d':' -f2- | tr -d " " | head -1)
+        echo "repolist"
+    elif [ "$nodeos" = "ubuntu" ]; then
+        echo "maprutil_getRepoURL Not implmented"
+        exit
+    fi
+}
+
+function maprutil_disableAllRepo(){
+    local nodeos=$(getOS)
+    if [ "$nodeos" = "centos" ]; then
+        local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv opensource | grep Repo-id | cut -d':' -f2 | tr -d " ")
+        for repo in $repolist
+        do
+            echo "Disabling repository $repo"
+            yum-config-manager --disable $repo > /dev/null 2>&1
+        done
+    elif [ "$nodeos" = "ubuntu" ]; then
+        echo "maprutil_disableAllRepo Not implmented"
+        exit
+    fi
+}
+
+# @param local repo path
+function maprutil_addLocalRepo(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local nodeos=$(getOS)
+    local repofile="/tmp/maprbuilds/mapr-$GLB_BUILD_VERSION.repo"
+    local repourl=$1
+    if [ "$nodeos" = "centos" ]; then
+        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
+        echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
+        echo "baseurl=$repourl" >> $repofile
+        echo "enabled=1" >> $repofile
+        echo "gpgcheck=0" >> $repofile
+        echo "protect=1" >> $repofile
+        cp $repofile /etc/yum.repos.d/
+        yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
+    elif [ "$nodeos" = "ubuntu" ]; then
+        echo "maprutil_addLocalRepo Not implmented"
+        exit
+    fi
+}
+
+# @param directory to download
+# @param url to download
+# @param filter keywork
+function maprutil_downloadBinaries(){
+     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+    local nodeos=$(getOS)
+    local dlddir=$1
+    mkdir -p $dlddir > /dev/null 2>&1
+    local repourl=$2
+    local searchkey=$3
+    if [ "$nodeos" = "centos" ]; then
+        pushd $dlddir
+        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" $repourl
+        popd
+    elif [ "$nodeos" = "ubuntu" ]; then
+        echo "maprutil_downloadBinaries Not implmented"
+        exit
+    fi
+}
+
+function maprutil_setupLocalRepo(){
+    local repourl=$(maprutil_getRepoURL)
+    maprutil_disableAllRepo
+    maprutil_downloadBinaries "/tmp/maprbuilds/$GLB_BUILD_VERSION" "$repourl" "$GLB_BUILD_VERSION"
+    maprutil_addLocalRepo "/tmp/maprbuilds/$GLB_BUILD_VERSION"
 }
 
 # @param host node

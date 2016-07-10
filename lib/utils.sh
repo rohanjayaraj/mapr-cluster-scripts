@@ -70,6 +70,9 @@ function util_installprereq(){
     util_checkAndInstall "dstat" "dstat"
     util_checkAndInstall "iftop" "iftop"
     util_checkAndInstall "lsof" "lsof"
+    if [ "$(getOS)" = "centos" ]; then
+        util_checkAndInstall "createrepo" "createrepo"
+    fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
 }
