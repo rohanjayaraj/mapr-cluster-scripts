@@ -761,6 +761,7 @@ function maprutil_addLocalRepo(){
     local nodeos=$(getOS)
     local repofile="/tmp/maprbuilds/mapr-$GLB_BUILD_VERSION.repo"
     local repourl=$1
+    echo "Adding local repo $repourl for installing the binaries"
     if [ "$nodeos" = "centos" ]; then
         echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
         echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
@@ -768,7 +769,7 @@ function maprutil_addLocalRepo(){
         echo "enabled=1" >> $repofile
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
-        cp $repofile /etc/yum.repos.d/
+        cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
         echo "maprutil_addLocalRepo Not implmented"
@@ -790,9 +791,9 @@ function maprutil_downloadBinaries(){
     local searchkey=$3
     if [ "$nodeos" = "centos" ]; then
         echo "Downloading binaries for version [$searchkey]"
-        pushd $dlddir
+        pushd $dlddir > /dev/null 2>&1
         wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
-        popd
+        popd > /dev/null 2>&1
         createrepo $dlddir > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
         echo "maprutil_downloadBinaries Not implmented"

@@ -148,13 +148,13 @@ function main_install(){
 
 	# Install required binaries on other nodes
 	local maprrepo=$repodir"/mapr.repo"
-	local i=0
+	local buildexists=
 	for node in ${nodes[@]}
 	do
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo"
-		if [ -n "$GLB_BUILD_VERSION" ] && [ "$i" -eq 0 ]; then
-			local buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
+		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
+			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
 			if [ -z "$buildexists" ]; then
 				echo "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
 				exit 1
