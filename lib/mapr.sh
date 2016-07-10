@@ -22,7 +22,7 @@ function maprutil_getCLDBMasterNode() {
     fi
     if [ ! -z "$master" ]; then
             if [[ "$master" =~ ^Killed.* ]] || [[ "$master" =~ ^Terminate.* ]]; then
-                echo
+                echo ""
             else
                 echo $master
             fi
@@ -449,10 +449,10 @@ function maprutil_configureCLDBTopology(){
     local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
     local j=0
     while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ] && [ -z "$1" ]; do
-        sleep 20
+        sleep 10
         numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
         let j=j+1
-        if [ "$j" -gt 3 ]; then
+        if [ "$j" -gt 6 ]; then
             break
         fi
     done
@@ -514,11 +514,11 @@ function maprutil_configureNode2(){
     maprutil_buildDiskList "$diskfile"
 
     if [ "$ISCLIENT" -eq 1 ]; then
-        echo "/opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
+        echo "[$hostip] /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
         /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
         return 
     else
-        echo "/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
+        echo "[$hostip] /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
         /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
     fi
     
@@ -555,7 +555,7 @@ function maprutil_configureNode2(){
     # Start zookeeper
     service mapr-zookeeper start 2>/dev/null
     
-    service mapr-warden restart
+    service mapr-warden restart > /dev/null 2>&1
 
     local cldbnode=$(util_getFirstElement "$1")
     if [ "$hostip" = "$cldbnode" ]; then
@@ -744,7 +744,7 @@ function maprutil_disableAllRepo(){
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv opensource | grep Repo-id | cut -d':' -f2 | tr -d " ")
         for repo in $repolist
         do
-            echo "Disabling repository $repo"
+            echo "[$(util_getHostIP)] Disabling repository $repo"
             yum-config-manager --disable $repo > /dev/null 2>&1
         done
     elif [ "$nodeos" = "ubuntu" ]; then
@@ -761,7 +761,7 @@ function maprutil_addLocalRepo(){
     local nodeos=$(getOS)
     local repofile="/tmp/maprbuilds/mapr-$GLB_BUILD_VERSION.repo"
     local repourl=$1
-    echo "Adding local repo $repourl for installing the binaries"
+    echo "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
     if [ "$nodeos" = "centos" ]; then
         echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
         echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
@@ -790,7 +790,7 @@ function maprutil_downloadBinaries(){
     local repourl=$2
     local searchkey=$3
     if [ "$nodeos" = "centos" ]; then
-        echo "Downloading binaries for version [$searchkey]"
+        echo "[$(util_getHostIP)] Downloading binaries for version [$searchkey]"
         pushd $dlddir > /dev/null 2>&1
         wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
         popd > /dev/null 2>&1
@@ -925,9 +925,8 @@ function maprutil_applyLicense(){
     local i=0
     local jobs=1
     while [ "${jobs}" -ne "0" ]; do
-        echo "Waiting for CLDB to come up before applying license.... sleeping 30s"
+        echo "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 30s"
         sleep 30
-        echo "Recovered jobs="$jobs
         if [ "$jobs" -ne 0 ]; then
             local licenseExists=`/opt/mapr/bin/maprcli license list | grep M7 | wc -l`
             if [ "$licenseExists" -ne 0 ]; then
