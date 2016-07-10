@@ -764,7 +764,7 @@ function maprutil_addLocalRepo(){
     if [ "$nodeos" = "centos" ]; then
         echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
         echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
-        echo "baseurl=$repourl" >> $repofile
+        echo "baseurl=file://$repourl" >> $repofile
         echo "enabled=1" >> $repofile
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
@@ -790,7 +790,7 @@ function maprutil_downloadBinaries(){
     local searchkey=$3
     if [ "$nodeos" = "centos" ]; then
         pushd $dlddir
-        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" $repourl
+        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl}
         popd
     elif [ "$nodeos" = "ubuntu" ]; then
         echo "maprutil_downloadBinaries Not implmented"
