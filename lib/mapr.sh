@@ -731,7 +731,7 @@ function maprutil_getRepoURL(){
     local nodeos=$(getOS)
     if [ "$nodeos" = "centos" ]; then
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv opensource | grep Repo-baseurl | cut -d':' -f2- | tr -d " " | head -1)
-        echo "repolist"
+        echo "$repolist"
     elif [ "$nodeos" = "ubuntu" ]; then
         echo "maprutil_getRepoURL Not implmented"
         exit
