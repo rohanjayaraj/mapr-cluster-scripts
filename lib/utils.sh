@@ -87,9 +87,9 @@ function util_checkPackageExists(){
         return
     fi
      if [ "$(getOS)" = "centos" ]; then
-        yum --showduplicates list $1 | grep $2 && echo "true" || echo "false"
+        yum --showduplicates list $1 | grep $2 1> /dev/null && echo "true" || echo "false"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-cache policy $1 | grep $2 && echo "true" || echo "false"
+        apt-cache policy $1 | grep $2 1> /dev/null && echo "true" || echo "false"
     fi
    
 }
@@ -117,7 +117,8 @@ function util_appendVersionToPackage(){
     local newbins=
     for bin in $bins
     do
-        if [ "$(util_checkPackageExists $bin $version)" = "true" ]; then
+        local binexists=$(util_checkPackageExists $bin $version)
+        if [ "$binexists" = "true" ]; then
             if [ -z "$newbins" ]; then
                 newbins="$bin*$version*"
             else
