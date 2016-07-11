@@ -361,7 +361,7 @@ function main_isValidBuildVersion(){
     local vlen=${#GLB_BUILD_VERSION}
     if [ "$(util_isNumber $GLB_BUILD_VERSION)" = "true" ]; then
     	 if [ "$vlen" -lt 5 ]; then
-    	 	echo "{ERROR} Specify a longer build/changelist id (38395)"
+    	 	echo "{ERROR} Specify a longer build/changelist id (ex: 38395)"
             exit 1
     	 fi
     elif [ "$vlen" -lt 11 ]; then

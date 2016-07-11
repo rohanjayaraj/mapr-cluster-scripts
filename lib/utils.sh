@@ -380,7 +380,7 @@ function util_isNumber(){
         return
     fi
     local reg='^[0-9]+$'
-    if ! [[ $1 =~ $re ]] ; then    
+    if ! [[ $1 =~ $reg ]] ; then    
         echo "false" 
     else
         echo "true"
