@@ -154,6 +154,7 @@ function main_install(){
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo"
 		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
+			main_isValidBuildVersion
 			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
 			if [ -z "$buildexists" ]; then
 				echo "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
@@ -351,6 +352,22 @@ function main_runCommandExec(){
 	fi
 	
 	maprutil_runCommandsOnNode "$cldbnode" "$1"
+}
+
+function main_isValidBuildVersion(){
+    if [ -z "$GLB_BUILD_VERSION" ]; then
+        return
+    fi
+    local vlen=${#GLB_BUILD_VERSION}
+    if [ "$(util_isNumber $GLB_BUILD_VERSION)" = "true" ]; then
+    	 if [ "$vlen" -lt 5 ]; then
+    	 	echo "{ERROR} Specify a longer build/changelist id (38395)"
+            exit 1
+    	 fi
+    elif [ "$vlen" -lt 11 ]; then
+        echo "{ERROR} Specify a longer version string (ex: 5.2.0.38395)"
+        exit 1
+    fi
 }
 
 function main_stopall() {

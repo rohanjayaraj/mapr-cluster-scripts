@@ -374,7 +374,18 @@ function util_getCommaSeparated(){
     echo "$retval"
 }
 
-
+# @param string 
+function util_isNumber(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local reg='^[0-9]+$'
+    if ! [[ $1 =~ $re ]] ; then    
+        echo "false" 
+    else
+        echo "true"
+    fi
+}
 
 # @param host name with domin
 function util_getIPfromHostName(){
