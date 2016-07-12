@@ -387,6 +387,49 @@ function util_isNumber(){
     fi
 }
 
+# @param rolefile path
+function util_expandNodeList(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local rolefile=$1
+    local newrolefile="$rolefile.tmp"
+    [ -e "$newrolefile" ] && rm -f $newrolefile > /dev/null 2>&1
+    local nodes=
+    for i in $(cat $rolefile | grep '^[^#;]'); do
+        local node=$(echo $i | cut -f1 -d",")
+        if [ -n "$(echo $node | grep '[')" ]; then
+            echo
+            # Get the start and end index from the string in b/w '[' & ']' 
+            local bins=$(echo $i | cut -f2- -d",")
+            local prefix=$(echo $node | cut -d'[' -f1)
+            local suffix=$(echo $node | cut -d'[' -f2 | tr -d ']')
+            local startidx=$(echo $suffix | cut -d'-' -f1)
+            local endidx=$(echo $suffix | cut -d'-' -f2)
+            for j in $(seq $startidx $endidx)
+            do
+                local nodeip="$prefix$j"
+                local isvalid=$(util_validip $nodeip)
+                if [ "$isvalid" = "valid" ]; then
+                    echo "$nodeip,$bins" >> $newrolefile
+                else
+                    echo "Invalid IP [$node]. Scooting"
+                    exit 1
+                fi
+            done
+        else
+            local isvalid=$(util_validip $node)
+            if [ "$isvalid" = "valid" ]; then
+                echo "$i" >> $newrolefile
+            else
+                echo "Invalid IP [$node]. Scooting"
+                exit 1
+            fi
+        fi
+    done
+    echo $newrolefile
+}
+
 # @param host name with domin
 function util_getIPfromHostName(){
     if [ -z "$1" ]; then

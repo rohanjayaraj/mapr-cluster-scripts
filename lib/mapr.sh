@@ -36,7 +36,7 @@ function maprutil_getCLDBNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local cldbnodes=$(grep cldb $1 | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local cldbnodes=$(grep cldb $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$cldbnodes" ]; then
             echo $cldbnodes
     fi
@@ -47,7 +47,7 @@ function maprutil_getESNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local esnodes=$(grep elastic $1 | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local esnodes=$(grep elastic $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$esnodes" ]; then
             echo $esnodes
     fi
@@ -58,7 +58,7 @@ function maprutil_getOTSDBNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local otnodes=$(grep opentsdb $1 | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local otnodes=$(grep opentsdb $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$otnodes" ]; then
             echo $otnodes
     fi
@@ -126,7 +126,7 @@ function maprutil_getNodesFromRole() {
         return
     fi
     local nodes=
-    for i in $(cat $1 | grep -v '#'); do
+    for i in $(cat $1 | grep '^[^#;]'); do
         local node=$(echo $i | cut -f1 -d",")
         local isvalid=$(util_validip $node)
         if [ "$isvalid" = "valid" ]; then

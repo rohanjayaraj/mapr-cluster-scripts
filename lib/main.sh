@@ -48,6 +48,11 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 	fi
 fi
 
+# Handle rolefile regex here
+if [ -n "$(cat $rolefile | grep '^[^#;]' | grep '[')" ]; then
+	rolefile=$(util_expandNodeList "$rolefile")
+fi
+
 # Fetch the nodes to be configured
 echo "Using cluster coniguration file : $rolefile "
 nodes=$(maprutil_getNodesFromRole $rolefile)
@@ -92,7 +97,7 @@ trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 
 # Global Variables : All need to start with 'GLB_' as they are replayed back to other cluster nodes during setup
 GLB_CLUSTER_NAME="archerx"
-GLB_CLUSTER_SIZE=$(cat $rolefile |  grep -v 'mapr-client\|mapr-loopbacknfs' | wc -l)
+GLB_CLUSTER_SIZE=$(cat $rolefile |  grep "^[^#;]" | grep -v 'mapr-client\|mapr-loopbacknfs' | wc -l)
 GLB_TRACE_ON=
 GLB_MULTI_MFS=
 GLB_NUM_SP=
@@ -177,7 +182,7 @@ function main_install(){
 	wait
 
 	# Configure ES & OpenTSDB nodes
-	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getESNodes $rolefile)" ]; then  
+	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then  
 		for node in ${nodes[@]}
 		do
 			echo "****** Running configure on node -> $node ****** "
