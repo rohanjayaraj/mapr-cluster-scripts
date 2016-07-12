@@ -358,6 +358,9 @@ function maprutil_configureMultiMFS(){
 }
 
 function maprutil_configurePontis(){
+    if [ ! -e "/opt/mapr/conf/mfs.conf" ]; then
+        return
+    fi
     sed -i 's|mfs.cache.lru.sizes=|#mfs.cache.lru.sizes=|g' /opt/mapr/conf/mfs.conf
     # Adding Specific Cache Settings
     cat >> /opt/mapr/conf/mfs.conf << EOL
@@ -516,19 +519,25 @@ function maprutil_configureNode2(){
     if [ "$ISCLIENT" -eq 1 ]; then
         echo "[$hostip] /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
         /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
-        return 
     else
         echo "[$hostip] /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
         /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
     fi
     
+    # Perform series of custom configuration based on selected options
+    maprutil_customConfigure
+
+    # Return if configuring client node after this
+    if [ "$ISCLIENT" -eq 1 ]; then
+        echo "[$hostip] Done configuring client node"
+        return 
+    fi
 
     #echo "/opt/mapr/server/disksetup -FM /tmp/disklist"
     local multimfs=$GLB_MULTI_MFS
     local numsps=$GLB_NUM_SP
     local numdisks=`wc -l $diskfile | cut -f1 -d' '`
     if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
-       
         if [ "$multimfs" -gt "$numdisks" ]; then
             echo "[ERROR] Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
             multimfs=$numdisks
@@ -549,12 +558,10 @@ function maprutil_configureNode2(){
     # Add root user to container-executor.cfg
     maprutil_addRootUserToCntrExec
 
-    # Perform series of custom configuration based on selected options
-    maprutil_customConfigure
-
     # Start zookeeper
     service mapr-zookeeper start 2>/dev/null
     
+    # Restart services on the node
     service mapr-warden restart > /dev/null 2>&1
 
     local cldbnode=$(util_getFirstElement "$1")
@@ -946,8 +953,13 @@ function maprutil_applyLicense(){
 }
 
 ## @param optional hostip
+## @param rolefile
 function maprutil_restartWardenOnNode() {
-    if [ -z "$1" ]; then
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local rolefile=$2
+    if [ -n "$(maprutil_isClientNode $rolefile $1)" ]; then
         return
     fi
     local hostip=$(util_getHostIP)

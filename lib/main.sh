@@ -189,7 +189,7 @@ function main_install(){
 	# Configure all nodes
 	for node in ${nodes[@]}
 	do
-		maprutil_restartWardenOnNode "$node" &
+		maprutil_restartWardenOnNode "$node" "$rolefile" &
 	done
 	wait
 
