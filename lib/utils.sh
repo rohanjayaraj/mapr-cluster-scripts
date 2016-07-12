@@ -399,7 +399,6 @@ function util_expandNodeList(){
     for i in $(cat $rolefile | grep '^[^#;]'); do
         local node=$(echo $i | cut -f1 -d",")
         if [ -n "$(echo $node | grep '\[')" ]; then
-            echo
             # Get the start and end index from the string in b/w '[' & ']' 
             local bins=$(echo $i | cut -f2- -d",")
             local prefix=$(echo $node | cut -d'[' -f1)
