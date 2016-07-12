@@ -49,7 +49,7 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 fi
 
 # Handle rolefile regex here
-if [ -n "$(cat $rolefile | grep '^[^#;]' | grep '[')" ]; then
+if [ -n "$(cat $rolefile | grep '^[^#;]' | grep '\[')" ]; then
 	rolefile=$(util_expandNodeList "$rolefile")
 fi
 
