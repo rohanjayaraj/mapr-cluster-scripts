@@ -113,7 +113,6 @@ GLB_BUILD_VERSION=
 function main_install(){
 	#set -x
 	# Warn user 
-	echo
 	echo "Installing MapR on the following N-O-D-E-S : "
 	local i=1
 	for node in ${nodes[@]}
@@ -122,18 +121,14 @@ function main_install(){
 		let i=i+1
 	done
 
-	echo
-    read -p "Press 'y' to confirm... " -n 1 -r
+	read -p "Press 'y' to confirm... " -n 1 -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     	echo
     	echo "Abandoning install! "
         return 1
-    else
-    	echo
     fi
 
-    echo
-	# Check if MapR is already installed on any of the nodes
+    # Check if MapR is already installed on any of the nodes
 	local islist=
 	for node in ${nodes[@]}
 	do
@@ -207,7 +202,6 @@ function main_install(){
 function main_uninstall(){
 
 	# Warn user 
-	echo
 	echo "Uninstalling MapR on the following N-O-D-E-S : "
 	local i=1
 	for node in ${nodes[@]}
@@ -216,14 +210,10 @@ function main_uninstall(){
 		let i=i+1
 	done
 
-	echo
-    read -p "Press 'y' to confirm... " -n 1 -r
+	read -p "Press 'y' to confirm... " -n 1 -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    	echo
     	echo "Uninstall C-A-N-C-E-L-L-E-D! "
         return 1
-    else
-    	echo
     fi
     
     echo
