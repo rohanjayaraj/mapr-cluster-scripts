@@ -16,9 +16,11 @@ function maprutil_getCLDBMasterNode() {
     local master=
     local hostip=$(util_getHostIP)
     if [ -n "$1" ] && [ "$hostip" != "$1" ]; then
-        master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
+        #master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
+        master=$(ssh_executeCommandasRoot "$1" "[ -e '/opt/mapr/conf/mapr-clusters.conf' ] && cat /opt/mapr/conf/mapr-clusters.conf | cut -d' ' -f3 | cut -d':' -f1")
     else
-        master=$(timeout 10 maprcli node cldbmaster | grep HostName | cut -d' ' -f4)
+        #master=$(timeout 10 maprcli node cldbmaster | grep HostName | cut -d' ' -f4)
+        master=$([ -e '/opt/mapr/conf/mapr-clusters.conf' ] && cat /opt/mapr/conf/mapr-clusters.conf | cut -d' ' -f3 | cut -d':' -f1)
     fi
     if [ ! -z "$master" ]; then
             if [[ "$master" =~ ^Killed.* ]] || [[ "$master" =~ ^Terminate.* ]]; then

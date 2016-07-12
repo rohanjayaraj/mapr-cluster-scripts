@@ -253,7 +253,10 @@ function main_uninstall(){
 			echo " Unable to identifiy CLDB master on node [$node]"
 			nocldblist=$nocldblist$node" "
 		else
-			local cldbip=$(util_getIPfromHostName "$cldbhost")
+			local cldbip=$cldbhost
+			if [ "$(util_validip $cldbhost)" = "invalid" ]; then
+				cldbip=$(util_getIPfromHostName "$cldbhost")
+			fi
 			local isone="false"
 			for nd in ${nodes[@]}
 			do
