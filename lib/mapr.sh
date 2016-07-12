@@ -419,6 +419,29 @@ EOL
     done
 }
 
+# @param filename
+function maprutil_addTabletLRU(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local filelist=$(find /opt/mapr/ -name $1 -type f ! -path "*/templates/*")
+    for i in $filelist; do
+        local present=$(cat $i | grep "fs.mapr.tabletlru.size.kb")
+        if [ -n "$present" ]; then
+            continue;
+        fi
+        sed -i '/<\/configuration>/d' $i
+        cat >> $i << EOL
+    <!-- MapRDB Client Tablet Cache Size -->
+    <property>
+        <name>fs.mapr.tabletlru.size.kb</name>
+        <value>2000</value>
+    </property>
+</configuration>
+EOL
+    done
+}
+
 function maprutil_addRootUserToCntrExec(){
 
     local execfile="container-executor.cfg"
@@ -445,6 +468,7 @@ function maprutil_customConfigure(){
     fi 
 
     maprutil_addFSThreads "core-site.xml"
+    maprutil_addTabletLRU "core-site.xml"
 }
 
 # @param force move CLDB topology
