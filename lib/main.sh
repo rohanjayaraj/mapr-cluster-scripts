@@ -127,7 +127,7 @@ function main_install(){
     	echo "Abandoning install! "
         return 1
     fi
-
+    echo
     echo "Checking if MapR is already installed on the nodes..."
     # Check if MapR is already installed on any of the nodes
 	local islist=
@@ -216,7 +216,7 @@ function main_uninstall(){
     	echo "Uninstall C-A-N-C-E-L-L-E-D! "
         return 1
     fi
-    
+    echo
     echo "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
 	local notlist=
