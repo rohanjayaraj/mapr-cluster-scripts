@@ -255,7 +255,7 @@ function maprutil_uninstallNode2(){
     util_kill "guts"
     util_kill "dstat"
     util_kill "iostat"
-    util_kill "top -bH"
+    util_kill "top -b"
     
     # Unmount NFS
     maprutil_unmountNFS
@@ -443,6 +443,30 @@ EOL
     done
 }
 
+# @param filename
+function maprutil_addPutBufferThreshold(){
+    if [ -z "$1" ] && [ -z "$2" ]; then
+        return
+    fi
+    local filelist=$(find /opt/mapr/ -name $1 -type f ! -path "*/templates/*")
+    local value=$2
+    for i in $filelist; do
+        local present=$(cat $i | grep "db.mapr.putbuffer.threshold.mb")
+        if [ -n "$present" ]; then
+            continue;
+        fi
+        sed -i '/<\/configuration>/d' $i
+        cat >> $i << EOL
+    <!-- MapRDB Client Put Buffer Threshold Size -->
+    <property>
+        <name>db.mapr.putbuffer.threshold.mb</name>
+        <value>${value}</value>
+    </property>
+</configuration>
+EOL
+    done
+}
+
 function maprutil_addRootUserToCntrExec(){
 
     local execfile="container-executor.cfg"
@@ -470,6 +494,10 @@ function maprutil_customConfigure(){
 
     maprutil_addFSThreads "core-site.xml"
     maprutil_addTabletLRU "core-site.xml"
+     local putbuffer=$GLB_PUT_BUFFER
+    if [ -n "$putbuffer" ]; then
+        maprutil_addPutBufferThreshold "core-site.xml" "$putbuffer"
+    fi
 }
 
 # @param force move CLDB topology

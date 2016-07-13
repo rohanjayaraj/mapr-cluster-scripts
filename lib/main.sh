@@ -107,6 +107,7 @@ GLB_PONTIS=
 GLB_BG_PIDS=
 GLB_MAX_DISKS=
 GLB_BUILD_VERSION=
+GLB_PUT_BUFFER=
 
 ############################### ALL functions to be defined below this ###############################
 
@@ -476,6 +477,11 @@ while [ "$2" != "" ]; do
     	-bld)
 			if [ -n "$VALUE" ]; then
 				GLB_BUILD_VERSION=$VALUE
+			fi
+    	;;
+    	-pb)
+			if [ -n "$VALUE" ]; then
+				GLB_PUT_BUFFER=$VALUE
 			fi
     	;;
         *)

@@ -29,6 +29,7 @@ maxdisks=
 extraarg=
 backupdir=
 buildid=
+putbuffer=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -93,6 +94,8 @@ function usage () {
     echo -e "\t\t - Force uninstall a node/cluster"
     echo -e "\t -et | --enabletrace" 
     echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (WARN: may fill the root partition)"
+    echo -e "\t -pb=<#ofMBs> | --putbuffer=<#ofMBs>" 
+    echo -e "\t\t - Increase client put buffer threshold to <#ofMBs> (default : 1000)"
     
     echo 
 	echo " Post install Options : "
@@ -197,6 +200,13 @@ while [ "$1" != "" ]; do
                 buildid=$VALUE
             fi
         ;;
+        -pb | --putbuffer)
+            if [ -n "$VALUE" ]; then
+                putbuffer=$VALUE
+            else
+                putbuffer=2000
+            fi
+        ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
             usage
@@ -211,7 +221,7 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-    $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps" "-b=$backupdir" "-bld=$buildid"
+    $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer"
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then
