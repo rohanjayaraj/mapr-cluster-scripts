@@ -128,6 +128,7 @@ function main_install(){
         return 1
     fi
 
+    echo "Checking if MapR is already installed on the nodes..."
     # Check if MapR is already installed on any of the nodes
 	local islist=
 	for node in ${nodes[@]}
@@ -216,7 +217,7 @@ function main_uninstall(){
         return 1
     fi
     
-    echo
+    echo "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
 	local notlist=
 	for node in ${nodes[@]}

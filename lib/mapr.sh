@@ -255,6 +255,7 @@ function maprutil_uninstallNode2(){
     util_kill "guts"
     util_kill "dstat"
     util_kill "iostat"
+    util_kill "top -bH"
     
     # Unmount NFS
     maprutil_unmountNFS
