@@ -83,6 +83,7 @@ while [ "$1" != "" ]; do
     	;;
         -cd | --cntrdist)
             if [ -n "$VALUE" ]; then
+                args="cntrdist "
                 cntdist="$VALUE"
             fi
         ;;
