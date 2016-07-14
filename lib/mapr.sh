@@ -960,7 +960,7 @@ function maprutil_runCommands(){
                 maprutil_createTableWithCompression
             ;;
             diskcheck)
-                if [ "$ISCLIENT" -eq 0 ]; then
+                if [[ "$ISCLIENT" -eq 0 ]]; then
                     maprutil_checkDiskErrors
                 fi
             ;;
