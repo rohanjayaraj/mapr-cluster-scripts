@@ -90,8 +90,10 @@ if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	exit 1
 elif [ -z "$args" ]; then
-    $libdir/main.sh "$rolefile" "-l=$args"
-    echo "DONE!"
-else
     echo "No option specified"
+    exit
+else
+    $libdir/main.sh "$rolefile" "-l=$args"
 fi
+
+echo "DONE!"
