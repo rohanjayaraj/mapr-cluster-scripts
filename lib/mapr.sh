@@ -347,13 +347,18 @@ function maprutil_configureMultiMFS(){
         return
     fi
     local nummfs=$1
+    local numspspermfs=1
+    local numsps=$2
+    if [ -n "$numsps" ]; then
+        numspspermfs=$(echo "$numsps/$nummfs"|bc)
+    fi
     local failcnt=2;
     local iter=0;
     while [ "$failcnt" -gt 0 ] && [ "$iter" -lt 5 ]; do
         failcnt=0;
         maprcli  config save -values {multimfs.numinstances.pernode:${nummfs}}
         let failcnt=$failcnt+`echo $?`
-        maprcli  config save -values {multimfs.numsps.perinstance:1}
+        maprcli  config save -values {multimfs.numsps.perinstance:${numspspermfs}}
         let failcnt=$failcnt+`echo $?`
         sleep 30;
         let iter=$iter+1;
@@ -597,10 +602,14 @@ function maprutil_configureNode2(){
             echo "[ERROR] Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
             multimfs=$numdisks
         fi
-        local numdiskspermfs=`echo $numdisks/$multimfs|bc`
-
-        /opt/mapr/server/disksetup -FW $numdiskspermfs $diskfile
-    elif [[ -n "$numsps" ]]; then
+        local numstripe=$(echo $numdisks/$multimfs|bc)
+        if [ -n "$numsps" ] && [ "$numsps" -le "$numdisks" ]; then
+            numstripe=$(echo "$numdisks/$numsps"|bc)
+        else
+            numsps=
+        fi
+        /opt/mapr/server/disksetup -FW $numstripe $diskfile
+    elif [[ -n "$numsps" ]] &&  [[ "$numsps" -le "$numdisks" ]]; then
         if [ $((numdisks%2)) -eq 1 ] && [ $((numsps%2)) -eq 0 ]; then
             numdisks=$(echo "$numdisks+1" | bc)
         fi
@@ -623,7 +632,7 @@ function maprutil_configureNode2(){
     if [ "$hostip" = "$cldbnode" ]; then
         maprutil_applyLicense
         if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
-            maprutil_configureMultiMFS "$multimfs"
+            maprutil_configureMultiMFS "$multimfs" "$numsps"
         fi
         local cldbtopo=$GLB_CLDB_TOPO
         if [ -n "$cldbtopo" ]; then

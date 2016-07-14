@@ -85,7 +85,7 @@ function usage () {
     echo -e "\t -d=<#ofDisks> | --maxdisks=<#ofDisks>" 
     echo -e "\t\t - Specify number of disks to use (default : all available disks)"
     echo -e "\t -sp=<#ofSPs> | --storagepool=<#ofSPs>" 
-    echo -e "\t\t - Specify number of storage pools per node (ignored for multi mfs)"
+    echo -e "\t\t - Specify number of storage pools per node"
     echo -e "\t -m=<#ofMFS> | --multimfs=<#ofMFS>" 
     echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
     echo -e "\t -p | --pontis" 
