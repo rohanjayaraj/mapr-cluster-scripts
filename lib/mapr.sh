@@ -16,13 +16,15 @@ function maprutil_getCLDBMasterNode() {
     local master=
     local hostip=$(util_getHostIP)
     if [ -n "$1" ] && [ "$hostip" != "$1" ]; then
-        master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
+        #master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
+        master=$(ssh_executeCommandasRoot "$1" "[ -e '/opt/mapr/conf/mapr-clusters.conf' ] && cat /opt/mapr/conf/mapr-clusters.conf | cut -d' ' -f3 | cut -d':' -f1")
     else
-        master=$(timeout 10 maprcli node cldbmaster | grep HostName | cut -d' ' -f4)
+        #master=$(timeout 10 maprcli node cldbmaster | grep HostName | cut -d' ' -f4)
+        master=$([ -e '/opt/mapr/conf/mapr-clusters.conf' ] && cat /opt/mapr/conf/mapr-clusters.conf | cut -d' ' -f3 | cut -d':' -f1)
     fi
     if [ ! -z "$master" ]; then
             if [[ "$master" =~ ^Killed.* ]] || [[ "$master" =~ ^Terminate.* ]]; then
-                echo
+                echo ""
             else
                 echo $master
             fi
@@ -34,7 +36,7 @@ function maprutil_getCLDBNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local cldbnodes=$(grep cldb $1 | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local cldbnodes=$(grep cldb $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$cldbnodes" ]; then
             echo $cldbnodes
     fi
@@ -45,7 +47,7 @@ function maprutil_getESNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local esnodes=$(grep elastic $1 | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local esnodes=$(grep elastic $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$esnodes" ]; then
             echo $esnodes
     fi
@@ -56,7 +58,7 @@ function maprutil_getOTSDBNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local otnodes=$(grep opentsdb $1 | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local otnodes=$(grep opentsdb $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$otnodes" ]; then
             echo $otnodes
     fi
@@ -124,7 +126,7 @@ function maprutil_getNodesFromRole() {
         return
     fi
     local nodes=
-    for i in $(cat $1 | grep -v '#'); do
+    for i in $(cat $1 | grep '^[^#;]'); do
         local node=$(echo $i | cut -f1 -d",")
         local isvalid=$(util_validip $node)
         if [ "$isvalid" = "valid" ]; then
@@ -172,6 +174,7 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/cmdonnode_*")
     dirlist+=("/tmp/defdisks*")
     dirlist+=("/tmp/zipdironnode_*")
+    dirlist+=("/tmp/maprbuilds*")
 
     echo  ${dirlist[*]}
 }  
@@ -252,6 +255,7 @@ function maprutil_uninstallNode2(){
     util_kill "guts"
     util_kill "dstat"
     util_kill "iostat"
+    util_kill "top -b"
     
     # Unmount NFS
     maprutil_unmountNFS
@@ -323,8 +327,12 @@ function maprutil_installBinariesOnNode(){
 
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
+    maprutil_addGlobalVars "$scriptpath"
+    if [ -n "$GLB_BUILD_VERSION" ]; then
+        echo "maprutil_setupLocalRepo" >> $scriptpath
+    fi
     echo "util_installprereq" >> $scriptpath
-    echo "util_installBinaries \""$2"\"" >> $scriptpath
+    echo "util_installBinaries \""$2"\" \""$GLB_BUILD_VERSION"\"" >> $scriptpath
 
     local hostip=$(util_getHostIP)
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
@@ -339,13 +347,18 @@ function maprutil_configureMultiMFS(){
         return
     fi
     local nummfs=$1
+    local numspspermfs=1
+    local numsps=$2
+    if [ -n "$numsps" ]; then
+        numspspermfs=$(echo "$numsps/$nummfs"|bc)
+    fi
     local failcnt=2;
     local iter=0;
     while [ "$failcnt" -gt 0 ] && [ "$iter" -lt 5 ]; do
         failcnt=0;
         maprcli  config save -values {multimfs.numinstances.pernode:${nummfs}}
         let failcnt=$failcnt+`echo $?`
-        maprcli  config save -values {multimfs.numsps.perinstance:1}
+        maprcli  config save -values {multimfs.numsps.perinstance:${numspspermfs}}
         let failcnt=$failcnt+`echo $?`
         sleep 30;
         let iter=$iter+1;
@@ -353,6 +366,9 @@ function maprutil_configureMultiMFS(){
 }
 
 function maprutil_configurePontis(){
+    if [ ! -e "/opt/mapr/conf/mfs.conf" ]; then
+        return
+    fi
     sed -i 's|mfs.cache.lru.sizes=|#mfs.cache.lru.sizes=|g' /opt/mapr/conf/mfs.conf
     # Adding Specific Cache Settings
     cat >> /opt/mapr/conf/mfs.conf << EOL
@@ -409,6 +425,53 @@ EOL
     done
 }
 
+# @param filename
+function maprutil_addTabletLRU(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local filelist=$(find /opt/mapr/ -name $1 -type f ! -path "*/templates/*")
+    for i in $filelist; do
+        local present=$(cat $i | grep "fs.mapr.tabletlru.size.kb")
+        if [ -n "$present" ]; then
+            continue;
+        fi
+        sed -i '/<\/configuration>/d' $i
+        cat >> $i << EOL
+    <!-- MapRDB Client Tablet Cache Size -->
+    <property>
+        <name>fs.mapr.tabletlru.size.kb</name>
+        <value>2000</value>
+    </property>
+</configuration>
+EOL
+    done
+}
+
+# @param filename
+function maprutil_addPutBufferThreshold(){
+    if [ -z "$1" ] && [ -z "$2" ]; then
+        return
+    fi
+    local filelist=$(find /opt/mapr/ -name $1 -type f ! -path "*/templates/*")
+    local value=$2
+    for i in $filelist; do
+        local present=$(cat $i | grep "db.mapr.putbuffer.threshold.mb")
+        if [ -n "$present" ]; then
+            continue;
+        fi
+        sed -i '/<\/configuration>/d' $i
+        cat >> $i << EOL
+    <!-- MapRDB Client Put Buffer Threshold Size -->
+    <property>
+        <name>db.mapr.putbuffer.threshold.mb</name>
+        <value>${value}</value>
+    </property>
+</configuration>
+EOL
+    done
+}
+
 function maprutil_addRootUserToCntrExec(){
 
     local execfile="container-executor.cfg"
@@ -435,6 +498,11 @@ function maprutil_customConfigure(){
     fi 
 
     maprutil_addFSThreads "core-site.xml"
+    maprutil_addTabletLRU "core-site.xml"
+     local putbuffer=$GLB_PUT_BUFFER
+    if [ -n "$putbuffer" ]; then
+        maprutil_addPutBufferThreshold "core-site.xml" "$putbuffer"
+    fi
 }
 
 # @param force move CLDB topology
@@ -444,10 +512,10 @@ function maprutil_configureCLDBTopology(){
     local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
     local j=0
     while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ] && [ -z "$1" ]; do
-        sleep 20
+        sleep 10
         numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
         let j=j+1
-        if [ "$j" -gt 3 ]; then
+        if [ "$j" -gt 6 ]; then
             break
         fi
     done
@@ -492,9 +560,9 @@ function maprutil_buildDiskList() {
 function maprutil_startTraces() {
     if [ "$ISCLIENT" -eq 0 ] && [ -e "/opt/mapr/roles" ]; then
         nohup sh -c 'ec=124; while [ "$ec" -eq 124 ]; do timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all >> /opt/mapr/logs/guts.log; ec=$?; done'  > /dev/null &
-        nohup dstat -tcpldrngims --ipc > /opt/mapr/logs/dstat.log &
+        nohup sh -c 'ec=124; while [ "$ec" -eq 124 ]; do timeout 14 dstat -tcdnim >> /opt/mapr/logs/dstat.log; ec=$?; done' > /dev/null &
         nohup iostat -dmxt 1 > /opt/mapr/logs/iostat.log &
-        nohup sh -c 'rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 10 top -bH -p $mfspid -d 1 >> /opt/mapr/logs/mfstop.log; rc=$?; else sleep 10; done' > /dev/null &
+        nohup sh -c 'rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 10 top -bH -p $mfspid -d 1 >> /opt/mapr/logs/mfstop.log; rc=$?; else sleep 10; fi; done' > /dev/null &
     fi
 }
 
@@ -509,29 +577,39 @@ function maprutil_configureNode2(){
     maprutil_buildDiskList "$diskfile"
 
     if [ "$ISCLIENT" -eq 1 ]; then
-        echo "/opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
+        echo "[$hostip] /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
         /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
-        return 
     else
-        echo "/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
+        echo "[$hostip] /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
         /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
     fi
     
+    # Perform series of custom configuration based on selected options
+    maprutil_customConfigure
+
+    # Return if configuring client node after this
+    if [ "$ISCLIENT" -eq 1 ]; then
+        echo "[$hostip] Done configuring client node"
+        return 
+    fi
 
     #echo "/opt/mapr/server/disksetup -FM /tmp/disklist"
     local multimfs=$GLB_MULTI_MFS
     local numsps=$GLB_NUM_SP
     local numdisks=`wc -l $diskfile | cut -f1 -d' '`
     if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
-       
         if [ "$multimfs" -gt "$numdisks" ]; then
             echo "[ERROR] Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
             multimfs=$numdisks
         fi
-        local numdiskspermfs=`echo $numdisks/$multimfs|bc`
-
-        /opt/mapr/server/disksetup -FW $numdiskspermfs $diskfile
-    elif [[ -n "$numsps" ]]; then
+        local numstripe=$(echo $numdisks/$multimfs|bc)
+        if [ -n "$numsps" ] && [ "$numsps" -le "$numdisks" ]; then
+            numstripe=$(echo "$numdisks/$numsps"|bc)
+        else
+            numsps=
+        fi
+        /opt/mapr/server/disksetup -FW $numstripe $diskfile
+    elif [[ -n "$numsps" ]] &&  [[ "$numsps" -le "$numdisks" ]]; then
         if [ $((numdisks%2)) -eq 1 ] && [ $((numsps%2)) -eq 0 ]; then
             numdisks=$(echo "$numdisks+1" | bc)
         fi
@@ -544,19 +622,17 @@ function maprutil_configureNode2(){
     # Add root user to container-executor.cfg
     maprutil_addRootUserToCntrExec
 
-    # Perform series of custom configuration based on selected options
-    maprutil_customConfigure
-
     # Start zookeeper
     service mapr-zookeeper start 2>/dev/null
     
-    service mapr-warden restart
+    # Restart services on the node
+    service mapr-warden restart > /dev/null 2>&1
 
     local cldbnode=$(util_getFirstElement "$1")
     if [ "$hostip" = "$cldbnode" ]; then
         maprutil_applyLicense
         if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
-            maprutil_configureMultiMFS "$multimfs"
+            maprutil_configureMultiMFS "$multimfs" "$numsps"
         fi
         local cldbtopo=$GLB_CLDB_TOPO
         if [ -n "$cldbtopo" ]; then
@@ -689,8 +765,26 @@ function maprutil_getBuildID(){
     echo "$buildid"
 }
 
-function maprutil_copyRepoFile(){
+# @param node
+# @param build id
+function maprutil_checkBuildExists(){
      if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local node=$1
+    local buildid=$2
+    local retval=
+    local nodeos=$(getOSFromNode $node)
+    if [ "$nodeos" = "centos" ]; then
+        retval=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep $buildid")
+    elif [ "$nodeos" = "ubuntu" ]; then
+        retval=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core | grep $buildid")
+    fi
+    echo "$retval"
+}
+
+function maprutil_copyRepoFile(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
     local node=$1
@@ -702,6 +796,87 @@ function maprutil_copyRepoFile(){
     elif [ "$nodeos" = "ubuntu" ]; then
         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
     fi
+}
+
+function maprutil_getRepoURL(){
+    local nodeos=$(getOS)
+    if [ "$nodeos" = "centos" ]; then
+        local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv opensource | grep Repo-baseurl | cut -d':' -f2- | tr -d " " | head -1)
+        echo "$repolist"
+    elif [ "$nodeos" = "ubuntu" ]; then
+        echo "maprutil_getRepoURL Not implmented"
+        exit
+    fi
+}
+
+function maprutil_disableAllRepo(){
+    local nodeos=$(getOS)
+    if [ "$nodeos" = "centos" ]; then
+        local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv opensource | grep Repo-id | cut -d':' -f2 | tr -d " ")
+        for repo in $repolist
+        do
+            echo "[$(util_getHostIP)] Disabling repository $repo"
+            yum-config-manager --disable $repo > /dev/null 2>&1
+        done
+    elif [ "$nodeos" = "ubuntu" ]; then
+        echo "maprutil_disableAllRepo Not implmented"
+        exit
+    fi
+}
+
+# @param local repo path
+function maprutil_addLocalRepo(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local nodeos=$(getOS)
+    local repofile="/tmp/maprbuilds/mapr-$GLB_BUILD_VERSION.repo"
+    local repourl=$1
+    echo "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
+    if [ "$nodeos" = "centos" ]; then
+        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
+        echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
+        echo "baseurl=file://$repourl" >> $repofile
+        echo "enabled=1" >> $repofile
+        echo "gpgcheck=0" >> $repofile
+        echo "protect=1" >> $repofile
+        cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
+        yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
+    elif [ "$nodeos" = "ubuntu" ]; then
+        echo "maprutil_addLocalRepo Not implmented"
+        exit
+    fi
+}
+
+# @param directory to download
+# @param url to download
+# @param filter keywork
+function maprutil_downloadBinaries(){
+     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+    local nodeos=$(getOS)
+    local dlddir=$1
+    mkdir -p $dlddir > /dev/null 2>&1
+    local repourl=$2
+    local searchkey=$3
+    if [ "$nodeos" = "centos" ]; then
+        echo "[$(util_getHostIP)] Downloading binaries for version [$searchkey]"
+        pushd $dlddir > /dev/null 2>&1
+        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
+        popd > /dev/null 2>&1
+        createrepo $dlddir > /dev/null 2>&1
+    elif [ "$nodeos" = "ubuntu" ]; then
+        echo "maprutil_downloadBinaries Not implmented"
+        exit
+    fi
+}
+
+function maprutil_setupLocalRepo(){
+    local repourl=$(maprutil_getRepoURL)
+    maprutil_disableAllRepo
+    maprutil_downloadBinaries "/tmp/maprbuilds/$GLB_BUILD_VERSION" "$repourl" "$GLB_BUILD_VERSION"
+    maprutil_addLocalRepo "/tmp/maprbuilds/$GLB_BUILD_VERSION"
 }
 
 # @param host node
@@ -821,9 +996,8 @@ function maprutil_applyLicense(){
     local i=0
     local jobs=1
     while [ "${jobs}" -ne "0" ]; do
-        echo "Waiting for CLDB to come up before applying license.... sleeping 30s"
+        echo "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 30s"
         sleep 30
-        echo "Recovered jobs="$jobs
         if [ "$jobs" -ne 0 ]; then
             local licenseExists=`/opt/mapr/bin/maprcli license list | grep M7 | wc -l`
             if [ "$licenseExists" -ne 0 ]; then
@@ -843,8 +1017,13 @@ function maprutil_applyLicense(){
 }
 
 ## @param optional hostip
+## @param rolefile
 function maprutil_restartWardenOnNode() {
-    if [ -z "$1" ]; then
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local rolefile=$2
+    if [ -n "$(maprutil_isClientNode $rolefile $1)" ]; then
         return
     fi
     local hostip=$(util_getHostIP)

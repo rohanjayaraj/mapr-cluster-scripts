@@ -48,6 +48,11 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 	fi
 fi
 
+# Handle rolefile regex here
+if [ -n "$(cat $rolefile | grep '^[^#;]' | grep '\[')" ]; then
+	rolefile=$(util_expandNodeList "$rolefile")
+fi
+
 # Fetch the nodes to be configured
 echo "Using cluster coniguration file : $rolefile "
 nodes=$(maprutil_getNodesFromRole $rolefile)
@@ -92,7 +97,7 @@ trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 
 # Global Variables : All need to start with 'GLB_' as they are replayed back to other cluster nodes during setup
 GLB_CLUSTER_NAME="archerx"
-GLB_CLUSTER_SIZE=$(cat $rolefile |  grep -v 'mapr-client\|mapr-loopbacknfs' | wc -l)
+GLB_CLUSTER_SIZE=$(cat $rolefile |  grep "^[^#;]" | grep -v 'mapr-client\|mapr-loopbacknfs' | wc -l)
 GLB_TRACE_ON=
 GLB_MULTI_MFS=
 GLB_NUM_SP=
@@ -101,13 +106,14 @@ GLB_CLDB_TOPO=
 GLB_PONTIS=
 GLB_BG_PIDS=
 GLB_MAX_DISKS=
+GLB_BUILD_VERSION=
+GLB_PUT_BUFFER=
 
 ############################### ALL functions to be defined below this ###############################
 
 function main_install(){
 	#set -x
 	# Warn user 
-	echo
 	echo "Installing MapR on the following N-O-D-E-S : "
 	local i=1
 	for node in ${nodes[@]}
@@ -116,18 +122,15 @@ function main_install(){
 		let i=i+1
 	done
 
-	echo
-    read -p "Press 'y' to confirm... " -n 1 -r
+	read -p "Press 'y' to confirm... " -n 1 -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     	echo
     	echo "Abandoning install! "
         return 1
-    else
-    	echo
     fi
-
     echo
-	# Check if MapR is already installed on any of the nodes
+    echo "Checking if MapR is already installed on the nodes..."
+    # Check if MapR is already installed on any of the nodes
 	local islist=
 	for node in ${nodes[@]}
 	do
@@ -147,14 +150,21 @@ function main_install(){
 
 	# Install required binaries on other nodes
 	local maprrepo=$repodir"/mapr.repo"
+	local buildexists=
 	for node in ${nodes[@]}
 	do
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo"
-
+		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
+			main_isValidBuildVersion
+			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
+			if [ -z "$buildexists" ]; then
+				echo "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
+				exit 1
+			fi
+		fi
 		local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
 		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
-		sleep 1
 	done
 	wait
 
@@ -163,12 +173,11 @@ function main_install(){
 	do
 		echo "****** Running configure on node -> $node ****** "
 		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
-		sleep 1
 	done
 	wait
 
 	# Configure ES & OpenTSDB nodes
-	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getESNodes $rolefile)" ]; then  
+	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then  
 		for node in ${nodes[@]}
 		do
 			echo "****** Running configure on node -> $node ****** "
@@ -180,7 +189,7 @@ function main_install(){
 	# Configure all nodes
 	for node in ${nodes[@]}
 	do
-		maprutil_restartWardenOnNode "$node" &
+		maprutil_restartWardenOnNode "$node" "$rolefile" &
 	done
 	wait
 
@@ -193,7 +202,6 @@ function main_install(){
 function main_uninstall(){
 
 	# Warn user 
-	echo
 	echo "Uninstalling MapR on the following N-O-D-E-S : "
 	local i=1
 	for node in ${nodes[@]}
@@ -202,17 +210,13 @@ function main_uninstall(){
 		let i=i+1
 	done
 
-	echo
-    read -p "Press 'y' to confirm... " -n 1 -r
+	read -p "Press 'y' to confirm... " -n 1 -r
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    	echo
     	echo "Uninstall C-A-N-C-E-L-L-E-D! "
         return 1
-    else
-    	echo
     fi
-    
     echo
+    echo "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
 	local notlist=
 	for node in ${nodes[@]}
@@ -244,7 +248,10 @@ function main_uninstall(){
 			echo " Unable to identifiy CLDB master on node [$node]"
 			nocldblist=$nocldblist$node" "
 		else
-			local cldbip=$(util_getIPfromHostName "$cldbhost")
+			local cldbip=$cldbhost
+			if [ "$(util_validip $cldbhost)" = "invalid" ]; then
+				cldbip=$(util_getIPfromHostName "$cldbhost")
+			fi
 			local isone="false"
 			for nd in ${nodes[@]}
 			do
@@ -323,8 +330,8 @@ function main_backuplogs(){
 	wait
 
 	local scriptfile="$doBackup/extract.sh"
-	echo "echo \"extracting bzip2\"" >> $scriptfile
-	echo "for i in \`ls *\`;do bzip2 -d \$i;done " >> $scriptfile
+	echo "echo \"extracting bzip2\"" > $scriptfile
+	echo "for i in \`ls *.bz2\`;do bzip2 -d \$i;done " >> $scriptfile
 	echo "echo \"extracting tar\"" >> $scriptfile
 	echo "for i in \`ls *.tar\`;do DIR=\`echo \$i| sed 's/.tar//g'\`;echo \$DIR;mkdir -p \$DIR;tar -xf \$i -C \`pwd\`/\$DIR;done" >> $scriptfile
 	chmod +x $scriptfile
@@ -343,6 +350,22 @@ function main_runCommandExec(){
 	fi
 	
 	maprutil_runCommandsOnNode "$cldbnode" "$1"
+}
+
+function main_isValidBuildVersion(){
+    if [ -z "$GLB_BUILD_VERSION" ]; then
+        return
+    fi
+    local vlen=${#GLB_BUILD_VERSION}
+    if [ "$(util_isNumber $GLB_BUILD_VERSION)" = "true" ]; then
+    	 if [ "$vlen" -lt 5 ]; then
+    	 	echo "{ERROR} Specify a longer build/changelist id (ex: 38395)"
+            exit 1
+    	 fi
+    elif [ "$vlen" -lt 11 ]; then
+        echo "{ERROR} Specify a longer version string (ex: 5.2.0.38395)"
+        exit 1
+    fi
 }
 
 function main_stopall() {
@@ -378,6 +401,7 @@ doCmdExec=
 doPontis=0
 doForce=0
 doBackup=
+useBuildID=
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
@@ -448,6 +472,16 @@ while [ "$2" != "" ]; do
     	-b)
 			if [ -n "$VALUE" ]; then
 				doBackup=$VALUE
+			fi
+    	;;
+    	-bld)
+			if [ -n "$VALUE" ]; then
+				GLB_BUILD_VERSION=$VALUE
+			fi
+    	;;
+    	-pb)
+			if [ -n "$VALUE" ]; then
+				GLB_PUT_BUFFER=$VALUE
 			fi
     	;;
         *)

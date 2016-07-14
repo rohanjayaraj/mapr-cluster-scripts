@@ -70,6 +70,9 @@ function util_installprereq(){
     util_checkAndInstall "dstat" "dstat"
     util_checkAndInstall "iftop" "iftop"
     util_checkAndInstall "lsof" "lsof"
+    if [ "$(getOS)" = "centos" ]; then
+        util_checkAndInstall "createrepo" "createrepo"
+    fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
 }
@@ -78,6 +81,20 @@ function util_installprereq(){
 function util_validip(){
 	local retval=$(ipcalc -cs $1 && echo valid || echo invalid)
 	echo "$retval"
+}
+
+# @param packagename
+# @param verion number
+function util_checkPackageExists(){
+     if [ -z "$1" ] || [ -z "$2" ] ; then
+        return
+    fi
+     if [ "$(getOS)" = "centos" ]; then
+        yum --showduplicates list $1 | grep $2 1> /dev/null && echo "true" || echo "false"
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        apt-cache policy $1 | grep $2 1> /dev/null && echo "true" || echo "false"
+    fi
+   
 }
 
 # @param searchkey
@@ -93,12 +110,43 @@ function util_getInstalledBinaries(){
     fi
 }
 
+function util_appendVersionToPackage(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local bins=$1
+    local version=$2
+
+    local newbins=
+    for bin in $bins
+    do
+        local binexists=$(util_checkPackageExists $bin $version)
+        if [ "$binexists" = "true" ]; then
+            if [ -z "$newbins" ]; then
+                newbins="$bin*$version*"
+            else
+                newbins=$newbins" $bin*$version*"
+            fi
+        else
+            if [ -z "$newbins" ]; then
+                newbins="$bin"
+            else
+                newbins=$newbins" $bin"
+            fi
+        fi
+    done
+    echo "$newbins"
+}
+
 # @param list of binaries
 function util_installBinaries(){
     if [ -z "$1" ]; then
         return
     fi
     local bins=$1
+    if [ -n "$2" ]; then
+        bins=$(util_appendVersionToPackage "$1" "$2")
+    fi
     echo "[$(util_getHostIP)] Installing packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
         yum clean all
@@ -165,9 +213,9 @@ function util_kill(){
     local esckey="[${key:0:1}]${key:1}"
     if [ -n "$(ps aux | grep $esckey)" ]; then
         if [ -n "$ignore" ]; then
-            ps aux | grep $esckey | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 > /dev/null 2>&1
+            ps aux | grep '$esckey' | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 > /dev/null 2>&1
         else
-            ps aux | grep $esckey | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 > /dev/null 2>&1
+            ps aux | grep '$esckey' | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 > /dev/null 2>&1
         fi
     fi
 }
@@ -326,7 +374,60 @@ function util_getCommaSeparated(){
     echo "$retval"
 }
 
+# @param string 
+function util_isNumber(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local reg='^[0-9]+$'
+    if ! [[ $1 =~ $reg ]] ; then    
+        echo "false" 
+    else
+        echo "true"
+    fi
+}
 
+# @param rolefile path
+function util_expandNodeList(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local rolefile=$1
+    local newrolefile="$rolefile.tmp"
+    [ -e "$newrolefile" ] && rm -f $newrolefile > /dev/null 2>&1
+    local nodes=
+    for i in $(cat $rolefile | grep '^[^#;]'); do
+        local node=$(echo $i | cut -f1 -d",")
+        if [ -n "$(echo $node | grep '\[')" ]; then
+            # Get the start and end index from the string in b/w '[' & ']' 
+            local bins=$(echo $i | cut -f2- -d",")
+            local prefix=$(echo $node | cut -d'[' -f1)
+            local suffix=$(echo $node | cut -d'[' -f2 | tr -d ']')
+            local startidx=$(echo $suffix | cut -d'-' -f1)
+            local endidx=$(echo $suffix | cut -d'-' -f2)
+            for j in $(seq $startidx $endidx)
+            do
+                local nodeip="$prefix$j"
+                local isvalid=$(util_validip $nodeip)
+                if [ "$isvalid" = "valid" ]; then
+                    echo "$nodeip,$bins" >> $newrolefile
+                else
+                    echo "Invalid IP [$node]. Scooting"
+                    exit 1
+                fi
+            done
+        else
+            local isvalid=$(util_validip $node)
+            if [ "$isvalid" = "valid" ]; then
+                echo "$i" >> $newrolefile
+            else
+                echo "Invalid IP [$node]. Scooting"
+                exit 1
+            fi
+        fi
+    done
+    echo $newrolefile
+}
 
 # @param host name with domin
 function util_getIPfromHostName(){

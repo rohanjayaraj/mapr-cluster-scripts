@@ -28,6 +28,8 @@ tablens=
 maxdisks=
 extraarg=
 backupdir=
+buildid=
+putbuffer=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -74,6 +76,8 @@ function usage () {
     
     echo 
     echo " Install/Uninstall Options : "
+    echo -e "\t -bld=<BUILDID> | --buildid=<BUILDID>" 
+    echo -e "\t\t - Specify a BUILDID if the repository has more than one version of same binaries (default: install the latest binaries)"
     echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
     echo -e "\t -n=CLUSTER_NAME | --name=CLUSTER_NAME (default : archerx)" 
@@ -81,7 +85,7 @@ function usage () {
     echo -e "\t -d=<#ofDisks> | --maxdisks=<#ofDisks>" 
     echo -e "\t\t - Specify number of disks to use (default : all available disks)"
     echo -e "\t -sp=<#ofSPs> | --storagepool=<#ofSPs>" 
-    echo -e "\t\t - Specify number of storage pools per node (ignored for multi mfs)"
+    echo -e "\t\t - Specify number of storage pools per node"
     echo -e "\t -m=<#ofMFS> | --multimfs=<#ofMFS>" 
     echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
     echo -e "\t -p | --pontis" 
@@ -90,6 +94,8 @@ function usage () {
     echo -e "\t\t - Force uninstall a node/cluster"
     echo -e "\t -et | --enabletrace" 
     echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (WARN: may fill the root partition)"
+    echo -e "\t -pb=<#ofMBs> | --putbuffer=<#ofMBs>" 
+    echo -e "\t\t - Increase client put buffer threshold to <#ofMBs> (default : 1000)"
     
     echo 
 	echo " Post install Options : "
@@ -189,6 +195,18 @@ while [ "$1" != "" ]; do
             fi
             backupdir=$VALUE
         ;;
+        -bld | --buildid)
+            if [ -n "$VALUE" ]; then
+                buildid=$VALUE
+            fi
+        ;;
+        -pb | --putbuffer)
+            if [ -n "$VALUE" ]; then
+                putbuffer=$VALUE
+            else
+                putbuffer=2000
+            fi
+        ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
             usage
@@ -203,7 +221,7 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-    $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps" "-b=$backupdir"
+    $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer"
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then
