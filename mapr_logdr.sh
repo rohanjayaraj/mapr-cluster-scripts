@@ -16,6 +16,7 @@ meid=$$
 # Declare Variables
 rolefile=
 args=
+cntdist=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -56,6 +57,9 @@ function usage () {
 
     echo -e "\t -d | --diskerror" 
     echo -e "\t\t - Find any disk errors on nodes"
+
+    echo -e "\t -cd=<FILEPATH> | --cntrdist=<FILEPATH>" 
+    echo -e "\t\t - Check container distributation across SPs on each node for FILEPATH"
     
     echo 
     echo " Examples : "
@@ -77,6 +81,11 @@ while [ "$1" != "" ]; do
     	-d | --diskerror)
     		args="diskerror "
     	;;
+        -cd | --cntrdist)
+            if [ -n "$VALUE" ]; then
+                cntdist="$VALUE"
+            fi
+        ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
             usage
@@ -93,7 +102,7 @@ elif [ -z "$args" ]; then
     echo "No option specified"
     exit
 else
-    $libdir/main.sh "$rolefile" "-l=$args"
+    $libdir/main.sh "$rolefile" "-l=$args" "-cd=$cntdist"
 fi
 
 echo "DONE!"

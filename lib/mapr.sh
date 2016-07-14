@@ -960,9 +960,10 @@ function maprutil_runCommands(){
                 maprutil_createTableWithCompression
             ;;
             diskcheck)
-                if [[ "$ISCLIENT" -eq 0 ]]; then
-                    maprutil_checkDiskErrors
-                fi
+               maprutil_checkDiskErrors
+            ;;
+            cntrdist)
+                maprutil_checkContainerDistribution
             ;;
             *)
             echo "Nothing to do!!"
@@ -1003,8 +1004,22 @@ function maprutil_addCFtoJSONTable(){
 }
 
 function maprutil_checkDiskErrors(){
+    if [[ "$ISCLIENT" -eq 1 ]]; then
+        return
+    fi
     echo " [$(util_getHostIP)] Checking for disk errors "
     util_grepFiles "/opt/mapr/logs/" "mfs.log*" "DHL" "lun.cc"
+}
+
+function maprutil_checkContainerDistribution(){
+    if [[ -z "$GLB_CNTR_DIST" ]] || [[ "$ISCLIENT" -eq 1 ]]; then
+        return
+    fi
+    local filepath=$GLB_CNTR_DIST
+
+    echo " [$(util_getHostIP)] Checking container distribution for file '$filepath'"
+
+    echo "to be implemented"
 }
 
 function maprutil_applyLicense(){

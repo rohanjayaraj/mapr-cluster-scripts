@@ -108,6 +108,7 @@ GLB_BG_PIDS=
 GLB_MAX_DISKS=
 GLB_BUILD_VERSION=
 GLB_PUT_BUFFER=
+GLB_CNTR_DIST=
 
 ############################### ALL functions to be defined below this ###############################
 
@@ -367,6 +368,13 @@ function main_runLogDoctor(){
 			maprutil_runCommandsOnNode "$node" "diskcheck"
 		done
 	fi
+	if [ -n "$GLB_CNTR_DIST" ]; then
+		for node in ${nodes[@]}
+		do	
+			maprutil_runCommandsOnNode "$node" "cntrdist"
+		done
+	fi
+	
 }
 
 function main_isValidBuildVersion(){
@@ -470,6 +478,12 @@ while [ "$2" != "" ]; do
 	    			doDiskCheck=1
 	    		fi
 	    	done
+		;;
+		-cd)
+			if [ -n "$VALUE" ]; then
+				doLogAnalyze=1
+				GLB_CNTR_DIST=$VALUE
+			fi
 		;;
     	-c)
 			if [ -n "$VALUE" ]; then
