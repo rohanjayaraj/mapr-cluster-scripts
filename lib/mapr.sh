@@ -896,10 +896,17 @@ function maprutil_runCommandsOnNode(){
         return
     fi
 
+    local client=$(maprutil_isClientNode "$2" "$hostnode")
     local hostip=$(util_getHostIP)
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
-    
+    maprutil_addGlobalVars "$scriptpath"
+    if [ -n "$client" ]; then
+         echo "ISCLIENT=1" >> $scriptpath
+    else
+        echo "ISCLIENT=0" >> $scriptpath
+    fi
+
     echo "maprutil_runCommands \"$2\"" >> $scriptpath
    
     if [ "$hostip" != "$node" ]; then
@@ -953,7 +960,9 @@ function maprutil_runCommands(){
                 maprutil_createTableWithCompression
             ;;
             diskcheck)
-                maprutil_checkDiskErrors
+                if [ "$ISCLIENT" -eq 0 ]; then
+                    maprutil_checkDiskErrors
+                fi
             ;;
             *)
             echo "Nothing to do!!"
