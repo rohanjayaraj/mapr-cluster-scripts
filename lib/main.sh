@@ -352,6 +352,23 @@ function main_runCommandExec(){
 	maprutil_runCommandsOnNode "$cldbnode" "$1"
 }
 
+function main_runLogDoctor(){
+	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	local cldbnode=$(util_getFirstElement "$cldbnodes")
+	local isInstalled=$(maprutil_isMapRInstalledOnNode "$cldbnode")
+	if [ "$isInstalled" = "false" ]; then
+		echo "{ERROR} MapR is not installed on the cluster"
+		return
+	fi
+	
+	if [ -n "$doDiskCheck" ]; then
+		for node in ${nodes[@]}
+		do	
+			maprutil_runCommandsOnNode "$node" "diskcheck"
+		done
+	fi
+}
+
 function main_isValidBuildVersion(){
     if [ -z "$GLB_BUILD_VERSION" ]; then
         return
@@ -398,6 +415,8 @@ function main_usage () {
 doInstall=0
 doUninstall=0
 doCmdExec=
+doLogAnalyze=
+doDiskCheck=
 doPontis=0
 doForce=0
 doBackup=
@@ -444,6 +463,14 @@ while [ "$2" != "" ]; do
     			fi
     		done
     	;;
+    	-l)
+			doLogAnalyze=1
+			for i in ${VALUE}; do
+				if [[ "$i" = "diskerror" ]]; then
+	    			doDiskCheck=1
+	    		fi
+	    	done
+		;;
     	-c)
 			if [ -n "$VALUE" ]; then
     			GLB_CLUSTER_NAME=$VALUE
@@ -512,4 +539,8 @@ fi
 
 if [ -n "$doCmdExec" ]; then
 	main_runCommandExec "$doCmdExec"
+fi
+
+if [ -n "$doLogAnalyze" ]; then
+	main_runLogDoctor
 fi

@@ -429,6 +429,38 @@ function util_expandNodeList(){
     echo $newrolefile
 }
 
+#  @param keyword
+function util_grepFiles(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+    local dirpath=$1
+    local filereg=$2
+    local runcmd="for i in \$(find $dirpath -type f -name '$filereg'); do "
+    local i=0
+    for key in "$@"
+    do
+        if [ "$i" -lt 2 ]; then
+            let i=i+1
+            continue
+        fi
+        if [ "$i" -gt 2 ]; then
+            runcmd=$runcmd" | grep '$key'"
+        else
+            runcmd=$runcmd" grep '$key' \$i"
+        fi
+        let i=i+1
+    done
+    runcmd=$runcmd"; done"
+
+    local retstat=$(bash -c "$runcmd")
+    local cnt=$(echo "$retstat" | wc -l)
+    if [ -n "$retstat" ] && [ -n "$cnt" ]; then
+        echo -e "\tSearchkey(s) found $cnt times in directory $node"
+        echo -e "\t\t$retstat" | head -n 2
+    fi
+}
+
 # @param host name with domin
 function util_getIPfromHostName(){
     if [ -z "$1" ]; then

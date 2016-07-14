@@ -952,7 +952,10 @@ function maprutil_runCommands(){
             tablelz4)
                 maprutil_createTableWithCompression
             ;;
-             *)
+            diskcheck)
+                maprutil_checkDiskErrors
+            ;;
+            *)
             echo "Nothing to do!!"
             ;;
         esac
@@ -988,6 +991,11 @@ function maprutil_createJSONTable(){
 function maprutil_addCFtoJSONTable(){
     echo " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
     maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname cfother -jsonpath field0 -compression off -inmemory true"
+}
+
+function maprutil_checkDiskErrors(){
+    echo " [$(util_getHostIP)] Checking for disk errors "
+    util_grepFiles "/opt/mapr/logs/" "mfs.log*" "DHL" "lun.cc"
 }
 
 function maprutil_applyLicense(){
