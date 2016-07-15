@@ -1004,14 +1004,23 @@ function maprutil_checkDiskErrors(){
 }
 
 function maprutil_checkContainerDistribution(){
-    if [[ -z "$GLB_CNTR_DIST" ]]; then
+    if [[ -z "$GLB_CNTR_DIST" ]] || [[ ! -e "/opt/mapr/server/mrconfig" ]]; then
         return
     fi
+    echo "$(util_getHostIP) :"
+
+    # Abhishek Ravi's code
     local filepath=$GLB_CNTR_DIST
+    local hostnode=$(hostname -f)
 
-    echo " [$(util_getHostIP)] Checking container distribution for file '$filepath'"
+    local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
+    local tabletContainers=$(maprcli table region list -path $filepath -json | grep -v 'secondarymfs' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
+    local storagePools=$(/opt/mapr/server/mrconfig sp list | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',')
 
-    echo "to be implemented"
+    for sp in $storagePools; do
+        local cnt=$(echo "$cntrlist" | grep $sp | grep -F "${tabletContainers}" | wc -l)
+        echo "$sp : $cnt Tablets"
+    done
 }
 
 function maprutil_applyLicense(){
