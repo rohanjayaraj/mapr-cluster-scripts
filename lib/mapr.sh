@@ -1016,7 +1016,7 @@ function maprutil_checkTabletDistribution(){
     if [ -z "$tabletContainers" ]; then
         return
     fi
-    local storagePools=$(/opt/mapr/server/mrconfig sp list | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',')
+    local storagePools=$(/opt/mapr/server/mrconfig sp list | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort)
     local numTablets=$(echo "$tabletContainers" | wc -l)
     local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
     echo "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
