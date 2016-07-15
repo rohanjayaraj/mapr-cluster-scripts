@@ -116,6 +116,7 @@ function main_install(){
 	#set -x
 	# Warn user 
 	echo "Installing MapR on the following N-O-D-E-S : "
+	echo
 	local i=1
 	for node in ${nodes[@]}
 	do
@@ -204,6 +205,7 @@ function main_uninstall(){
 
 	# Warn user 
 	echo "Uninstalling MapR on the following N-O-D-E-S : "
+	echo
 	local i=1
 	for node in ${nodes[@]}
 	do
@@ -364,6 +366,7 @@ function main_runLogDoctor(){
 		done
 	fi
 	if [ -n "$GLB_CNTR_DIST" ]; then
+		echo "Checking container distribution for file '$GLB_CNTR_DIST'"
 		for node in ${nodes[@]}
 		do	
 			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
