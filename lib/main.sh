@@ -354,23 +354,21 @@ function main_runCommandExec(){
 }
 
 function main_runLogDoctor(){
-	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
-	local cldbnode=$(util_getFirstElement "$cldbnodes")
-	local isInstalled=$(maprutil_isMapRInstalledOnNode "$cldbnode")
-	if [ "$isInstalled" = "false" ]; then
-		echo "{ERROR} MapR is not installed on the cluster"
-		return
-	fi
-	
 	if [ -n "$doDiskCheck" ]; then
 		for node in ${nodes[@]}
 		do	
+			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+				continue
+			fi
 			maprutil_runCommandsOnNode "$node" "diskcheck"
 		done
 	fi
 	if [ -n "$GLB_CNTR_DIST" ]; then
 		for node in ${nodes[@]}
 		do	
+			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+				continue
+			fi
 			maprutil_runCommandsOnNode "$node" "cntrdist"
 		done
 	fi

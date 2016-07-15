@@ -901,12 +901,7 @@ function maprutil_runCommandsOnNode(){
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
     maprutil_addGlobalVars "$scriptpath"
-    if [ -n "$client" ]; then
-         echo "ISCLIENT=1" >> $scriptpath
-    else
-        echo "ISCLIENT=0" >> $scriptpath
-    fi
-
+    
     echo "maprutil_runCommands \"$2\"" >> $scriptpath
    
     if [ "$hostip" != "$node" ]; then
@@ -1004,15 +999,12 @@ function maprutil_addCFtoJSONTable(){
 }
 
 function maprutil_checkDiskErrors(){
-    if [[ "$ISCLIENT" -eq 1 ]]; then
-        return
-    fi
     echo " [$(util_getHostIP)] Checking for disk errors "
     util_grepFiles "/opt/mapr/logs/" "mfs.log*" "DHL" "lun.cc"
 }
 
 function maprutil_checkContainerDistribution(){
-    if [[ -z "$GLB_CNTR_DIST" ]] || [[ "$ISCLIENT" -eq 1 ]]; then
+    if [[ -z "$GLB_CNTR_DIST" ]]; then
         return
     fi
     local filepath=$GLB_CNTR_DIST
