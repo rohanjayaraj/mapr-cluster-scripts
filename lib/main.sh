@@ -108,6 +108,7 @@ GLB_BG_PIDS=
 GLB_MAX_DISKS=
 GLB_BUILD_VERSION=
 GLB_PUT_BUFFER=
+GLB_CNTR_DIST=
 
 ############################### ALL functions to be defined below this ###############################
 
@@ -352,6 +353,28 @@ function main_runCommandExec(){
 	maprutil_runCommandsOnNode "$cldbnode" "$1"
 }
 
+function main_runLogDoctor(){
+	if [ -n "$doDiskCheck" ]; then
+		for node in ${nodes[@]}
+		do	
+			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+				continue
+			fi
+			maprutil_runCommandsOnNode "$node" "diskcheck"
+		done
+	fi
+	if [ -n "$GLB_CNTR_DIST" ]; then
+		for node in ${nodes[@]}
+		do	
+			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+				continue
+			fi
+			maprutil_runCommandsOnNode "$node" "cntrdist"
+		done
+	fi
+	
+}
+
 function main_isValidBuildVersion(){
     if [ -z "$GLB_BUILD_VERSION" ]; then
         return
@@ -398,6 +421,8 @@ function main_usage () {
 doInstall=0
 doUninstall=0
 doCmdExec=
+doLogAnalyze=
+doDiskCheck=
 doPontis=0
 doForce=0
 doBackup=
@@ -444,6 +469,20 @@ while [ "$2" != "" ]; do
     			fi
     		done
     	;;
+    	-l)
+			doLogAnalyze=1
+			for i in ${VALUE}; do
+				if [[ "$i" = "diskerror" ]]; then
+	    			doDiskCheck=1
+	    		fi
+	    	done
+		;;
+		-cd)
+			if [ -n "$VALUE" ]; then
+				doLogAnalyze=1
+				GLB_CNTR_DIST=$VALUE
+			fi
+		;;
     	-c)
 			if [ -n "$VALUE" ]; then
     			GLB_CLUSTER_NAME=$VALUE
@@ -512,4 +551,8 @@ fi
 
 if [ -n "$doCmdExec" ]; then
 	main_runCommandExec "$doCmdExec"
+fi
+
+if [ -n "$doLogAnalyze" ]; then
+	main_runLogDoctor
 fi

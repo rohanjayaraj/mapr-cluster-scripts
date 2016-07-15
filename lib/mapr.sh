@@ -896,9 +896,11 @@ function maprutil_runCommandsOnNode(){
         return
     fi
 
+    local client=$(maprutil_isClientNode "$2" "$hostnode")
     local hostip=$(util_getHostIP)
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
+    maprutil_addGlobalVars "$scriptpath"
     
     echo "maprutil_runCommands \"$2\"" >> $scriptpath
    
@@ -952,7 +954,13 @@ function maprutil_runCommands(){
             tablelz4)
                 maprutil_createTableWithCompression
             ;;
-             *)
+            diskcheck)
+               maprutil_checkDiskErrors
+            ;;
+            cntrdist)
+                maprutil_checkContainerDistribution
+            ;;
+            *)
             echo "Nothing to do!!"
             ;;
         esac
@@ -988,6 +996,22 @@ function maprutil_createJSONTable(){
 function maprutil_addCFtoJSONTable(){
     echo " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
     maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname cfother -jsonpath field0 -compression off -inmemory true"
+}
+
+function maprutil_checkDiskErrors(){
+    echo " [$(util_getHostIP)] Checking for disk errors "
+    util_grepFiles "/opt/mapr/logs/" "mfs.log*" "DHL" "lun.cc"
+}
+
+function maprutil_checkContainerDistribution(){
+    if [[ -z "$GLB_CNTR_DIST" ]]; then
+        return
+    fi
+    local filepath=$GLB_CNTR_DIST
+
+    echo " [$(util_getHostIP)] Checking container distribution for file '$filepath'"
+
+    echo "to be implemented"
 }
 
 function maprutil_applyLicense(){
