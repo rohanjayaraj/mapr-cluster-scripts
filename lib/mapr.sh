@@ -1019,7 +1019,7 @@ function maprutil_checkTabletDistribution(){
     local storagePools=$(/opt/mapr/server/mrconfig sp list | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',')
     local numTablets=$(echo "$tabletContainers" | wc -l)
     local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
-    echo "$(util_getHostIP) : [# of: tablets: $numTablets, # of containers: $numContainers]"
+    echo "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
 
     for sp in $storagePools; do
         local spcntrs=$(echo "$cntrlist" | grep $sp | awk '{print $2}')
