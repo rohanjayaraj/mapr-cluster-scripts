@@ -1004,12 +1004,12 @@ function maprutil_checkDiskErrors(){
 }
 
 function maprutil_checkTabletDistribution(){
-    if [[ -z "$GLB_CNTR_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
+    if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
         return
     fi
     
     # Abhishek Ravi's code
-    local filepath=$GLB_CNTR_DIST
+    local filepath=$GLB_TABLET_DIST
     local hostnode=$(hostname -f)
 
     local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')

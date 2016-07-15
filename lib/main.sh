@@ -108,7 +108,7 @@ GLB_BG_PIDS=
 GLB_MAX_DISKS=
 GLB_BUILD_VERSION=
 GLB_PUT_BUFFER=
-GLB_CNTR_DIST=
+GLB_TABLET_DIST=
 
 ############################### ALL functions to be defined below this ###############################
 
@@ -365,8 +365,8 @@ function main_runLogDoctor(){
 			maprutil_runCommandsOnNode "$node" "diskcheck"
 		done
 	fi
-	if [ -n "$GLB_CNTR_DIST" ]; then
-		echo "Checking container distribution for file '$GLB_CNTR_DIST'"
+	if [ -n "$GLB_TABLET_DIST" ]; then
+		echo "Checking tablet distribution for file '$GLB_TABLET_DIST'"
 		for node in ${nodes[@]}
 		do	
 			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
@@ -483,7 +483,7 @@ while [ "$2" != "" ]; do
 		-td)
 			if [ -n "$VALUE" ]; then
 				doLogAnalyze=1
-				GLB_CNTR_DIST=$VALUE
+				GLB_TABLET_DIST=$VALUE
 			fi
 		;;
     	-c)
