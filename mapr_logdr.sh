@@ -64,7 +64,7 @@ function usage () {
     echo 
     echo " Examples : "
     echo -e "\t ./$me -c=maprdb -d" 
-    echo -e "\t ./$me -c=maprdb -cd=/tables/usertable" 
+    echo -e "\t ./$me -c=maprdb -td=/tables/usertable" 
 }
 
 while [ "$1" != "" ]; do

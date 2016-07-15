@@ -480,7 +480,7 @@ while [ "$2" != "" ]; do
 	    		fi
 	    	done
 		;;
-		-cd)
+		-td)
 			if [ -n "$VALUE" ]; then
 				doLogAnalyze=1
 				GLB_CNTR_DIST=$VALUE
