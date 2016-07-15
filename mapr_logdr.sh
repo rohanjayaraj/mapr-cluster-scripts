@@ -16,7 +16,7 @@ meid=$$
 # Declare Variables
 rolefile=
 args=
-cntdist=
+tbltdist=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -58,13 +58,13 @@ function usage () {
     echo -e "\t -d | --diskerror" 
     echo -e "\t\t - Find any disk errors on nodes"
 
-    echo -e "\t -cd=<FILEPATH> | --cntrdist=<FILEPATH>" 
-    echo -e "\t\t - Check container distributation across SPs on each node for FILEPATH"
+    echo -e "\t -td=<FILEPATH> | --tabletdist=<FILEPATH>" 
+    echo -e "\t\t - Check Tablet distribution across SPs on each node for FILEPATH"
     
     echo 
     echo " Examples : "
     echo -e "\t ./$me -c=maprdb -d" 
-    echo -e "\t ./$me -c=maprdb -cd=/tables/usertable" 
+    echo -e "\t ./$me -c=maprdb -td=/tables/usertable" 
 }
 
 while [ "$1" != "" ]; do
@@ -82,10 +82,10 @@ while [ "$1" != "" ]; do
     	-d | --diskerror)
     		args=$args"diskerror "
     	;;
-        -cd | --cntrdist)
+        -td | --tabletdist)
             if [ -n "$VALUE" ]; then
-                args=$args"cntrdist "
-                cntdist="$VALUE"
+                args=$args"tabletdist "
+                tbltdist="$VALUE"
             fi
         ;;
         *)
@@ -104,7 +104,7 @@ elif [ -z "$args" ]; then
     echo "No option specified"
     exit
 else
-    $libdir/main.sh "$rolefile" "-l=$args" "-cd=$cntdist"
+    $libdir/main.sh "$rolefile" "-l=$args" "-td=$tbltdist"
 fi
 
 echo "DONE!"

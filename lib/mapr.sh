@@ -957,8 +957,8 @@ function maprutil_runCommands(){
             diskcheck)
                maprutil_checkDiskErrors
             ;;
-            cntrdist)
-                maprutil_checkContainerDistribution
+            tabletdist)
+                maprutil_checkTabletDistribution
             ;;
             *)
             echo "Nothing to do!!"
@@ -1003,22 +1003,27 @@ function maprutil_checkDiskErrors(){
     util_grepFiles "/opt/mapr/logs/" "mfs.log*" "DHL" "lun.cc"
 }
 
-function maprutil_checkContainerDistribution(){
-    if [[ -z "$GLB_CNTR_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
+function maprutil_checkTabletDistribution(){
+    if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
         return
     fi
-    echo "$(util_getHostIP) :"
-
-    # Abhishek Ravi's code
-    local filepath=$GLB_CNTR_DIST
+    
+    local filepath=$GLB_TABLET_DIST
     local hostnode=$(hostname -f)
 
     local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
     local tabletContainers=$(maprcli table region list -path $filepath -json | grep -v 'secondarymfs' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
+    if [ -z "$tabletContainers" ]; then
+        return
+    fi
     local storagePools=$(/opt/mapr/server/mrconfig sp list | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',')
+    local numTablets=$(echo "$tabletContainers" | wc -l)
+    local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
+    echo "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
 
     for sp in $storagePools; do
-        local cnt=$(echo "$cntrlist" | grep $sp | grep -F "${tabletContainers}" | wc -l)
+        local spcntrs=$(echo "$cntrlist" | grep $sp | awk '{print $2}')
+        local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
         echo -e "\t$sp : $cnt Tablets"
     done
 }
