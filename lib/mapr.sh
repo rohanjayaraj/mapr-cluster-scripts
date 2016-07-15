@@ -1004,7 +1004,7 @@ function maprutil_checkDiskErrors(){
 }
 
 function maprutil_checkContainerDistribution(){
-    if [[ -z "$GLB_CNTR_DIST" ]] || [[ ! -e "/opt/mapr/server/mrconfig" ]]; then
+    if [[ -z "$GLB_CNTR_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
         return
     fi
     echo "$(util_getHostIP) :"
@@ -1019,7 +1019,7 @@ function maprutil_checkContainerDistribution(){
 
     for sp in $storagePools; do
         local cnt=$(echo "$cntrlist" | grep $sp | grep -F "${tabletContainers}" | wc -l)
-        echo "$sp : $cnt Tablets"
+        echo -e "\t$sp : $cnt Tablets"
     done
 }
 
