@@ -46,9 +46,9 @@ function handleInterrupt() {
 function usage () {
 	echo 
 	echo "Usage : "
-    echo "./$me -c=<ClusterConfig> <Arguments> [Options]"
+    echo "./$me -c=<ClusterConfig> [Options]"
 
-    echo " Arguments : "
+    echo " Options : "
     echo -e "\t -h --help"
     echo -e "\t\t - Print this"
 
@@ -64,6 +64,7 @@ function usage () {
     echo 
     echo " Examples : "
     echo -e "\t ./$me -c=maprdb -d" 
+    echo -e "\t ./$me -c=maprdb -cd=/tables/usertable" 
 }
 
 while [ "$1" != "" ]; do
@@ -79,11 +80,11 @@ while [ "$1" != "" ]; do
             rolefile=$VALUE
         ;;
     	-d | --diskerror)
-    		args="diskerror "
+    		args=$args"diskerror "
     	;;
         -cd | --cntrdist)
             if [ -n "$VALUE" ]; then
-                args="cntrdist "
+                args=$args"cntrdist "
                 cntdist="$VALUE"
             fi
         ;;
