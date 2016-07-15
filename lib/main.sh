@@ -372,7 +372,7 @@ function main_runLogDoctor(){
 			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
 				continue
 			fi
-			maprutil_runCommandsOnNode "$node" "cntrdist"
+			maprutil_runCommandsOnNode "$node" "tabletdist"
 		done
 	fi
 	

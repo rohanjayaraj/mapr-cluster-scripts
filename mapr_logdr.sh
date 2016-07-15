@@ -104,7 +104,7 @@ elif [ -z "$args" ]; then
     echo "No option specified"
     exit
 else
-    $libdir/main.sh "$rolefile" "-l=$args" "-cd=$tbltdist"
+    $libdir/main.sh "$rolefile" "-l=$args" "-td=$tbltdist"
 fi
 
 echo "DONE!"
