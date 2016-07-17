@@ -168,6 +168,7 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/isinstalled_*")
     dirlist+=("/tmp/uninstallnode_*")
     dirlist+=("/tmp/installbinnode_*")
+    dirlist+=("/tmp/upgradenode_*")
     dirlist+=("/tmp/disklist*")
     dirlist+=("/tmp/configurenode_*")
     dirlist+=("/tmp/postconfigurenode_*")
@@ -240,6 +241,18 @@ function maprutil_isMapRInstalledOnNode(){
     fi
 }
 
+# @param host ip
+function maprutil_getMapRVersionOnNode(){
+    if [ -z "$1" ] ; then
+        return
+    fi
+    local node=$1
+    local version=$(ssh_executeCommandasRoot "$node" "[ -e '/opt/mapr/MapRBuildVersion' ] && cat /opt/mapr/MapRBuildVersion")
+    if [ -n "$version" ]; then
+        echo $version
+    fi
+}
+
 function maprutil_unmountNFS(){
     local nfslist=$(mount | grep nfs | grep mapr | grep -v '10.10.10.20' | cut -d' ' -f3)
     for i in $nfslist
@@ -270,7 +283,12 @@ function maprutil_uninstallNode2(){
     maprutil_removemMapRPackages
 
     # Run Yum clean
-    yum clean all
+    local nodeos=$(getOS $node)
+    if [ "$nodeos" = "centos" ]; then
+        yum clean all
+    elif [ "$nodeos" = "ubuntu" ]; then
+        echo "to be implemented"
+    fi
 
     # Remove mapr shared memory segments
     util_removeSHMSegments "mapr"
@@ -308,6 +326,70 @@ function maprutil_uninstallNode(){
     maprutil_addToPIDList "$!"
 }
 
+function maprutil_upgradeNode2(){
+    local bins="mapr-cldb mapr-core mapr-core-internal mapr-fileserver mapr-hadoop-core mapr-historyserver mapr-jobtracker mapr-mapreduce1 mapr-mapreduce2 mapr-metrics mapr-nfs mapr-nodemanager mapr-resourcemanager mapr-tasktracker mapr-webserver mapr-zookeeper mapr-zk-internal"
+    local buildversion=$1
+    
+    util_upgradeBinaries "$bins" "$buildversion"
+    
+    #mv /opt/mapr/conf/warden.conf  /opt/mapr/conf/warden.conf.old
+    #cp /opt/mapr/conf.new/warden.conf /opt/mapr/conf/warden.conf
+    if [ -e "/opt/mapr/roles/cldb" ]; then
+        echo "Transplant any new changes in warden configs to /opt/mapr/conf/warden.conf. Do so manually!"
+        diff /opt/mapr/conf/warden.conf /opt/mapr/conf.new/warden.conf
+        if [ -d "/opt/mapr/conf/conf.d.new" ]; then
+            echo "New configurations from /opt/mapr/conf/conf.d.new aren't merged with existing files. Do so manually!"
+        fi
+    fi
+
+    /opt/mapr/server/configure.sh -R
+
+    # Start zookeeper if if exists
+    service mapr-zookeeper start 2>/dev/null
+    
+    # Restart services on the node
+    service mapr-warden start > /dev/null 2>&1
+}
+
+# @param host ip
+function maprutil_upgradeNode(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    
+    # build full script for node
+    local hostnode=$1
+    local scriptpath="/tmp/upgradenode_${hostnode: -3}.sh"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    echo >> $scriptpath
+    echo "##########  Adding execute steps below ########### " >> $scriptpath
+    if [ -n "$GLB_BUILD_VERSION" ]; then
+        echo "maprutil_setupLocalRepo" >> $scriptpath
+    fi
+    echo "maprutil_upgradeNode2 \""$GLB_BUILD_VERSION"\"" >> $scriptpath
+
+    ssh_executeScriptasRootInBG "$hostnode" "$scriptpath"
+    maprutil_addToPIDList "$!"
+    if [ -z "$2" ]; then
+        wait
+    fi
+}
+
+# @param cldbnode
+function maprutil_postUpgrade(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local node=$1
+    ssh_executeCommandasRoot "$node" "timeout 50 maprcli config save -values {mapr.targetversion:\"\$(cat /opt/mapr/MapRBuildVersion)\"}" > /dev/null 2>&1
+    ssh_executeCommandasRoot "$node" "timeout 10 maprcli node list -columns hostname,csvc" 
+}
+
 # @param host ip
 # @param binary list
 # @param don't wait
@@ -334,7 +416,6 @@ function maprutil_installBinariesOnNode(){
     echo "util_installprereq" >> $scriptpath
     echo "util_installBinaries \""$2"\" \""$GLB_BUILD_VERSION"\"" >> $scriptpath
 
-    local hostip=$(util_getHostIP)
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
     if [ -z "$3" ]; then
@@ -783,6 +864,28 @@ function maprutil_checkBuildExists(){
     echo "$retval"
 }
 
+# @param node
+function maprutil_checkNewBuildExists(){
+     if [ -z "$1" ]; then
+        return
+    fi
+    local node=$1
+    local buildid=$(maprutil_getMapRVersionOnNode $node)
+    local curchangeset=$(echo $buildid | cut -d'.' -f4)
+    local newchangeset=
+    local nodeos=$(getOSFromNode $node)
+    if [ "$nodeos" = "centos" ]; then
+        #ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
+        newchangeset=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep -v '$curchangeset' | tail -n1 | awk '{print \$2}' | cut -d'.' -f4")
+    elif [ "$nodeos" = "ubuntu" ]; then
+        newchangeset=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core | grep -v '$curchangeset' | tail -n1 | awk '{print \$2}' | cut -d'.' -f4")
+    fi
+
+    if [[ -n "$newchangeset" ]] && [[ "$(util_isNumber $newchangeset)" = "true" ]] && [[ "$newchangeset" -gt "$curchangeset" ]]; then
+        echo "$newchangeset"
+    fi
+}
+
 function maprutil_copyRepoFile(){
     if [ -z "$1" ] || [ -z "$2" ]; then
         return
@@ -1061,14 +1164,36 @@ function maprutil_restartWardenOnNode() {
         return
     fi
     local rolefile=$2
+    local stopstart=$3
     if [ -n "$(maprutil_isClientNode $rolefile $1)" ]; then
         return
     fi
-    local hostip=$(util_getHostIP)
-    if [ "$hostip" != "$1" ]; then
+    if [ -z "$stopstart" ]; then
         ssh_executeCommandasRoot "$1" "service mapr-warden restart"
-    else
-        service mapr-warden restart
+    elif [[ "$stopstart" = "stop" ]]; then
+        ssh_executeCommandasRoot "$1" "service mapr-warden stop"
+    elif [[ "$stopstart" = "start" ]]; then
+        ssh_executeCommandasRoot "$1" "service mapr-warden start"
+    fi
+}
+
+## @param optional hostip
+## @param rolefile
+function maprutil_restartZKOnNode() {
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local rolefile=$2
+    local stopstart=$3
+    if [ -n "$(maprutil_isClientNode $rolefile $1)" ]; then
+        return
+    fi
+    if [ -z "$stopstart" ]; then
+        ssh_executeCommandasRoot "$1" "service mapr-zookeeper restart"
+    elif [[ "$stopstart" = "stop" ]]; then
+        ssh_executeCommandasRoot "$1" "service mapr-zookeeper stop"
+    elif [[ "$stopstart" = "start" ]]; then
+        ssh_executeCommandasRoot "$1" "service mapr-zookeeper start"
     fi
 }
 

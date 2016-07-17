@@ -54,7 +54,7 @@ if [ -n "$(cat $rolefile | grep '^[^#;]' | grep '\[')" ]; then
 fi
 
 # Fetch the nodes to be configured
-echo "Using cluster coniguration file : $rolefile "
+echo "Using cluster configuration file : $rolefile "
 nodes=$(maprutil_getNodesFromRole $rolefile)
 
 if [ -z "$nodes" ]; then
@@ -161,7 +161,7 @@ function main_install(){
 			main_isValidBuildVersion
 			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
 			if [ -z "$buildexists" ]; then
-				echo "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
+				echo "{ERROR} Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
 				exit 1
 			fi
 		fi
@@ -201,6 +201,137 @@ function main_install(){
 
 }
 
+function main_upgrade(){
+	echo "Upgrading MapR on the following N-O-D-E-S : "
+	echo
+	local i=1
+	for node in ${nodes[@]}
+	do
+		echo "Node$i : $node"
+		let i=i+1
+	done
+
+	read -p "Press 'y' to confirm... " -n 1 -r
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    	echo "Upgrade C-A-N-C-E-L-L-E-D! "
+        return 1
+    fi
+    echo
+    echo "Checking if MapR is installed on the nodes..."
+	# Check if MapR is installed on all nodes
+	local notlist=
+	for node in ${nodes[@]}
+	do
+		local isInstalled=$(maprutil_isMapRInstalledOnNode "$node")
+		if [ "$isInstalled" != "true" ]; then
+			notlist=$notlist"$node"" "
+		else
+			#??? Get install version
+			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
+		fi
+	done
+
+	if [ -n "$notlist" ]; then
+		echo "MapR not installed on the node(s) [ $notlist]. Trying install on the nodes first. Scooting!"
+		exit 1
+	fi
+
+	local cldbnode=
+	local nocldblist=
+	# Check if each node points to the same CLDB master and the master is part of the cluster
+	for node in ${nodes[@]}
+	do
+		local cldbhost=$(maprutil_getCLDBMasterNode "$node")
+		if [ -z "$cldbhost" ]; then
+			echo " Unable to identifiy CLDB master on node [$node]"
+			nocldblist=$nocldblist$node" "
+		else
+			local cldbip=$cldbhost
+			if [ "$(util_validip $cldbhost)" = "invalid" ]; then
+				cldbip=$(util_getIPfromHostName "$cldbhost")
+			fi
+			local isone="false"
+			for nd in ${nodes[@]}
+			do
+				if [ "$nd" = "$cldbip" ]; then
+					isone="true"
+					break
+				fi
+			done
+			if [ "$isone" = "false" ]; then
+				echo " Node [$node] is not part of the same cluster. Scooting"
+			else
+				cldbnode="$cldbip"
+			fi
+		fi
+	done
+
+	if [ -n "$nocldblist" ]; then
+		echo "{WARNING} CLDB not found on nodes [$nocldblist]. May be uninstalling another cluster's nodes. Check the nodes specified."
+    	echo "Over & Out!"
+    	exit 1
+	else
+		echo "CLDB Master : $cldbnode"
+	fi
+
+	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+    local zknodes=$(maprutil_getZKNodes "$rolefile")
+    local maprrepo=$repodir"/mapr.repo"
+    local buildexists=
+
+    # First stop warden on all nodes
+	for node in ${nodes[@]}
+	do
+		# Copy mapr.repo if it doen't exist
+		maprutil_copyRepoFile "$node" "$maprrepo"
+		if [ -z "$buildexists" ] && [ -z "$(maprutil_checkNewBuildExists $node)" ]; then
+			echo "{ERROR} No newer build exists. Please check the repo file [$maprrepo] for configured repositories"
+			exit 1
+		fi
+		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
+			main_isValidBuildVersion
+			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
+			if [ -z "$buildexists" ]; then
+				echo "{ERROR} Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
+				exit 1
+			else
+				echo "Stopping warden on all nodes..."
+			fi
+		fi
+		# Stop warden on all nodes
+		maprutil_restartWardenOnNode "$node" "$rolefile" "stop" &
+	done
+
+	echo "Stopping zookeeper..."
+	# Stop ZK on ZK nodes
+	for node in ${zknodes[@]}
+	do
+		maprutil_restartZKOnNode "$node" "$rolefile" "stop" &
+	done
+	wait
+	
+	# Kill all mapred jos & yarn applications
+
+	
+	# Upgrade rest of the nodes
+	echo "Upgrading MaPR on all nodes..."
+	for node in ${nodes[@]}
+	do	
+		maprutil_upgradeNode "$node" "bg"
+	done
+	wait
+
+	maprutil_postUpgrade "$cldbnode"
+	
+	for node in ${nodes[@]}
+	do
+		maprutil_restartWardenOnNode "$node" "$rolefile" &
+	done
+	wait
+
+	echo "Upgrade is complete!"
+}
+
 function main_uninstall(){
 
 	# Warn user 
@@ -228,7 +359,7 @@ function main_uninstall(){
 		if [ "$isInstalled" != "true" ]; then
 			notlist=$notlist"$node"" "
 		else
-			echo "MapR is installed on node [$node]"
+			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
 		fi
 	done
 
@@ -423,6 +554,7 @@ function main_usage () {
 
 doInstall=0
 doUninstall=0
+doUpgrade=0
 doCmdExec=
 doLogAnalyze=
 doDiskCheck=
@@ -448,6 +580,9 @@ while [ "$2" != "" ]; do
 		    	;;
 		    	uninstall)
 		    		doUninstall=1
+		    	;;
+		    	upgrade)
+		    		doUpgrade=1
 		    	;;
 		    esac
 		    ;;
@@ -541,6 +676,9 @@ if [ "$doInstall" -eq 1 ]; then
 elif [ "$doUninstall" -eq 1 ]; then
 	echo " *************** Starting Cluster Uninstallation **************** "
 	main_uninstall
+elif [ "$doUpgrade" -eq 1 ]; then
+	echo " *************** Starting Cluster Upgrade **************** "
+	main_upgrade
 elif [ -n "$doBackup" ]; then
 	echo " *************** Starting logs backup **************** "
 	main_backuplogs	

@@ -157,6 +157,25 @@ function util_installBinaries(){
     fi
 }
 
+# @param list of binaries
+function util_upgradeBinaries(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local bins=$1
+    if [ -n "$2" ]; then
+        bins=$(util_appendVersionToPackage "$1" "$2")
+    fi
+    echo "[$(util_getHostIP)] Upgrading packages : $bins"
+    if [ "$(getOS)" = "centos" ]; then
+        yum clean all
+        yum update ${bins} -y --nogpgcheck
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        apt-get update
+        apt-get upgrade ${bins} -y --force-yes
+    fi
+}
+
 # @param searchkey
 function util_removeBinaries(){
     if [ -z "$1" ]; then
