@@ -115,7 +115,7 @@ GLB_TABLET_DIST=
 function main_install(){
 	#set -x
 	# Warn user 
-	echo "Installing MapR on the following N-O-D-E-S : "
+	echo "[ $(util_getCurDate) ] Installing MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -198,7 +198,7 @@ function main_install(){
 	# Perform custom executions
 
 	#set +x
-
+	echo " [ $(util_getCurDate) ] Install is complete! ( RunTime - $(main_timetaken) )"
 }
 
 function main_upgrade(){
@@ -329,13 +329,13 @@ function main_upgrade(){
 	done
 	wait
 
-	echo "Upgrade is complete!"
+	echo " [ $(util_getCurDate) ] Upgrade is complete! ( RunTime - $(main_timetaken) )"
 }
 
 function main_uninstall(){
 
 	# Warn user 
-	echo "Uninstalling MapR on the following N-O-D-E-S : "
+	echo "[ $(util_getCurDate) ] Uninstalling MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -446,11 +446,11 @@ function main_uninstall(){
 
 	wait
 
-	echo "Uninstall is complete!"
+	echo "[ $(util_getCurDate) ] Uninstall is complete! ( RunTime - $(main_timetaken) )"
 }
 
 function main_backuplogs(){
-	echo "Backing up MapR log directory on all nodes to $doBackup"
+	echo "[ $(util_getCurDate) ] Backing up MapR log directory on all nodes to $doBackup"
 	local timestamp=$(date +%Y-%m-%d-%H-%M)
 	for node in ${nodes[@]}
 	do	
@@ -497,7 +497,7 @@ function main_runLogDoctor(){
 		done
 	fi
 	if [ -n "$GLB_TABLET_DIST" ]; then
-		echo "Checking tablet distribution for file '$GLB_TABLET_DIST'"
+		echo "[ $(util_getCurDate) ] Checking tablet distribution for file '$GLB_TABLET_DIST'"
 		for node in ${nodes[@]}
 		do	
 			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
@@ -552,6 +552,12 @@ function main_usage () {
     
 }
 
+function main_timetaken(){
+	local ENDTS=$(date +%s);
+	echo $((ENDTS-STARTTS)) | awk '{print int($1/60)"min "int($1%60)"sec"}'
+}
+
+STARTTS=$(date +%s);
 doInstall=0
 doUninstall=0
 doUpgrade=0

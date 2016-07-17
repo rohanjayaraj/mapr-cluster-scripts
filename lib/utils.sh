@@ -29,6 +29,10 @@ function util_getHostIP(){
     echo "$ipadd"
 }
 
+function util_getCurDate(){
+    echo "$(date +'%Y-%m-%d %H:%M:%S')"
+}
+
 # @param command
 # @param package
 function util_checkAndInstall(){

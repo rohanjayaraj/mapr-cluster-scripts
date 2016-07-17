@@ -23,9 +23,7 @@ function maprutil_getCLDBMasterNode() {
         master=$([ -e '/opt/mapr/conf/mapr-clusters.conf' ] && cat /opt/mapr/conf/mapr-clusters.conf | cut -d' ' -f3 | cut -d':' -f1)
     fi
     if [ ! -z "$master" ]; then
-            if [[ "$master" =~ ^Killed.* ]] || [[ "$master" =~ ^Terminate.* ]]; then
-                echo ""
-            else
+            if [[ ! "$master" =~ ^Killed.* ]] || [[ ! "$master" =~ ^Terminate.* ]]; then
                 echo $master
             fi
     fi
