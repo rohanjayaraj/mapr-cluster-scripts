@@ -47,13 +47,13 @@ function usage () {
 	echo 
 	echo "Usage : "
     echo "./$me -c=<ClusterConfig> [Options]"
+    echo
+    echo -e "\t -c=<file> | --clusterconfig=<file>" 
+    echo -e "\t\t - Cluster Configuration Name/Filepath"
 
     echo " Options : "
     echo -e "\t -h --help"
     echo -e "\t\t - Print this"
-
-    echo -e "\t -c=<file> | --clusterconfig=<file>" 
-    echo -e "\t\t - Cluster Configuration Name/Filepath"
 
     echo -e "\t -d | --diskerror" 
     echo -e "\t\t - Find any disk errors on nodes"
@@ -64,7 +64,8 @@ function usage () {
     echo 
     echo " Examples : "
     echo -e "\t ./$me -c=maprdb -d" 
-    echo -e "\t ./$me -c=maprdb -td=/tables/usertable" 
+    echo -e "\t ./$me -c=maprdb -td=/tables/usertable"
+    echo
 }
 
 while [ "$1" != "" ]; do

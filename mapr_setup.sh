@@ -101,8 +101,6 @@ function usage () {
     
     echo 
 	echo " Post install Options : "
-    #echo -e "\t -r=[all|{IP}] | --restart  (default : all)" 
-    #echo -e "\t\t - Restart warden on all or specified nodes" 
     echo -e "\t -ct | --cldbtopo" 
     echo -e "\t\t - Move CLDB node & volume to /cldb topology"
     echo -e "\t -y | --ycsbvol" 
@@ -123,6 +121,7 @@ function usage () {
     echo -e "\t ./$me -c=maprdb -u"
     echo -e "\t ./$me -c=roles/pontis.roles -i -p -n=Pontis" 
     echo -e "\t ./$me -c=/root/configs/cluster.role -i -d=4 -sp=2" 
+    echo
 }
 
 while [ "$1" != "" ]; do

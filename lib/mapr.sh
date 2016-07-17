@@ -269,6 +269,7 @@ function maprutil_uninstallNode2(){
     util_kill "dstat"
     util_kill "iostat"
     util_kill "top -b"
+    util_kill "runTraces"
     
     # Unmount NFS
     maprutil_unmountNFS
@@ -299,6 +300,11 @@ function maprutil_uninstallNode2(){
     # kill all processes
     util_kill "initaudit.sh"
     util_kill "java" "jenkins" "elasticsearch"
+    util_kill "timeout"
+    util_kill "guts"
+    util_kill "dstat"
+    util_kill "iostat"
+    util_kill "top -b"
 }
 
 # @param host ip
