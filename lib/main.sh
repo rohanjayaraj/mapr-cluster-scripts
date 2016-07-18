@@ -110,12 +110,13 @@ GLB_BUILD_VERSION=
 GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
 
+### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 ############################### ALL functions to be defined below this ###############################
 
 function main_install(){
 	#set -x
 	# Warn user 
-	echo "$(util_getCurDate) Installing MapR on the following N-O-D-E-S : "
+	echo "[$(util_getCurDate)] Installing MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -198,11 +199,11 @@ function main_install(){
 	# Perform custom executions
 
 	#set +x
-	echo "$(util_getCurDate) Install is complete! [ RunTime - $(main_timetaken) ]"
+	echo "[$(util_getCurDate)] Install is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_upgrade(){
-	echo "$(util_getCurDate) Upgrading MapR on the following N-O-D-E-S : "
+	echo "[$(util_getCurDate)] Upgrading MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -329,13 +330,13 @@ function main_upgrade(){
 	done
 	wait
 
-	echo "$(util_getCurDate) Upgrade is complete! [ RunTime - $(main_timetaken) ]"
+	echo "[$(util_getCurDate)] Upgrade is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_uninstall(){
 
 	# Warn user 
-	echo "$(util_getCurDate) Uninstalling MapR on the following N-O-D-E-S : "
+	echo "[$(util_getCurDate)] Uninstalling MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -446,11 +447,11 @@ function main_uninstall(){
 
 	wait
 
-	echo "$(util_getCurDate) Uninstall is complete! [ RunTime - $(main_timetaken) ]"
+	echo "[$(util_getCurDate)] Uninstall is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_backuplogs(){
-	echo "$(util_getCurDate) Backing up MapR log directory on all nodes to $doBackup"
+	echo "[$(util_getCurDate)] Backing up MapR log directory on all nodes to $doBackup"
 	local timestamp=$(date +%Y-%m-%d-%H-%M)
 	for node in ${nodes[@]}
 	do	
@@ -470,7 +471,7 @@ function main_backuplogs(){
 	echo "for i in \`ls *.tar\`;do DIR=\`echo \$i| sed 's/.tar//g'\`;echo \$DIR;mkdir -p \$DIR;tar -xf \$i -C \`pwd\`/\$DIR;done" >> $scriptfile
 	chmod +x $scriptfile
 
-	echo "$(util_getCurDate) Backup complete! [ RunTime - $(main_timetaken) ]"
+	echo "[$(util_getCurDate)] Backup complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_runCommandExec(){
@@ -499,7 +500,7 @@ function main_runLogDoctor(){
 		done
 	fi
 	if [ -n "$GLB_TABLET_DIST" ]; then
-		echo "$(util_getCurDate) Checking tablet distribution for file '$GLB_TABLET_DIST'"
+		echo "[$(util_getCurDate)] Checking tablet distribution for file '$GLB_TABLET_DIST'"
 		for node in ${nodes[@]}
 		do	
 			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
@@ -559,9 +560,10 @@ function main_timetaken(){
 	echo $((ENDTS-STARTTS)) | awk '{print int($1/60)"min "int($1%60)"sec"}'
 }
 
+### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
+
 STARTTS=$(date +%s);
 RUNTEMPDIR="/tmp/maprsetup_$(date +%Y-%m-%d-%H-%M-%S)"
-mkdir -p $RUNTEMPDIR 2>/dev/null
 
 doInstall=0
 doUninstall=0

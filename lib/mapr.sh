@@ -11,6 +11,8 @@ lib_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$lib_dir/utils.sh"
 source "$lib_dir/ssh.sh"
 
+### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
+
 ## @param optional hostip
 function maprutil_getCLDBMasterNode() {
     local master=
@@ -1215,14 +1217,14 @@ function maprutil_restartWarden() {
     fi
         #statements
     if [[ "$stopstart" = "stop" ]]; then
-        execmd=$execmd" stop"
+        execcmd=$execcmd" stop"
     elif [[ "$stopstart" = "start" ]]; then
-        execmd=$execmd" start"
+        execcmd=$execcmd" start"
     else
-        execmd=$execmd" restart"
+        execcmd=$execcmd" restart"
     fi
 
-    bash -c "$execmd"
+    bash -c "$execcmd"
 }
 
 ## @param optional hostip
@@ -1321,4 +1323,4 @@ function maprutil_copyZippedLogsFromNode(){
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto"
 }
 
-### 
+### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###

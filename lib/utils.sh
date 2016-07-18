@@ -6,6 +6,9 @@
 #   utilities
 #
 ################
+
+### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
+
 function getOSFromNode(){
     if [ -z "$1" ]; then
         return
@@ -266,7 +269,12 @@ function util_buildSingleScript(){
         continue
       fi
       local sline=$(awk '/function/{ print NR; exit }' $file)
-      tail -n +$sline $file >> $script
+      local eline=$(awk '/END_OF_FUNCTIONS/{ print NR; exit }' $file)
+      if [ -z "$eline" ]; then
+        tail -n +$sline $file >> $script
+      else
+        sed -n ${sline},${eline}p ${file} >> $script
+      fi
       echo >> $script
     done
 
@@ -495,3 +503,4 @@ function util_getIPfromHostName(){
     fi
 }
 
+### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###

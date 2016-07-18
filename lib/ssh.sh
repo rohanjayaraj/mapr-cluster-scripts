@@ -7,6 +7,8 @@
 #
 ################
 
+### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
+
 # @param user
 # @param ip
 function ssh_check(){
@@ -170,3 +172,5 @@ function ssh_copyPrivateKey(){
 		fi
 	fi
 }
+
+### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
