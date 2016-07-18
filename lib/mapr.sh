@@ -174,6 +174,8 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/defdisks*")
     dirlist+=("/tmp/zipdironnode_*")
     dirlist+=("/tmp/maprbuilds*")
+    dirlist+=("/tmp/restartonnode_*")
+    dirlist+=("/tmp/maprsetup_*")
 
     echo  ${dirlist[*]}
 }  
@@ -213,7 +215,7 @@ function maprutil_isMapRInstalledOnNode(){
     
     # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/isinstalled_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/isinstalled_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -259,7 +261,7 @@ function maprutil_unmountNFS(){
     done
 }
 
-function maprutil_uninstallNode2(){
+function maprutil_uninstall(){
     
     # Kill running traces 
     util_kill "timeout"
@@ -273,7 +275,7 @@ function maprutil_uninstallNode2(){
     maprutil_unmountNFS
 
     # Stop warden
-    service mapr-warden stop
+    maprutil_restartWarden "stop"
 
     # Stop zookeeper
     service mapr-zookeeper stop  2>/dev/null
@@ -313,7 +315,7 @@ function maprutil_uninstallNode(){
     
     # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/uninstallnode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/uninstallnode_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -322,7 +324,7 @@ function maprutil_uninstallNode(){
 
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
-    echo "maprutil_uninstallNode2" >> $scriptpath
+    echo "maprutil_uninstall" >> $scriptpath
 
     local bins=
     local hostip=$(util_getHostIP)
@@ -330,7 +332,7 @@ function maprutil_uninstallNode(){
     maprutil_addToPIDList "$!"
 }
 
-function maprutil_upgradeNode2(){
+function maprutil_upgrade(){
     local upbins="mapr-cldb mapr-core mapr-core-internal mapr-fileserver mapr-hadoop-core mapr-historyserver mapr-jobtracker mapr-mapreduce1 mapr-mapreduce2 mapr-metrics mapr-nfs mapr-nodemanager mapr-resourcemanager mapr-tasktracker mapr-webserver mapr-zookeeper mapr-zk-internal"
     local buildversion=$1
     
@@ -357,7 +359,7 @@ function maprutil_upgradeNode2(){
     service mapr-zookeeper start 2>/dev/null
     
     # Restart services on the node
-    service mapr-warden start > /dev/null 2>&1
+    maprutil_restartWarden "start" > /dev/null 2>&1
 }
 
 # @param host ip
@@ -368,7 +370,7 @@ function maprutil_upgradeNode(){
     
     # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/upgradenode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/upgradenode_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -380,7 +382,7 @@ function maprutil_upgradeNode(){
     if [ -n "$GLB_BUILD_VERSION" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
-    echo "maprutil_upgradeNode2 \""$GLB_BUILD_VERSION"\"" >> $scriptpath
+    echo "maprutil_upgrade \""$GLB_BUILD_VERSION"\"" >> $scriptpath
 
     ssh_executeScriptasRootInBG "$hostnode" "$scriptpath"
     maprutil_addToPIDList "$!"
@@ -409,7 +411,7 @@ function maprutil_installBinariesOnNode(){
     
     # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/installbinnode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/installbinnode_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -656,7 +658,7 @@ function maprutil_startTraces() {
     fi
 }
 
-function maprutil_configureNode2(){
+function maprutil_configure(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
     fi
@@ -716,7 +718,7 @@ function maprutil_configureNode2(){
     service mapr-zookeeper start 2>/dev/null
     
     # Restart services on the node
-    service mapr-warden restart > /dev/null 2>&1
+    maprutil_restartWarden > /dev/null 2>&1
 
     local cldbnode=$(util_getFirstElement "$1")
     if [ "$hostip" = "$cldbnode" ]; then
@@ -746,7 +748,7 @@ function maprutil_configureNode(){
     fi
      # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/configurenode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/configurenode_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -767,7 +769,7 @@ function maprutil_configureNode(){
         echo "ISCLIENT=0" >> $scriptpath
     fi
     
-    echo "maprutil_configureNode2 \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
+    echo "maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
@@ -776,7 +778,7 @@ function maprutil_configureNode(){
     fi
 }
 
-function maprutil_postConfigureNode2(){
+function maprutil_postConfigure(){
     if [ -z "$1" ] && [ -z "$2" ]; then
         return
     fi
@@ -795,20 +797,20 @@ function maprutil_postConfigureNode2(){
     echo "$cmd"
     local ret=$($cmd)
 
-    service mapr-warden restart
+    maprutil_restartWarden
 }
 
 # @param host ip
 # @param config file path
 # @param cluster name
 # @param don't wait
-function maprutil_postConfigureNode(){
+function maprutil_postConfigureOnNode(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
     fi
      # build full script for node
     local hostnode=$1
-    local scriptpath="/tmp/postconfigurenode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/postconfigurenode_${hostnode: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -822,7 +824,7 @@ function maprutil_postConfigureNode(){
 
     maprutil_addGlobalVars "$scriptpath"
     
-    echo "maprutil_postConfigureNode2 \""$esnodes"\" \""$otnodes"\"" >> $scriptpath
+    echo "maprutil_postConfigure \""$esnodes"\" \""$otnodes"\"" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
@@ -942,7 +944,7 @@ function maprutil_addLocalRepo(){
         return
     fi
     local nodeos=$(getOS)
-    local repofile="/tmp/maprbuilds/mapr-$GLB_BUILD_VERSION.repo"
+    local repofile="$RUNTEMPDIR/maprbuilds/mapr-$GLB_BUILD_VERSION.repo"
     local repourl=$1
     echo "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
     if [ "$nodeos" = "centos" ]; then
@@ -987,8 +989,8 @@ function maprutil_downloadBinaries(){
 function maprutil_setupLocalRepo(){
     local repourl=$(maprutil_getRepoURL)
     maprutil_disableAllRepo
-    maprutil_downloadBinaries "/tmp/maprbuilds/$GLB_BUILD_VERSION" "$repourl" "$GLB_BUILD_VERSION"
-    maprutil_addLocalRepo "/tmp/maprbuilds/$GLB_BUILD_VERSION"
+    maprutil_downloadBinaries "$RUNTEMPDIR/maprbuilds/$GLB_BUILD_VERSION" "$repourl" "$GLB_BUILD_VERSION"
+    maprutil_addLocalRepo "$RUNTEMPDIR/maprbuilds/$GLB_BUILD_VERSION"
 }
 
 # @param host node
@@ -1001,7 +1003,7 @@ function maprutil_runCommandsOnNode(){
     local node=$1
     
      # build full script for node
-    local scriptpath="/tmp/cmdonnode_${node: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/cmdonnode_${node: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -1172,18 +1174,55 @@ function maprutil_restartWardenOnNode() {
     if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
+    local node=$1
     local rolefile=$2
     local stopstart=$3
-    if [ -n "$(maprutil_isClientNode $rolefile $1)" ]; then
+
+     # build full script for node
+    local scriptpath="$RUNTEMPDIR/restartonnode_${node: -3}.sh"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
         return
     fi
-    if [ -z "$stopstart" ]; then
-        ssh_executeCommandasRoot "$1" "service mapr-warden restart"
-    elif [[ "$stopstart" = "stop" ]]; then
-        ssh_executeCommandasRoot "$1" "service mapr-warden stop"
-    elif [[ "$stopstart" = "start" ]]; then
-        ssh_executeCommandasRoot "$1" "service mapr-warden start"
+
+    if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+        return
     fi
+    echo >> $scriptpath
+    echo "##########  Adding execute steps below ########### " >> $scriptpath
+    
+    echo "maprutil_restartWarden \"$stopstart\"" >> $scriptpath
+   
+    ssh_executeScriptasRoot "$node" "$scriptpath"
+    
+}
+
+## @param stop/start/restart
+function maprutil_restartWarden() {
+    local stopstart=$1
+    local execcmd=
+    if [[ -e "/etc/systemd/system/mapr-warden.service" ]]; then
+        execcmd="service mapr-warden"
+    elif [[ -e "/etc/init.d/mapr-warden" ]]; then
+        execcmd="/etc/init.d/mapr-warden"
+    elif [[ -e "/opt/mapr/initscripts/mapr-warden" ]]; then
+        echo "{WARNING} warden init scripts not configured on nodes"
+        execcmd="/opt/mapr/initscripts/mapr-warden"
+    else
+        echo "{ERROR} No mapr-warden on node"
+        return
+    fi
+        #statements
+    if [[ "$stopstart" = "stop" ]]; then
+        execmd=$execmd" stop"
+    elif [[ "$stopstart" = "start" ]]; then
+        execmd=$execmd" start"
+    else
+        execmd=$execmd" restart"
+    fi
+
+    bash -c "$execmd"
 }
 
 ## @param optional hostip
@@ -1226,7 +1265,7 @@ function maprutil_addToPIDList(){
 # @param timestamp
 function maprutil_zipDirectory(){
     local timestamp=$1
-    local tmpdir="/tmp/maprlogs/$(hostname -f)/"
+    local tmpdir="$RUNTEMPDIR/maprlogs/$(hostname -f)/"
     local logdir="/opt/mapr/logs"
     local buildid=$(cat /opt/mapr/MapRBuildVersion)
     local tarfile="maprlogs_$(hostname -f)_$buildid_$timestamp.tar.bz2"
@@ -1247,7 +1286,7 @@ function maprutil_zipLogsDirectoryOnNode(){
     local node=$1
     local timestamp=$2
     
-    local scriptpath="/tmp/zipdironnode_${node: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/zipdironnode_${node: -3}.sh"
     util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -1277,7 +1316,7 @@ function maprutil_copyZippedLogsFromNode(){
     local copyto=$3
     mkdir -p $copyto > /dev/null 2>&1
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
-    local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
+    local filetocopy="$RUNTEMPDIR/maprlogs/$host/*$timestamp.tar.bz2"
     
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto"
 }

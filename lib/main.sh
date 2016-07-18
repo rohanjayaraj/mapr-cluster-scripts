@@ -183,7 +183,7 @@ function main_install(){
 		for node in ${nodes[@]}
 		do
 			echo "****** Running configure on node -> $node ****** "
-			maprutil_postConfigureNode "$node" "$rolefile" "bg"
+			maprutil_postConfigureOnNode "$node" "$rolefile" "bg"
 		done
 		wait
 	fi
@@ -202,7 +202,7 @@ function main_install(){
 }
 
 function main_upgrade(){
-	echo "Upgrading MapR on the following N-O-D-E-S : "
+	echo "$(util_getCurDate) Upgrading MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -560,6 +560,9 @@ function main_timetaken(){
 }
 
 STARTTS=$(date +%s);
+RUNTEMPDIR="/tmp/maprsetup_$(date +%Y-%m-%d-%H-%M-%S)"
+mkdir -p $RUNTEMPDIR 2>/dev/null
+
 doInstall=0
 doUninstall=0
 doUpgrade=0
