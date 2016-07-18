@@ -269,7 +269,7 @@ function util_buildSingleScript(){
         continue
       fi
       local sline=$(awk '/function/{ print NR; exit }' $file)
-      local eline=$(awk '/END_OF_FUNCTIONS/{}{print NR}' $file)
+      local eline=$(awk '/END_OF_FUNCTIONS/{}END{print NR}' $file)
       if [ -z "$eline" ]; then
         tail -n +$sline $file >> $script
       else
