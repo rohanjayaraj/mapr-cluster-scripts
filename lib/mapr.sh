@@ -177,7 +177,7 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/zipdironnode_*")
     dirlist+=("/tmp/maprbuilds*")
     dirlist+=("/tmp/restartonnode_*")
-    dirlist+=("/tmp/maprsetup_*")
+    #dirlist+=("/tmp/maprsetup_*")
 
     echo  ${dirlist[*]}
 }  
@@ -296,9 +296,6 @@ function maprutil_uninstall(){
     # Remove mapr shared memory segments
     util_removeSHMSegments "mapr"
 
-    # Remove all directories
-    maprutil_removedirs "all"
-
     # kill all processes
     util_kill "initaudit.sh"
     util_kill "java" "jenkins" "elasticsearch"
@@ -307,6 +304,9 @@ function maprutil_uninstall(){
     util_kill "dstat"
     util_kill "iostat"
     util_kill "top -b"
+
+    # Remove all directories
+    maprutil_removedirs "all"
 }
 
 # @param host ip
@@ -328,8 +328,6 @@ function maprutil_uninstallNode(){
     echo "##########  Adding execute steps below ########### " >> $scriptpath
     echo "maprutil_uninstall" >> $scriptpath
 
-    local bins=
-    local hostip=$(util_getHostIP)
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
 }
