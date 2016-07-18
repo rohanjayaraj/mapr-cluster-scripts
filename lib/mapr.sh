@@ -177,7 +177,7 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/zipdironnode_*")
     dirlist+=("/tmp/maprbuilds*")
     dirlist+=("/tmp/restartonnode_*")
-    #dirlist+=("/tmp/maprsetup_*")
+    dirlist+=("/tmp/maprsetup_*")
 
     echo  ${dirlist[*]}
 }  
