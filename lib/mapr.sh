@@ -334,6 +334,11 @@ function maprutil_upgradeNode2(){
     local bins="mapr-cldb mapr-core mapr-core-internal mapr-fileserver mapr-hadoop-core mapr-historyserver mapr-jobtracker mapr-mapreduce1 mapr-mapreduce2 mapr-metrics mapr-nfs mapr-nodemanager mapr-resourcemanager mapr-tasktracker mapr-webserver mapr-zookeeper mapr-zk-internal"
     local buildversion=$1
     
+    #local removebins="mapr-patch"
+    #if [ -n "$(util_getInstalledBinaries '$removebins')" ]; then
+    #    util_removeBinaries $removebins
+    #fi
+
     util_upgradeBinaries "$bins" "$buildversion"
     
     #mv /opt/mapr/conf/warden.conf  /opt/mapr/conf/warden.conf.old
@@ -1119,7 +1124,7 @@ function maprutil_checkTabletDistribution(){
     local hostnode=$(hostname -f)
 
     local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
-    local tabletContainers=$(maprcli table region list -path $filepath -json | grep -v 'secondarymfs' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
+    local tabletContainers=$(maprcli table region list -path $filepath -json | grep -v 'secondary' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
     if [ -z "$tabletContainers" ]; then
         return
     fi

@@ -115,7 +115,7 @@ GLB_TABLET_DIST=
 function main_install(){
 	#set -x
 	# Warn user 
-	echo "[ $(util_getCurDate) ] Installing MapR on the following N-O-D-E-S : "
+	echo "$(util_getCurDate) Installing MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -198,7 +198,7 @@ function main_install(){
 	# Perform custom executions
 
 	#set +x
-	echo " [ $(util_getCurDate) ] Install is complete! ( RunTime - $(main_timetaken) )"
+	echo "$(util_getCurDate) Install is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_upgrade(){
@@ -329,13 +329,13 @@ function main_upgrade(){
 	done
 	wait
 
-	echo " [ $(util_getCurDate) ] Upgrade is complete! ( RunTime - $(main_timetaken) )"
+	echo "$(util_getCurDate) Upgrade is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_uninstall(){
 
 	# Warn user 
-	echo "[ $(util_getCurDate) ] Uninstalling MapR on the following N-O-D-E-S : "
+	echo "$(util_getCurDate) Uninstalling MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -446,11 +446,11 @@ function main_uninstall(){
 
 	wait
 
-	echo "[ $(util_getCurDate) ] Uninstall is complete! ( RunTime - $(main_timetaken) )"
+	echo "$(util_getCurDate) Uninstall is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_backuplogs(){
-	echo "[ $(util_getCurDate) ] Backing up MapR log directory on all nodes to $doBackup"
+	echo "$(util_getCurDate) Backing up MapR log directory on all nodes to $doBackup"
 	local timestamp=$(date +%Y-%m-%d-%H-%M)
 	for node in ${nodes[@]}
 	do	
@@ -469,6 +469,8 @@ function main_backuplogs(){
 	echo "echo \"extracting tar\"" >> $scriptfile
 	echo "for i in \`ls *.tar\`;do DIR=\`echo \$i| sed 's/.tar//g'\`;echo \$DIR;mkdir -p \$DIR;tar -xf \$i -C \`pwd\`/\$DIR;done" >> $scriptfile
 	chmod +x $scriptfile
+
+	echo "$(util_getCurDate) Backup complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_runCommandExec(){
