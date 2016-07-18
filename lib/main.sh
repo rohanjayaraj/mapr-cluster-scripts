@@ -564,6 +564,7 @@ function main_timetaken(){
 
 STARTTS=$(date +%s);
 RUNTEMPDIR="/tmp/maprsetup_$(date +%Y-%m-%d-%H-%M-%S)"
+mkdir -p $RUNTEMPDIR 2>/dev/null
 
 doInstall=0
 doUninstall=0
