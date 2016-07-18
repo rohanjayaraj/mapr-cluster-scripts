@@ -499,7 +499,7 @@ function main_runLogDoctor(){
 		done
 	fi
 	if [ -n "$GLB_TABLET_DIST" ]; then
-		echo "[ $(util_getCurDate) ] Checking tablet distribution for file '$GLB_TABLET_DIST'"
+		echo "$(util_getCurDate) Checking tablet distribution for file '$GLB_TABLET_DIST'"
 		for node in ${nodes[@]}
 		do	
 			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
