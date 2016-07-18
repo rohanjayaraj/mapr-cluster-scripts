@@ -185,12 +185,12 @@ function util_removeBinaries(){
     if [ -z "$1" ]; then
         return
     fi
-    bins=$(util_getInstalledBinaries $1)
-    echo "[$(util_getHostIP)] Removing packages : $bins"
+    rembins=$(util_getInstalledBinaries $1)
+    echo "[$(util_getHostIP)] Removing packages : $rembins"
     if [ "$(getOS)" = "centos" ]; then
-        rpm -ef $bins
+        rpm -ef $rembins
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        dpkg -r $bins
+        dpkg -r $rembins
     fi
 }
 

@@ -331,15 +331,15 @@ function maprutil_uninstallNode(){
 }
 
 function maprutil_upgradeNode2(){
-    local bins="mapr-cldb mapr-core mapr-core-internal mapr-fileserver mapr-hadoop-core mapr-historyserver mapr-jobtracker mapr-mapreduce1 mapr-mapreduce2 mapr-metrics mapr-nfs mapr-nodemanager mapr-resourcemanager mapr-tasktracker mapr-webserver mapr-zookeeper mapr-zk-internal"
+    local upbins="mapr-cldb mapr-core mapr-core-internal mapr-fileserver mapr-hadoop-core mapr-historyserver mapr-jobtracker mapr-mapreduce1 mapr-mapreduce2 mapr-metrics mapr-nfs mapr-nodemanager mapr-resourcemanager mapr-tasktracker mapr-webserver mapr-zookeeper mapr-zk-internal"
     local buildversion=$1
     
     local removebins="mapr-patch"
-    if [ -n "$(util_getInstalledBinaries '$removebins')" ]; then
+    if [ -n "$(util_getInstalledBinaries $removebins)" ]; then
         util_removeBinaries $removebins
     fi
 
-    util_upgradeBinaries "$bins" "$buildversion"
+    util_upgradeBinaries "$upbins" "$buildversion"
     
     #mv /opt/mapr/conf/warden.conf  /opt/mapr/conf/warden.conf.old
     #cp /opt/mapr/conf.new/warden.conf /opt/mapr/conf/warden.conf
