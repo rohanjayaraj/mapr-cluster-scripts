@@ -84,14 +84,16 @@ ssh_installsshpass
 
 # Check if SSH is configured
 #echo "Checking Key-based authentication to all nodes listed... "
-for node in ${nodes[@]}
-do
-	isEnabled=$(ssh_check "root" "$node")
-	if [ "$isEnabled" != "enabled" ]; then
-		echo "Configuring key-based authentication for the node $node (enter password once)"
-		ssh_copyPrivateKey "root" "$node"
-	fi
-done
+if [ -n $(ssh_checkSSHonNodes "$nodes") ]; then
+	for node in ${nodes[@]}
+	do
+		isEnabled=$(ssh_check "root" "$node")
+		if [ "$isEnabled" != "enabled" ]; then
+			echo "Configuring key-based authentication for the node $node (enter password once)"
+			ssh_copyPrivateKey "root" "$node"
+		fi
+	done
+fi
 
 trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 
@@ -500,7 +502,7 @@ function main_runLogDoctor(){
 		done
 	fi
 	if [ -n "$GLB_TABLET_DIST" ]; then
-		echo "[$(util_getCurDate)] Checking tablet distribution for file '$GLB_TABLET_DIST'"
+		echo "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
 		for node in ${nodes[@]}
 		do	
 			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then

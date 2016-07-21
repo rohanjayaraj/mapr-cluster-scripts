@@ -25,6 +25,26 @@ function ssh_check(){
 	fi
 }
 
+function ssh_checkSSHonNodes(){
+	if [ -z "$1" ]; then
+		return 1
+	fi
+	# Check if SSH is configured
+	local tempdir=$(mktemp -d)
+	local sshnodes=$1
+	for node in ${sshnodes[@]}
+	do
+		local nodefile="$tempdir/$node.log"
+		ssh_check "root" "$node" > $nodefile &
+	done
+	wait
+	local allgood=$(find $tempdir -type f | xargs grep disabled)
+	if [ -n "$allgood" ]; then
+		echo "false"
+	fi
+	rm -rf $tempdir > /dev/null 2>&1
+}
+
 # Install sshpass
 function ssh_installsshpass(){
 	command -v sshpass >/dev/null 2>&1 || yum install sshpass -y -q 2>/dev/null
