@@ -504,6 +504,15 @@ function main_runLogDoctor(){
 			maprutil_runCommandsOnNode "$node" "tabletdist"
 		done
 	fi
+	if [ -n "$doDiskTest" ]; then
+		for node in ${nodes[@]}
+		do	
+			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+				continue
+			fi
+			maprutil_runCommandsOnNode "$node" "disktest"
+		done
+	fi
 	
 }
 
@@ -567,6 +576,7 @@ doUpgrade=0
 doCmdExec=
 doLogAnalyze=
 doDiskCheck=
+doDiskTest=
 doPontis=0
 doForce=0
 doBackup=
@@ -621,6 +631,8 @@ while [ "$2" != "" ]; do
 			for i in ${VALUE}; do
 				if [[ "$i" = "diskerror" ]]; then
 	    			doDiskCheck=1
+	    		elif [[ "$i" = "disktest" ]]; then
+	    			doDiskTest=1
 	    		fi
 	    	done
 		;;
@@ -630,7 +642,7 @@ while [ "$2" != "" ]; do
 				GLB_TABLET_DIST=$VALUE
 			fi
 		;;
-    	-c)
+		-c)
 			if [ -n "$VALUE" ]; then
     			GLB_CLUSTER_NAME=$VALUE
     		fi

@@ -628,10 +628,10 @@ function maprutil_configureCLDBTopology(){
     local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
     local j=0
     while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ] && [ -z "$1" ]; do
-        sleep 10
+        sleep 5
         numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
         let j=j+1
-        if [ "$j" -gt 6 ]; then
+        if [ "$j" -gt 12 ]; then
             break
         fi
     done
@@ -646,11 +646,9 @@ function maprutil_configureCLDBTopology(){
         ## Move all nodes under /data topology
         local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
         maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
-        sleep 5;
         ### Moving CLDB Node to CLDB topology
         local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
         maprcli node move -serverids "$cldbnode" -topology /cldb 2>/dev/null
-        sleep 5;
         ### Moving CLDB Volume as well
         maprcli volume move -name mapr.cldb.internal -topology /cldb 2>/dev/null
     fi
@@ -1098,6 +1096,9 @@ function maprutil_runCommands(){
             tabletdist)
                 maprutil_checkTabletDistribution
             ;;
+            disktest)
+                maprutil_runDiskTest
+            ;;
             *)
             echo "Nothing to do!!"
             ;;
@@ -1139,6 +1140,23 @@ function maprutil_addCFtoJSONTable(){
 function maprutil_checkDiskErrors(){
     echo " [$(util_getHostIP)] Checking for disk errors "
     util_grepFiles "/opt/mapr/logs/" "mfs.log*" "DHL" "lun.cc"
+}
+
+function maprutil_runDiskTest(){
+    local maprdisks=$(util_getRawDisks)
+    local disktestdir="$RUNTEMPDIR/disktest"
+    mkdir -p $disktestdir 2>/dev/null
+    for disk in ${maprdisks[@]}
+    do  
+        local disklog="$disktestdir/${disk////_}.log"
+        hdparm -tT $disk > $disklog &
+    done
+    wait
+    for file in $(find $disktestdir -type f)
+    do
+        echo "cat $file"
+    done
+    rm -rf $disktestdir 2>/dev/null
 }
 
 function maprutil_checkTabletDistribution(){

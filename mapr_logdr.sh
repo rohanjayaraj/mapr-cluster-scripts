@@ -58,6 +58,9 @@ function usage () {
     echo -e "\t -d | --diskerror" 
     echo -e "\t\t - Find any disk errors on nodes"
 
+    echo -e "\t -dt | --disktest" 
+    echo -e "\t\t - Run 'hdparm' disk tests on all nodes for MapR disks"
+
     echo -e "\t -td=<FILEPATH> | --tabletdist=<FILEPATH>" 
     echo -e "\t\t - Check Tablet distribution across SPs on each node for FILEPATH"
     
@@ -83,6 +86,9 @@ while [ "$1" != "" ]; do
     	-d | --diskerror)
     		args=$args"diskerror "
     	;;
+        -dt | --disktest)
+            args=$args"disktest "
+        ;;
         -td | --tabletdist)
             if [ -n "$VALUE" ]; then
                 args=$args"tabletdist "
