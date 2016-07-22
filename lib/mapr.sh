@@ -1144,6 +1144,10 @@ function maprutil_checkDiskErrors(){
 
 function maprutil_runDiskTest(){
     local maprdisks=$(util_getRawDisks)
+    if [ -z "$maprdisks" ]; then
+        return
+    fi
+    echo " [$(util_getHostIP)] Running disk tests [$maprdisks]"
     local disktestdir="$RUNTEMPDIR/disktest"
     mkdir -p $disktestdir 2>/dev/null
     for disk in ${maprdisks[@]}
@@ -1154,7 +1158,7 @@ function maprutil_runDiskTest(){
     wait
     for file in $(find $disktestdir -type f)
     do
-        echo "cat $file"
+        cat $file
     done
     rm -rf $disktestdir 2>/dev/null
 }

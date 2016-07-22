@@ -505,6 +505,7 @@ function main_runLogDoctor(){
 		done
 	fi
 	if [ -n "$doDiskTest" ]; then
+		echo "[$(util_getCurDate)] Running disk tests on all nodes"
 		for node in ${nodes[@]}
 		do	
 			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
