@@ -159,7 +159,7 @@ function main_install(){
 				exit 1
 			fi
 		fi
-		local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
+		local nodebins=$(maprutil_getCoreNodeBinaries "$rolefile" "$node")
 		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
 	done
 	wait
@@ -173,10 +173,17 @@ function main_install(){
 	wait
 
 	# Configure ES & OpenTSDB nodes
-	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then  
+	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then 
+		echo "****** Installing and configuring Spyglass ****** " 
 		for node in ${nodes[@]}
 		do
-			echo "****** Running configure on node -> $node ****** "
+			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
+			maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
+		done
+		wait
+
+		for node in ${nodes[@]}
+		do
 			maprutil_postConfigureOnNode "$node" "$rolefile" "bg"
 		done
 		wait

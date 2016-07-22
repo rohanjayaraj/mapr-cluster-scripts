@@ -78,6 +78,27 @@ function maprutil_getNodeBinaries() {
 }
 
 ## @param path to config
+## @param host ip
+function maprutil_getCoreNodeBinaries() {
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return 1
+    fi
+    
+    local binlist=$(grep $2 $1 | cut -d, -f 2- | sed 's/,/ /g')
+    if [ -n "$binlist" ]; then
+        # Remove collectd,fluentd,opentsdb,kibana,grafana
+        local newbinlist=
+        for bin in ${binlist[@]}
+        do
+            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch ]]; then
+                newbinlist=$newbinlist"$bin "
+            fi
+        done
+        echo $newbinlist
+    fi
+}
+
+## @param path to config
 function maprutil_getZKNodes() {
     if [ -z "$1" ]; then
         return 1
