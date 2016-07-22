@@ -838,9 +838,9 @@ function maprutil_postConfigure(){
     cmd=$cmd" -R"
 
     echo "$cmd"
-    local ret=$($cmd)
+    bash -c "$cmd"
 
-    maprutil_restartWarden
+    #maprutil_restartWarden
 }
 
 # @param host ip
