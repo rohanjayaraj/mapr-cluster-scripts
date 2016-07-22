@@ -1147,7 +1147,8 @@ function maprutil_runDiskTest(){
     if [ -z "$maprdisks" ]; then
         return
     fi
-    echo " [$(util_getHostIP)] Running disk tests [$maprdisks]"
+    echo
+    echo "[$(util_getHostIP)] Running disk tests [$maprdisks]"
     local disktestdir="$RUNTEMPDIR/disktest"
     mkdir -p $disktestdir 2>/dev/null
     for disk in ${maprdisks[@]}
@@ -1156,9 +1157,9 @@ function maprutil_runDiskTest(){
         hdparm -tT $disk > $disklog &
     done
     wait
-    for file in $(find $disktestdir -type f)
+    for file in $(find $disktestdir -type f | sort)
     do
-        cat $file
+        grep -v '^$' $file
     done
     rm -rf $disktestdir 2>/dev/null
 }
