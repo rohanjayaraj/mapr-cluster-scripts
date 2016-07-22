@@ -90,7 +90,7 @@ function maprutil_getCoreNodeBinaries() {
         local newbinlist=
         for bin in ${binlist[@]}
         do
-            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch ]]; then
+            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase ]]; then
                 newbinlist=$newbinlist"$bin "
             fi
         done
