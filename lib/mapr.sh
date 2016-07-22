@@ -243,6 +243,30 @@ function maprutil_isMapRInstalledOnNode(){
     fi
 }
 
+function maprutil_isMapRInstalledOnNodes(){
+    if [ -z "$1" ] ; then
+        return
+    fi
+    local maprnodes=$1
+    local tmpdir="$RUNTEMPDIR/installed"
+    mkdir -p $tmpdir 2>/dev/null
+    local yeslist=
+    for node in ${maprnodes[@]}
+    do
+        local nodelog="$tmpdir/$node.log"
+        maprutil_isMapRInstalledOnNode "$node" > $nodelog &
+    done
+    wait
+    for node in ${maprnodes[@]}
+    do
+        local nodelog=$(cat $tmpdir/$node.log)
+        if [ "$nodelog" = "true" ]; then
+            yeslist=$yeslist"$node"" "
+        fi
+    done
+    echo "$yeslist"
+}
+
 # @param host ip
 function maprutil_getMapRVersionOnNode(){
     if [ -z "$1" ] ; then

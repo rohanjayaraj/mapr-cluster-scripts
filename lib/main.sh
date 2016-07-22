@@ -135,16 +135,7 @@ function main_install(){
     fi
     echo
     echo "Checking if MapR is already installed on the nodes..."
-    # Check if MapR is already installed on any of the nodes
-	local islist=
-	for node in ${nodes[@]}
-	do
-		local isInstalled=$(maprutil_isMapRInstalledOnNode "$node")
-		if [ "$isInstalled" = "true" ]; then
-			islist=$islist"$node"" "
-		fi
-	done
-
+    local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
 	if [ -n "$islist" ]; then
 		echo "MapR is already installed on the node(s) [ $islist] or some stale binaries are still present. Scooting!"
 		exit 1
@@ -222,11 +213,12 @@ function main_upgrade(){
     echo
     echo "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
+	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
 	local notlist=
 	for node in ${nodes[@]}
 	do
-		local isInstalled=$(maprutil_isMapRInstalledOnNode "$node")
-		if [ "$isInstalled" != "true" ]; then
+		local isInstalled=$(echo "$islist" | grep $node)
+		if [ -z "$isInstalled" ]; then
 			notlist=$notlist"$node"" "
 		else
 			#??? Get install version
@@ -355,11 +347,12 @@ function main_uninstall(){
     echo
     echo "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
+	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
 	local notlist=
 	for node in ${nodes[@]}
 	do
-		local isInstalled=$(maprutil_isMapRInstalledOnNode "$node")
-		if [ "$isInstalled" != "true" ]; then
+		local isInstalled=$(echo "$islist" | grep $node)
+		if [ -z "$isInstalled" ]; then
 			notlist=$notlist"$node"" "
 		else
 			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
