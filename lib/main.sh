@@ -144,7 +144,7 @@ function main_install(){
 
 	# Read properties
 	local clustername=$GLB_CLUSTER_NAME
-	local customrepo=$(main_customRepo)
+	local maprrepo=$(main_getRepoFile)
 
 	# Install required binaries on other nodes
 	local buildexists=
@@ -283,7 +283,7 @@ function main_upgrade(){
 	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
     local zknodes=$(maprutil_getZKNodes "$rolefile")
     local buildexists=
-    local customrepo=$(main_customRepo)
+    local maprrepo=$(main_getRepoFile)
 
     # First stop warden on all nodes
 	for node in ${nodes[@]}
@@ -554,14 +554,16 @@ function main_stopall() {
     done
 }
 
-function main_customRepo(){
+function main_getRepoFile(){
 	if [ -z "$useRepoURL" ]; then
+		echo "$maprrepo"
 		return
 	fi
 	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
-	maprrepo="$repodir/mapr2.repo"
-	maprutil_buildRepoFile "$maprrepo" "$useRepoURL" "$cldbnode"
+	local repofile="$repodir/mapr2.repo"
+	maprutil_buildRepoFile "$repofile" "$useRepoURL" "$cldbnode"
+	echo "$repofile"
 }
 
 function main_usage () {
