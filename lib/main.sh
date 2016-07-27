@@ -23,6 +23,7 @@ fi
 libdir=$basedir"/lib"
 repodir=$basedir"/repo"
 rolesdir=$basedir"/roles"
+maprrepo=$repodir"/mapr.repo"
 
 # source all binaries
 for srcfile in "$libdir"/*.sh
@@ -143,9 +144,9 @@ function main_install(){
 
 	# Read properties
 	local clustername=$GLB_CLUSTER_NAME
+	local customrepo=$(main_customRepo)
 
 	# Install required binaries on other nodes
-	local maprrepo=$repodir"/mapr.repo"
 	local buildexists=
 	for node in ${nodes[@]}
 	do
@@ -178,7 +179,10 @@ function main_install(){
 		for node in ${nodes[@]}
 		do
 			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
-			maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
+			local nodecorebins=$(maprutil_getCoreNodeBinaries "$rolefile" "$node")
+			if [ "$(echo $nodebins | wc -w)" -gt "$(echo $nodecorebins | wc -w)" ]; then
+				maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
+			fi
 		done
 		wait
 
@@ -278,9 +282,9 @@ function main_upgrade(){
 
 	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
     local zknodes=$(maprutil_getZKNodes "$rolefile")
-    local maprrepo=$repodir"/mapr.repo"
     local buildexists=
-
+    local customrepo=$(main_customRepo)
+    
     # First stop warden on all nodes
 	for node in ${nodes[@]}
 	do
@@ -550,6 +554,16 @@ function main_stopall() {
     done
 }
 
+function main_customRepo(){
+	if [ -z "$useRepoURL" ]; then
+		return
+	fi
+	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	local cldbnode=$(util_getFirstElement "$cldbnodes")
+	maprrepo="$repodir/mapr2.repo"
+	maprutil_buildRepoFile "$maprrepo" "$useRepoURL" "$cldbnode"
+}
+
 function main_usage () {
 	local me=$(basename $BASH_SOURCE)
 	echo 
@@ -589,6 +603,7 @@ doPontis=0
 doForce=0
 doBackup=
 useBuildID=
+useRepoURL=
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
@@ -690,6 +705,10 @@ while [ "$2" != "" ]; do
 				GLB_PUT_BUFFER=$VALUE
 			fi
     	;;
+    	-repo)
+			if [ -n "$VALUE" ]; then
+				useRepoURL="$VALUE"
+			fi
         *)
             echo "ERROR: unknown option \"$OPTION\""
             main_usage

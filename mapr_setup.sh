@@ -30,6 +30,7 @@ extraarg=
 backupdir=
 buildid=
 putbuffer=
+repourl=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -80,6 +81,8 @@ function usage () {
     echo " Install/Uninstall Options : "
     echo -e "\t -bld=<BUILDID> | --buildid=<BUILDID>" 
     echo -e "\t\t - Specify a BUILDID if the repository has more than one version of same binaries (default: install the latest binaries)"
+    echo -e "\t -repo=<REPOURL> | --repository=<REPOURL>" 
+    echo -e "\t\t - Specify a REPOURL to use to download & install binaries"
     echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
     echo -e "\t -n=CLUSTER_NAME | --name=CLUSTER_NAME (default : archerx)" 
@@ -211,6 +214,11 @@ while [ "$1" != "" ]; do
                 putbuffer=2000
             fi
         ;;
+        -repo | --repository)
+            if [ -n "$VALUE" ]; then
+                repourl=$VALUE
+            fi
+        ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
             usage
@@ -225,7 +233,7 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-    $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer"
+    $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-repo=$repourl"
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then

@@ -955,6 +955,35 @@ function maprutil_copyRepoFile(){
     fi
 }
 
+function maprutil_buildRepoFile(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+    local repofile=$1
+    local repourl=$2
+    local node=$3
+    local nodeos=$(getOSFromNode $node)
+    if [ "$nodeos" = "centos" ]; then
+        echo "[QA-Opensource]" > $repofile
+        echo "name=MapR Latest Build QA Repository" >> $repofile
+        echo "baseurl=http://yum.qa.lab/opensource" >> $repofile
+        echo "enabled=1" >> $repofile
+        echo "gpgcheck=0" >> $repofile
+        echo "protect=1" >> $repofile
+        echo >> $repofile
+        echo "[QA-CustomRepo]" >> $repofile
+        echo "name=MapR Custom Repository" >> $repofile
+        echo "baseurl=${repourl}" >> $repofile
+        echo "enabled=1" >> $repofile
+        echo "gpgcheck=0" >> $repofile
+        echo "protect=1" >> $repofile
+        echo >> $repofile
+    elif [ "$nodeos" = "ubuntu" ]; then
+        echo "{ERROR} to be implemented"
+        exit
+    fi
+}
+
 function maprutil_getRepoURL(){
     local nodeos=$(getOS)
     if [ "$nodeos" = "centos" ]; then
