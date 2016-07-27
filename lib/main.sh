@@ -284,7 +284,7 @@ function main_upgrade(){
     local zknodes=$(maprutil_getZKNodes "$rolefile")
     local buildexists=
     local customrepo=$(main_customRepo)
-    
+
     # First stop warden on all nodes
 	for node in ${nodes[@]}
 	do
@@ -709,6 +709,7 @@ while [ "$2" != "" ]; do
 			if [ -n "$VALUE" ]; then
 				useRepoURL="$VALUE"
 			fi
+		;;
         *)
             echo "ERROR: unknown option \"$OPTION\""
             main_usage
