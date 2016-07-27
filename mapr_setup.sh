@@ -108,7 +108,9 @@ function usage () {
     echo -e "\t\t - Move CLDB node & volume to /cldb topology"
     echo -e "\t -y | --ycsbvol" 
     echo -e "\t\t - Create YCSB related volumes "
-    
+     echo -e "\t -tc | --tsdbtocldb" 
+    echo -e "\t\t - Move OpenTSDB volume to /cldb topology"
+
     echo -e "\t -t | --tablecreate" 
     echo -e "\t\t - Create /tables/usertable [cf->family] with compression off"
     echo -e "\t -tlz | --tablelz4" 
@@ -160,6 +162,9 @@ while [ "$1" != "" ]; do
         ;;
         -ct | --cldbtopo)
             extraarg=$extraarg"cldbtopo "
+        ;;
+        -tc | --tsdbtocldb)
+            extraarg=$extraarg"tsdbtopo "
         ;;
     	-y | --ycsbvol)
     		extraarg=$extraarg"ycsb "

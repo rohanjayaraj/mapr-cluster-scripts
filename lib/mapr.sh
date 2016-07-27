@@ -675,6 +675,19 @@ function maprutil_configureCLDBTopology(){
     fi
 }
 
+function maprutil_moveTSDBVolumeToCLDBTopology(){
+    local tsdbexists=$(maprcli volume info -path /mapr.monitoring -json | grep ERROR)
+    local cldbtopo=$(maprcli node topo -path /cldb)
+    if [ -n "$tsdbexists" ] || [ -z "$cldbtopo" ]; then
+        echo "OpenTSDB not installed or CLDB not moved to /cldb topology"
+        return
+    fi
+
+    maprcli volume modify -name mapr.monitoring -minreplication 1 2>/dev/null
+    maprcli volume modify -name mapr.monitoring -replication 1 2>/dev/null
+    maprcli volume move -name mapr.monitoring -topology /cldb 2>/dev/null
+}
+
 # @param diskfile
 # @param disk limit
 function maprutil_buildDiskList() {
@@ -1123,6 +1136,9 @@ function maprutil_runCommands(){
         case $i in
             cldbtopo)
                 maprutil_configureCLDBTopology "force"
+            ;;
+            tsdbtopo)
+                maprutil_moveTSDBVolumeToCLDBTopology
             ;;
             ycsb)
                 maprutil_createYCSBVolume
