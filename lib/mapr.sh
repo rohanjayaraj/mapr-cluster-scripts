@@ -1378,7 +1378,7 @@ function maprutil_addToPIDList(){
 # @param timestamp
 function maprutil_zipDirectory(){
     local timestamp=$1
-    local tmpdir="$RUNTEMPDIR/maprlogs/$(hostname -f)/"
+    local tmpdir="/tmp/maprlogs/$(hostname -f)/"
     local logdir="/opt/mapr/logs"
     local buildid=$(cat /opt/mapr/MapRBuildVersion)
     local tarfile="maprlogs_$(hostname -f)_$buildid_$timestamp.tar.bz2"
@@ -1429,7 +1429,7 @@ function maprutil_copyZippedLogsFromNode(){
     local copyto=$3
     mkdir -p $copyto > /dev/null 2>&1
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
-    local filetocopy="$RUNTEMPDIR/maprlogs/$host/*$timestamp.tar.bz2"
+    local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
     
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto"
 }
