@@ -79,6 +79,9 @@ function util_installprereq(){
     util_checkAndInstall "lsof" "lsof"
     if [ "$(getOS)" = "centos" ]; then
         util_checkAndInstall "createrepo" "createrepo"
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        util_checkAndInstall "add-apt-repository" "python-software-properties"
+        util_checkAndInstall "add-apt-repository" "software-properties-common"
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
@@ -193,7 +196,8 @@ function util_removeBinaries(){
     if [ "$(getOS)" = "centos" ]; then
         rpm -ef $rembins
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        dpkg -r $rembins
+        apt-get autoremove --purge $rembins
+        dpkg --purge $rembins 2> /dev/null
     fi
 }
 

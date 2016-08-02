@@ -129,7 +129,7 @@ function main_install(){
 	done
 
 	read -p "Press 'y' to confirm... " -n 1 -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ "$doSilent" -eq 0 ]]; then
     	echo
     	echo "Abandoning install! "
         return 1
@@ -217,7 +217,7 @@ function main_upgrade(){
 	done
 
 	read -p "Press 'y' to confirm... " -n 1 -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ "$doSilent" -eq 0 ]]; then
     	echo "Upgrade C-A-N-C-E-L-L-E-D! "
         return 1
     fi
@@ -351,7 +351,7 @@ function main_uninstall(){
 	done
 
 	read -p "Press 'y' to confirm... " -n 1 -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    if [[ ! $REPLY =~ ^[Yy]$ ]]  && [[ "$doSilent" -eq 0 ]]; then
     	echo "Uninstall C-A-N-C-E-L-L-E-D! "
         return 1
     fi
@@ -416,7 +416,7 @@ function main_uninstall(){
 
 	if [ -n "$nocldblist" ]; then
 		echo "{WARNING} CLDB not found on nodes [$nocldblist]. May be uninstalling another cluster's nodes."
-		if [ "$doForce" -eq 0 ]; then
+		if [[ "$doForce" -eq 0 ]]; then
 			read -p "Press 'y' to confirm... " -n 1 -r
 		    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 		    	echo "Over & Out!"
@@ -603,6 +603,7 @@ doDiskCheck=
 doDiskTest=
 doPontis=0
 doForce=0
+doSilent=0
 doBackup=
 useBuildID=
 useRepoURL=
@@ -648,6 +649,8 @@ while [ "$2" != "" ]; do
     				GLB_TRACE_ON=1
     			elif [[ "$i" = "pontis" ]]; then
     				GLB_PONTIS=1
+    			elif [[ "$i" = "confirm" ]]; then
+    				doSilent=1
     			fi
     		done
     	;;

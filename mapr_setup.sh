@@ -201,6 +201,9 @@ while [ "$1" != "" ]; do
         -f | --force)
            extraarg=$extraarg"force "
         ;;
+        -yes)
+           extraarg=$extraarg"confirm "
+        ;;
         -b | --backuplogs)
             if [ -z "$VALUE" ]; then
                 VALUE="/tmp"

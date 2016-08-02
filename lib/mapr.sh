@@ -335,7 +335,9 @@ function maprutil_uninstall(){
     if [ "$nodeos" = "centos" ]; then
         yum clean all
     elif [ "$nodeos" = "ubuntu" ]; then
-        echo "to be implemented"
+        apt-get install -f -y
+        apt-get autoremove -y
+        apt-get update
     fi
 
     # Remove mapr shared memory segments
@@ -945,7 +947,7 @@ function maprutil_checkNewBuildExists(){
         #ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
         newchangeset=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep -v '$curchangeset' | tail -n1 | awk '{print \$2}' | cut -d'.' -f4")
     elif [ "$nodeos" = "ubuntu" ]; then
-        newchangeset=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core | grep -v '$curchangeset' | tail -n1 | awk '{print \$2}' | cut -d'.' -f4")
+        newchangeset=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core | grep Candidate | grep -v '$curchangeset' | awk '{print \$2}' | cut -d'.' -f4")
     fi
 
     if [[ -n "$newchangeset" ]] && [[ "$(util_isNumber $newchangeset)" = "true" ]] && [[ "$newchangeset" -gt "$curchangeset" ]]; then
@@ -964,6 +966,7 @@ function maprutil_copyRepoFile(){
         ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled = 0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1"
         ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/"
     elif [ "$nodeos" = "ubuntu" ]; then
+
         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
     fi
 }
@@ -1018,6 +1021,7 @@ function maprutil_disableAllRepo(){
             yum-config-manager --disable $repo > /dev/null 2>&1
         done
     elif [ "$nodeos" = "ubuntu" ]; then
+        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab | awk '{print $2}')
         echo "maprutil_disableAllRepo Not implmented"
         exit
     fi
@@ -1042,7 +1046,7 @@ function maprutil_addLocalRepo(){
         cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
-        echo "maprutil_addLocalRepo Not implmented"
+        echo "maprutil_addLocalRepo Not implemented"
         exit
     fi
 }
