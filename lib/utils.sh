@@ -82,6 +82,8 @@ function util_installprereq(){
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         util_checkAndInstall "add-apt-repository" "python-software-properties"
         util_checkAndInstall "add-apt-repository" "software-properties-common"
+        util_checkAndInstall "dpkg-scanpackages" "dpkg-dev"
+        util_checkAndInstall "gzip" "gzip"
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"

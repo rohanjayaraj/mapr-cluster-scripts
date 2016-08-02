@@ -1034,6 +1034,10 @@ function maprutil_addLocalRepo(){
     fi
     local nodeos=$(getOS)
     local repofile="$RUNTEMPDIR/maprbuilds/mapr-$GLB_BUILD_VERSION.repo"
+    if [ "$nodeos" = "ubuntu" ]; then
+        repofile="$RUNTEMPDIR/maprbuilds/mapr-$GLB_BUILD_VERSION.list"
+    fi
+
     local repourl=$1
     echo "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
     if [ "$nodeos" = "centos" ]; then
@@ -1046,8 +1050,9 @@ function maprutil_addLocalRepo(){
         cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
-        echo "maprutil_addLocalRepo Not implemented"
-        exit
+        echo "deb file://$repourl ./" > $repofile
+        cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
+        apt-get update > /dev/null 2>&1
     fi
 }
 
@@ -1063,15 +1068,17 @@ function maprutil_downloadBinaries(){
     mkdir -p $dlddir > /dev/null 2>&1
     local repourl=$2
     local searchkey=$3
+    echo "[$(util_getHostIP)] Downloading binaries for version [$searchkey]"
     if [ "$nodeos" = "centos" ]; then
-        echo "[$(util_getHostIP)] Downloading binaries for version [$searchkey]"
         pushd $dlddir > /dev/null 2>&1
         wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
         popd > /dev/null 2>&1
         createrepo $dlddir > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
-        echo "maprutil_downloadBinaries Not implmented"
-        exit
+        pushd $dlddir > /dev/null 2>&1
+        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.deb" ${repourl} > /dev/null 2>&1
+        dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz > /dev/null 2>&1
+        popd > /dev/null 2>&1
     fi
 }
 

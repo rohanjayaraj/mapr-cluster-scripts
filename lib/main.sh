@@ -128,12 +128,14 @@ function main_install(){
 		let i=i+1
 	done
 
-	read -p "Press 'y' to confirm... " -n 1 -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ "$doSilent" -eq 0 ]]; then
-    	echo
-    	echo "Abandoning install! "
-        return 1
-    fi
+	if [[ "$doSilent" -eq 0 ]]; then
+		read -p "Press 'y' to confirm... " -n 1 -r
+	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+	    	echo
+	    	echo "Abandoning install! "
+	        return 1
+	    fi
+	fi
     echo
     echo "Checking if MapR is already installed on the nodes..."
     local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
@@ -216,11 +218,13 @@ function main_upgrade(){
 		let i=i+1
 	done
 
-	read -p "Press 'y' to confirm... " -n 1 -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]] && [[ "$doSilent" -eq 0 ]]; then
-    	echo "Upgrade C-A-N-C-E-L-L-E-D! "
-        return 1
-    fi
+	if [[ "$doSilent" -eq 0 ]]; then
+		read -p "Press 'y' to confirm... " -n 1 -r
+	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+	    	echo "Upgrade C-A-N-C-E-L-L-E-D! "
+	        return 1
+	    fi
+	fi
     echo
     echo "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
@@ -350,11 +354,13 @@ function main_uninstall(){
 		let i=i+1
 	done
 
-	read -p "Press 'y' to confirm... " -n 1 -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]]  && [[ "$doSilent" -eq 0 ]]; then
-    	echo "Uninstall C-A-N-C-E-L-L-E-D! "
-        return 1
-    fi
+	if [[ "$doSilent" -eq 0 ]]; then
+		read -p "Press 'y' to confirm... " -n 1 -r
+	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+	    	echo "Uninstall C-A-N-C-E-L-L-E-D! "
+	        return 1
+	    fi
+	fi
     echo
     echo "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
