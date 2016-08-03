@@ -1029,7 +1029,7 @@ function maprutil_disableAllRepo(){
         for repo in $repolist
         do
            local repof=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep $repo | cut -d":" -f1)
-           sed -i '/${repo}/s/^/#/' ${repof}
+           sed -i "/${repo}/s/^/#/" ${repof}
         done
     fi
 }
