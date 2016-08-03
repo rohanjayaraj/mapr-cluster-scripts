@@ -1057,7 +1057,7 @@ function maprutil_addLocalRepo(){
         cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
-        echo "deb file://$(dirname '$repourl/') $(basename $repourl)" > $repofile
+        echo "deb file://$(dirname $repourl) $(basename $repourl)/" > $repofile
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
         apt-get update > /dev/null 2>&1
     fi
