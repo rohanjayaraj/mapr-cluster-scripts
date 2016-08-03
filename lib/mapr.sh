@@ -736,10 +736,10 @@ function maprutil_configure(){
     local extops=
     if [ -n "$GLB_SECURE_CLUSTER" ]; then
         extops="-secure"
+        pushd /opt/mapr/conf/ > /dev/null 2>&1
+        rm -rf ssl_truststore ssl_keystore cldb.key maprserverticket > /dev/null 2>&1
+        popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ]; then
-            pushd /opt/mapr/conf/ > /dev/null 2>&1
-            rm -rf ssl_truststore ssl_keystore cldb.key maprserverticket > /dev/null 2>&1
-            popd > /dev/null 2>&1
             extops=$extops" -genkeys"
         else
             maprutil_copySecureFilesFromCLDB "$cldbnode" "$cldbnodes" "$zknodes"
@@ -879,7 +879,6 @@ function maprutil_postConfigure(){
 
 # @param cldbnode ip
 function maprutil_copySecureFilesFromCLDB(){
-    echo
     local cldbhost=$1
     local cldbnodes=$2
     local zknodes=$3
@@ -901,8 +900,10 @@ function maprutil_copySecureFilesFromCLDB(){
             exit 1
         fi
     done
+    
+    sleep 10
 
-    if [[ -n "$(echo "$cldbnodes" | grep $hostip)" ]] || [[ -n "$(echo "$zknodes" | grep $hostip)" ]]; then
+    if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/"
     fi
     if [ "$ISCLIENT" -eq 0 ]; then
