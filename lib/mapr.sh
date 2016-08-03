@@ -471,8 +471,8 @@ function maprutil_installBinariesOnNode(){
     if [ -n "$GLB_BUILD_VERSION" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
-    echo "keyexists=$(util_fileExists '/root/.ssh/id_rsa')" >> $scriptpath
-    echo "[ -z '$keyexists' ] && ssh_createkey '/root/.ssh'" >> $scriptpath
+    echo "keyexists=\$(util_fileExists \"/root/.ssh/id_rsa\")" >> $scriptpath
+    echo "[ -z \"\$keyexists\" ] && ssh_createkey \"/root/.ssh\"" >> $scriptpath
     echo "util_installprereq" >> $scriptpath
     echo "util_installBinaries \""$2"\" \""$GLB_BUILD_VERSION"\"" >> $scriptpath
     
