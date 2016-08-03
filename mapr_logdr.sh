@@ -2,7 +2,7 @@
 
 ################  
 #
-#   MapR Cluster Install, Uninstall Script
+#   MapR Cluster Log/Disk/System Analyzer
 #
 #################
 #set -x
