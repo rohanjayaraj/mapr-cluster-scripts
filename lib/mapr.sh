@@ -888,7 +888,7 @@ function maprutil_copySecureFilesFromCLDB(){
     local cldbisup="false"
     local i=0
     while [ "$cldbisup" = "false" ]; do
-        cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/cldb.key' ] && echo true || echo false")
+        cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/cldb.key' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && echo true || echo false")
         if [ "$cldbisup" = "false" ]; then
             sleep 10
         else
@@ -909,6 +909,7 @@ function maprutil_copySecureFilesFromCLDB(){
     if [ "$ISCLIENT" -eq 0 ]; then
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_0" "/tmp"
     fi
     ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"
     wait
