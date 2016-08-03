@@ -610,7 +610,7 @@ function main_timetaken(){
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
 STARTTS=$(date +%s);
-RUNTEMPDIR="/tmp/maprsetup_$(date +%Y-%m-%d-%H-%M-%S)"
+RUNTEMPDIR="/tmp/maprsetup/maprsetup_$(date +%Y-%m-%d-%H-%M-%S)"
 mkdir -p $RUNTEMPDIR 2>/dev/null
 
 doInstall=0
@@ -772,3 +772,5 @@ fi
 if [ -n "$doLogAnalyze" ]; then
 	main_runLogDoctor
 fi
+
+rm -rf $RUNTEMPDIR 2>/dev/null

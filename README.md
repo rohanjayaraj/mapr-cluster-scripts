@@ -18,10 +18,4 @@
 
 
 #### TODO:
-1. Full support for Ubuntu
-  * Repo file for ubuntu
-  * Binary add/remove
-  * Testing
-2. Automatically enable/disable required repo based on the command line input
-3. Read certain configs from a conf/env file
-4. Support install of binaries from a local dir
+1. Read certain configs from a conf/env file
