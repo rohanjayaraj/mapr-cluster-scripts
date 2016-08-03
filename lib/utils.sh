@@ -13,7 +13,7 @@ function getOSFromNode(){
     if [ -z "$1" ]; then
         return
     fi
-    echo "$(ssh root@$1 lsb_release -a | grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2 )"
+    echo "$(ssh root@$1 lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2 )"
 }
 
 function getOS(){
@@ -21,7 +21,7 @@ function getOS(){
 }
 
 function util_getHostIP(){
-    command -v ifconfig >/dev/null 2>&1 || yum install net-tools -y -q 2>/dev/null
+    command -v ifconfig >/dev/null 2>&1
     local ipadd=$(/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1" | head -n 1 | awk '{print $2}' | cut -c6-)
     if [ -z "$ipadd" ]; then
         ipadd=$(ip addr | grep 'state UP' -A2 | head -n 3 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
@@ -77,6 +77,7 @@ function util_installprereq(){
     util_checkAndInstall "dstat" "dstat"
     util_checkAndInstall "iftop" "iftop"
     util_checkAndInstall "lsof" "lsof"
+    util_checkAndInstall "ifconfig" "net-tools"
     if [ "$(getOS)" = "centos" ]; then
         util_checkAndInstall "createrepo" "createrepo"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
@@ -233,7 +234,7 @@ function util_getDefaultDisks(){
 # returns space separated list of raw disks
 function util_getRawDisks(){
     local defdisks=$(util_getDefaultDisks)
-    sfdisk -l | grep Disk | tr -d ':' | cut -d' ' -f2 | grep -v -f /tmp/defdisks | sort > /tmp/disklist
+    sfdisk -l 2> /dev/null| grep Disk | tr -d ':' | cut -d' ' -f2 | grep -v -f /tmp/defdisks | sort > /tmp/disklist
     echo $(cat /tmp/disklist)
 }
 

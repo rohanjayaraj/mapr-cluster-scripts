@@ -911,7 +911,7 @@ function maprutil_addGlobalVars(){
 }
 
 function maprutil_getBuildID(){
-    local buildid=`yum info mapr-core installed  | grep Version | tr "." " " | awk '{print $6}'`
+    local buildid=$(cat /opt/mapr/MapRBuildVersion)
     echo "$buildid"
 }
 
