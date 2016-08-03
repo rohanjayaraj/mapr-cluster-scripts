@@ -1,0 +1,9 @@
+# Opensource Repo
+deb http://apt.qa.lab/opensource binary/
+
+# Public Binaries
+#deb http://package.mapr.com/releases/v5.1.0/ubuntu/ mapr optional
+#deb http://package.mapr.com/releases/v5.2.0/ubuntu/ mapr optional
+
+# QA Binaries (has 5.2 onwards)
+deb http://artifactory.devops.lab/artifactory/list/local-deb-core binary ubuntu

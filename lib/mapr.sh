@@ -966,7 +966,9 @@ function maprutil_copyRepoFile(){
         ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled = 0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1"
         ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/"
     elif [ "$nodeos" = "ubuntu" ]; then
-
+        ssh_executeCommandasRoot "$1" "sed -i '/apt.qa.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1"
+        ssh_executeCommandasRoot "$1" "sed -i '/artifactory.devops.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1"
+        ssh_executeCommandasRoot "$1" "sed -i '/package.mapr.com/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1"
         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
     fi
 }
@@ -995,8 +997,8 @@ function maprutil_buildRepoFile(){
         echo "protect=1" >> $repofile
         echo >> $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        echo "{ERROR} to be implemented"
-        exit
+        echo "deb http://apt.qa.lab/opensource binary/" > $repofile
+        echo "deb ${repourl} binary ubuntu" >> $repofile
     fi
 }
 
@@ -1006,8 +1008,8 @@ function maprutil_getRepoURL(){
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv opensource | grep Repo-baseurl | cut -d':' -f2- | tr -d " " | head -1)
         echo "$repolist"
     elif [ "$nodeos" = "ubuntu" ]; then
-        echo "maprutil_getRepoURL Not implmented"
-        exit
+        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv opensource | head -1)
+        echo "$repolist"
     fi
 }
 
@@ -1021,9 +1023,12 @@ function maprutil_disableAllRepo(){
             yum-config-manager --disable $repo > /dev/null 2>&1
         done
     elif [ "$nodeos" = "ubuntu" ]; then
-        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab | awk '{print $2}')
-        echo "maprutil_disableAllRepo Not implmented"
-        exit
+        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv opensource | cut -d '/' -f3)
+        for repo in $repolist
+        do
+           local repof=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep $repo | cut -d":" -f1)
+           sed -i '/${repo}/s/^/#/' ${repof}
+        done
     fi
 }
 

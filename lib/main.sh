@@ -23,7 +23,6 @@ fi
 libdir=$basedir"/lib"
 repodir=$basedir"/repo"
 rolesdir=$basedir"/roles"
-maprrepo=$repodir"/mapr.repo"
 
 # source all binaries
 for srcfile in "$libdir"/*.sh
@@ -561,6 +560,20 @@ function main_stopall() {
 }
 
 function main_getRepoFile(){
+	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	local cldbnode=$(util_getFirstElement "$cldbnodes")
+	local maprrepo=
+	local repofile=
+
+	local nodeos=$(getOSFromNode $cldbnode)
+	if [ "$nodeos" = "centos" ]; then
+       maprrepo=$repodir"/mapr.repo"
+	   repofile="$repodir/mapr2.repo"
+    elif [ "$nodeos" = "ubuntu" ]; then
+       maprrepo=$repodir"/mapr.list"
+	   repofile="$repodir/mapr2.list"
+    fi
+
 	if [ -z "$useRepoURL" ]; then
 		echo "$maprrepo"
 		return
