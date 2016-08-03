@@ -1057,7 +1057,7 @@ function maprutil_addLocalRepo(){
         cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
-        echo "deb file://$(dirname $repourl) $(basename $repourl)/" > $repofile
+        echo "deb file:$repourl ./" > $repofile
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
         apt-get update > /dev/null 2>&1
     fi
@@ -1084,8 +1084,8 @@ function maprutil_downloadBinaries(){
     elif [ "$nodeos" = "ubuntu" ]; then
         pushd $dlddir > /dev/null 2>&1
         wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.deb" ${repourl} > /dev/null 2>&1
+        dpkg-scanpackages . /dev/null | gzip -9c 2&>1 /dev/null > Packages.gz
         popd > /dev/null 2>&1
-        dpkg-scanpackages $dlddir /dev/null | gzip -9c > $dlddir/Packages.gz > /dev/null 2>&1
     fi
 }
 
