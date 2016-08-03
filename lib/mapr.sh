@@ -471,9 +471,11 @@ function maprutil_installBinariesOnNode(){
     if [ -n "$GLB_BUILD_VERSION" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
+    echo "keyexists=$(util_fileExists '/root/.ssh/id_rsa')" >> $scriptpath
+    echo "[ -z '$keyexists' ] && ssh_createkey '/root/.ssh'" >> $scriptpath
     echo "util_installprereq" >> $scriptpath
     echo "util_installBinaries \""$2"\" \""$GLB_BUILD_VERSION"\"" >> $scriptpath
-
+    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
     if [ -z "$3" ]; then
@@ -726,6 +728,10 @@ function maprutil_configure(){
     local cldbnode=$(util_getFirstElement "$1")
     local zknodes=$(util_getCommaSeparated "$2")
     maprutil_buildDiskList "$diskfile"
+
+    if [ "$(ssh_check "root" "$cldbnode")" != "enabled" ]; then
+        ssh_copyPrivateKey "root" "$cldbnode"
+    fi
 
     local extops=
     if [ -n "$GLB_SECURE_CLUSTER" ]; then
