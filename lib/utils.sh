@@ -177,11 +177,11 @@ function util_installBinaries(){
         return
     fi
     local bins=$1
-    if [ -n "$2" ]; then
-        bins=$(util_appendVersionToPackage "$1" "$2")
-    fi
     echo "[$(util_getHostIP)] Installing packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
+        if [ -n "$2" ]; then
+            bins=$(util_appendVersionToPackage "$1" "$2")
+        fi
         yum clean all
         yum install ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
@@ -196,11 +196,11 @@ function util_upgradeBinaries(){
         return
     fi
     local bins=$1
-    if [ -n "$2" ]; then
-        bins=$(util_appendVersionToPackage "$1" "$2")
-    fi
     echo "[$(util_getHostIP)] Upgrading packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
+        if [ -n "$2" ]; then
+            bins=$(util_appendVersionToPackage "$1" "$2")
+        fi
         yum clean all
         yum update ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then

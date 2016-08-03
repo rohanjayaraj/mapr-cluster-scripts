@@ -966,9 +966,11 @@ function maprutil_copyRepoFile(){
         ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled = 0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1"
         ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/"
     elif [ "$nodeos" = "ubuntu" ]; then
+        ssh_executeCommandasRoot "$1" "rm -rf /etc/apt/sources.list.d/*mapr*.list > /dev/null 2>&1"
         ssh_executeCommandasRoot "$1" "sed -i '/apt.qa.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1"
         ssh_executeCommandasRoot "$1" "sed -i '/artifactory.devops.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1"
         ssh_executeCommandasRoot "$1" "sed -i '/package.mapr.com/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1"
+
         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
     fi
 }
@@ -1055,7 +1057,7 @@ function maprutil_addLocalRepo(){
         cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
-        echo "deb file://$repourl ./" > $repofile
+        echo "deb file://$(dirname '$repourl/') $(basename $repourl)" > $repofile
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
         apt-get update > /dev/null 2>&1
     fi
@@ -1082,8 +1084,8 @@ function maprutil_downloadBinaries(){
     elif [ "$nodeos" = "ubuntu" ]; then
         pushd $dlddir > /dev/null 2>&1
         wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.deb" ${repourl} > /dev/null 2>&1
-        dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz > /dev/null 2>&1
         popd > /dev/null 2>&1
+        dpkg-scanpackages $dlddir /dev/null | gzip -9c > $dlddir/Packages.gz > /dev/null 2>&1
     fi
 }
 

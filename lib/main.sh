@@ -580,7 +580,6 @@ function main_getRepoFile(){
 	fi
 	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
-	local repofile="$repodir/mapr2.repo"
 	maprutil_buildRepoFile "$repofile" "$useRepoURL" "$cldbnode"
 	echo "$repofile"
 }
