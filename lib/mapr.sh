@@ -729,7 +729,7 @@ function maprutil_configure(){
     local zknodes=$(util_getCommaSeparated "$2")
     maprutil_buildDiskList "$diskfile"
 
-    if [ "$(ssh_check "root" "$cldbnode")" != "enabled" ]; then
+    if [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
         ssh_copyPrivateKey "root" "$cldbnode"
     fi
 
