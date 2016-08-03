@@ -17,7 +17,7 @@ function getOSFromNode(){
 }
 
 function getOS(){
-    echo "$(lsb_release -a | grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2)"
+    echo "$(lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2)"
 }
 
 function util_getHostIP(){
