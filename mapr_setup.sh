@@ -101,6 +101,8 @@ function usage () {
     echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (WARN: may fill the root partition)"
     echo -e "\t -pb=<#ofMBs> | --putbuffer=<#ofMBs>" 
     echo -e "\t\t - Increase client put buffer threshold to <#ofMBs> (default : 1000)"
+    echo -e "\t -s | --secure" 
+    echo -e "\t\t - Enable wire-level security on the cluster nodes"
     
     echo 
 	echo " Post install Options : "
@@ -203,6 +205,9 @@ while [ "$1" != "" ]; do
         ;;
         -yes)
            extraarg=$extraarg"confirm "
+        ;;
+        -s | --secure)
+            extraarg=$extraarg"secure "
         ;;
         -b | --backuplogs)
             if [ -z "$VALUE" ]; then

@@ -111,6 +111,7 @@ GLB_MAX_DISKS=
 GLB_BUILD_VERSION=
 GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
+GLB_SECURE_CLUSTER=
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 ############################### ALL functions to be defined below this ###############################
@@ -669,6 +670,8 @@ while [ "$2" != "" ]; do
     				GLB_PONTIS=1
     			elif [[ "$i" = "confirm" ]]; then
     				doSilent=1
+    			elif [[ "$i" = "secure" ]]; then
+    				GLB_SECURE_CLUSTER=1
     			fi
     		done
     	;;

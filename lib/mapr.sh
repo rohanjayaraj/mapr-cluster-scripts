@@ -723,15 +723,29 @@ function maprutil_configure(){
     local diskfile="/tmp/disklist"
     local hostip=$(util_getHostIP)
     local cldbnodes=$(util_getCommaSeparated "$1")
+    local cldbnode=$(util_getFirstElement "$1")
     local zknodes=$(util_getCommaSeparated "$2")
     maprutil_buildDiskList "$diskfile"
 
+    local extops=
+    if [ -n "$GLB_SECURE_CLUSTER" ]; then
+        extops="-secure"
+        if [ "$hostip" = "$cldbnode" ]; then
+            pushd /opt/mapr/conf/ > /dev/null 2>&1
+            rm -rf ssl_truststore ssl_keystore cldb.key maprserverticket > /dev/null 2>&1
+            popd > /dev/null 2>&1
+            extops=$extops" -genkeys"
+        else
+            maprutil_copySecureFilesFromCLDB "$cldbnode" "$cldbnodes" "$zknodes"
+        fi
+    fi
+
     if [ "$ISCLIENT" -eq 1 ]; then
-        echo "[$hostip] /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
-        /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
+        echo "[$hostip] /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
+        /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops
     else
-        echo "[$hostip] /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
-        /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3
+        echo "[$hostip] /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
+        /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops
     fi
     
     # Perform series of custom configuration based on selected options
@@ -778,8 +792,7 @@ function maprutil_configure(){
     # Restart services on the node
     maprutil_restartWarden > /dev/null 2>&1
 
-    local cldbnode=$(util_getFirstElement "$1")
-    if [ "$hostip" = "$cldbnode" ]; then
+   if [ "$hostip" = "$cldbnode" ]; then
         maprutil_applyLicense
         if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
             maprutil_configureMultiMFS "$multimfs" "$numsps"
@@ -858,6 +871,47 @@ function maprutil_postConfigure(){
     #maprutil_restartWarden
 }
 
+# @param cldbnode ip
+function maprutil_copySecureFilesFromCLDB(){
+    echo
+    local cldbhost=$1
+    local cldbnodes=$2
+    local zknodes=$3
+    local hostip=$(util_getHostIP)
+
+    # Check if CLDB is configured & files are available for copy
+    local cldbisup="false"
+    local i=0
+    while [ "$cldbisup" = "false" ]; do
+        cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/cldb.key' ] && echo true || echo false")
+        if [ "$cldbisup" = "false" ]; then
+            sleep 10
+        else
+            break
+        fi
+        let i=i+1
+        if [ "$i" -gt 18 ]; then
+            echo "Timed out waiting to find cldb.key on CLDB node [$cldbhost]. Exiting!"
+            exit 1
+        fi
+    done
+
+    if [[ -n "$(echo "$cldbnodes" | grep $hostip)" ]] || [[ -n "$(echo "$zknodes" | grep $hostip)" ]]; then
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/"
+    fi
+    if [ "$ISCLIENT" -eq 0 ]; then
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"
+    fi
+    ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"
+    wait
+
+    if [ "$ISCLIENT" -eq 0 ]; then
+        chown mapr:mapr /opt/mapr/conf/maprserverticket > /dev/null 2>&1
+        chmod +600 /opt/mapr/conf/maprserverticket /opt/mapr/conf/ssl_keystore > /dev/null 2>&1
+    fi
+    chmod +444 /opt/mapr/conf/ssl_truststore > /dev/null 2>&1
+}
 # @param host ip
 # @param config file path
 # @param cluster name
@@ -1280,11 +1334,15 @@ function maprutil_applyLicense(){
     local jobs=1
     while [ "${jobs}" -ne "0" ]; do
         echo "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 30s"
-        sleep 30
+        if [ -n "$GLB_SECURE_CLUSTER" ]; then
+             echo 'mapr' | maprlogin password
+        fi
         if [ "$jobs" -ne 0 ]; then
             local licenseExists=`/opt/mapr/bin/maprcli license list | grep M7 | wc -l`
             if [ "$licenseExists" -ne 0 ]; then
                 jobs=0
+            else
+                sleep 30
             fi
         fi
         ### Attempt using Downloaded License
