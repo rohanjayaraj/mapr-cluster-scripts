@@ -1084,7 +1084,7 @@ function maprutil_downloadBinaries(){
     elif [ "$nodeos" = "ubuntu" ]; then
         pushd $dlddir > /dev/null 2>&1
         wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.deb" ${repourl} > /dev/null 2>&1
-        dpkg-scanpackages . /dev/null | gzip -9c 2&>1 /dev/null > Packages.gz
+        dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz
         popd > /dev/null 2>&1
     fi
 }
