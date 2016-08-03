@@ -928,7 +928,7 @@ function maprutil_checkBuildExists(){
     if [ "$nodeos" = "centos" ]; then
         retval=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep $buildid")
     elif [ "$nodeos" = "ubuntu" ]; then
-        retval=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core | grep $buildid")
+        retval=$(ssh_executeCommandasRoot "$node" "apt-get update >/dev/null 2>&1 && apt-cache policy mapr-core | grep $buildid")
     fi
     echo "$retval"
 }
