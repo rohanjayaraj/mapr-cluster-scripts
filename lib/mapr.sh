@@ -149,7 +149,7 @@ function maprutil_getNodesFromRole() {
     local nodes=
     for i in $(cat $1 | grep '^[^#;]'); do
         local node=$(echo $i | cut -f1 -d",")
-        local isvalid=$(util_validip $node)
+        local isvalid=$(util_validip2 $node)
         if [ "$isvalid" = "valid" ]; then
             nodes=$nodes$node" "
         else

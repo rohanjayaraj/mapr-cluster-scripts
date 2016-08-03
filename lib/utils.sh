@@ -95,6 +95,26 @@ function util_validip(){
 	echo "$retval"
 }
 
+# @param ip_address_string
+function util_validip2()
+{
+    local  ip=$1
+    local  stat=1
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        OIFS=$IFS
+        IFS='.'
+        ip=($ip)
+        IFS=$OIFS
+        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+        stat=$?
+    fi
+    if [ "$stat" -eq 1 ]; then
+        echo "invalid"
+    else
+        echo "valid"
+    fi
+}
+
 # @param packagename
 # @param verion number
 function util_checkPackageExists(){
