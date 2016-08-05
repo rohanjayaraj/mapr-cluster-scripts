@@ -19,6 +19,13 @@ enabled=1
 gpgcheck=0
 protect=1
 
+[QA-Default-Prod]
+name=MapR Latest Prod Build QA Repository
+baseurl=http://yum.qa.lab/default-prodmode/
+enabled=0
+gpgcheck=0
+protect=1
+
 [QA-5.0.0]
 name=MapR v5.0.0 QA Repository
 baseurl=http://yum.qa.lab/v5.0.0
