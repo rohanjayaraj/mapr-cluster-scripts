@@ -365,11 +365,11 @@ function maprutil_cleanPrevClusterConfig(){
 
     if [ -e "/opt/mapr/roles/zookeeper" ]; then
         for i in datacenter services services_config servers ; do 
-            /opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 rmr /$i 
+            /opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 rmr /$i > /dev/null 2>&1
         done
          # Stop zookeeper
         service mapr-zookeeper stop  2>/dev/null
-        util_kill "java" "jenkins" "elasticsearch" 
+        util_kill "java" "jenkins" 
         service mapr-zookeeper start  2>/dev/null
     fi
 }
