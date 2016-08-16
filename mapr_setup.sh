@@ -74,6 +74,8 @@ function usage () {
     echo -e "\t\t - Uninstall cluster"
     echo -e "\t -up | --upgrade" 
     echo -e "\t\t - Upgrade cluster"
+    echo -e "\t -r | --reconfigure | --reset" 
+    echo -e "\t\t - Reconfigure the cluster if binaries are already installed"
     echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
     echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
     
@@ -149,6 +151,9 @@ while [ "$1" != "" ]; do
     	;;
         -up | --upgrade)
             setupop="upgrade"
+        ;;
+        -r | --reconfigure | --reset)
+            setupop="reconfigure"
         ;;
     	-c | --clusterconfig)
     		rolefile=$VALUE

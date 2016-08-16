@@ -208,6 +208,72 @@ function main_install(){
 	echo "[$(util_getCurDate)] Install is complete! [ RunTime - $(main_timetaken) ]"
 }
 
+function main_reconfigure(){
+	echo "[$(util_getCurDate)] Reconfiguring MapR on the following N-O-D-E-S : "
+	echo
+	local i=1
+	for node in ${nodes[@]}
+	do
+		echo "Node$i : $node"
+		let i=i+1
+	done
+
+	if [[ "$doSilent" -eq 0 ]]; then
+		read -p "Press 'y' to confirm... " -n 1 -r
+	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+	    	echo "Upgrade C-A-N-C-E-L-L-E-D! "
+	        return 1
+	    fi
+	fi
+    echo
+    echo "Checking if MapR is installed on the nodes..."
+	# Check if MapR is installed on all nodes
+	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
+	local notlist=
+	for node in ${nodes[@]}
+	do
+		local isInstalled=$(echo "$islist" | grep $node)
+		if [ -z "$isInstalled" ]; then
+			notlist=$notlist"$node"" "
+		else
+			#??? Get install version
+			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
+		fi
+	done
+
+	if [ -n "$notlist" ]; then
+		echo "MapR not installed on the node(s) [ $notlist]. Trying install on the nodes first. Scooting!"
+		exit 1
+	fi
+
+	echo "Erasing files/directories from previous configurations"
+	for node in ${nodes[@]}
+	do
+		maprutil_cleanPrevClusterConfigOnNode "$node" "$rolefile"
+	done
+	wait
+
+	# Read properties
+	local clustername=$GLB_CLUSTER_NAME
+	
+	# Configure all nodes
+	for node in ${nodes[@]}
+	do
+		echo "****** Running configure on node -> $node ****** "
+		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
+	done
+	wait
+
+	# Restart all nodes
+	for node in ${nodes[@]}
+	do
+		maprutil_restartWardenOnNode "$node" "$rolefile" &
+	done
+	wait
+
+	echo "[$(util_getCurDate)] Reconfiguration is complete! [ RunTime - $(main_timetaken) ]"
+}
+
 function main_upgrade(){
 	echo "[$(util_getCurDate)] Upgrading MapR on the following N-O-D-E-S : "
 	echo
@@ -616,6 +682,7 @@ mkdir -p $RUNTEMPDIR 2>/dev/null
 doInstall=0
 doUninstall=0
 doUpgrade=0
+doConfigure=0
 doCmdExec=
 doLogAnalyze=
 doDiskCheck=
@@ -647,6 +714,9 @@ while [ "$2" != "" ]; do
 		    	;;
 		    	upgrade)
 		    		doUpgrade=1
+		    	;;
+		    	reconfigure)
+		    		doConfigure=1
 		    	;;
 		    esac
 		    ;;
@@ -754,6 +824,9 @@ elif [ "$doUninstall" -eq 1 ]; then
 elif [ "$doUpgrade" -eq 1 ]; then
 	echo " *************** Starting Cluster Upgrade **************** "
 	main_upgrade
+elif [ "$doConfigure" -eq 1 ]; then
+	echo " *************** Starting Cluster Reset & configuration **************** "
+	main_reconfigure
 elif [ -n "$doBackup" ]; then
 	echo " *************** Starting logs backup **************** "
 	main_backuplogs	

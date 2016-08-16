@@ -308,6 +308,72 @@ function maprutil_unmountNFS(){
     done
 }
 
+# @param host ip
+function maprutil_cleanPrevClusterConfigOnNode(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    
+    # build full script for node
+    local hostnode=$1
+    local scriptpath="$RUNTEMPDIR/cleanupnode_${hostnode: -3}.sh"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    echo >> $scriptpath
+    echo "##########  Adding execute steps below ########### " >> $scriptpath
+    echo "maprutil_cleanPrevClusterConfig" >> $scriptpath
+
+    ssh_executeScriptasRootInBG "$1" "$scriptpath"
+    maprutil_addToPIDList "$!"
+}
+
+function maprutil_cleanPrevClusterConfig(){
+    # Kill running traces 
+    util_kill "timeout"
+    util_kill "guts"
+    util_kill "dstat"
+    util_kill "iostat"
+    util_kill "top -b"
+    util_kill "runTraces"
+
+    # Unmount NFS
+    maprutil_unmountNFS
+
+    # Stop warden
+    maprutil_restartWarden "stop"
+
+    # Remove mapr shared memory segments
+    util_removeSHMSegments "mapr"
+
+    # kill all processes
+    util_kill "initaudit.sh"
+    util_kill "pullcentralconfig"
+    util_kill "java" "jenkins" "QuorumPeerMain"
+    util_kill "FsShell"
+    util_kill "CentralConfigCopyHelper"
+    util_kill "timeout"
+    util_kill "guts"
+    util_kill "dstat"
+    util_kill "iostat"
+    util_kill "top -b"
+
+    rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.con 2>/dev/null
+
+    if [ -e "/opt/mapr/roles/zookeeper" ]; then
+        for i in datacenter services services_config servers ; do 
+            /opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 rmr /$i 
+        done
+         # Stop zookeeper
+        service mapr-zookeeper stop  2>/dev/null
+        util_kill "java" "jenkins" "elasticsearch" 
+        service mapr-zookeeper start  2>/dev/null
+    fi
+}
+
 function maprutil_uninstall(){
     
     # Kill running traces 
