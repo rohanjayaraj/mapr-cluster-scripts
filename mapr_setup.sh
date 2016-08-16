@@ -105,6 +105,8 @@ function usage () {
     echo -e "\t\t - Increase client put buffer threshold to <#ofMBs> (default : 1000)"
     echo -e "\t -s | --secure" 
     echo -e "\t\t - Enable wire-level security on the cluster nodes"
+    echo -e "\t -tr | --trim" 
+    echo -e "\t\t - Trim SSD drives before configuring the node (WARNING: DO NOT TRIM OFTEN)"
     
     echo 
 	echo " Post install Options : "
@@ -190,6 +192,9 @@ while [ "$1" != "" ]; do
         ;;
         -et | --enabletrace)
             extraarg=$extraarg"traceon "
+        ;;
+        -tr | --trim)
+            extraarg=$extraarg"trim "
         ;;
         -sp | --storagepool)
             numsps=$VALUE

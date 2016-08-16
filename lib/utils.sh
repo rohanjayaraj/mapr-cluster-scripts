@@ -519,6 +519,63 @@ function util_grepFiles(){
     fi
 }
 
+# @param total number of sectors
+# @param sector start position
+function util_getHDTrimList(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local MAXSECT=65535
+    local sectors=$1
+    local pos=$2
+    while test $sectors -gt 0; do
+        if test $sectors -gt $MAXSECT; then
+                size=$MAXSECT
+        else
+                size=$sectors
+        fi
+        echo $pos:$size
+        sectors=$(($sectors-$size))
+        pos=$(($pos+$size))
+    done
+}
+
+# @param disk (ex: /dev/sda)
+function util_isSSDDrive(){
+    if [ -z "$1" ]; then
+        return
+    fi
+
+    local disk=$1
+    disk=$(echo "$disk"| grep -v -e '^$' | cut -d' ' -f1 | cut -d'/' -f3)
+    [ "$(cat /sys/block/$disk/queue/rotational)" -eq 0 ] && echo "yes" || echo "no"
+}
+
+# @param disk (ex: /dev/sda)
+function util_getMaxDiskSectors(){
+    if [ -z "$1" ]; then
+        return
+    fi
+
+    echo "$(hdparm -I $1 | grep LBA48 | awk '{print $5}')"
+}
+
+# @param list of disks
+function util_trimSSDDrives(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local disks="$1"
+    for disk in $disks
+    do
+        [ "$(util_isSSDDrive $disk)" = "no" ] && echo "Disk [$disk] is NOT a SSD drive" && continue
+        local maxsectors=$(util_getMaxDiskSectors $disk)
+        local trimlist=$(util_getHDTrimList $maxsectors 1)
+        nohup echo "$trimlist" | hdparm --trim-sector-ranges-stdin ${disk} > /dev/null 2>&1 &
+    done
+    wait
+}
+
 # @param host name with domin
 function util_getIPfromHostName(){
     if [ -z "$1" ]; then

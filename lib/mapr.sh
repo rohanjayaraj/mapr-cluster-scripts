@@ -829,6 +829,8 @@ function maprutil_configure(){
         return 
     fi
 
+    [ -n "$GLB_TRIM_SSD" ] && echo "[$hostip] Trimming the SSD disks if present..." && util_trimSSDDrives $(cat $diskfile)
+    
     #echo "/opt/mapr/server/disksetup -FM /tmp/disklist"
     local multimfs=$GLB_MULTI_MFS
     local numsps=$GLB_NUM_SP

@@ -103,6 +103,7 @@ GLB_CLUSTER_SIZE=$(cat $rolefile |  grep "^[^#;]" | grep -v 'mapr-client\|mapr-l
 GLB_TRACE_ON=
 GLB_MULTI_MFS=
 GLB_NUM_SP=
+GLB_TRIM_SSD=
 GLB_TABLE_NS=
 GLB_CLDB_TOPO=
 GLB_PONTIS=
@@ -742,6 +743,8 @@ while [ "$2" != "" ]; do
     				doSilent=1
     			elif [[ "$i" = "secure" ]]; then
     				GLB_SECURE_CLUSTER=1
+    			elif [[ "$i" = "trim" ]]; then
+    				GLB_TRIM_SSD=1
     			fi
     		done
     	;;
