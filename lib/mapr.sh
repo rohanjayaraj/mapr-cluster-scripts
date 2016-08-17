@@ -310,23 +310,30 @@ function maprutil_unmountNFS(){
 
 # @param host ip
 function maprutil_cleanPrevClusterConfigOnNode(){
-    if [ -z "$1" ]; then
+    if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
     
     # build full script for node
     local hostnode=$1
+    local client=$(maprutil_isClientNode "$2" "$hostnode")
     local scriptpath="$RUNTEMPDIR/cleanupnode_${hostnode: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
+    util_buildSingleScript "$lib_dir" "$scriptpath" "$hostnode"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
     fi
-
+    
+    
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
     echo "maprutil_cleanPrevClusterConfig" >> $scriptpath
-
+    if [ -n "$client" ]; then
+         echo "ISCLIENT=1" >> $scriptpath
+    else
+        echo "ISCLIENT=0" >> $scriptpath
+    fi
+    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
 }
@@ -344,7 +351,7 @@ function maprutil_cleanPrevClusterConfig(){
     maprutil_unmountNFS
 
     # Stop warden
-    maprutil_restartWarden "stop"
+    [ "$ISCLIENT" -eq 0 ] && maprutil_restartWarden "stop"
 
     # Remove mapr shared memory segments
     util_removeSHMSegments "mapr"
@@ -404,6 +411,7 @@ function maprutil_uninstall(){
     local nodeos=$(getOS $node)
     if [ "$nodeos" = "centos" ]; then
         yum clean all
+        yum-complete-transaction --cleanup-only
     elif [ "$nodeos" = "ubuntu" ]; then
         apt-get install -f -y
         apt-get autoremove -y
