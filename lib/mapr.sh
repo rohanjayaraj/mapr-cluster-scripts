@@ -361,7 +361,11 @@ function maprutil_cleanPrevClusterConfig(){
     util_kill "iostat"
     util_kill "top -b"
 
-    rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.con 2>/dev/null
+    rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.con /opt/mapr/logs/* 2>/dev/null
+    
+     # Remove all directories
+    maprutil_removedirs "cores"
+    maprutil_removedirs "temp"
 
     if [ -e "/opt/mapr/roles/zookeeper" ]; then
         for i in datacenter services services_config servers ; do 
