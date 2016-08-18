@@ -252,7 +252,7 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "$rolefile" ]; then
-	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
+	>&2 echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	exit 1
 #elif [ -n "$setupop" ]; then
 else

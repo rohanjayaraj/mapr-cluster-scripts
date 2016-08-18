@@ -159,7 +159,7 @@ function main_install(){
 			main_isValidBuildVersion
 			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
 			if [ -z "$buildexists" ]; then
-				echo "{ERROR} Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
+				>&2 echo "{ERROR} Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
 				exit 1
 			fi
 		fi
@@ -362,14 +362,14 @@ function main_upgrade(){
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo"
 		if [ -z "$buildexists" ] && [ -z "$(maprutil_checkNewBuildExists $node)" ]; then
-			echo "{ERROR} No newer build exists. Please check the repo file [$maprrepo] for configured repositories"
+			>&2 echo "{ERROR} No newer build exists. Please check the repo file [$maprrepo] for configured repositories"
 			exit 1
 		fi
 		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
 			main_isValidBuildVersion
 			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
 			if [ -z "$buildexists" ]; then
-				echo "{ERROR} Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
+				>&2 echo "{ERROR} Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
 				exit 1
 			else
 				echo "Stopping warden on all nodes..."
@@ -561,7 +561,7 @@ function main_runCommandExec(){
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
 	local isInstalled=$(maprutil_isMapRInstalledOnNode "$cldbnode")
 	if [ "$isInstalled" = "false" ]; then
-		echo "{ERROR} MapR is not installed on the cluster"
+		>&2 echo "{ERROR} MapR is not installed on the cluster"
 		return
 	fi
 	
@@ -608,11 +608,11 @@ function main_isValidBuildVersion(){
     local vlen=${#GLB_BUILD_VERSION}
     if [ "$(util_isNumber $GLB_BUILD_VERSION)" = "true" ]; then
     	 if [ "$vlen" -lt 5 ]; then
-    	 	echo "{ERROR} Specify a longer build/changelist id (ex: 38395)"
+    	 	>&2 echo "{ERROR} Specify a longer build/changelist id (ex: 38395)"
             exit 1
     	 fi
     elif [ "$vlen" -lt 11 ]; then
-        echo "{ERROR} Specify a longer version string (ex: 5.2.0.38395)"
+        >&2 echo "{ERROR} Specify a longer version string (ex: 5.2.0.38395)"
         exit 1
     fi
 }
@@ -811,7 +811,7 @@ while [ "$2" != "" ]; do
 			fi
 		;;
         *)
-            echo "ERROR: unknown option \"$OPTION\""
+            >&2 echo "ERROR: unknown option \"$OPTION\""
             main_usage
             exit 1
             ;;

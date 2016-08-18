@@ -223,7 +223,7 @@ function maprutil_removedirs(){
             rm -rfv $(maprutil_coresdirs)
            ;;
         *)
-            echo "ERROR: unknown parameter passed to removedirs \"$PARAM\""
+            >&2 echo "ERROR: unknown parameter passed to removedirs \"$PARAM\""
             ;;
     esac
        
@@ -351,7 +351,7 @@ function maprutil_cleanPrevClusterConfig(){
 
     # Stop warden
     if [[ "$ISCLIENT" -eq 0 ]]; then
-        maprutil_restartWarden "stop"
+        maprutil_restartWarden "stop" 2>/dev/null
     fi
 
     # Remove mapr shared memory segments
@@ -372,8 +372,8 @@ function maprutil_cleanPrevClusterConfig(){
     rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.con /opt/mapr/logs/* 2>/dev/null
     
      # Remove all directories
-    maprutil_removedirs "cores"
-    maprutil_removedirs "temp"
+    maprutil_removedirs "cores" > /dev/null 2>&1
+    maprutil_removedirs "temp" > /dev/null 2>&1
 
     if [ -e "/opt/mapr/roles/zookeeper" ]; then
         for i in datacenter services services_config servers ; do 
@@ -850,7 +850,7 @@ function maprutil_configure(){
     local numdisks=`wc -l $diskfile | cut -f1 -d' '`
     if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
         if [ "$multimfs" -gt "$numdisks" ]; then
-            echo "[ERROR] Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
+            echo "[INFO] Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
             multimfs=$numdisks
         fi
         local numstripe=$(echo $numdisks/$multimfs|bc)
@@ -1488,7 +1488,7 @@ function maprutil_restartWarden() {
         echo "{WARNING} warden init scripts not configured on nodes"
         execcmd="/opt/mapr/initscripts/mapr-warden"
     else
-        echo "{ERROR} No mapr-warden on node"
+        >&2 echo "{ERROR} No mapr-warden on node"
         return
     fi
         #statements
