@@ -179,10 +179,9 @@ function maprutil_knowndirs(){
 
 function maprutil_tempdirs() {
     local dirslist=()
-    dirlist+=("/tmp/mapr*")
+    dirlist+=("/tmp/*mapr*.*")
     dirlist+=("/tmp/hsperfdata*")
     dirlist+=("/tmp/hadoop*")
-    dirlist+=("/tmp/mapr*")
     dirlist+=("/tmp/*mapr-disk.rules*")
     dirlist+=("/tmp/*.lck")
     dirlist+=("/tmp/mfs*")
@@ -351,7 +350,9 @@ function maprutil_cleanPrevClusterConfig(){
     maprutil_unmountNFS
 
     # Stop warden
-    [ "$ISCLIENT" -eq 0 ] && maprutil_restartWarden "stop"
+    if [ "$ISCLIENT" -eq 0 ]; then
+        maprutil_restartWarden "stop"
+    fi
 
     # Remove mapr shared memory segments
     util_removeSHMSegments "mapr"

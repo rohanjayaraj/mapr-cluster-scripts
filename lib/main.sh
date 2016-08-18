@@ -718,6 +718,7 @@ while [ "$2" != "" ]; do
 		    	;;
 		    	reconfigure)
 		    		doConfigure=1
+		    		GLB_CLDB_TOPO=1
 		    	;;
 		    esac
 		    ;;

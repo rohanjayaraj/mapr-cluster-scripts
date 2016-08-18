@@ -21,7 +21,7 @@ function getOS(){
 }
 
 function util_getHostIP(){
-    command -v ifconfig >/dev/null 2>&1
+    command -v ifconfig >/dev/null 2>&1 || util_installprereq
     local ipadd=$(/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1" | head -n 1 | awk '{print $2}' | cut -c6-)
     if [ -z "$ipadd" ]; then
         ipadd=$(ip addr | grep 'state UP' -A2 | head -n 3 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
@@ -77,7 +77,6 @@ function util_installprereq(){
     util_checkAndInstall "dstat" "dstat"
     util_checkAndInstall "iftop" "iftop"
     util_checkAndInstall "lsof" "lsof"
-    util_checkAndInstall "ifconfig" "net-tools"
     if [ "$(getOS)" = "centos" ]; then
         util_checkAndInstall "createrepo" "createrepo"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
