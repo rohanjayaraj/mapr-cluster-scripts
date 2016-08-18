@@ -350,7 +350,7 @@ function maprutil_cleanPrevClusterConfig(){
     maprutil_unmountNFS
 
     # Stop warden
-    if [ "$ISCLIENT" -eq 0 ]; then
+    if [[ "$ISCLIENT" -eq 0 ]]; then
         maprutil_restartWarden "stop"
     fi
 
