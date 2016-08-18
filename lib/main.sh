@@ -222,7 +222,7 @@ function main_reconfigure(){
 	if [[ "$doSilent" -eq 0 ]]; then
 		read -p "Press 'y' to confirm... " -n 1 -r
 	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-	    	echo "Upgrade C-A-N-C-E-L-L-E-D! "
+	    	echo "Reconfigure C-A-N-C-E-L-L-E-D! "
 	        return 1
 	    fi
 	fi
