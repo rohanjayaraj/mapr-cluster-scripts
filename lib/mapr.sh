@@ -382,7 +382,6 @@ function maprutil_cleanPrevClusterConfig(){
          # Stop zookeeper
         service mapr-zookeeper stop  2>/dev/null
         util_kill "java" "jenkins" 
-        service mapr-zookeeper start  2>/dev/null
     fi
 }
 
@@ -990,7 +989,7 @@ function maprutil_copySecureFilesFromCLDB(){
     if [ "$ISCLIENT" -eq 0 ]; then
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"
-        ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_*" "/tmp"
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_*" "/tmp" 2>/dev/null
     fi
     ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"
     wait
