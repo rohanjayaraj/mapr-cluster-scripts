@@ -176,7 +176,6 @@ function ssh_copyPrivateKey(){
 	if [ -z "$1" ] || [ -z "$2" ]; then
 		return 1
 	fi
-	ssh_installsshpass
 	sshpass -pmapr ssh -o StrictHostKeyChecking=no -l $1 $2 exit
 	local sshpassret=$?
 	if [ "$sshpassret" -eq 0 ]; then

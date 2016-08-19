@@ -68,7 +68,9 @@ function util_checkAndInstall2(){
 }
 
 function util_installprereq(){
-   
+    if [ "$(getOS)" = "centos" ]; then
+         yum repolist 2>&1 | grep epel || yum install epel-release -y >/dev/null 2>&1
+    fi
     util_checkAndInstall "ifconfig" "net-tools"
     util_checkAndInstall "bzip2" "bzip2"
     util_checkAndInstall "screen" "screen"

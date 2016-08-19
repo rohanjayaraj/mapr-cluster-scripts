@@ -808,7 +808,7 @@ function maprutil_configure(){
     local zknodes=$(util_getCommaSeparated "$2")
     maprutil_buildDiskList "$diskfile"
 
-    if [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
+    if [ "$hostip" != "$cldbnode" ] && [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
         ssh_copyPrivateKey "root" "$cldbnode"
     fi
 
@@ -816,7 +816,7 @@ function maprutil_configure(){
     if [ -n "$GLB_SECURE_CLUSTER" ]; then
         extops="-secure"
         pushd /opt/mapr/conf/ > /dev/null 2>&1
-        rm -rf ssl_truststore ssl_keystore cldb.key maprserverticket > /dev/null 2>&1
+        rm -rf cldb.key ssl_truststore ssl_keystore cldb.key maprserverticket /tmp/maprticket_* > /dev/null 2>&1
         popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ]; then
             extops=$extops" -genkeys"
@@ -990,7 +990,7 @@ function maprutil_copySecureFilesFromCLDB(){
     if [ "$ISCLIENT" -eq 0 ]; then
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"
-        ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_0" "/tmp"
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_*" "/tmp"
     fi
     ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"
     wait
