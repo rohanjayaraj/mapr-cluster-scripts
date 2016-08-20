@@ -456,24 +456,30 @@ function util_expandNodeList(){
     [ -e "$newrolefile" ] && rm -f $newrolefile > /dev/null 2>&1
     local nodes=
     for i in $(cat $rolefile | grep '^[^#;]'); do
-        local node=$(echo $i | cut -f1 -d",")
+        i=$(echo $i | tr -d ' ')
+        local node=$(echo $i | awk 'BEGIN {FS="],"} {print $1}')
         if [ -n "$(echo $node | grep '\[')" ]; then
             # Get the start and end index from the string in b/w '[' & ']' 
-            local bins=$(echo $i | cut -f2- -d",")
+            local bins=$(echo $i | awk 'BEGIN {FS="],"} {print $2}')
             local prefix=$(echo $node | cut -d'[' -f1)
             local suffix=$(echo $node | cut -d'[' -f2 | tr -d ']')
-            local startidx=$(echo $suffix | cut -d'-' -f1)
-            local endidx=$(echo $suffix | cut -d'-' -f2)
-            for j in $(seq $startidx $endidx)
+            # Check if suffix has ',' separated list
+            local ranges=$(echo $suffix | tr ',' ' ')
+            for range in $ranges
             do
-                local nodeip="$prefix$j"
-                local isvalid=$(util_validip $nodeip)
-                if [ "$isvalid" = "valid" ]; then
-                    echo "$nodeip,$bins" >> $newrolefile
-                else
-                    echo "Invalid IP [$node]. Scooting"
-                    exit 1
-                fi
+                local startidx=$(echo $range | cut -d'-' -f1)
+                local endidx=$(echo $range | cut -d'-' -f2)
+                for j in $(seq $startidx $endidx)
+                do
+                    local nodeip="$prefix$j"
+                    local isvalid=$(util_validip $nodeip)
+                    if [ "$isvalid" = "valid" ]; then
+                        echo "$nodeip,$bins" >> $newrolefile
+                    else
+                        echo "Invalid IP [$node]. Scooting"
+                        exit 1
+                    fi
+                done
             done
         else
             local isvalid=$(util_validip $node)
