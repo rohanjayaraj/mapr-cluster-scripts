@@ -20,6 +20,10 @@ function getOS(){
     echo "$(lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2)"
 }
 
+function getOSWithVersion(){
+    echo "$(lsb_release -a | grep 'Distributor\|Release' | tr -d ' ' | awk '{print $2}' | tr '\n' ' ')"
+}
+
 function util_getHostIP(){
     command -v ifconfig >/dev/null 2>&1 || util_installprereq
     local ipadd=$(/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1" | head -n 1 | awk '{print $2}' | cut -c6-)
@@ -657,6 +661,13 @@ function util_getDiskInfo(){
         fi
         echo -e "\t $disk : Type: $dtype, Size: ${size} GB $isos"
     done
+}
+
+function util_getMachineInfo(){
+    echo "Machine Info : "
+    echo -e "\t Hostname : $(hostname -f)"
+    echo -e "\t OS       : $(getOSWithVersion)"
+    echo -e "\t Kernel   : $(mpstat | head -n1 | awk '{print $1,$2}')"
 }
 
 # @param host name with domin
