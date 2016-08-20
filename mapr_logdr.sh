@@ -100,6 +100,7 @@ while [ "$1" != "" ]; do
             fi
         ;;
         -si | --systeminfo)
+            args=$args"sysinfo "
             sysinfo="$VALUE"
             if [ -z "$sysinfo" ]; then
                 sysinfo="all"

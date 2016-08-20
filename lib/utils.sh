@@ -580,18 +580,26 @@ function util_trimSSDDrives(){
 function util_getCPUInfo(){
     local ht=$(lscpu | grep 'Thread(s) per core' | cut -d':' -f2 | tr -d ' ')
     if [[ "$ht" -ne 1 ]]; then
-        ht="Enabled"
+        ht="Enabled ($ht)"
     else
-        ht="Disabled"
+        ht="Disabled ($ht)"
     fi
     local numcores=$(nproc)
     local numnuma=$(lscpu | grep 'NUMA' | cut -d':' -f2 | tr -d ' ' | head -1)
-    local numacpus="$(lscpu | grep 'NUMA' | grep 'CPU(s)')"
+    local numacpus=
+    for numacpu in "$(lscpu | grep 'NUMA' | grep 'CPU(s)')"
+    do
+        if [ -z "$numacpu" ]; then
+            numacpus=$(echo $numacpu | awk '{print $2": "$4}')
+        else
+            numacpus=$numacpus","$(echo $numacpu | awk '{print $2": "$4}')
+        fi
+    done
 
     echo "CPU Info : "
     echo -e "\t # of cores : $numcores"
-    echo -e "\t         HT : $ht"
-    echo -e "\t  # of numa : $numnuma"
+    echo -e "\tHyperThread : $ht"
+    echo -e "\t  # of numa : "$numnuma
     if [[ "$numnuma" -gt 1 ]]; then
         echo -e "\t  numa cpus : $numacpus"
     fi
@@ -626,14 +634,15 @@ function util_getDiskInfo(){
 
     for disk in $disks
     do
+        local blk=$(echo $disk | cut -d'/' -f3)
         local size=$(fdisk -l 2>/dev/null | grep '$disk' | tr -d ':' | awk '{print $3}')
-        local dtype=$(cat /sys/block/$disk/queue/rotational)
+        local dtype=$(cat /sys/block/$blk/queue/rotational)
         if [ "$dtype" -eq 0 ]; then
             dtype="SSD"
         else
             dtype="HDD"
         fi
-         echo -e "\t $disk [$dtype]"
+         echo -e "\t $disk - Type: $dtype, Size: $size"
     done
 }
 

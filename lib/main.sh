@@ -768,7 +768,6 @@ while [ "$2" != "" ]; do
 	    	done
 		;;
 		-si)
-			doLogAnalyze=1
 			GLB_SYSINFO_OPTION="$VALUE"
 		;;
 		-td)
