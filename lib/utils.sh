@@ -629,14 +629,15 @@ function util_getNetInfo(){
 }
 
 function util_getDiskInfo(){
-    local disks=$(fdisk -l 2>/dev/null | grep "Disk \/" | grep -v mapper | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
+    local fd=$(fdisk -l 2>/dev/null)
+    local disks=$(echo "$fd"| grep "Disk \/" | grep -v mapper | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
     local numdisks=$(echo "$disks" | wc -l)
     echo "Disk Info : [ #ofdisks: $numdisks ]"
 
     for disk in $disks
     do
         local blk=$(echo $disk | cut -d'/' -f3)
-        local size=$(fdisk -l 2>/dev/null | grep "Disk \/" | grep "$disk" | tr -d ':' | awk '{print $3}')
+        local size=$(echo "$fd" | grep "Disk \/" | grep "$disk" | tr -d ':' | awk '{print $3}')
         local dtype=$(cat /sys/block/$blk/queue/rotational)
         if [ "$dtype" -eq 0 ]; then
             dtype="SSD"
