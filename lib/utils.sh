@@ -636,7 +636,7 @@ function util_getDiskInfo(){
     for disk in $disks
     do
         local blk=$(echo $disk | cut -d'/' -f3)
-        local size=$(fdisk -l 2>/dev/null | grep "Disk \/" | grep '$disk' | tr -d ':' | awk '{print $3}')
+        local size=$(fdisk -l 2>/dev/null | grep "Disk \/" | grep "$disk" | tr -d ':' | awk '{print $3}')
         local dtype=$(cat /sys/block/$blk/queue/rotational)
         if [ "$dtype" -eq 0 ]; then
             dtype="SSD"
