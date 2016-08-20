@@ -639,12 +639,16 @@ function util_getDiskInfo(){
         local blk=$(echo $disk | cut -d'/' -f3)
         local size=$(echo "$fd" | grep "Disk \/" | grep "$disk" | tr -d ':' | awk '{print $3}')
         local dtype=$(cat /sys/block/$blk/queue/rotational)
+        local isos=$(echo "$fd" |  grep -A6 "$disk" | grep type | awk '{print $4}')
         if [ "$dtype" -eq 0 ]; then
             dtype="SSD"
         else
             dtype="HDD"
         fi
-         echo -e "\t $disk : Type: $dtype, Size: ${size} GB"
+        if [ -n "$isos" ]; then
+            isos="[ OS ]"
+        fi
+        echo -e "\t $disk : Type: $dtype, Size: ${size} GB $isos"
     done
 }
 
