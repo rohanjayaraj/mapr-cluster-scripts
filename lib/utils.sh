@@ -586,13 +586,14 @@ function util_getCPUInfo(){
     fi
     local numcores=$(nproc)
     local numnuma=$(lscpu | grep 'NUMA' | cut -d':' -f2 | tr -d ' ' | head -1)
+    local numanodes="$(lscpu | grep 'NUMA' | grep 'CPU(s)' | awk '{print $2":"$4}')"
     local numacpus=
-    for numacpu in "$(lscpu | grep 'NUMA' | grep 'CPU(s)')"
+    for numacpu in $numanodes
     do
-        if [ -z "$numacpu" ]; then
-            numacpus=$(echo $numacpu | awk '{print $2": "$4}')
+        if [ -z "$numacpus" ]; then
+            numacpus="$numacpu"
         else
-            numacpus=$numacpus","$(echo $numacpu | awk '{print $2": "$4}')
+            numacpus=$numacpus", $numacpu"
         fi
     done
 
@@ -635,14 +636,14 @@ function util_getDiskInfo(){
     for disk in $disks
     do
         local blk=$(echo $disk | cut -d'/' -f3)
-        local size=$(fdisk -l 2>/dev/null | grep '$disk' | tr -d ':' | awk '{print $3}')
+        local size=$(fdisk -l 2>/dev/null | grep "Disk \/" | grep '$disk' | tr -d ':' | awk '{print $3}')
         local dtype=$(cat /sys/block/$blk/queue/rotational)
         if [ "$dtype" -eq 0 ]; then
             dtype="SSD"
         else
             dtype="HDD"
         fi
-         echo -e "\t $disk - Type: $dtype, Size: $size"
+         echo -e "\t $disk - Type: $dtype, Size: ${size}GB"
     done
 }
 
