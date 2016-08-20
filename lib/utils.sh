@@ -586,17 +586,16 @@ function util_getCPUInfo(){
     fi
     local numcores=$(nproc)
     local numnuma=$(lscpu | grep 'NUMA' | cut -d':' -f2 | tr -d ' ' | head -1)
-    local numanodes="$(lscpu | grep 'NUMA' | grep 'CPU(s)' | awk '{print $2": "$4}')"
     local numacpus=
-    for numacpu in $numanodes
+    while read -r line
     do
         if [ -z "$numacpus" ]; then
-            numacpus="$numacpu"
+            numacpus="$line"
         else
-            numacpus=$numacpus", $numacpu"
+            numacpus=$numacpus", $line"
         fi
-    done
-
+    done <<<"$(lscpu | grep 'NUMA' | grep 'CPU(s)' | awk '{print $2": "$4}')"
+    
     echo "CPU Info : "
     echo -e "\t # of cores  : $numcores"
     echo -e "\t HyperThread : $ht"
@@ -620,8 +619,8 @@ function util_getNetInfo(){
     do
         local ip=$(ip -4 addr show $nic | grep -oP "(?<=inet).*(?=/)" | tr -d ' ')
         local mtu=$(cat /sys/class/net/$nic/mtu)
-        local speed=$(cat /sys/class/net/$nic/speed)
-        speed=$(echo "speed/1000" | bc)
+        local speed=$(cat /sys/class/net/${nic}/speed)
+        speed=$(echo "$speed/1000" | bc)
         local numa=$(cat /sys/class/net/$nic/device/numa_node)
         local cpulist=$(cat /sys/class/net/$nic/device/local_cpulist)
         echo -e "\t NIC: $nic, MTU: $mtu, IP: $ip, Speed: $speed GigE, NUMA: $numa(cpus: '$cpulist')"
