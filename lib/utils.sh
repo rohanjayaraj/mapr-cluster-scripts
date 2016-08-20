@@ -482,6 +482,7 @@ function util_expandNodeList(){
                 done
             done
         else
+            node=$(echo $i | cut -d',' -f1)
             local isvalid=$(util_validip $node)
             if [ "$isvalid" = "valid" ]; then
                 echo "$i" >> $newrolefile
