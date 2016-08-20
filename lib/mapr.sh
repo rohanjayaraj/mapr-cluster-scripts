@@ -1420,7 +1420,7 @@ function maprutil_checkTabletDistribution(){
 
 function maprutil_sysinfo(){
     echo
-    echo "[$(util_getHostIP)] Printing System info "
+    echo "[$(util_getHostIP)] System info "
     
     local options=
     if [ "$(echo $GLB_SYSINFO_OPTION | grep all)" ]; then

@@ -609,7 +609,8 @@ function util_getMemInfo(){
     local mem=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     local memgb=$(echo "$mem/1024/1024" | bc)
     echo "Memory Info : "
-    echo -e "\t Memory(gb) : $memgb"
+    echo -e "\t Memory : $memgb GB"
+    
 }
 
 function util_getNetInfo(){
@@ -623,7 +624,7 @@ function util_getNetInfo(){
         speed=$(echo "$speed/1000" | bc)
         local numa=$(cat /sys/class/net/$nic/device/numa_node)
         local cpulist=$(cat /sys/class/net/$nic/device/local_cpulist)
-        echo -e "\t NIC: $nic, MTU: $mtu, IP: $ip, Speed: $speed GigE, NUMA: $numa(cpus: '$cpulist')"
+        echo -e "\t NIC: $nic, MTU: $mtu, IP: $ip, Speed: ${speed}GbE, NUMA: $numa (cpus: $cpulist)"
     done
 }
 
@@ -643,7 +644,7 @@ function util_getDiskInfo(){
         else
             dtype="HDD"
         fi
-         echo -e "\t $disk : Type: $dtype, Size: ${size}GB"
+         echo -e "\t $disk : Type: $dtype, Size: ${size} GB"
     done
 }
 
