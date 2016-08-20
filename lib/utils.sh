@@ -586,7 +586,7 @@ function util_getCPUInfo(){
     fi
     local numcores=$(nproc)
     local numnuma=$(lscpu | grep 'NUMA' | cut -d':' -f2 | tr -d ' ' | head -1)
-    local numanodes="$(lscpu | grep 'NUMA' | grep 'CPU(s)' | awk '{print $2":"$4}')"
+    local numanodes="$(lscpu | grep 'NUMA' | grep 'CPU(s)' | awk '{print $2": "$4}')"
     local numacpus=
     for numacpu in $numanodes
     do
@@ -598,11 +598,11 @@ function util_getCPUInfo(){
     done
 
     echo "CPU Info : "
-    echo -e "\t # of cores : $numcores"
-    echo -e "\tHyperThread : $ht"
-    echo -e "\t  # of numa : "$numnuma
+    echo -e "\t # of cores  : $numcores"
+    echo -e "\t HyperThread : $ht"
+    echo -e "\t # of numa   : "$numnuma
     if [[ "$numnuma" -gt 1 ]]; then
-        echo -e "\t  numa cpus : $numacpus"
+        echo -e "\t numa cpus   : $numacpus"
     fi
 }
 
@@ -610,11 +610,11 @@ function util_getMemInfo(){
     local mem=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     local memgb=$(echo "$mem/1024/1024" | bc)
     echo "Memory Info : "
-    echo -e "\tMemory(gb) : $memgb"
+    echo -e "\t Memory(gb) : $memgb"
 }
 
 function util_getNetInfo(){
-    local nics=$(ip link show | grep BROADCAST | grep UP | tr -d ':' | awk '{print $2}')
+    local nics="$(ip link show | grep BROADCAST | grep UP | tr -d ':' | awk '{print $2}')"
     echo "Network Info : "
     for nic in $nics
     do
@@ -644,7 +644,7 @@ function util_getDiskInfo(){
         else
             dtype="HDD"
         fi
-         echo -e "\t $disk - Type: $dtype, Size: ${size}GB"
+         echo -e "\t $disk : Type: $dtype, Size: ${size}GB"
     done
 }
 
