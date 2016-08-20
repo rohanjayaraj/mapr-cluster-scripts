@@ -660,6 +660,8 @@ function util_getDiskInfo(){
             local dival=$(printf "%d\n" $isos)
             if [[ "$dival" -ne 0 ]]; then
                 isos="[ OS ]"
+            else
+                isos=
             fi
         fi
         echo -e "\t $disk : Type: $dtype, Size: ${size} GB $isos"
