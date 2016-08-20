@@ -650,14 +650,17 @@ function util_getDiskInfo(){
         local blk=$(echo $disk | cut -d'/' -f3)
         local size=$(echo "$fd" | grep "Disk \/" | grep "$disk" | tr -d ':' | awk '{print $3}')
         local dtype=$(cat /sys/block/$blk/queue/rotational)
-        local isos=$(echo "$fd" |  grep -A6 "$disk" | grep type | awk '{print $4}')
+        local isos=$(echo "$fd" |  grep -wA6 "$disk" | grep "Disk identifier" | awk '{print $3}')
         if [ "$dtype" -eq 0 ]; then
             dtype="SSD"
         else
             dtype="HDD"
         fi
         if [ -n "$isos" ]; then
-            isos="[ OS ]"
+            local dival=$(printf "%d\n" $isos)
+            if [[ "$dival" -ne 0 ]]; then
+                isos="[ OS ]"
+            fi
         fi
         echo -e "\t $disk : Type: $dtype, Size: ${size} GB $isos"
     done
