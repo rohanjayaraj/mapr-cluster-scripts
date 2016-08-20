@@ -183,10 +183,10 @@ function util_installBinaries(){
         if [ -n "$2" ]; then
             bins=$(util_appendVersionToPackage "$1" "$2")
         fi
-        yum clean all
+        yum clean all > /dev/null 2>&1
         yum install ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get update
+        apt-get update > /dev/null 2>&1
         apt-get install ${bins} -y --force-yes
     fi
 }
@@ -575,6 +575,66 @@ function util_trimSSDDrives(){
         nohup echo "$trimlist" | hdparm --trim-sector-ranges-stdin ${disk} > /dev/null 2>&1 &
     done
     wait
+}
+
+function util_getCPUInfo(){
+    local ht=$(lscpu | grep 'Thread(s) per core' | cut -d':' -f2 | tr -d ' ')
+    if [[ "$ht" -ne 1 ]]; then
+        ht="Enabled"
+    else
+        ht="Disabled"
+    fi
+    local numcores=$(nproc)
+    local numnuma=$(lscpu | grep 'NUMA' | cut -d':' -f2 | tr -d ' ' | head -1)
+    local numacpus="$(lscpu | grep 'NUMA' | grep 'CPU(s)')"
+
+    echo "CPU Info : "
+    echo -e "\t # of cores : $numcores"
+    echo -e "\t         HT : $ht"
+    echo -e "\t  # of numa : $numnuma"
+    if [[ "$numnuma" -gt 1 ]]; then
+        echo -e "\t  numa cpus : $numacpus"
+    fi
+}
+
+function util_getMemInfo(){
+    local mem=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    local memgb=$(echo "$mem/1024/1024" | bc)
+    echo "Memory Info : "
+    echo -e "\tMemory(gb) : $memgb"
+}
+
+function util_getNetInfo(){
+    local nics=$(ip link show | grep BROADCAST | grep UP | tr -d ':' | awk '{print $2}')
+    echo "Network Info : "
+    for nic in $nics
+    do
+        local ip=$(ip -4 addr show $nic | grep -oP "(?<=inet).*(?=/)" | tr -d ' ')
+        local mtu=$(cat /sys/class/net/$nic/mtu)
+        local speed=$(cat /sys/class/net/$nic/speed)
+        speed=$(echo "speed/1000" | bc)
+        local numa=$(cat /sys/class/net/$nic/device/numa_node)
+        local cpulist=$(cat /sys/class/net/$nic/device/local_cpulist)
+        echo -e "\t NIC: $nic, MTU: $mtu, IP: $ip, Speed: $speed GigE, NUMA: $numa(cpus: '$cpulist')"
+    done
+}
+
+function util_getDiskInfo(){
+    local disks=$(fdisk -l 2>/dev/null | grep "Disk \/" | grep -v mapper | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
+    local numdisks=$(echo "$disks" | wc -l)
+    echo "Disk Info : [ #ofdisks: $numdisks ]"
+
+    for disk in $disks
+    do
+        local size=$(fdisk -l 2>/dev/null | grep '$disk' | tr -d ':' | awk '{print $3}')
+        local dtype=$(cat /sys/block/$disk/queue/rotational)
+        if [ "$dtype" -eq 0 ]; then
+            dtype="SSD"
+        else
+            dtype="HDD"
+        fi
+         echo -e "\t $disk [$dtype]"
+    done
 }
 
 # @param host name with domin

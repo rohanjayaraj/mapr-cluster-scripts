@@ -17,6 +17,7 @@ meid=$$
 rolefile=
 args=
 tbltdist=
+sysinfo=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -63,6 +64,9 @@ function usage () {
 
     echo -e "\t -td=<FILEPATH> | --tabletdist=<FILEPATH>" 
     echo -e "\t\t - Check Tablet distribution across SPs on each node for FILEPATH"
+
+    echo -e "\t -si=<OPTIONS> | --systeminfo=<OPTIONS>" 
+    echo -e "\t\t - Print system info of each node. OPTIONS : cpu,disk,nw,mem,all (comma separated)"
     
     echo 
     echo " Examples : "
@@ -95,6 +99,12 @@ while [ "$1" != "" ]; do
                 tbltdist="$VALUE"
             fi
         ;;
+        -si | --systeminfo)
+            sysinfo="$VALUE"
+            if [ -z "$sysinfo" ]; then
+                sysinfo="all"
+            fi
+        ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
             usage
@@ -111,7 +121,7 @@ elif [ -z "$args" ]; then
     echo "No option specified"
     exit
 else
-    $libdir/main.sh "$rolefile" "-l=$args" "-td=$tbltdist"
+    $libdir/main.sh "$rolefile" "-l=$args" "-td=$tbltdist" "-si=$sysinfo"
 fi
 
 echo "DONE!"

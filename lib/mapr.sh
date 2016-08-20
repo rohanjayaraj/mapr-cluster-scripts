@@ -410,12 +410,12 @@ function maprutil_uninstall(){
     # Run Yum clean
     local nodeos=$(getOS $node)
     if [ "$nodeos" = "centos" ]; then
-        yum clean all
-        yum-complete-transaction --cleanup-only
+        yum clean all > /dev/null 2>&1
+        yum-complete-transaction --cleanup-only > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
-        apt-get install -f -y
-        apt-get autoremove -y
-        apt-get update
+        apt-get install -f -y > /dev/null 2>&1
+        apt-get autoremove -y > /dev/null 2>&1
+        apt-get update > /dev/null 2>&1
     fi
 
     # Remove mapr shared memory segments
@@ -1325,6 +1325,9 @@ function maprutil_runCommands(){
             disktest)
                 maprutil_runDiskTest
             ;;
+            sysinfo)
+                maprutil_sysinfo
+            ;;
             *)
             echo "Nothing to do!!"
             ;;
@@ -1415,6 +1418,41 @@ function maprutil_checkTabletDistribution(){
     done
 }
 
+function maprutil_sysinfo(){
+    echo
+    echo "[$(util_getHostIP)] Printing System info "
+    
+    local options=
+    if [ "$(echo $GLB_SYSINFO_OPTION | grep all)" ]; then
+        options="all"
+    else
+        options=$(echo $GLB_SYSINFO_OPTION | tr "," "\n")
+    fi
+    for i in $options
+    do
+        case $i in
+            cpu)
+                util_getCPUInfo
+            ;;
+            disk)
+                util_getDiskInfo
+            ;;
+            nw)
+                util_getNetInfo
+            ;;
+            mem)
+                util_getMemInfo
+            ;;
+            all)
+                util_getCPUInfo
+                util_getMemInfo
+                util_getNetInfo
+                util_getDiskInfo
+            ;;
+        esac
+    done
+}
+
 function maprutil_applyLicense(){
     wget http://stage.mapr.com/license/LatestDemoLicense-M7.txt --user=maprqa --password=maprqa -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
     local buildid=$(maprutil_getBuildID)
@@ -1423,7 +1461,7 @@ function maprutil_applyLicense(){
     while [ "${jobs}" -ne "0" ]; do
         echo "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 30s"
         if [ -n "$GLB_SECURE_CLUSTER" ]; then
-             echo 'mapr' | maprlogin password
+             echo 'mapr' | maprlogin password  2>/dev/null
         fi
         if [ "$jobs" -ne 0 ]; then
             local licenseExists=`/opt/mapr/bin/maprcli license list | grep M7 | wc -l`

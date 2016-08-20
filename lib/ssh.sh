@@ -166,7 +166,7 @@ function ssh_createkey(){
 		if [ ! -d "$keydir" ]; then
 			mkdir $keydir
 		fi
-		ssh-keygen -t rsa -N "" -f $key 2>/dev/null
+		ssh-keygen -t rsa -N "" -f $key > /dev/null 2>&1
 	fi
 }
 

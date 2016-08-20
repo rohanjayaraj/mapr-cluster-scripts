@@ -113,6 +113,7 @@ GLB_BUILD_VERSION=
 GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
 GLB_SECURE_CLUSTER=
+GLB_SYSINFO_OPTION=
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 ############################### ALL functions to be defined below this ###############################
@@ -598,6 +599,13 @@ function main_runLogDoctor(){
 			maprutil_runCommandsOnNode "$node" "disktest"
 		done
 	fi
+	if [ -n "$GLB_SYSINFO_OPTION" ]; then
+		echo "[$(util_getCurDate)] Running system info on all nodes"
+		for node in ${nodes[@]}
+		do	
+			maprutil_runCommandsOnNode "$node" "sysinfo"
+		done
+	fi
 	
 }
 
@@ -758,6 +766,10 @@ while [ "$2" != "" ]; do
 	    			doDiskTest=1
 	    		fi
 	    	done
+		;;
+		-si)
+			doLogAnalyze=1
+			GLB_SYSINFO_OPTION="$VALUE"
 		;;
 		-td)
 			if [ -n "$VALUE" ]; then
