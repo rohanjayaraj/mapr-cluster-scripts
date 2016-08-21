@@ -42,7 +42,7 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 	if [ -z "$(util_fileExists $rolefile)" ]; then
 		rolefile=$rolesdir"/mapr_roles."$1
 		if [ -z "$(util_fileExists $rolefile)" ]; then
-			if  [[ $rolefile =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
+			if  [[ $1 =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
 				dummyrole=$rolesdir"/mapr_roles.temp"
 				echo "$rolefile,dummy" > $dummyrole
 				rolefile=$dummyrole
