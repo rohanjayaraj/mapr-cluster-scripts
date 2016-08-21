@@ -42,8 +42,14 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 	if [ -z "$(util_fileExists $rolefile)" ]; then
 		rolefile=$rolesdir"/mapr_roles."$1
 		if [ -z "$(util_fileExists $rolefile)" ]; then
-			echo "Role file specified doesn't exist. Scooting!"
-			exit 1
+			if  [[ $rolefile =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
+				dummyrole=$rolesdir"/mapr_roles.temp"
+				echo "$rolefile,dummy" > $dummyrole
+				rolefile=$dummyrole
+			else
+				echo "Role file specified doesn't exist. Scooting!"
+				exit 1
+			fi
 		fi
 	fi
 fi
@@ -304,7 +310,6 @@ function main_upgrade(){
 		if [ -z "$isInstalled" ]; then
 			notlist=$notlist"$node"" "
 		else
-			#??? Get install version
 			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
 		fi
 	done
@@ -429,29 +434,7 @@ function main_uninstall(){
 	        return 1
 	    fi
 	fi
-    echo
-    echo "Checking if MapR is installed on the nodes..."
-	# Check if MapR is installed on all nodes
-	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
-	local notlist=
-	for node in ${nodes[@]}
-	do
-		local isInstalled=$(echo "$islist" | grep $node)
-		if [ -z "$isInstalled" ]; then
-			notlist=$notlist"$node"" "
-		else
-			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
-		fi
-	done
-
-	if [ -n "$notlist" ]; then
-		if [ "$doForce" -eq 0 ]; then
-			echo "MapR not installed on the node(s) [ $notlist]. Scooting!"
-			exit 1
-		else
-			echo "MapR not installed on the node(s) [ $notlist]."
-		fi
-	fi
+    echo && main_isMapRInstalled
 
 	local cldbnode=
 	local nocldblist=
@@ -530,8 +513,36 @@ function main_uninstall(){
 	echo "[$(util_getCurDate)] Uninstall is complete! [ RunTime - $(main_timetaken) ]"
 }
 
+function main_isMapRInstalled(){
+	echo "Checking if MapR is installed on the nodes..."
+	# Check if MapR is installed on all nodes
+	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
+	local notlist=
+	for node in ${nodes[@]}
+	do
+		local isInstalled=$(echo "$islist" | grep $node)
+		if [ -z "$isInstalled" ]; then
+			notlist=$notlist"$node"" "
+		else
+			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
+		fi
+	done
+
+	if [ -n "$notlist" ]; then
+		if [ "$doForce" -eq 0 ]; then
+			echo "MapR not installed on the node(s) [ $notlist]. Scooting!"
+			exit 1
+		else
+			echo "MapR not installed on the node(s) [ $notlist]."
+		fi
+	fi
+}
+
 function main_backuplogs(){
 	echo "[$(util_getCurDate)] Backing up MapR log directory on all nodes to $doBackup"
+	
+	main_isMapRInstalled
+
 	local timestamp=$(date +%Y-%m-%d-%H-%M)
 	for node in ${nodes[@]}
 	do	
@@ -580,6 +591,7 @@ function main_runLogDoctor(){
 		done
 	fi
 	if [ -n "$GLB_TABLET_DIST" ]; then
+		main_isMapRInstalled
 		echo "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
 		for node in ${nodes[@]}
 		do	
@@ -830,19 +842,30 @@ while [ "$2" != "" ]; do
     shift
 done
 
-if [ "$doInstall" -eq 1 ]; then
-	echo " *************** Starting Cluster Installation **************** "
-	main_install
-elif [ "$doUninstall" -eq 1 ]; then
-	echo " *************** Starting Cluster Uninstallation **************** "
-	main_uninstall
-elif [ "$doUpgrade" -eq 1 ]; then
-	echo " *************** Starting Cluster Upgrade **************** "
-	main_upgrade
-elif [ "$doConfigure" -eq 1 ]; then
-	echo " *************** Starting Cluster Reset & configuration **************** "
-	main_reconfigure
-elif [ -n "$doBackup" ]; then
+if [ -z "$dummyrole" ]; then 
+	if [ "$doInstall" -eq 1 ]; then
+		echo " *************** Starting Cluster Installation **************** "
+		main_install
+	elif [ "$doUninstall" -eq 1 ]; then
+		echo " *************** Starting Cluster Uninstallation **************** "
+		main_uninstall
+	elif [ "$doUpgrade" -eq 1 ]; then
+		echo " *************** Starting Cluster Upgrade **************** "
+		main_upgrade
+	elif [ "$doConfigure" -eq 1 ]; then
+		echo " *************** Starting Cluster Reset & configuration **************** "
+		main_reconfigure
+	fi
+
+	if [ -n "$doCmdExec" ]; then
+		main_runCommandExec "$doCmdExec"
+	fi
+else
+	echo "Nothing to do; specify a valid role file"
+	exit 
+fi
+
+if [ -n "$doBackup" ]; then
 	echo " *************** Starting logs backup **************** "
 	main_backuplogs	
 fi
@@ -851,10 +874,6 @@ exitcode=`echo $?`
 if [ "$exitcode" -ne 0 ]; then
 	#echo "exiting with exit code $exitcode"
 	exit
-fi
-
-if [ -n "$doCmdExec" ]; then
-	main_runCommandExec "$doCmdExec"
 fi
 
 if [ -n "$doLogAnalyze" ]; then

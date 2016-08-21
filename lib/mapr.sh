@@ -294,8 +294,16 @@ function maprutil_getMapRVersionOnNode(){
     fi
     local node=$1
     local version=$(ssh_executeCommandasRoot "$node" "[ -e '/opt/mapr/MapRBuildVersion' ] && cat /opt/mapr/MapRBuildVersion")
+    local patch=
+    local nodeos=$(getOSFromNode $node)
+    if [ "$nodeos" = "centos" ]; then
+        patch=$(ssh_executeCommandasRoot "$node" "rpm -qa | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1")
+    elif [ "$nodeos" = "ubuntu" ]; then
+        patch=$(ssh_executeCommandasRoot "$node" "dpkg -l | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1")
+    fi
+    [ -n "$patch" ] && patch="(patch${patch})"
     if [ -n "$version" ]; then
-        echo $version
+        echo $version$patch
     fi
 }
 
