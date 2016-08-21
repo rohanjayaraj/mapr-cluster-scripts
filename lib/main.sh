@@ -860,9 +860,6 @@ if [ -z "$dummyrole" ]; then
 	if [ -n "$doCmdExec" ]; then
 		main_runCommandExec "$doCmdExec"
 	fi
-else
-	echo "Nothing to do; specify a valid role file"
-	exit 
 fi
 
 if [ -n "$doBackup" ]; then
