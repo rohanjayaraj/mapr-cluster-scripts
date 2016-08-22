@@ -1455,10 +1455,10 @@ function maprutil_sysinfo(){
                 util_getMachineInfo
             ;;
             mapr)
-                util_getMapRInfo
+                maprutil_getMapRInfo
             ;;
             all)
-                util_getMapRInfo
+                maprutil_getMapRInfo
                 util_getMachineInfo
                 util_getCPUInfo
                 util_getMemInfo
@@ -1469,7 +1469,7 @@ function maprutil_sysinfo(){
     done
 }
 
-function util_getMapRInfo(){
+function maprutil_getMapRInfo(){
     [ ! -e "/opt/mapr/roles" ] && return
     local version=$(cat /opt/mapr/MapRBuildVersion)
     local nodeos=$(getOS)
@@ -1482,7 +1482,7 @@ function util_getMapRInfo(){
     [ -n "$patch" ] && version="$version (patch ${patch})"
     
     echo "MapR Info : [ $version ]"
-    echo -e "\t Roles : $(util_getHostIP),$(ls /opt/mapr/roles | tr '\n' ',')"
+    echo -e "\t Roles : $(ls /opt/mapr/roles | tr '\n' ' ')"
 }
 
 function maprutil_applyLicense(){
