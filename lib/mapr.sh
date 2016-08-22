@@ -157,7 +157,7 @@ function maprutil_getNodesFromRole() {
             exit 1
         fi
     done
-    echo $nodes
+    echo $nodes | sort
 }
 
 function maprutil_coresdirs(){
