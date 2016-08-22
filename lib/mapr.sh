@@ -299,7 +299,7 @@ function maprutil_getMapRVersionOnNode(){
     if [ "$nodeos" = "centos" ]; then
         patch=$(ssh_executeCommandasRoot "$node" "rpm -qa | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1")
     elif [ "$nodeos" = "ubuntu" ]; then
-        patch=$(ssh_executeCommandasRoot "$node" "dpkg -l | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1")
+        patch=$(ssh_executeCommandasRoot "$node" "dpkg -l | grep mapr-patch | awk '{print $3}' | cut -d'-' -f4 | cut -d'.' -f1")
     fi
     [ -n "$patch" ] && patch="(patch ${patch})"
     if [ -n "$version" ]; then
@@ -1470,19 +1470,30 @@ function maprutil_sysinfo(){
 }
 
 function maprutil_getMapRInfo(){
-    [ ! -e "/opt/mapr/roles" ] && return
     local version=$(cat /opt/mapr/MapRBuildVersion)
+    [ -z "$version" ] && return
+
+    local roles=$(ls /opt/mapr/roles | tr '\n' ' ')
     local nodeos=$(getOS)
     local patch=
+    local client=
+    local bins=
     if [ "$nodeos" = "centos" ]; then
         patch=$(rpm -qa | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1)
+        client=$(rpm -qa | grep mapr-client | cut -d'-' -f3)
+        bins=$(rpm -qa | grep mapr- | sort | cut -d'-' -f1-2 | tr '\n' ' ')
     elif [ "$nodeos" = "ubuntu" ]; then
-        patch=$(dpkg -l | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1)
+        patch=$(dpkg -l | grep mapr-patch | awk '{print $3}' | cut -d'-' -f4 | cut -d'.' -f1)
+        client=$(dpkg -l | grep mapr-client | awk '{print $3}' | cut -d'-' -f1)
+        bins=$(dpkg -l | grep mapr- | awk '{print $2}' | sort | tr '\n' ' ')
     fi
     [ -n "$patch" ] && version="$version (patch ${patch})"
     
-    echo "MapR Info : [ $version ]"
-    echo -e "\t Roles : $(ls /opt/mapr/roles | tr '\n' ' ')"
+    echo "MapR Info : "
+    [ -n "$roles" ] && echo -e "\t Roles    : $roles"
+    echo -e "\t Version  : ${version}"
+    [ -n "$client" ] && echo -e "\t Client  : ${client}"
+    echo -e "\t Binaries : $bins"
 }
 
 function maprutil_applyLicense(){
