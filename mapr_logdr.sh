@@ -66,7 +66,7 @@ function usage () {
     echo -e "\t\t - Check Tablet distribution across SPs on each node for FILEPATH"
 
     echo -e "\t -si=<OPTIONS> | --systeminfo=<OPTIONS>" 
-    echo -e "\t\t - Print system info of each node. OPTIONS : machine,cpu,disk,nw,mem or all (comma separated)"
+    echo -e "\t\t - Print system info of each node. OPTIONS : mapr,machine,cpu,disk,nw,mem or all (comma separated)"
     
     echo 
     echo " Examples : "

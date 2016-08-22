@@ -301,7 +301,7 @@ function maprutil_getMapRVersionOnNode(){
     elif [ "$nodeos" = "ubuntu" ]; then
         patch=$(ssh_executeCommandasRoot "$node" "dpkg -l | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1")
     fi
-    [ -n "$patch" ] && patch="(patch${patch})"
+    [ -n "$patch" ] && patch="(patch ${patch})"
     if [ -n "$version" ]; then
         echo $version$patch
     fi
@@ -1454,7 +1454,11 @@ function maprutil_sysinfo(){
             machine)
                 util_getMachineInfo
             ;;
+            mapr)
+                util_getMapRInfo
+            ;;
             all)
+                util_getMapRInfo
                 util_getMachineInfo
                 util_getCPUInfo
                 util_getMemInfo
@@ -1463,6 +1467,22 @@ function maprutil_sysinfo(){
             ;;
         esac
     done
+}
+
+function util_getMapRInfo(){
+    [ ! -e "/opt/mapr/roles" ] && return
+    local version=$(cat /opt/mapr/MapRBuildVersion)
+    local nodeos=$(getOS)
+    local patch=
+    if [ "$nodeos" = "centos" ]; then
+        patch=$(rpm -qa | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1)
+    elif [ "$nodeos" = "ubuntu" ]; then
+        patch=$(dpkg -l | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1)
+    fi
+    [ -n "$patch" ] && version="$version(patch ${patch})"
+    
+    echo "MapR Info : [ $version ]"
+    echo -e "\t Roles : $(ls /opt/mapr/roles)"
 }
 
 function maprutil_applyLicense(){

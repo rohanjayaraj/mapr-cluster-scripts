@@ -176,21 +176,28 @@ function ssh_copyPrivateKey(){
 	if [ -z "$1" ] || [ -z "$2" ]; then
 		return 1
 	fi
-	sshpass -pmapr ssh -o StrictHostKeyChecking=no -l $1 $2 exit
-	local sshpassret=$?
-	if [ "$sshpassret" -eq 0 ]; then
-		local sshpval=$(sshpass -pmapr ssh-copy-id $1@$2)
-		local retval=$?
-		if [ "$retval" != 0 ]; then
-			cat /root/.ssh/id_rsa.pub | sshpass -pmapr ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
+	local rootpwd=${ROOTPWD}
+	[ -n "$rootpwd" ] && rootpwd=$(echo "$rootpwd" | tr -d ' ' | tr ',' ' ') || rootpwd="mapr"
+	for pwd in $rootpwd
+	do
+		sshpass -p${pwd} ssh -o StrictHostKeyChecking=no -l $1 $2 exit
+		local sshpassret=$?
+		if [ "$sshpassret" -eq 0 ]; then
+			local sshpval=$(sshpass -p${pwd} ssh-copy-id $1@$2)
+			local retval=$?
+			if [ "$retval" != 0 ]; then
+				cat /root/.ssh/id_rsa.pub | sshpass -p${pwd} ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
+			fi
+			break
+		else
+			local sshpval=$(ssh-copy-id $1@$2)
+			local retval=$?
+			if [ "$retval" != 0 ]; then
+				cat /root/.ssh/id_rsa.pub | ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
+			fi
+			break
 		fi
-	else
-		local sshpval=$(ssh-copy-id $1@$2)
-		local retval=$?
-		if [ "$retval" != 0 ]; then
-			cat /root/.ssh/id_rsa.pub | ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
-		fi
-	fi
+	done
 }
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
