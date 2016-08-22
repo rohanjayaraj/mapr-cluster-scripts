@@ -1479,10 +1479,10 @@ function util_getMapRInfo(){
     elif [ "$nodeos" = "ubuntu" ]; then
         patch=$(dpkg -l | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1)
     fi
-    [ -n "$patch" ] && version="$version(patch ${patch})"
+    [ -n "$patch" ] && version="$version (patch ${patch})"
     
     echo "MapR Info : [ $version ]"
-    echo -e "\t Roles : $(ls /opt/mapr/roles)"
+    echo -e "\t Roles : $(util_getHostIP),$(ls /opt/mapr/roles | tr '\n' ',')"
 }
 
 function maprutil_applyLicense(){
