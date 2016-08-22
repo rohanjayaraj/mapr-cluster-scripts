@@ -16,7 +16,7 @@ function ssh_check(){
 		return 1
 	fi
 	
-	ssh -o BatchMode=yes -o StrictHostKeyChecking=no -l $1 $2 exit
+	ssh -o BatchMode=yes -o StrictHostKeyChecking=no -l $1 $2 exit >/dev/null 2>&1
 	local retval=$?
 	if [ "$retval" = 0 ]; then
 		echo "enabled"
@@ -180,7 +180,7 @@ function ssh_copyPrivateKey(){
 	[ -n "$rootpwd" ] && rootpwd=$(echo "$rootpwd" | tr -d ' ' | tr ',' ' ') || rootpwd="mapr"
 	for pwd in $rootpwd
 	do
-		sshpass -p${pwd} ssh -o StrictHostKeyChecking=no -l $1 $2 exit
+		sshpass -p${pwd} ssh -o StrictHostKeyChecking=no -l $1 $2 exit >/dev/null 2>&1
 		local sshpassret=$?
 		if [ "$sshpassret" -eq 0 ]; then
 			local sshpval=$(sshpass -p${pwd} ssh-copy-id $1@$2)

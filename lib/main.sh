@@ -95,7 +95,7 @@ if [ -n $(ssh_checkSSHonNodes "$nodes") ]; then
 	do
 		isEnabled=$(ssh_check "root" "$node")
 		if [ "$isEnabled" != "enabled" ]; then
-			echo "Configuring key-based authentication for the node $node (enter password once)"
+			echo "Configuring key-based authentication for the node $node (enter password once if required)"
 			ssh_copyPrivateKey "root" "$node"
 		fi
 	done
