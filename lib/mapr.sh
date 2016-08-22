@@ -1494,7 +1494,7 @@ function maprutil_getMapRInfo(){
     echo "MapR Info : "
     [ -n "$roles" ] && echo -e "\t Roles    : $roles"
     echo -e "\t Version  : ${version}"
-    [ -n "$client" ] && echo -e "\t Client  : ${client}"
+    [ -n "$client" ] && echo -e "\t Client   : ${client}"
     echo -e "\t Binaries : $bins"
 }
 
