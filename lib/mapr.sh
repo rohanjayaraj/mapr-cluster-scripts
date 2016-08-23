@@ -377,7 +377,7 @@ function maprutil_cleanPrevClusterConfig(){
     util_kill "iostat"
     util_kill "top -b"
 
-    rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.con /opt/mapr/logs/* 2>/dev/null
+    rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.conf /opt/mapr/logs/* 2>/dev/null
     
      # Remove all directories
     maprutil_removedirs "cores" > /dev/null 2>&1
