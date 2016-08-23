@@ -591,7 +591,6 @@ function main_runLogDoctor(){
 		done
 	fi
 	if [ -n "$GLB_TABLET_DIST" ]; then
-		main_isMapRInstalled
 		echo "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
 		for node in ${nodes[@]}
 		do	
