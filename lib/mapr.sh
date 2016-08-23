@@ -1494,7 +1494,7 @@ function maprutil_getMapRInfo(){
     local numsps=
     local sppermfs=
     if [ -e "/opt/mapr/server/mrconfig" ]; then
-        nummfs=-$(/opt/mapr/server/mrconfig info instances | head -1)
+        nummfs=$(/opt/mapr/server/mrconfig info instances | head -1)
         numsps=$(/opt/mapr/server/mrconfig sp list | grep SP[0-9] | wc -l)
         command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json | grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
         [[ "$sppermfs" -eq 0 ]] && sppermfs=$numsps
