@@ -1490,11 +1490,15 @@ function maprutil_getMapRInfo(){
         bins=$(echo "$debs" | grep mapr- | awk '{print $2}' | sort | tr '\n' ' ')
     fi
     [ -n "$patch" ] && version="$version (patch ${patch})"
-    local nummfs=$(/opt/mapr/server/mrconfig info instances | head -1)
-    local numsps=$(/opt/mapr/server/mrconfig sp list | grep SP[0-9] | wc -l)
+    local nummfs=
+    local numsps=
     local sppermfs=
-    command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json | grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
-    [[ "$sppermfs" -eq 0 ]] && sppermfs=$numsps
+    if [ -e "/opt/mapr/server/mrconfig" ]; then
+        nummfs=-$(/opt/mapr/server/mrconfig info instances | head -1)
+        numsps=$(/opt/mapr/server/mrconfig sp list | grep SP[0-9] | wc -l)
+        command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json | grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
+        [[ "$sppermfs" -eq 0 ]] && sppermfs=$numsps
+    fi
     
     echo "MapR Info : "
     [ -n "$roles" ] && echo -e "\t Roles    : $roles"
