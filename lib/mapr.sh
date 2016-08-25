@@ -301,7 +301,7 @@ function maprutil_getMapRVersionOnNode(){
     elif [ "$nodeos" = "ubuntu" ]; then
         patch=$(ssh_executeCommandasRoot "$node" "dpkg -l | grep mapr-patch | awk '{print $3}' | cut -d'-' -f4 | cut -d'.' -f1")
     fi
-    [ -n "$patch" ] && patch="(patch ${patch})"
+    [ -n "$patch" ] && patch=" (patch ${patch})"
     if [ -n "$version" ]; then
         echo $version$patch
     fi
@@ -440,6 +440,8 @@ function maprutil_uninstall(){
 
     # Remove all directories
     maprutil_removedirs "all"
+
+    echo 1 > /proc/sys/vm/drop_caches
 }
 
 # @param host ip
@@ -1470,7 +1472,7 @@ function maprutil_sysinfo(){
 }
 
 function maprutil_getMapRInfo(){
-    local version=$(cat /opt/mapr/MapRBuildVersion)
+    local version=$(cat /opt/mapr/MapRBuildVersion 2>/dev/null)
     [ -z "$version" ] && return
 
     local roles=$(ls /opt/mapr/roles | tr '\n' ' ')
