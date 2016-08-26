@@ -562,7 +562,11 @@ function maprutil_installBinariesOnNode(){
     echo "keyexists=\$(util_fileExists \"/root/.ssh/id_rsa\")" >> $scriptpath
     echo "[ -z \"\$keyexists\" ] && ssh_createkey \"/root/.ssh\"" >> $scriptpath
     echo "util_installprereq" >> $scriptpath
-    echo "util_installBinaries \""$2"\" \""$GLB_BUILD_VERSION"\"" >> $scriptpath
+    local bins="$2"
+    local haspatch=$(echo "$2" | grep mapr-patch)
+    [ -n "$haspatch" ] && bins=$(echo "$bins" | sed 's/mapr-patch//g')
+    echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\"" >> $scriptpath
+    [ -n "$haspatch" ] && echo "util_installBinaries \""mapr-patch"\" \""$GLB_PATCH_VERSION"\"" >> $scriptpath
     
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"

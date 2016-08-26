@@ -116,6 +116,7 @@ GLB_PONTIS=
 GLB_BG_PIDS=
 GLB_MAX_DISKS=
 GLB_BUILD_VERSION=
+GLB_PATCH_VERSION=
 GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
 GLB_SECURE_CLUSTER=
@@ -820,6 +821,7 @@ while [ "$2" != "" ]; do
     	-bld)
 			if [ -n "$VALUE" ]; then
 				GLB_BUILD_VERSION=$VALUE
+				GLB_PATCH_VERSION=$VALUE
 			fi
     	;;
     	-pb)
