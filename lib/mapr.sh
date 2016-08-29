@@ -1479,7 +1479,7 @@ function maprutil_getMapRInfo(){
     local version=$(cat /opt/mapr/MapRBuildVersion 2>/dev/null)
     [ -z "$version" ] && return
 
-    local roles=$(ls /opt/mapr/roles | tr '\n' ' ')
+    local roles=$(ls /opt/mapr/roles 2>/dev/null| tr '\n' ' ')
     local nodeos=$(getOS)
     local patch=
     local client=
@@ -1500,9 +1500,9 @@ function maprutil_getMapRInfo(){
     local numsps=
     local sppermfs=
     if [ -e "/opt/mapr/server/mrconfig" ]; then
-        nummfs=$(/opt/mapr/server/mrconfig info instances | head -1)
-        numsps=$(/opt/mapr/server/mrconfig sp list | grep SP[0-9] | wc -l)
-        command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json | grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
+        nummfs=$(/opt/mapr/server/mrconfig info instances 2>/dev/null| head -1)
+        numsps=$(/opt/mapr/server/mrconfig sp list 2>/dev/null| grep SP[0-9] | wc -l)
+        command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json 2>/dev/null| grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
         [[ "$sppermfs" -eq 0 ]] && sppermfs=$numsps
     fi
     
