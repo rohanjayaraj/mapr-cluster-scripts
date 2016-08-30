@@ -172,7 +172,7 @@ function ssh_createkey(){
 
 # @param host user
 # @param host ip
-function ssh_copyPrivateKey(){
+function ssh_copyPublicKey(){
 	if [ -z "$1" ] || [ -z "$2" ]; then
 		return 1
 	fi

@@ -810,6 +810,25 @@ function maprutil_startTraces() {
     fi
 }
 
+function maprutil_configureSSH(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local nodes="$1"
+    local hostip=$(util_getHostIP)
+
+    if [ -n $(ssh_checkSSHonNodes "$nodes") ]; then
+        for node in ${nodes[@]}
+        do
+            local isEnabled=$(ssh_check "root" "$node")
+            if [ "$isEnabled" != "enabled" ]; then
+                echo "Configuring key-based authentication from $hostip to $node "
+                ssh_copyPublicKey "root" "$node"
+            fi
+        done
+    fi
+}
+
 function maprutil_configure(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
@@ -822,7 +841,7 @@ function maprutil_configure(){
     maprutil_buildDiskList "$diskfile"
 
     if [ "$hostip" != "$cldbnode" ] && [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
-        ssh_copyPrivateKey "root" "$cldbnode"
+        ssh_copyPublicKey "root" "$cldbnode"
     fi
 
     local extops=
@@ -927,7 +946,9 @@ function maprutil_configureNode(){
     fi
 
     local hostip=$(util_getHostIP)
+    local allnodes=$(maprutil_getNodesFromRole "$2")
     local cldbnodes=$(maprutil_getCLDBNodes "$2")
+    local cldbnode=$(util_getFirstElement "$cldbnodes")
     local zknodes=$(maprutil_getZKNodes "$2")
     local client=$(maprutil_isClientNode "$2" "$hostnode")
     echo >> $scriptpath
@@ -940,6 +961,9 @@ function maprutil_configureNode(){
         echo "ISCLIENT=0" >> $scriptpath
     fi
     
+    if [ "$hostip" != "$cldbnode" ]; then
+        echo "maprutil_configureSSH \""$allnodes"\"" >> $scriptpath
+    fi
     echo "maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
