@@ -31,6 +31,9 @@ backupdir=
 buildid=
 putbuffer=
 repourl=
+applypatch=
+patchrepourl=
+patchid=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -81,10 +84,17 @@ function usage () {
     
     echo 
     echo " Install/Uninstall Options : "
+    # Build replated parameters
     echo -e "\t -bld=<BUILDID> | --buildid=<BUILDID>" 
     echo -e "\t\t - Specify a BUILDID if the repository has more than one version of same binaries (default: install the latest binaries)"
     echo -e "\t -repo=<REPOURL> | --repository=<REPOURL>" 
     echo -e "\t\t - Specify a REPOURL to use to download & install binaries"
+    # Patch replated parameters
+    echo -e "\t -patch"
+    echo -e "\t\t - Apply patch"
+    echo -e "\t -pbld=<PATCHID> | --buildid=<PATCHID>"
+    echo -e "\t\t - Specify a PATCHID for the patch"
+
     echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
     echo -e "\t -n=CLUSTER_NAME | --name=CLUSTER_NAME (default : archerx)" 
@@ -242,6 +252,14 @@ while [ "$1" != "" ]; do
                 repourl=$VALUE
             fi
         ;;
+        -pbld)
+            if [ -n "$VALUE" ]; then
+                patchid=$VALUE
+            fi
+        ;;
+        --patch)
+                applypatch=1
+        ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
             usage
@@ -256,7 +274,32 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-    $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-repo=$repourl"
+    if [ "$applypatch" == "1" -a -n "$repourl" ]; then
+        echo "[INFO] : Applying patch"
+        if [ -n "$patchid" ]; then
+            patch_string="mapr-patch.*${patchid}*"
+        else
+            patch_string="mapr-patch"
+        fi
+        sed -i 's/\(.*\)/\1,mapr-patch/g' ${rolefile}
+
+        #Find patch repo based on selected mapr repo
+        # this only works if the repo string was specified at the command line
+        # In case one manually updates the repo file to enable custom repo's; this code WONT work
+        patchrepourl="${repourl::-1}-patch-EBF"
+
+        #Try to verify if patchrepo is valid
+        valid_patch=$(wget $patchrepourl/repodata/ -O- 2>/dev/null)
+        if [ -n "$valid_patch" ]; then
+            echo "Patch Info: $patch_string from $patchrepourl"
+        else
+            echo "[ERROR] : Invalid patch repo. $patchrepourl Exiting.."
+            exit 1
+        fi
+    fi
+
+    $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
+    "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-repo=$repourl" "-prepo=$patchrepourl" "-pid=$patchid"
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then

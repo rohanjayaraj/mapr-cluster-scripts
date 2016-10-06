@@ -632,6 +632,7 @@ function util_getNetInfo(){
     for nic in $nics
     do
         local ip=$(ip -4 addr show $nic | grep -oP "(?<=inet).*(?=/)" | tr -d ' ')
+	[ -z "$ip" ] && continue
         local mtu=$(cat /sys/class/net/$nic/mtu)
         local speed=$(cat /sys/class/net/${nic}/speed)
         speed=$(echo "$speed/1000" | bc)

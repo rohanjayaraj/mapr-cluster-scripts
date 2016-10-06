@@ -1177,10 +1177,21 @@ function maprutil_buildRepoFile(){
         echo "enabled=1" >> $repofile
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
+
+        # Add patch if specified
+        if [ -n "$GLB_PATCH_REPOURL" ] ; then
+            echo "[QA-CustomPatchRepo]" >> $repofile
+            echo "name=MapR Custom Patch Repository" >> $repofile
+            echo "baseurl=${GLB_PATCH_REPOURL}" >> $repofile
+            echo "enabled=1" >> $repofile
+            echo "gpgcheck=0" >> $repofile
+            echo "protect=1" >> $repofile
+        fi
         echo >> $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
         echo "deb http://apt.qa.lab/opensource binary/" > $repofile
         echo "deb ${repourl} binary ubuntu" >> $repofile
+        [ -n "$GLB_PATCH_REPOURL" ] && echo "deb ${GLB_PATCH_REPOURL} binary ubuntu" >> $repofile
     fi
 }
 
@@ -1548,6 +1559,7 @@ function maprutil_applyLicense(){
         echo "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 30s"
         if [ -n "$GLB_SECURE_CLUSTER" ]; then
              echo 'mapr' | maprlogin password  2>/dev/null
+             echo "mapr" | sudo -su mapr maprlogin password 2>/dev/null
         fi
         if [ "$jobs" -ne 0 ]; then
             local licenseExists=`/opt/mapr/bin/maprcli license list | grep M7 | wc -l`
