@@ -566,6 +566,8 @@ function maprutil_installBinariesOnNode(){
     local maprpatch=$(echo "$bins" | tr ' ' '\n' | grep mapr-patch)
     [ -n "$maprpatch" ] && bins=$(echo "$bins" | tr ' ' '\n' | grep -v mapr-patch | tr '\n' ' ')
     echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\"" >> $scriptpath
+    ## Append MapR release version as there might be conflicts with mapr-patch-client with regex as 'mapr-patch*$VERSION*'
+    [ -n "$maprpatch" ] && [ -n "$GLB_MAPR_VERSION" ] && maprpatch=${maprpatch/#mapr-patch/mapr-patch-$GLB_MAPR_VERSION}
     [ -n "$maprpatch" ] && echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\"" >> $scriptpath
     
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
@@ -1115,7 +1117,7 @@ function maprutil_checkBuildExists(){
 
 # @param node
 function maprutil_checkNewBuildExists(){
-     if [ -z "$1" ]; then
+    if [ -z "$1" ]; then
         return
     fi
     local node=$1
@@ -1132,6 +1134,25 @@ function maprutil_checkNewBuildExists(){
 
     if [[ -n "$newchangeset" ]] && [[ "$(util_isNumber $newchangeset)" = "true" ]] && [[ "$newchangeset" -gt "$curchangeset" ]]; then
         echo "$newchangeset"
+    fi
+}
+
+function maprutil_getMapRVersionFromRepo(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local node=$1
+    local nodeos=$(getOSFromNode $node)
+    local maprversion=
+    if [ "$nodeos" = "centos" ]; then
+        #ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
+        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | grep mapr-core | tail -n1 | awk '{print \$2}' | cut -d'.' -f1-3")
+    elif [ "$nodeos" = "ubuntu" ]; then
+        maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | awk '{print \$2}' | cut -d'.' -f1-3")
+    fi
+
+    if [[ -n "$maprversion" ]]; then
+        echo "$maprversion"
     fi
 }
 
@@ -1179,10 +1200,10 @@ function maprutil_buildRepoFile(){
         echo "protect=1" >> $repofile
 
         # Add patch if specified
-        if [ -n "$GLB_PATCH_REPOURL" ] ; then
+        if [ -n "$GLB_PATCH_REPOFILE" ] ; then
             echo "[QA-CustomPatchRepo]" >> $repofile
-            echo "name=MapR Custom Patch Repository" >> $repofile
-            echo "baseurl=${GLB_PATCH_REPOURL}" >> $repofile
+            echo "name=MapR Custom Repository" >> $repofile
+            echo "baseurl=${GLB_PATCH_REPOFILE}" >> $repofile
             echo "enabled=1" >> $repofile
             echo "gpgcheck=0" >> $repofile
             echo "protect=1" >> $repofile

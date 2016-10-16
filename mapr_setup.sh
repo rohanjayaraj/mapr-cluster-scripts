@@ -90,10 +90,10 @@ function usage () {
     echo -e "\t -repo=<REPOURL> | --repository=<REPOURL>" 
     echo -e "\t\t - Specify a REPOURL to use to download & install binaries"
     # Patch replated parameters
-    echo -e "\t -patch"
+    echo -e "\t -patch | --applypatch"
     echo -e "\t\t - Apply patch"
-    echo -e "\t -pbld=<PATCHID> | --buildid=<PATCHID>"
-    echo -e "\t\t - Specify a PATCHID for the patch"
+    echo -e "\t -pbld=<PATCHID> | --patchid=<PATCHID>"
+    echo -e "\t\t - Specify a PATCHID for the mapr-patch (not client)"
 
     echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
@@ -252,12 +252,12 @@ while [ "$1" != "" ]; do
                 repourl=$VALUE
             fi
         ;;
-        -pbld)
+        -pbld | --patchid)
             if [ -n "$VALUE" ]; then
                 patchid=$VALUE
             fi
         ;;
-        --patch)
+        -patch | --applypatch)
                 applypatch=1
         ;;
         *)
@@ -274,7 +274,7 @@ if [ -z "$rolefile" ]; then
 	exit 1
 #elif [ -n "$setupop" ]; then
 else
-    if [ "$applypatch" == "1" -a -n "$repourl" ]; then
+  if [ "$applypatch" == "1" -a -n "$repourl" ]; then
         echo "[INFO] : Applying patch"
         if [ -n "$patchid" ]; then
             patch_string="mapr-patch.*${patchid}*"

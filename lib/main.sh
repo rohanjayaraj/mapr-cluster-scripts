@@ -115,9 +115,10 @@ GLB_CLDB_TOPO=
 GLB_PONTIS=
 GLB_BG_PIDS=
 GLB_MAX_DISKS=
+GLB_MAPR_VERSION=
 GLB_BUILD_VERSION=
 GLB_PATCH_VERSION=
-GLB_PATCH_REPOURL=
+GLB_PATCH_REPOFILE=
 GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
 GLB_SECURE_CLUSTER=
@@ -163,7 +164,7 @@ function main_install(){
 	for node in ${nodes[@]}
 	do
 		# Copy mapr.repo if it doen't exist
-		maprutil_copyRepoFile "$node" "$maprrepo"
+		maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
 		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
 			main_isValidBuildVersion
 			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
@@ -247,6 +248,7 @@ function main_reconfigure(){
 			notlist=$notlist"$node"" "
 		else
 			#??? Get install version
+			[ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
 			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
 		fi
 	done
@@ -368,7 +370,7 @@ function main_upgrade(){
 	for node in ${nodes[@]}
 	do
 		# Copy mapr.repo if it doen't exist
-		maprutil_copyRepoFile "$node" "$maprrepo"
+		maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
 		if [ -z "$buildexists" ] && [ -z "$(maprutil_checkNewBuildExists $node)" ]; then
 			>&2 echo "{ERROR} No newer build exists. Please check the repo file [$maprrepo] for configured repositories"
 			exit 1
@@ -836,14 +838,14 @@ while [ "$2" != "" ]; do
 		;;
 		-prepo)
 			if [ -n "$VALUE" ]; then
-				GLB_PATCH_REPOURL="$VALUE"
+				GLB_PATCH_REPOFILE="$VALUE"
 			fi
 		;;
 		-pid)
-			if [ -n "$VALUE" ]; then
-				GLB_PATCH_VERSION=$VALUE
-			fi
-    	;;
+ 			if [ -n "$VALUE" ]; then
+ 				GLB_PATCH_VERSION=$VALUE
+ 			fi
+ 		;;
         *)
             >&2 echo "ERROR: unknown option \"$OPTION\""
             main_usage
