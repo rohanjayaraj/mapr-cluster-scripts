@@ -156,6 +156,7 @@ function util_appendVersionToPackage(){
     fi
     local bins=$1
     local version=$2
+    local prefix=$3
 
     local newbins=
     for bin in $bins
@@ -163,9 +164,9 @@ function util_appendVersionToPackage(){
         local binexists=$(util_checkPackageExists $bin $version)
         if [ "$binexists" = "true" ]; then
             if [ -z "$newbins" ]; then
-                newbins="$bin*$version*"
+                newbins="$bin$prefix*$version*"
             else
-                newbins=$newbins" $bin*$version*"
+                newbins=$newbins" $bin$prefix*$version*"
             fi
         else
             if [ -z "$newbins" ]; then
@@ -184,10 +185,11 @@ function util_installBinaries(){
         return
     fi
     local bins=$1
+    local prefix=$3
     echo "[$(util_getHostIP)] Installing packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
         if [ -n "$2" ]; then
-            bins=$(util_appendVersionToPackage "$1" "$2")
+            bins=$(util_appendVersionToPackage "$1" "$2" "$3")
         fi
         yum clean all > /dev/null 2>&1
         yum install ${bins} -y --nogpgcheck

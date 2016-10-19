@@ -286,7 +286,7 @@ else
         #Find patch repo based on selected mapr repo
         # this only works if the repo string was specified at the command line
         # In case one manually updates the repo file to enable custom repo's; this code WONT work
-        patchrepourl="${repourl::-1}-patch-EBF"
+        patchrepourl="${repourl%?}-patch-EBF"
 
         #Try to verify if patchrepo is valid
         valid_patch=$(wget $patchrepourl/repodata/ -O- 2>/dev/null)

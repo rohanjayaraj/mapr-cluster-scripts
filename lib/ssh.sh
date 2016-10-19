@@ -176,6 +176,7 @@ function ssh_copyPublicKey(){
 	if [ -z "$1" ] || [ -z "$2" ]; then
 		return 1
 	fi
+	ssh-keygen -R $2 >/dev/null 2>&1
 	local rootpwd=${ROOTPWD}
 	[ -n "$rootpwd" ] && rootpwd=$(echo "$rootpwd" | tr -d ' ' | tr ',' ' ') || rootpwd="mapr"
 	for pwd in $rootpwd
