@@ -1265,9 +1265,9 @@ function maprutil_addLocalRepo(){
         return
     fi
     local nodeos=$(getOS)
-    local repofile="$RUNTEMPDIR/maprbuilds/mapr-$GLB_BUILD_VERSION.repo"
+    local repofile="/tmp/maprbuilds/mapr-$GLB_BUILD_VERSION.repo"
     if [ "$nodeos" = "ubuntu" ]; then
-        repofile="$RUNTEMPDIR/maprbuilds/mapr-$GLB_BUILD_VERSION.list"
+        repofile="/tmp/maprbuilds/mapr-$GLB_BUILD_VERSION.list"
     fi
 
     local repourl=$1
@@ -1318,7 +1318,7 @@ function maprutil_setupLocalRepo(){
     local repourl=$(maprutil_getRepoURL)
     local patchrepo=$(maprutil_getPatchRepoURL)
     maprutil_disableAllRepo
-    maprutil_downloadBinaries "$RUNTEMPDIR/maprbuilds/$GLB_BUILD_VERSION" "$repourl" "$GLB_BUILD_VERSION"
+    maprutil_downloadBinaries "/tmp/maprbuilds/$GLB_BUILD_VERSION" "$repourl" "$GLB_BUILD_VERSION"
     if [ -n "$patchrepo" ]; then
         local patchkey=
         if [ -z "$GLB_PATCH_VERSION" ]; then
@@ -1326,9 +1326,9 @@ function maprutil_setupLocalRepo(){
         else
             patchkey="mapr-patch*$GLB_BUILD_VERSION*$GLB_PATCH_VERSION"
         fi
-        maprutil_downloadBinaries "$RUNTEMPDIR/maprbuilds/$GLB_BUILD_VERSION" "$patchrepo" "$patchkey"
+        maprutil_downloadBinaries "/tmp/maprbuilds/$GLB_BUILD_VERSION" "$patchrepo" "$patchkey"
     fi
-    maprutil_addLocalRepo "$RUNTEMPDIR/maprbuilds/$GLB_BUILD_VERSION"
+    maprutil_addLocalRepo "/tmp/maprbuilds/$GLB_BUILD_VERSION"
 }
 
 # @param host node
@@ -1475,7 +1475,7 @@ function maprutil_runDiskTest(){
     fi
     echo
     echo "[$(util_getHostIP)] Running disk tests [$maprdisks]"
-    local disktestdir="$RUNTEMPDIR/disktest"
+    local disktestdir="/tmp/disktest"
     mkdir -p $disktestdir 2>/dev/null
     for disk in ${maprdisks[@]}
     do  
@@ -1632,7 +1632,7 @@ function maprutil_applyLicense(){
 function maprutil_mountSelfHosting(){
     local ismounted=$(mount | grep -Fw "10.10.10.20:/mapr/selfhosting/")
     [ -n "$ismounted" ] && return
-    for i in $(mount | grep "/mapr/selfhosting/")
+    for i in $(mount | grep "/mapr/selfhosting/" | cut -d' ' -f3)
     do
         umount -l $i > /dev/null 2>&1
     done
