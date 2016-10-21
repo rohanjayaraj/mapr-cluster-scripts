@@ -408,7 +408,7 @@ function main_upgrade(){
 	done
 	wait
 
-	maprutil_postUpgrade "$cldbnode"
+	sleep 60 && maprutil_postUpgrade "$cldbnode"
 	
 	for node in ${nodes[@]}
 	do
@@ -573,6 +573,13 @@ function main_runCommandExec(){
 	if [ -z "$1" ]; then
         return
     fi
+    local allnodes=
+    local cmds=$1
+
+    if [[ "$GLB_TRACE_ON" -eq "1" ]]; then
+    	allnodes=1
+    fi
+
     local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
 	local isInstalled=$(maprutil_isMapRInstalledOnNode "$cldbnode")
@@ -581,7 +588,14 @@ function main_runCommandExec(){
 		return
 	fi
 	
-	maprutil_runCommandsOnNode "$cldbnode" "$1"
+	if [ -z "$allnodes" ]; then
+		maprutil_runCommandsOnNode "$cldbnode" "$cmds"
+	else
+		for node in ${nodes[@]}
+		do	
+	    	maprutil_runCommandsOnNode "$node" "$cmds"
+		done
+	fi
 }
 
 function main_runLogDoctor(){
@@ -748,9 +762,11 @@ while [ "$2" != "" ]; do
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
-				if [[ "$i" = "ycsb" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]]; then
+				if [[ "$i" = "ycsb" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]] || [[ "$i" = "traceon" ]]; then
 					if [[ "$i" = "cldbtopo" ]]; then
     					GLB_CLDB_TOPO=1
+    				elif [[ "$i" = "traceon" ]]; then
+    					GLB_TRACE_ON=1
     				fi
     				if [ -z "$doCmdExec" ]; then
     					doCmdExec=$i
@@ -759,8 +775,6 @@ while [ "$2" != "" ]; do
     				fi
     			elif [[ "$i" = "force" ]]; then
     				doForce=1
-    			elif [[ "$i" = "traceon" ]]; then
-    				GLB_TRACE_ON=1
     			elif [[ "$i" = "pontis" ]]; then
     				GLB_PONTIS=1
     			elif [[ "$i" = "confirm" ]]; then

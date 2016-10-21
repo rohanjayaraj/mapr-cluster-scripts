@@ -347,12 +347,7 @@ function maprutil_cleanPrevClusterConfigOnNode(){
 
 function maprutil_cleanPrevClusterConfig(){
     # Kill running traces 
-    util_kill "timeout"
-    util_kill "guts"
-    util_kill "dstat"
-    util_kill "iostat"
-    util_kill "top -b"
-    util_kill "runTraces"
+    maprutil_killTraces
 
     # Unmount NFS
     maprutil_unmountNFS
@@ -371,11 +366,8 @@ function maprutil_cleanPrevClusterConfig(){
     util_kill "java" "jenkins" "QuorumPeerMain"
     util_kill "FsShell"
     util_kill "CentralConfigCopyHelper"
-    util_kill "timeout"
-    util_kill "guts"
-    util_kill "dstat"
-    util_kill "iostat"
-    util_kill "top -b"
+    
+    maprutil_killTraces
 
     rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.conf /opt/mapr/logs/* 2>/dev/null
     
@@ -811,6 +803,15 @@ function maprutil_startTraces() {
     fi
 }
 
+function maprutil_killTraces() {
+    util_kill "timeout"
+    util_kill "guts"
+    util_kill "dstat"
+    util_kill "iostat"
+    util_kill "top -b"
+    util_kill "runTraces"
+}
+
 function maprutil_configureSSH(){
     if [ -z "$1" ]; then
         return
@@ -913,6 +914,7 @@ function maprutil_configure(){
     maprutil_restartWarden > /dev/null 2>&1
 
    if [ "$hostip" = "$cldbnode" ]; then
+        maprutil_mountSelfHosting
         maprutil_applyLicense
         if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
             maprutil_configureMultiMFS "$multimfs" "$numsps"
@@ -1397,6 +1399,10 @@ function maprutil_runCommands(){
             sysinfo)
                 maprutil_sysinfo
             ;;
+            traceon)
+                maprutil_killTraces
+                maprutil_startTraces
+            ;;
             *)
             echo "Nothing to do!!"
             ;;
@@ -1599,6 +1605,19 @@ function maprutil_applyLicense(){
             exit 1
         fi
     done
+}
+
+function maprutil_mountSelfHosting(){
+    local ismounted=$(mount | grep -Fw "10.10.10.20:/mapr/selfhosting/")
+    [ -n "$ismounted" ] && return
+    for i in $(mount | grep "/mapr/selfhosting/")
+    do
+        umount -l $i > /dev/null 2>&1
+    done
+
+    [ ! -d "/home/MAPRTECH" ] && mkdir -p /home/MAPRTECH > /dev/null 2>&1
+     echo "[$(util_getHostIP)] Mounting selfhosting on /home/MAPRTECH"
+    mount -t nfs 10.10.10.20:/mapr/selfhosting/ /home/MAPRTECH  > /dev/null 2>&1
 }
 
 ## @param optional hostip
