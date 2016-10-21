@@ -117,6 +117,7 @@ GLB_BG_PIDS=
 GLB_MAX_DISKS=
 GLB_MAPR_VERSION=
 GLB_BUILD_VERSION=
+GLB_MAPR_PATCH=
 GLB_PATCH_VERSION=
 GLB_PATCH_REPOFILE=
 GLB_PUT_BUFFER=
@@ -783,6 +784,8 @@ while [ "$2" != "" ]; do
     				GLB_SECURE_CLUSTER=1
     			elif [[ "$i" = "trim" ]]; then
     				GLB_TRIM_SSD=1
+    			elif [[ "$i" = "patch" ]]; then
+    				GLB_MAPR_PATCH=1
     			fi
     		done
     	;;
@@ -848,6 +851,8 @@ while [ "$2" != "" ]; do
     	-repo)
 			if [ -n "$VALUE" ]; then
 				useRepoURL="$VALUE"
+				[ -z "$GLB_PATCH_REPOFILE" ] && GLB_PATCH_REPOFILE="${useRepoURL%?}-patch-EBF"
+				[ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE=
 			fi
 		;;
 		-prepo)

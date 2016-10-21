@@ -94,6 +94,7 @@ function maprutil_getCoreNodeBinaries() {
                 newbinlist=$newbinlist"$bin "
             fi
         done
+        [ -n "$GLB_MAPR_PATCH" ] && [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
         echo $newbinlist
     fi
 }
@@ -1228,6 +1229,17 @@ function maprutil_getRepoURL(){
     fi
 }
 
+function maprutil_getPatchRepoURL(){
+    local nodeos=$(getOS)
+    if [ "$nodeos" = "centos" ]; then
+        local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv opensource | grep Repo-baseurl | grep EBF | cut -d':' -f2- | tr -d " " | head -1)
+        echo "$repolist"
+    elif [ "$nodeos" = "ubuntu" ]; then
+        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv opensource | head -1)
+        echo "$repolist"
+    fi
+}
+
 function maprutil_disableAllRepo(){
     local nodeos=$(getOS)
     if [ "$nodeos" = "centos" ]; then
@@ -1304,8 +1316,18 @@ function maprutil_downloadBinaries(){
 
 function maprutil_setupLocalRepo(){
     local repourl=$(maprutil_getRepoURL)
+    local patchrepo=$(maprutil_getPatchRepoURL)
     maprutil_disableAllRepo
     maprutil_downloadBinaries "$RUNTEMPDIR/maprbuilds/$GLB_BUILD_VERSION" "$repourl" "$GLB_BUILD_VERSION"
+    if [ -n "$patchrepo" ]; then
+        local patchkey=
+        if [ -z "$GLB_PATCH_VERSION" ]; then
+            patchkey=$(lynx -dump -listonly ${patchrepo} | grep mapr-patch-[0-9] | tail -n 1 | awk '{print $2}' | rev | cut -d'/' -f1 | cut -d'.' -f2 | rev)
+        else
+            patchkey="mapr-patch*$GLB_BUILD_VERSION*$GLB_PATCH_VERSION"
+        fi
+        maprutil_downloadBinaries "$RUNTEMPDIR/maprbuilds/$GLB_BUILD_VERSION" "$patchrepo" "$patchkey"
+    fi
     maprutil_addLocalRepo "$RUNTEMPDIR/maprbuilds/$GLB_BUILD_VERSION"
 }
 

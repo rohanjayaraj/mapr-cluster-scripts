@@ -31,7 +31,6 @@ backupdir=
 buildid=
 putbuffer=
 repourl=
-applypatch=
 patchrepourl=
 patchid=
 
@@ -89,6 +88,9 @@ function usage () {
     echo -e "\t\t - Specify a BUILDID if the repository has more than one version of same binaries (default: install the latest binaries)"
     echo -e "\t -repo=<REPOURL> | --repository=<REPOURL>" 
     echo -e "\t\t - Specify a REPOURL to use to download & install binaries"
+    echo -e "\t -prepo=<PATCHREPOURL> | --patchrepository=<PATCHREPOURL>" 
+    echo -e "\t\t - Specify a PATCHREPOURL to use to download & install binaries. (Optional if using internal repositories)"
+
     # Patch replated parameters
     echo -e "\t -patch | --applypatch"
     echo -e "\t\t - Apply patch"
@@ -252,13 +254,18 @@ while [ "$1" != "" ]; do
                 repourl=$VALUE
             fi
         ;;
+        -prepo | --patchrepository)
+            if [ -n "$VALUE" ]; then
+                patchrepourl=$VALUE
+            fi
+        ;;
         -pbld | --patchid)
             if [ -n "$VALUE" ]; then
                 patchid=$VALUE
             fi
         ;;
         -patch | --applypatch)
-                applypatch=1
+            extraarg=$extraarg"patch "
         ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
@@ -272,32 +279,7 @@ done
 if [ -z "$rolefile" ]; then
 	>&2 echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	exit 1
-#elif [ -n "$setupop" ]; then
 else
-  if [ "$applypatch" == "1" -a -n "$repourl" ]; then
-        echo "[INFO] : Applying patch"
-        if [ -n "$patchid" ]; then
-            patch_string="mapr-patch.*${patchid}*"
-        else
-            patch_string="mapr-patch"
-        fi
-        sed -i 's/\(.*\)/\1,mapr-patch/g' ${rolefile}
-
-        #Find patch repo based on selected mapr repo
-        # this only works if the repo string was specified at the command line
-        # In case one manually updates the repo file to enable custom repo's; this code WONT work
-        patchrepourl="${repourl%?}-patch-EBF"
-
-        #Try to verify if patchrepo is valid
-        valid_patch=$(wget $patchrepourl/repodata/ -O- 2>/dev/null)
-        if [ -n "$valid_patch" ]; then
-            echo "Patch Info: $patch_string from $patchrepourl"
-        else
-            echo "[ERROR] : Invalid patch repo. $patchrepourl Exiting.."
-            exit 1
-        fi
-    fi
-
     $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
     "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-repo=$repourl" "-prepo=$patchrepourl" "-pid=$patchid"
 fi
