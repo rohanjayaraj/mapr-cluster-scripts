@@ -1126,9 +1126,9 @@ function maprutil_checkNewBuildExists(){
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
         #ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
-        newchangeset=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep -v '$curchangeset' | tail -n1 | awk '{print \$2}' | cut -d'.' -f4")
+        newchangeset=$(ssh_executeCommandasRoot "$node" "yum clean all > /dev/null 2>&1; yum --showduplicates list mapr-core | grep -v '$curchangeset' | tail -n1 | awk '{print \$2}' | cut -d'.' -f4")
     elif [ "$nodeos" = "ubuntu" ]; then
-        newchangeset=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core | grep Candidate | grep -v '$curchangeset' | awk '{print \$2}' | cut -d'.' -f4")
+        newchangeset=$(ssh_executeCommandasRoot "$node" "apt-get update > /dev/null 2>&1; apt-cache policy mapr-core | grep Candidate | grep -v '$curchangeset' | awk '{print \$2}' | cut -d'.' -f4")
     fi
 
     if [[ -n "$newchangeset" ]] && [[ "$(util_isNumber $newchangeset)" = "true" ]] && [[ "$newchangeset" -gt "$curchangeset" ]]; then
@@ -1184,7 +1184,7 @@ function maprutil_buildRepoFile(){
     local node=$3
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
-        echo "[QA-Opensource]" > $repofile
+        echo "[QA-CustomOpensource]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
         echo "baseurl=http://yum.qa.lab/opensource" >> $repofile
         echo "enabled=1" >> $repofile
