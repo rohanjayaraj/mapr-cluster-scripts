@@ -1322,7 +1322,7 @@ function maprutil_setupLocalRepo(){
     if [ -n "$patchrepo" ]; then
         local patchkey=
         if [ -z "$GLB_PATCH_VERSION" ]; then
-            patchkey=$(lynx -dump -listonly ${patchrepo} | grep mapr-patch-[0-9] | tail -n 1 | awk '{print $2}' | rev | cut -d'/' -f1 | cut -d'.' -f2 | rev)
+            patchkey=$(lynx -dump -listonly ${patchrepo} | grep mapr-patch-[0-9] | tail -n 1 | awk '{print $2}' | rev | cut -d'/' -f1 | cut -d'.' -f2- | rev)
         else
             patchkey="mapr-patch*$GLB_BUILD_VERSION*$GLB_PATCH_VERSION"
         fi
