@@ -225,6 +225,8 @@ function util_removeBinaries(){
         return
     fi
     rembins=$(util_getInstalledBinaries $1)
+    [ -z "$rembins" ] && return
+    
     echo "[$(util_getHostIP)] Removing packages : $rembins"
     if [ "$(getOS)" = "centos" ]; then
         rpm -ef $rembins
