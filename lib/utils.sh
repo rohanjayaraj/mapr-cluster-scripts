@@ -229,10 +229,10 @@ function util_removeBinaries(){
 
     echo "[$(util_getHostIP)] Removing packages : $rembins"
     if [ "$(getOS)" = "centos" ]; then
-        rpm -ef $rembins
+        rpm -ef $rembins > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get autoremove --purge $rembins
-        dpkg --purge $rembins 2> /dev/null
+        dpkg --purge $rembins > /dev/null 2>&1
     fi
 }
 
