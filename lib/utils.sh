@@ -226,7 +226,7 @@ function util_removeBinaries(){
     fi
     rembins=$(util_getInstalledBinaries $1)
     [ -z "$rembins" ] && return
-    
+
     echo "[$(util_getHostIP)] Removing packages : $rembins"
     if [ "$(getOS)" = "centos" ]; then
         rpm -ef $rembins
@@ -280,7 +280,7 @@ function util_kill(){
         if [ -n "$ignore" ]; then
             bash -c "ps aux | grep '$esckey' | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9" > /dev/null 2>&1
         else
-            ps aux | grep '$esckey' | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9 > /dev/null 2>&1
+            bash -c "ps aux | grep '$esckey' | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9" > /dev/null 2>&1
         fi
     fi
 }
