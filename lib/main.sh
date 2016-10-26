@@ -335,7 +335,7 @@ function main_upgrade(){
 			nocldblist=$nocldblist$node" "
 		else
 			local cldbip=$cldbhost
-			if [ "$(util_validip $cldbhost)" = "invalid" ]; then
+			if [ "$(util_validip2 $cldbhost)" = "invalid" ]; then
 				cldbip=$(util_getIPfromHostName "$cldbhost")
 			fi
 			local isone="false"
@@ -452,7 +452,7 @@ function main_uninstall(){
 			nocldblist=$nocldblist$node" "
 		else
 			local cldbip=$cldbhost
-			if [ "$(util_validip $cldbhost)" = "invalid" ]; then
+			if [ "$(util_validip2 $cldbhost)" = "invalid" ]; then
 				cldbip=$(util_getIPfromHostName "$cldbhost")
 			fi
 			local isone="false"
