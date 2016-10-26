@@ -483,7 +483,7 @@ function util_expandNodeList(){
                 for j in $(seq $startidx $endidx)
                 do
                     local nodeip="$prefix$j"
-                    local isvalid=$(util_validip $nodeip)
+                    local isvalid=$(util_validip2 $nodeip)
                     if [ "$isvalid" = "valid" ]; then
                         echo "$nodeip,$bins" >> $newrolefile
                     else
@@ -494,7 +494,7 @@ function util_expandNodeList(){
             done
         else
             node=$(echo $i | cut -d',' -f1)
-            local isvalid=$(util_validip $node)
+            local isvalid=$(util_validip2 $node)
             if [ "$isvalid" = "valid" ]; then
                 echo "$i" >> $newrolefile
             else
@@ -689,7 +689,7 @@ function util_getIPfromHostName(){
         return
     fi
     local ip=$(ping -c 1 $1 | awk -F'[()]' '/PING/{print $2}')
-    if [ "$(util_validip "$ip")" = "valid" ]; then
+    if [ "$(util_validip2 "$ip")" = "valid" ]; then
         echo $ip
     fi
 }
