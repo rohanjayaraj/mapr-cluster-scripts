@@ -231,7 +231,7 @@ function util_removeBinaries(){
     if [ "$(getOS)" = "centos" ]; then
         rpm -ef $rembins > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get autoremove --purge $rembins
+        apt-get -y autoremove --purge $rembins
         dpkg --purge $rembins > /dev/null 2>&1
     fi
 }
