@@ -158,16 +158,24 @@ function util_appendVersionToPackage(){
     local bins=$1
     local version=$2
     local prefix=$3
-
+    
     local newbins=
     for bin in $bins
     do
         local binexists=$(util_checkPackageExists $bin $version)
         if [ "$binexists" = "true" ]; then
             if [ -z "$newbins" ]; then
-                newbins="$bin$prefix*$version*"
+                if [ "$(getOS)" = "centos" ]; then
+                    newbins="$bin$prefix*$version*"
+                elif [[ "$(getOS)" = "ubuntu" ]]; then
+                    newbins="$bin=$prefix*$version*"
+                fi
             else
-                newbins=$newbins" $bin$prefix*$version*"
+                if [ "$(getOS)" = "centos" ]; then
+                    newbins=$newbins" $bin$prefix*$version*"
+                elif [[ "$(getOS)" = "ubuntu" ]]; then
+                    newbins=$newbins" $bin=$prefix*$version*"
+                fi
             fi
         else
             if [ -z "$newbins" ]; then
@@ -187,11 +195,11 @@ function util_installBinaries(){
     fi
     local bins=$1
     local prefix=$3
+    if [ -n "$2" ]; then
+        bins=$(util_appendVersionToPackage "$1" "$2" "$3")
+    fi
     echo "[$(util_getHostIP)] Installing packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
-        if [ -n "$2" ]; then
-            bins=$(util_appendVersionToPackage "$1" "$2" "$3")
-        fi
         yum clean all > /dev/null 2>&1
         yum install ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
