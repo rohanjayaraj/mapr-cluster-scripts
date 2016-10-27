@@ -312,7 +312,7 @@ function maprutil_unmountNFS(){
     local nfslist=$(mount | grep nfs | grep mapr | grep -v '10.10.10.20' | cut -d' ' -f3)
     for i in $nfslist
     do
-        timeout 50 umount -l $i
+        timeout 20 umount -l $i
     done
 }
 
@@ -1639,12 +1639,12 @@ function maprutil_mountSelfHosting(){
     [ -n "$ismounted" ] && return
     for i in $(mount | grep "/mapr/selfhosting/" | cut -d' ' -f3)
     do
-        timeout 60 umount -l $i > /dev/null 2>&1
+        timeout 20 umount -l $i > /dev/null 2>&1
     done
 
     [ ! -d "/home/MAPRTECH" ] && mkdir -p /home/MAPRTECH > /dev/null 2>&1
      echo "[$(util_getHostIP)] Mounting selfhosting on /home/MAPRTECH"
-    mount -t nfs 10.10.10.20:/mapr/selfhosting/ /home/MAPRTECH  > /dev/null 2>&1
+    timeout 20 mount -t nfs 10.10.10.20:/mapr/selfhosting/ /home/MAPRTECH  > /dev/null 2>&1
 }
 
 ## @param optional hostip
