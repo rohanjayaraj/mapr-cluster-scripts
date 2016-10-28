@@ -758,13 +758,14 @@ function maprutil_configureCLDBTopology(){
     fi
     #local clustersize=$(maprcli node list -json | grep 'id'| wc -l)
     local clustersize=$GLB_CLUSTER_SIZE
-    if [ "$clustersize" -gt 4 ] || [ -n "$1" ]; then
+    if [ "$clustersize" -gt 5 ] || [ -n "$1" ]; then
         ## Move all nodes under /data topology
-        local datanodes=`maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ","`
+        local datanodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ",")
         maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
-        ### Moving CLDB Node to CLDB topology
-        local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
-        maprcli node move -serverids "$cldbnode" -topology /cldb 2>/dev/null
+        ### Moving CLDB Nodes to CLDB topology
+        #local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
+        local cldbnodes=$(maprcli node list -json | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')
+        maprcli node move -serverids "$cldbnodes" -topology /cldb 2>/dev/null
         ### Moving CLDB Volume as well
         maprcli volume move -name mapr.cldb.internal -topology /cldb 2>/dev/null
     fi
