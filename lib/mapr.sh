@@ -1016,7 +1016,7 @@ function maprutil_copySecureFilesFromCLDB(){
     local cldbisup="false"
     local i=0
     while [ "$cldbisup" = "false" ]; do
-        cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/cldb.key' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && echo true || echo false")
+        cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/cldb.key' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && [ -e '/tmp/maprticket_0' ] && echo true || echo false")
         if [ "$cldbisup" = "false" ]; then
             sleep 10
         else
@@ -1613,7 +1613,7 @@ function maprutil_applyLicense(){
         echo "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 30s"
         if [ -n "$GLB_SECURE_CLUSTER" ]; then
              echo 'mapr' | maprlogin password  2>/dev/null
-             echo "mapr" | sudo -su mapr maprlogin password 2>/dev/null
+             echo 'mapr' | sudo -su mapr maprlogin password 2>/dev/null
         fi
         if [ "$jobs" -ne 0 ]; then
             local licenseExists=`/opt/mapr/bin/maprcli license list | grep M7 | wc -l`
