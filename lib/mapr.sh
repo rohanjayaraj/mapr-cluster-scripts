@@ -1337,6 +1337,29 @@ function maprutil_setupLocalRepo(){
     maprutil_addLocalRepo "/tmp/maprbuilds/$GLB_BUILD_VERSION"
 }
 
+function maprutil_runCommandsOnNodesInParallel(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+
+    local nodes=$1
+    local cmd=$2
+
+    local tempdir="$RUNTEMPDIR/cmdrun"
+    for node in ${nodes[@]}
+    do
+        local nodefile="$tempdir/$node.log"
+        maprutil_runCommandsOnNode "$node" "$cmd" > $nodefile &
+    done
+    wait
+
+    for node in ${nodes[@]}
+    do
+        cat "$tempdir/$node.log" 2>/dev/null
+    done
+    rm -rf $tempdir > /dev/null 2>&1
+}
+
 # @param host node
 # @param ycsb/tablecreate
 function maprutil_runCommandsOnNode(){
@@ -1426,6 +1449,12 @@ function maprutil_runCommands(){
             ;;
             sysinfo)
                 maprutil_sysinfo
+            ;;
+            mfsgrep)
+                maprutil_grepMFSLogs
+            ;;
+            grepmapr)
+                maprutil_grepMapRLogs
             ;;
             traceon)
                 maprutil_killTraces
@@ -1562,6 +1591,24 @@ function maprutil_sysinfo(){
             ;;
         esac
     done
+}
+
+function maprutil_grepMFSLogs(){
+    echo
+    echo "[$(util_getHostIP)] Searching MFS logs for FATAL|DHL messages"
+    local dirpath="/opt/mapr/logs"
+    local fileprefix="mfs.log*"
+
+    util_grepFiles "$dirpath" "$fileprefix" "FATAL"
+    util_grepFiles "$dirpath" "$fileprefix" "DHL" "lun.cc"
+}
+
+function maprutil_grepMapRLogs(){
+    echo
+    echo "[$(util_getHostIP)] Searching MapR logs"
+    local dirpath="/opt/mapr/logs"
+    local fileprefix="*"
+    util_grepFiles "$dirpath" "$fileprefix" "$GLB_GREP_MAPRLOGS"
 }
 
 function maprutil_getMapRInfo(){

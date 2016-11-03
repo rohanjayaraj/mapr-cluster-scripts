@@ -124,6 +124,7 @@ GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
 GLB_SECURE_CLUSTER=
 GLB_SYSINFO_OPTION=
+GLB_GREP_MAPRLOGS=
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 ############################### ALL functions to be defined below this ###############################
@@ -636,7 +637,16 @@ function main_runLogDoctor(){
 			maprutil_runCommandsOnNode "$node" "sysinfo"
 		done
 	fi
-	
+
+	if [ -n "$doMFSGrep" ]; then
+		echo "[$(util_getCurDate)] Grepping MFS logs on all nodes"
+		maprutil_runCommandsOnNodesInParallel "$nodes" "mfsgrep"
+	fi
+
+	if [ -n "$GLB_GREP_MAPRLOGS" ]; then
+		echo "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ $GLB_GREP_MAPRLOGS ]"
+		maprutil_runCommandsOnNodesInParallel "$nodes" "grepmapr"
+	fi
 }
 
 function main_isValidBuildVersion(){
@@ -726,6 +736,7 @@ doCmdExec=
 doLogAnalyze=
 doDiskCheck=
 doDiskTest=
+doMFSGrep=
 doPontis=0
 doForce=0
 doSilent=0
@@ -796,11 +807,20 @@ while [ "$2" != "" ]; do
 	    			doDiskCheck=1
 	    		elif [[ "$i" = "disktest" ]]; then
 	    			doDiskTest=1
+	    		elif [[ "$i" = "mfsgrep" ]]; then
+	    			doMFSGrep=1
 	    		fi
 	    	done
 		;;
 		-si)
+			doLogAnalyze=1
 			GLB_SYSINFO_OPTION="$VALUE"
+		;;
+		-g)
+			if [ -n "$VALUE" ]; then
+				doLogAnalyze=1
+				GLB_GREP_MAPRLOGS="$VALUE"
+			fi
 		;;
 		-td)
 			if [ -n "$VALUE" ]; then

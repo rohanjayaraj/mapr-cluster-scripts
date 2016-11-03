@@ -18,6 +18,7 @@ rolefile=
 args=
 tbltdist=
 sysinfo=
+grepkey=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -67,6 +68,9 @@ function usage () {
 
     echo -e "\t -si=<OPTIONS> | --systeminfo=<OPTIONS>" 
     echo -e "\t\t - Print system info of each node. OPTIONS : mapr,machine,cpu,disk,nw,mem or all (comma separated)"
+
+    echo -e "\t -l | --mfsloggrep" 
+    echo -e "\t\t - Grep mfs logs for FATAL & Disk errors"
     
     echo 
     echo " Examples : "
@@ -100,11 +104,18 @@ while [ "$1" != "" ]; do
             fi
         ;;
         -si | --systeminfo)
-            args=$args"sysinfo "
             sysinfo="$VALUE"
             if [ -z "$sysinfo" ]; then
                 sysinfo="all"
             fi
+        ;;
+        -g | --greplogs)
+            if [ -n "$VALUE" ]; then
+                grepkey="$VALUE"
+            fi
+        ;;
+        -l | --mfsloggrep)
+            args=$args"mfsgrep "
         ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
@@ -122,7 +133,7 @@ elif [ -z "$args" ]; then
     echo "No option specified"
     exit
 else
-    $libdir/main.sh "$rolefile" "-l=$args" "-td=$tbltdist" "-si=$sysinfo"
+    $libdir/main.sh "$rolefile" "-l=$args" "-td=$tbltdist" "-si=$sysinfo" "-g=$grepkey"
 fi
 
 echo "DONE!"
