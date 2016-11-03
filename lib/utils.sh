@@ -544,7 +544,7 @@ function util_grepFiles(){
     local retstat=$(bash -c "$runcmd")
     local cnt=$(echo "$retstat" | wc -l)
     if [ -n "$retstat" ] && [ -n "$cnt" ]; then
-        echo -e "  Searchkey(s) found $cnt times in directory $node"
+        echo -e "  Searchkey(s) found $cnt times in directory [ $dirpath ] in file(s) [ $filereg ]"
         if [ "$numprint" = "all" ]; then
             echo -e "$retstat" | sed 's/^/\t/'
         elif [ "$(util_isNumber $numprint)" = "true" ]; then
