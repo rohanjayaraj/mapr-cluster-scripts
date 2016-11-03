@@ -522,10 +522,12 @@ function util_grepFiles(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
         return
     fi
+
     local numprint=$1
     local dirpath=$2
     local filereg=$3
     local keywords=${@:4}
+
     local runcmd="for i in \$(find $dirpath -type f -name '$filereg'); do "
     local i=0
     for key in "$keywords"
@@ -545,7 +547,7 @@ function util_grepFiles(){
         echo -e "  Searchkey(s) found $cnt times in directory $node"
         if [ "$numprint" = "all" ]; then
             echo -e "$retstat" | sed 's/^/\t/'
-        else if [ "$(util_isNumber $numprint)" = "true" ]; then
+        elif [ "$(util_isNumber $numprint)" = "true" ]; then
             echo -e "$retstat" | sed 's/^/\t/' | head -n $numprint
         else
             echo -e "$retstat" | sed 's/^/\t/' | head -n 2
