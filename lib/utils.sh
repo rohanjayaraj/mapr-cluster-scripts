@@ -514,14 +514,18 @@ function util_expandNodeList(){
     echo $newrolefile
 }
 
-#  @param keyword
+#  @param numprint - number of log files to print if found
+#  @param dirpath - directory path to find the grep files
+#  @param filereg - File prefix/regex to grep on 
+#  @param keywords - List of search keys
 function util_grepFiles(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
         return
     fi
-    local dirpath=$1
-    local filereg=$2
-    local keywords=${@:3}
+    local numprint=$1
+    local dirpath=$2
+    local filereg=$3
+    local keywords=${@:4}
     local runcmd="for i in \$(find $dirpath -type f -name '$filereg'); do "
     local i=0
     for key in "$keywords"
@@ -538,8 +542,14 @@ function util_grepFiles(){
     local retstat=$(bash -c "$runcmd")
     local cnt=$(echo "$retstat" | wc -l)
     if [ -n "$retstat" ] && [ -n "$cnt" ]; then
-        echo -e "\tSearchkey(s) found $cnt times in directory $node"
-        echo -e "\t\t$retstat" | head -n 2
+        echo -e "  Searchkey(s) found $cnt times in directory $node"
+        if [ "$numprint" = "all" ]; then
+            echo -e "$retstat" | sed 's/^/\t/'
+        else if [ "$(util_isNumber $numprint)" = "true" ]; then
+            echo -e "$retstat" | sed 's/^/\t/' | head -n $numprint
+        else
+            echo -e "$retstat" | sed 's/^/\t/' | head -n 2
+        fi
     fi
 }
 
@@ -686,38 +696,6 @@ function util_getMachineInfo(){
     echo -e "\t Hostname : $(hostname -f)"
     echo -e "\t OS       : $(getOSWithVersion)"
     command -v mpstat >/dev/null 2>&1 && echo -e "\t Kernel   : $(mpstat | head -n1 | awk '{print $1,$2}')"
-}
-
-# @param dirpath - directory path
-# @param fileprefix - files prefix to search in
-# @param keywords - one or more keys to grep on the files
-function util_grepFilesInDir(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] ; then
-        return
-    fi
-    local dirpath=$1
-    local fileprefix=$2
-    local keywords=${@:3}
-
-    local runcmd="for i in \$(find $dirpath -type f -name ${$fileprefix}*); do "
-    local j=0
-    for key in "$keywords"
-    do
-        if [ "$j" -gt 0 ]; then
-            runcmd=$runcmd" | grep '$key'"
-        else
-            runcmd=$runcmd" grep '$key' \$i"
-        fi
-        let j=j+1
-    done
-    runcmd=$runcmd"; done"
-
-    local retstat=$(bash -c "$runcmd")
-    local cnt=$(echo "$retstat" | wc -l)
-    if [ -n "$retstat" ] && [ -n "$cnt" ]; then
-        echo -e "\tSearchkey found $cnt times in $dirpath for files with prefix $fileprefix "
-        echo -e "\t\t$retstat" | head -n 1
-    fi
 }
 
 # @param host name with domin

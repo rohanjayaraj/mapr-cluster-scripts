@@ -1346,6 +1346,7 @@ function maprutil_runCommandsOnNodesInParallel(){
     local cmd=$2
 
     local tempdir="$RUNTEMPDIR/cmdrun"
+    mkdir -p $tempdir > /dev/null 2>&1
     for node in ${nodes[@]}
     do
         local nodefile="$tempdir/$node.log"
@@ -1500,7 +1501,9 @@ function maprutil_addCFtoJSONTable(){
 
 function maprutil_checkDiskErrors(){
     echo " [$(util_getHostIP)] Checking for disk errors "
-    util_grepFiles "/opt/mapr/logs/" "mfs.log*" "DHL" "lun.cc"
+    local numlines=2
+    [ -n "$GLB_LOG_VERBOSE" ] && numlines=all
+    util_grepFiles "$numlines" "/opt/mapr/logs/" "mfs.log*" "DHL" "lun.cc"
 }
 
 function maprutil_runDiskTest(){
@@ -1595,12 +1598,14 @@ function maprutil_sysinfo(){
 
 function maprutil_grepMFSLogs(){
     echo
-    echo "[$(util_getHostIP)] Searching MFS logs for FATAL|DHL messages"
+    echo "[$(util_getHostIP)] Searching MFS logs for FATAL & DHL messages"
     local dirpath="/opt/mapr/logs"
     local fileprefix="mfs.log*"
+    local numlines=2
+    [ -n "$GLB_LOG_VERBOSE" ] && numlines=all
 
-    util_grepFiles "$dirpath" "$fileprefix" "FATAL"
-    util_grepFiles "$dirpath" "$fileprefix" "DHL" "lun.cc"
+    util_grepFiles "$numlines" "$dirpath" "$fileprefix" "FATAL"
+    util_grepFiles "$numlines" "$dirpath" "$fileprefix" "DHL" "lun.cc"
 }
 
 function maprutil_grepMapRLogs(){
@@ -1608,7 +1613,10 @@ function maprutil_grepMapRLogs(){
     echo "[$(util_getHostIP)] Searching MapR logs"
     local dirpath="/opt/mapr/logs"
     local fileprefix="*"
-    util_grepFiles "$dirpath" "$fileprefix" "$GLB_GREP_MAPRLOGS"
+    local numlines=2
+    [ -n "$GLB_LOG_VERBOSE" ] && numlines=all
+
+    util_grepFiles "$numlines" "$dirpath" "$fileprefix" "$GLB_GREP_MAPRLOGS"
 }
 
 function maprutil_getMapRInfo(){

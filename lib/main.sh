@@ -125,6 +125,7 @@ GLB_TABLET_DIST=
 GLB_SECURE_CLUSTER=
 GLB_SYSINFO_OPTION=
 GLB_GREP_MAPRLOGS=
+GLB_LOG_VERBOSE=
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 ############################### ALL functions to be defined below this ###############################
@@ -601,51 +602,39 @@ function main_runCommandExec(){
 }
 
 function main_runLogDoctor(){
+	local nodelist=
+	for node in ${nodes[@]}
+	do	
+		if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+			continue
+		fi
+		nodelist=$nodelist"$node "
+	done
+
 	if [ -n "$doDiskCheck" ]; then
-		for node in ${nodes[@]}
-		do	
-			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
-				continue
-			fi
-			maprutil_runCommandsOnNode "$node" "diskcheck"
-		done
+		maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck"
 	fi
 	if [ -n "$GLB_TABLET_DIST" ]; then
 		echo "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
-		for node in ${nodes[@]}
-		do	
-			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
-				continue
-			fi
-			maprutil_runCommandsOnNode "$node" "tabletdist"
-		done
+		maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
 	fi
 	if [ -n "$doDiskTest" ]; then
 		echo "[$(util_getCurDate)] Running disk tests on all nodes"
-		for node in ${nodes[@]}
-		do	
-			if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
-				continue
-			fi
-			maprutil_runCommandsOnNode "$node" "disktest"
-		done
+		maprutil_runCommandsOnNodesInParallel "$nodelist" "disktest"
 	fi
 	if [ -n "$GLB_SYSINFO_OPTION" ]; then
 		echo "[$(util_getCurDate)] Running system info on all nodes"
-		for node in ${nodes[@]}
-		do	
-			maprutil_runCommandsOnNode "$node" "sysinfo"
-		done
+		maprutil_runCommandsOnNodesInParallel "$nodes" "sysinfo"
 	fi
 
 	if [ -n "$doMFSGrep" ]; then
 		echo "[$(util_getCurDate)] Grepping MFS logs on all nodes"
-		maprutil_runCommandsOnNodesInParallel "$nodes" "mfsgrep"
+		maprutil_runCommandsOnNodesInParallel "$nodelist" "mfsgrep"
 	fi
 
 	if [ -n "$GLB_GREP_MAPRLOGS" ]; then
 		echo "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ $GLB_GREP_MAPRLOGS ]"
-		maprutil_runCommandsOnNodesInParallel "$nodes" "grepmapr"
+		maprutil_runCommandsOnNodesInParallel "$nodelist" "grepmapr"
 	fi
 }
 
@@ -831,6 +820,11 @@ while [ "$2" != "" ]; do
 		-c)
 			if [ -n "$VALUE" ]; then
     			GLB_CLUSTER_NAME=$VALUE
+    		fi
+    	;;
+    	-v)
+			if [ -n "$VALUE" ]; then
+    			GLB_LOG_VERBOSE=1
     		fi
     	;;
     	-m)

@@ -19,6 +19,7 @@ args=
 tbltdist=
 sysinfo=
 grepkey=
+verbose=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -60,6 +61,9 @@ function usage () {
     echo -e "\t -d | --diskerror" 
     echo -e "\t\t - Find any disk errors on nodes"
 
+    echo -e "\t -v | --verbose" 
+    echo -e "\t\t - Print verbose of messages"
+
     echo -e "\t -dt | --disktest" 
     echo -e "\t\t - Run 'hdparm' disk tests on all nodes for MapR disks"
 
@@ -71,6 +75,11 @@ function usage () {
 
     echo -e "\t -l | --mfsloggrep" 
     echo -e "\t\t - Grep mfs logs for FATAL & Disk errors"
+
+    echo -e "\t -g=<SEARCHKEY> | --greplogs=<SEARCHKEY>" 
+    echo -e "\t\t - Grep MapR logs for SEARCHKEY on all nodes"
+
+
     
     echo 
     echo " Examples : "
@@ -117,6 +126,9 @@ while [ "$1" != "" ]; do
         -l | --mfsloggrep)
             args=$args"mfsgrep "
         ;;
+        -v | --verbose)
+            verbose=1
+        ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
             usage
@@ -129,11 +141,8 @@ done
 if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	exit 1
-elif [ -z "$args" ]; then
-    echo "No option specified"
-    exit
 else
-    $libdir/main.sh "$rolefile" "-l=$args" "-td=$tbltdist" "-si=$sysinfo" "-g=$grepkey"
+    $libdir/main.sh "$rolefile" "-l=$args" "-td=$tbltdist" "-si=$sysinfo" "-g=$grepkey" "-v=$verbose"
 fi
 
 echo "DONE!"
