@@ -1778,7 +1778,7 @@ function maprutil_getClusterSpec(){
             nwsp=$(echo "$nwsp" | sort -nr | head -1)
         fi
         nw="${nicpernode}x${nwsp}"
-        [ "$mtus" -gt "1500" ] && nw="$nw (jumbo frames)"
+        [ "$mtus" -gt "1500" ] && nw="$nw (mtu : $mtus/jumbo frames)" || nw="$nw (mtu : $mtus)"
     fi
     
     hwspec="$hwspec, $nw"
