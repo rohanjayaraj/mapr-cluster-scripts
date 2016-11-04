@@ -182,16 +182,18 @@ function ssh_copyPublicKey(){
 	for pwd in $rootpwd
 	do
 		sshpass -p${pwd} ssh -o StrictHostKeyChecking=no -l $1 $2 exit >/dev/null 2>&1
+		local idfile=
+		[ "$(ls /root/.ssh/id_rsa*.pub)" -gt "1" ] && [ -e "/root/.ssh/id_rsa.pub" ] && idfile="-i"
 		local sshpassret=$?
 		if [ "$sshpassret" -eq 0 ]; then
-			local sshpval=$(sshpass -p${pwd} ssh-copy-id $1@$2)
+			local sshpval=$(sshpass -p${pwd} ssh-copy-id $idfile $1@$2)
 			local retval=$?
 			if [ "$retval" != 0 ]; then
 				cat /root/.ssh/id_rsa.pub | sshpass -p${pwd} ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
 			fi
 			break
 		else
-			local sshpval=$(ssh-copy-id $1@$2)
+			local sshpval=$(ssh-copy-id $idfile $1@$2)
 			local retval=$?
 			if [ "$retval" != 0 ]; then
 				cat /root/.ssh/id_rsa.pub | ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'

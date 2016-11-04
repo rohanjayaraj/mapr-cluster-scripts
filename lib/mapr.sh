@@ -1651,11 +1651,13 @@ function maprutil_getMapRInfo(){
     local nummfs=
     local numsps=
     local sppermfs=
+    local nodetopo=
     if [ -e "/opt/mapr/server/mrconfig" ]; then
         nummfs=$(/opt/mapr/server/mrconfig info instances 2>/dev/null| head -1)
         numsps=$(/opt/mapr/server/mrconfig sp list 2>/dev/null| grep SP[0-9] | wc -l)
         command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json 2>/dev/null| grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
         [[ "$sppermfs" -eq 0 ]] && sppermfs=$numsps
+        command -v maprcli >/dev/null 2>&1 && nodetopo=$(maprcli node list -json | grep "$(hostname -f)" | grep racktopo | sed "s/$(hostname -f)//g" | cut -d ':' -f2 | tr -d '"' | tr -d ',')
     fi
     
     echo "MapR Info : "
@@ -1665,6 +1667,7 @@ function maprutil_getMapRInfo(){
     echo -e "\t Binaries : $bins"
     [[ -n "$nummfs" ]] && [[ "$nummfs" -gt 0 ]] && echo -e "\t # of MFS : $nummfs"
     [[ -n "$numsps" ]] && [[ "$numsps" -gt 0 ]] && echo -e "\t # of SPs : $numsps (${sppermfs} per mfs)"
+    [[ -n "$nodetopo" ]] && echo -e "\t Topology : ${nodetopo::-1}"
 }
 
 function maprutil_getClusterSpec(){
@@ -1808,7 +1811,7 @@ function maprutil_getClusterSpec(){
     fi
 
     sysspec="$numnodes nodes"
-    sysspec="$sysspec, $os"
+    
     # Build MapR Spec
 
     ## Build & Patch
@@ -1835,11 +1838,18 @@ function maprutil_getClusterSpec(){
              numsps=$(echo "$numsps" | sort -nr | head -1)
         fi
         maprspec="$numnodes nodes, $nummfs MFS, $numsps SP, $maprver"
+
+        local numdn=$(echo "$maprstr" | grep "mapr-fileserver" | wc -l)
+        local numcldb=$(echo "$maprstr" | grep "mapr-cldb" | wc -l)
+        local numtopo=$(echo "$mapstr" | grep "Topology" awk | '{print $3}' | sort | uniq)
+        if [ "$(echo $numtopo | wc -w)" -gt "1" ]; then
+            numdn=$(echo "$mapstr" | grep "Topology" awk | '{print $3}' | sort | uniq -c | sort -nr | head -1 | awk '{print $1}')
+        fi
+        sysspec="$sysspec($numcldb CLDB, $numdn Data)"
     fi
 
-    ## Cluester Topology
-
-
+    sysspec="$sysspec, $os"
+    
     ## Print specifications
     echo
     echo "Cluster Specs : "
