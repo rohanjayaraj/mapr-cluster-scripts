@@ -809,8 +809,10 @@ while [ "$2" != "" ]; do
 	    	done
 		;;
 		-si)
-			doLogAnalyze="$doLogAnalyze sysinfo"
-			GLB_SYSINFO_OPTION="$VALUE"
+			if [ -n "$VALUE" ]; then
+				doLogAnalyze="$doLogAnalyze sysinfo"
+				GLB_SYSINFO_OPTION="$VALUE"
+			fi
 		;;
 		-g)
 			if [ -n "$VALUE" ]; then
