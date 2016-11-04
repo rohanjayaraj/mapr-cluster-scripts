@@ -1827,8 +1827,6 @@ function maprutil_getClusterSpec(){
              numsps=$(echo "$numsps" | sort -nr | head -1)
         fi
         maprspec="$numnodes nodes, $nummfs MFS, $numsps SP, $maprver"
-    else
-        echo "INFO: No MapR installed on any nodes"
     fi
 
     ## Cluester Topology
