@@ -1730,10 +1730,10 @@ function maprutil_getClusterSpec(){
         done
         disksize=$(echo "$diskstr" | awk '{print $6}' | uniq | sort -nr | head -1)
         disksize=$(util_getNearestPower2 $disksize)
-        if [ "$disksize" -lt "1000" ]; then
+        if [ "$disksize" -lt "999" ]; then
             disksize="${disksize}GB" 
         else
-            disksize="$(echo "$disksize/1024" | bc)TB"
+            disksize="$(echo "$disksize/1000" | bc)TB"
         fi
     fi
 
