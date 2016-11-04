@@ -638,6 +638,7 @@ function main_runLogDoctor(){
 	fi
 
 	if [ -n "$doClusterSpec" ]; then
+		echo
 		echo "[$(util_getCurDate)] Printing cluster specifications"
 		maprutil_getClusterSpec "$nodes"
 	fi
