@@ -612,7 +612,8 @@ function main_runLogDoctor(){
 		nodelist=$nodelist"$node "
 	done
 
-	for i in $doLogAnalyze do
+	for i in $doLogAnalyze 
+	do
 	    case $i in
 	    	diskerror)
 				maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck"
@@ -643,7 +644,6 @@ function main_runLogDoctor(){
         	;;
         esac
         echo
-    shift
 	done
 }
 
