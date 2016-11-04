@@ -1770,7 +1770,7 @@ function maprutil_getClusterSpec(){
     # Build MapR Spec
 
     ## Build & Patch
-    local mapstr=$(echo "$sysinfo" | grep -A5 "MapR Info"
+    local mapstr=$(echo "$sysinfo" | grep -A5 "MapR Info")
     if [ -n "$mapstr" ]; then 
         local maprverstr=$(echo "$mapstr" | grep Version |  cut -d':' -f2- | sed 's/^ //g')
         local maprver=$(echo "$maprverstr" | awk '{print $1}' | uniq)
