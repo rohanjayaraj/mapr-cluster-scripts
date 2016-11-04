@@ -636,6 +636,11 @@ function main_runLogDoctor(){
 		echo "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ $GLB_GREP_MAPRLOGS ]"
 		maprutil_runCommandsOnNodesInParallel "$nodelist" "grepmapr"
 	fi
+
+	if [ -n "$doClusterSpec" ]; then
+		echo "[$(util_getCurDate)] Printing cluster specifications"
+		maprutil_getClusterSpec "$nodes"
+	fi
 }
 
 function main_isValidBuildVersion(){
@@ -726,6 +731,7 @@ doLogAnalyze=
 doDiskCheck=
 doDiskTest=
 doMFSGrep=
+doClusterSpec=
 doPontis=0
 doForce=0
 doSilent=0
@@ -798,6 +804,8 @@ while [ "$2" != "" ]; do
 	    			doDiskTest=1
 	    		elif [[ "$i" = "mfsgrep" ]]; then
 	    			doMFSGrep=1
+	    		elif [[ "$i" = "clsspec" ]]; then
+	    			doClusterSpec=1
 	    		fi
 	    	done
 		;;

@@ -73,6 +73,9 @@ function usage () {
     echo -e "\t -si=<OPTIONS> | --systeminfo=<OPTIONS>" 
     echo -e "\t\t - Print system info of each node. OPTIONS : mapr,machine,cpu,disk,nw,mem or all (comma separated)"
 
+    echo -e "\t -cs | --clusterspec" 
+    echo -e "\t\t - Print overall cluster specifications"
+
     echo -e "\t -l | --mfsloggrep" 
     echo -e "\t\t - Grep mfs logs for FATAL & Disk errors"
 
@@ -105,6 +108,9 @@ while [ "$1" != "" ]; do
     	;;
         -dt | --disktest)
             args=$args"disktest "
+        ;;
+        -cs | --clusterspec)
+            args=$args"clsspec "
         ;;
         -td | --tabletdist)
             if [ -n "$VALUE" ]; then
