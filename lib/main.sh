@@ -614,6 +614,7 @@ function main_runLogDoctor(){
 
 	for i in $doLogAnalyze 
 	do
+		echo
 	    case $i in
 	    	diskerror)
 				maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck"
@@ -643,7 +644,6 @@ function main_runLogDoctor(){
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
         	;;
         esac
-        echo
 	done
 }
 
