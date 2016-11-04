@@ -1674,6 +1674,7 @@ function maprutil_getClusterSpec(){
     local nodelist=$1
     local sysinfo=$(maprutil_runCommandsOnNodesInParallel "$nodelist" "sysinfo2")
     local hwspec=
+    local sysspec=
     local maprspec=
 
     # Build System Spec
@@ -1806,7 +1807,8 @@ function maprutil_getClusterSpec(){
         echo "ERROR: No OS listed on any nodes"
     fi
 
-    hwspec="$hwspec, $os"
+    sysspec="$sysspec, $numnodes nodes"
+    sysspec="$sysspec, $os"
     # Build MapR Spec
 
     ## Build & Patch
@@ -1841,8 +1843,9 @@ function maprutil_getClusterSpec(){
     ## Print specifications
     echo
     echo "Cluster Specs : "
-    echo -e "\t H/W  : $hwspec"
-    [ -n "$maprspec" ] && echo -e "\t MapR : $maprspec" 
+    echo -e "\t H/W   : $hwspec"
+    echo -e "\t Nodes : $sysspec"
+    [ -n "$maprspec" ] && echo -e "\t MapR  : $maprspec" 
 }
 
 function maprutil_applyLicense(){
