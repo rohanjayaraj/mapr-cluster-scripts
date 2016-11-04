@@ -1815,9 +1815,9 @@ function maprutil_getClusterSpec(){
     # Build MapR Spec
 
     ## Build & Patch
-    local mapstr=$(echo "$sysinfo" | grep -A5 "MapR Info")
-    if [ -n "$mapstr" ]; then 
-        local maprverstr=$(echo "$mapstr" | grep Version |  cut -d':' -f2- | sed 's/^ //g')
+    local maprstr=$(echo "$sysinfo" | grep -A5 "MapR Info")
+    if [ -n "$maprstr" ]; then 
+        local maprverstr=$(echo "$maprstr" | grep Version |  cut -d':' -f2- | sed 's/^ //g')
         local maprver=$(echo "$maprverstr" | awk '{print $1}' | uniq)
         local maprpver=$(echo "$maprverstr" | grep patch | awk '{print $2,$3}' | uniq | head -1)
         if [ "$(echo $maprver | wc -w)" -gt "1" ]; then
@@ -1826,13 +1826,13 @@ function maprutil_getClusterSpec(){
         fi
         [ -n "$maprpver" ] && maprver="$maprver $maprpver"
 
-        local nummfs=$(echo "$mapstr" | grep "# of MFS" | cut -d':' -f2 | sed 's/^ //g' | uniq )
+        local nummfs=$(echo "$maprstr" | grep "# of MFS" | cut -d':' -f2 | sed 's/^ //g' | uniq )
         if [ "$(echo $nummfs | wc -w)" -gt "1" ]; then
              echo "WARN: Different # of MFS configured on nodes"
              nummfs=$(echo "$nummfs" | sort -nr | head -1)
         fi
 
-        local numsps=$(echo "$mapstr" | grep "# of SPs" | awk '{print $5}' | uniq )
+        local numsps=$(echo "$maprstr" | grep "# of SPs" | awk '{print $5}' | uniq )
         if [ "$(echo $numsps | wc -w)" -gt "1" ]; then
              echo "WARN: Different # of SPs configured on nodes"
              numsps=$(echo "$numsps" | sort -nr | head -1)
@@ -1841,9 +1841,9 @@ function maprutil_getClusterSpec(){
 
         local numdn=$(echo "$maprstr" | grep "mapr-fileserver" | wc -l)
         local numcldb=$(echo "$maprstr" | grep "mapr-cldb" | wc -l)
-        local numtopo=$(echo "$mapstr" | grep "Topology" awk | '{print $3}' | sort | uniq)
+        local numtopo=$(echo "$maprstr" | grep "Topology" awk | '{print $3}' | sort | uniq)
         if [ "$(echo $numtopo | wc -w)" -gt "1" ]; then
-            numdn=$(echo "$mapstr" | grep "Topology" awk | '{print $3}' | sort | uniq -c | sort -nr | head -1 | awk '{print $1}')
+            numdn=$(echo "$maprstr" | grep "Topology" awk | '{print $3}' | sort | uniq -c | sort -nr | head -1 | awk '{print $1}')
         fi
         sysspec="$sysspec($numcldb CLDB, $numdn Data)"
     fi
