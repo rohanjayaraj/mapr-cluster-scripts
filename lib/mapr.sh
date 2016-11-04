@@ -1704,7 +1704,40 @@ function maprutil_getClusterSpec(){
         echo "ERROR: No disks listed on any nodes"
         numdisks=0
     fi
-    hwspec="$hwspec, $numdisks disks"
+    
+    ## More disk info
+    local diskstr=$(echo "$sysinfo" | grep -A${numdisks} "Disk Info" | grep -v OS | grep Type: )
+    local diskcnt=$(echo "$diskstr" | sort -k1 | awk '{print $1}' | uniq -c | wc -l)
+    if [ "$diskcnt" -ge "$numdisks" ]; then
+        diskcnt=$(echo "$diskstr" | sort -k1 | awk '{print $1}' | uniq -c | awk '{print $1}' | uniq -c | sort -nr | head -1 | awk '{print $2}')
+    fi
+    [ "$diskcnt" -lt "$numdisks" ] && numdisks=$diskcnt
+    
+    local disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | uniq)
+    if [ "$(echo $disktype | wc -w)" -gt "1" ]; then
+        echo "WARN: Mix of HDD & SSD disks. Not a homogeneous cluster"
+        disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | uniq -c | sort -nr | awk '{print $2}')
+    fi
+
+    local disksize=$(echo "$diskstr" | awk '{print $6}' | uniq)
+    if [ "$(echo $disksize | wc -w)" -gt "1" ]; then
+        local dz=
+        for d in $disksize
+        do
+            local sz=$(util_getNearestPower2 $d)
+            [ -z "$dz" ] && dz=sz
+            [ "$sz" -ne "$dz" ] && echo "WARN: Disks are of different capacities"
+        done
+        disksize=$(echo "$diskstr" | awk '{print $6}' | uniq | sort -nr | head -1)
+        if [ "$disksize" -lt "1000" ]; then
+            disksize="${disksize}GB" 
+        else
+            disksize="$(echo "$disksize/1024" | bc)TB"
+        fi
+    fi
+
+    hwspec="$hwspec, ${numdisks}x${disksize} $disktype"
+
     ## Memory
     local memory=
     local memorystr=$(echo "$sysinfo" | grep Memory | grep -v Info | cut -d':' -f2)
@@ -1799,10 +1832,12 @@ function maprutil_getClusterSpec(){
 
     ## Cluester Topology
 
+
+    ## Print specifications
     echo
     echo "Cluster Specs : "
     echo -e "\t H/W  : $hwspec"
-    echo -e "\t MapR : $maprspec" 
+    [ -n "$maprspec" ] && echo -e "\t MapR : $maprspec" 
 }
 
 function maprutil_applyLicense(){
