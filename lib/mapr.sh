@@ -1725,7 +1725,7 @@ function maprutil_getClusterSpec(){
         for d in $disksize
         do
             local sz=$(util_getNearestPower2 $d)
-            [ -z "$dz" ] && dz=sz
+            [ -z "$dz" ] && dz=$sz
             [ "$sz" -ne "$dz" ] && echo "WARN: Disks are of different capacities"
         done
         disksize=$(echo "$diskstr" | awk '{print $6}' | uniq | sort -nr | head -1)
