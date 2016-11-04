@@ -1667,7 +1667,7 @@ function maprutil_getMapRInfo(){
     echo -e "\t Binaries : $bins"
     [[ -n "$nummfs" ]] && [[ "$nummfs" -gt 0 ]] && echo -e "\t # of MFS : $nummfs"
     [[ -n "$numsps" ]] && [[ "$numsps" -gt 0 ]] && echo -e "\t # of SPs : $numsps (${sppermfs} per mfs)"
-    [[ -n "$nodetopo" ]] && echo -e "\t Topology : ${nodetopo::-1}"
+    [[ -n "$nodetopo" ]] && echo -e "\t Topology : ${nodetopo%?}"
 }
 
 function maprutil_getClusterSpec(){
