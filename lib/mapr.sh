@@ -1729,6 +1729,7 @@ function maprutil_getClusterSpec(){
             [ "$sz" -ne "$dz" ] && echo "WARN: Disks are of different capacities"
         done
         disksize=$(echo "$diskstr" | awk '{print $6}' | uniq | sort -nr | head -1)
+        disksize=$(util_getNearestPower2 $disksize)
         if [ "$disksize" -lt "1000" ]; then
             disksize="${disksize}GB" 
         else
