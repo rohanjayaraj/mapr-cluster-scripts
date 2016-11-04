@@ -1843,7 +1843,7 @@ function maprutil_getClusterSpec(){
         local numcldb=$(echo "$maprstr" | grep "mapr-cldb" | wc -l)
         local numtopo=$(echo "$maprstr" | grep "Topology" | awk '{print $3}' | sort | uniq)
         if [ "$(echo $numtopo | wc -w)" -gt "1" ]; then
-            numdn=$(echo "$maprstr" | grep "Topology" awk | '{print $3}' | sort | uniq -c | sort -nr | head -1 | awk '{print $1}')
+            numdn=$(echo "$maprstr" | grep "Topology" | awk '{print $3}' | sort | uniq -c | sort -nr | head -1 | awk '{print $1}')
         fi
         sysspec="$sysspec($numcldb CLDB, $numdn Data)"
     fi
