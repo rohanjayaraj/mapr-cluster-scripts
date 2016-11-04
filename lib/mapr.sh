@@ -1342,7 +1342,6 @@ function maprutil_runCommandsOnNodesInParallel(){
         return
     fi
 
-    echo
     local nodes=$1
     local cmd=$2
 

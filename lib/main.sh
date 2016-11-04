@@ -602,6 +602,7 @@ function main_runCommandExec(){
 }
 
 function main_runLogDoctor(){
+	[ -z "$doLogAnalyze" ] && return
 	local nodelist=
 	for node in ${nodes[@]}
 	do	
@@ -611,37 +612,39 @@ function main_runLogDoctor(){
 		nodelist=$nodelist"$node "
 	done
 
-	if [ -n "$doDiskCheck" ]; then
-		maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck"
-	fi
-	if [ -n "$GLB_TABLET_DIST" ]; then
-		echo "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
-		maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
-	fi
-	if [ -n "$doDiskTest" ]; then
-		echo "[$(util_getCurDate)] Running disk tests on all nodes"
-		maprutil_runCommandsOnNodesInParallel "$nodelist" "disktest"
-	fi
-	if [ -n "$GLB_SYSINFO_OPTION" ]; then
-		echo "[$(util_getCurDate)] Running system info on all nodes"
-		maprutil_runCommandsOnNodesInParallel "$nodes" "sysinfo"
-	fi
-
-	if [ -n "$doMFSGrep" ]; then
-		echo "[$(util_getCurDate)] Grepping MFS logs on all nodes"
-		maprutil_runCommandsOnNodesInParallel "$nodelist" "mfsgrep"
-	fi
-
-	if [ -n "$GLB_GREP_MAPRLOGS" ]; then
-		echo "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ $GLB_GREP_MAPRLOGS ]"
-		maprutil_runCommandsOnNodesInParallel "$nodelist" "grepmapr"
-	fi
-
-	if [ -n "$doClusterSpec" ]; then
-		echo
-		echo "[$(util_getCurDate)] Printing cluster specifications"
-		maprutil_getClusterSpec "$nodes"
-	fi
+	for i in $doLogAnalyze do
+	    case $i in
+	    	diskerror)
+				maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck"
+        	;;
+        	disktest)
+				echo "[$(util_getCurDate)] Running disk tests on all nodes"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "disktest"
+        	;;
+        	mfsgrep)
+				echo "[$(util_getCurDate)] Grepping MFS logs on all nodes"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "mfsgrep"
+        	;;
+        	clsspec)
+				echo "[$(util_getCurDate)] Printing cluster specifications"
+				maprutil_getClusterSpec "$nodes"
+        	;;
+        	sysinfo)
+				echo "[$(util_getCurDate)] Running system info on all nodes"
+				maprutil_runCommandsOnNodesInParallel "$nodes" "sysinfo"
+        	;;
+        	greplogs)
+				echo "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ $GLB_GREP_MAPRLOGS ]"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "grepmapr"
+        	;;
+        	tabletdist)
+				echo "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
+        	;;
+        esac
+        echo
+    shift
+	done
 }
 
 function main_isValidBuildVersion(){
@@ -729,10 +732,6 @@ doUpgrade=0
 doConfigure=0
 doCmdExec=
 doLogAnalyze=
-doDiskCheck=
-doDiskTest=
-doMFSGrep=
-doClusterSpec=
 doPontis=0
 doForce=0
 doSilent=0
@@ -797,32 +796,31 @@ while [ "$2" != "" ]; do
     		done
     	;;
     	-l)
-			doLogAnalyze=1
 			for i in ${VALUE}; do
 				if [[ "$i" = "diskerror" ]]; then
-	    			doDiskCheck=1
+	    			doLogAnalyze="$doLogAnalyze diskerror"
 	    		elif [[ "$i" = "disktest" ]]; then
-	    			doDiskTest=1
+	    			doLogAnalyze="$doLogAnalyze disktest"
 	    		elif [[ "$i" = "mfsgrep" ]]; then
-	    			doMFSGrep=1
+	    			doLogAnalyze="$doLogAnalyze mfsgrep"
 	    		elif [[ "$i" = "clsspec" ]]; then
-	    			doClusterSpec=1
+	    			doLogAnalyze="$doLogAnalyze clsspec"
 	    		fi
 	    	done
 		;;
 		-si)
-			doLogAnalyze=1
+			doLogAnalyze="$doLogAnalyze sysinfo"
 			GLB_SYSINFO_OPTION="$VALUE"
 		;;
 		-g)
 			if [ -n "$VALUE" ]; then
-				doLogAnalyze=1
+				doLogAnalyze="$doLogAnalyze greplogs"
 				GLB_GREP_MAPRLOGS="$VALUE"
 			fi
 		;;
 		-td)
 			if [ -n "$VALUE" ]; then
-				doLogAnalyze=1
+				doLogAnalyze="$doLogAnalyze tabletdist"
 				GLB_TABLET_DIST=$VALUE
 			fi
 		;;
