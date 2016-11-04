@@ -1779,7 +1779,7 @@ function maprutil_getClusterSpec(){
             echo "WARN: Different versions of MapR installed."
             maprver=$(echo "$maprver" | sort -nr | head -1)
         fi
-        [ -n "$maprpver" ] maprver="$maprver $maprpver"
+        [ -n "$maprpver" ] && maprver="$maprver $maprpver"
 
         local nummfs=$(echo "$maprstr" | grep "# of MFS" | cut -d':' -f2 | sed 's/^ //g' | uniq )
         if [ "$(echo $nummfs | wc -w)" -gt "1" ]; then
