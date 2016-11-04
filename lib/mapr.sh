@@ -1807,7 +1807,7 @@ function maprutil_getClusterSpec(){
         echo "ERROR: No OS listed on any nodes"
     fi
 
-    sysspec="$sysspec, $numnodes nodes"
+    sysspec="$numnodes nodes"
     sysspec="$sysspec, $os"
     # Build MapR Spec
 
