@@ -1451,6 +1451,9 @@ function maprutil_runCommands(){
             sysinfo)
                 maprutil_sysinfo
             ;;
+            sysinfo2)
+                maprutil_sysinfo "all"
+            ;;
             mfsgrep)
                 maprutil_grepMFSLogs
             ;;
@@ -1565,6 +1568,9 @@ function maprutil_sysinfo(){
     else
         options=$(echo $GLB_SYSINFO_OPTION | tr "," "\n")
     fi
+
+    [ -n "$1" ] && options="all"
+
     for i in $options
     do
         case $i in
@@ -1666,7 +1672,7 @@ function maprutil_getClusterSpec(){
         return
     fi
     local nodelist=$1
-    local sysinfo=$(maprutil_runCommandsOnNodesInParallel "$nodelist" "sysinfo")
+    local sysinfo=$(maprutil_runCommandsOnNodesInParallel "$nodelist" "sysinfo2")
     local hwspec=
     local maprspec=
 
