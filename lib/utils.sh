@@ -700,6 +700,14 @@ function util_getMachineInfo(){
     command -v mpstat >/dev/null 2>&1 && echo -e "\t Kernel   : $(mpstat | head -n1 | awk '{print $1,$2}')"
 }
 
+# @param round to power of 2
+function util_getNearestPower2() { 
+    if [ -z "$1" ]; then
+        return
+    fi
+    echo "x=l($1)/l(2); scale=0; 2^((x+0.5)/1)" | bc -l; 
+}
+
 # @param host name with domin
 function util_getIPfromHostName(){
     if [ -z "$1" ]; then

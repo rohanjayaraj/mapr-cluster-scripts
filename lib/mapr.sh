@@ -1558,6 +1558,8 @@ function maprutil_sysinfo(){
     echo "[$(util_getHostIP)] System info"
     
     local options=
+    [ -z "$GLB_SYSINFO_OPTION" ] && GLB_SYSINFO_OPTION="all"
+
     if [ "$(echo $GLB_SYSINFO_OPTION | grep all)" ]; then
         options="all"
     else
@@ -1657,6 +1659,150 @@ function maprutil_getMapRInfo(){
     echo -e "\t Binaries : $bins"
     [[ -n "$nummfs" ]] && [[ "$nummfs" -gt 0 ]] && echo -e "\t # of MFS : $nummfs"
     [[ -n "$numsps" ]] && [[ "$numsps" -gt 0 ]] && echo -e "\t # of SPs : $numsps (${sppermfs} per mfs)"
+}
+
+function maprutil_getClusterSpec(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local nodelist=$1
+    local sysinfo=$(maprutil_runCommandsOnNodesInParallel "$nodelist" "sysinfo")
+    local hwspec=
+    local maprspec=
+
+    # Build System Spec
+
+    local numnodes=$(echo "$sysinfo" | grep "System info" | wc -l)
+
+    ## CPU
+    local cpucores=$(echo "$sysinfo" | grep -A1 cores | grep -B1 Enabled | grep cores | cut -d ':' -f2 | sed 's/ *//g')
+    [ -n "$cpucores" ] && [ "$(echo $cpucores| wc -w)" -ne "$numnodes" ] && echo "WARN: CPU hyperthreading mismatch on nodes" && cpucores=0
+    [ -n "$cpucores" ] && cpucores=$(echo "$cpucores" | uniq)
+    if [ -n "$cpucores" ] && [ "$(echo $cpucores | wc -w)" -gt "1" ]; then
+        echo "WARN: CPU cores do not match. Not a homogeneous cluster"
+        cpucores=$(echo "$cpucores" | sort -nr | head -1)
+    elif [ -n "$cpucores" ]; then
+        cpucores="2x$cpucores"
+    fi
+    
+    if [ -z "$cpucores" ]; then
+        cpucores=$(echo "$sysinfo" | grep -A1 cores | grep -B1 Disabled | grep cores | cut -d ':' -f2 | sed 's/ *//g' | uniq)
+        [ -n "$cpucores" ] && [ "$(echo $cpucores | wc -w)" -gt "1" ] && echo "WARN: CPU cores do not match. Not a homogeneous cluster" && cpucores=$(echo "$cpucores" | sort -nr | head -1)
+    fi
+
+    hwspec="$cpucores cores"
+    ## Disk
+    local numdisks=$(echo "$sysinfo" | grep "Disk Info" | cut -d':' -f3 | tr -d ']' | sed 's/ *//g')
+    if [ -n "$numdisks" ]; then 
+        [ "$(echo $numdisks| wc -w)" -ne "$numnodes" ] && echo "WARN: Few nodes do not have disks"
+        numdisks=$(echo "$numdisks" | uniq)
+        if [ "$(echo $numdisks | wc -w)" -gt "1" ]; then
+            echo "WARN: # of disks do not match. Not a homogeneous cluster"
+            numdisks=$(echo "$numdisks" | sort -nr | head -1)
+        fi
+    else
+        echo "ERROR: No disks listed on any nodes"
+        numdisks=0
+    fi
+    hwspec="$hwspec, $numdisks disks"
+    ## Memory
+    local memory=
+    local memorystr=$(echo "$sysinfo" | grep Memory | grep -v Info | cut -d':' -f2)
+    local memcnt=$(echo "$memorystr" | wc -l)
+    if [ -n "$memorystr" ]; then 
+        [ "$memcnt" -ne "$numnodes" ] && echo "WARN: No memory listed for few nodes"
+        memory=$(echo "$memorystr" | awk '{print $1}' | uniq)
+        local gb=$(echo "$memorystr" | awk '{print $2}' | uniq | sort -nr | head -1)
+        if [ "$(echo $memory | wc -w)" -gt "1" ]; then
+            echo "WARN: Memory isn't same all node nodes. Not a homogeneous cluster"
+            memory=$(echo "$memory" | sort -nr | head -1)
+            memory=$(util_getNearestPower2 $memory)
+        fi
+        memory="${memory}${gb}"
+    else
+        echo "ERROR: No memory listed on any nodes"
+        memory=0
+    fi
+
+    hwspec="$hwspec, $memory RAM"
+
+    ## Network
+    local nw=
+    local nwstr=$(echo "$sysinfo" | grep -A2 "Network Info" | grep -v Disk | grep NIC | sort -k2)
+    if [ -n "$nwstr" ]; then
+        local niccnt=$(echo "$nwstr" | wc -l)
+        local nicpernode=$(echo "$niccnt/$numnodes" | bc)
+        [ "$(( $niccnt % $numnodes ))" -ne "0" ] && echo "WARN: # of NICs do not match. Not a homogeneous cluster" && nicpernode=0
+        local mtus=$(echo "$nwstr" | awk '{print $4}' | tr -d ',' | uniq)
+        if [ "$(echo $mtus | wc -w)" -gt "1" ]; then
+            echo "WARN: MTUs on the NIC(s) is not same"
+            mtus=$(echo "$mtus" | sort -nr | head -1)
+        fi
+        local nwsp=$(echo "$nwstr" | awk '{print $8}' | tr -d ',' | uniq)
+        if [ "$(echo $nwsp | wc -w)" -gt "1" ]; then
+            echo "WARN: NIC(s) are of different speeds"
+            nwsp=$(echo "$nwsp" | sort -nr | head -1)
+        fi
+        nw="${nicpernode}x${nwsp}"
+        [ "$mtus" -gt "1500" ] && nw="$nw (jumbo frames)"
+    fi
+    
+    hwspec="$hwspec, $nw"
+
+    ## OS
+    local os=
+    local osstr=$(echo "$sysinfo" | grep -A2 "Machine Info" | grep OS | cut -d ':' -f2 | sed 's/^ //g')
+    local oscnt=$(echo "$osstr" | wc -l)
+    if [ -n "$osstr" ]; then 
+        [ "$oscnt" -ne "$numnodes" ] && echo "WARN: No OS listed for few nodes"
+        os=$(echo "$osstr" | awk '{print $1}' | uniq)
+        local ver=$(echo "$osstr" | awk '{print $2}' | uniq | sort -nr | head -1)
+        if [ "$(echo $os | wc -w)" -gt "1" ]; then
+            echo "WARN: OS isn't same all node nodes. Not a homogeneous cluster"
+            os=$(echo "$os" | sort | head -1)
+        fi
+        os="${os} ${ver}"
+    else
+        echo "ERROR: No OS listed on any nodes"
+    fi
+
+    hwspec="$hwspec, $os"
+    # Build MapR Spec
+
+    ## Build & Patch
+    local mapstr=$(echo "$sysinfo" | grep -A5 "MapR Info"
+    if [ -n "$mapstr" ]; then 
+        local maprverstr=$(echo "$mapstr" | grep Version |  cut -d':' -f2- | sed 's/^ //g')
+        local maprver=$(echo "$maprverstr" | awk '{print $1}' | uniq)
+        local maprpver=$(echo "$maprverstr" | grep patch | awk '{print $2,$3}' | uniq | head -1)
+        if [ "$(echo $maprver | wc -w)" -gt "1" ]; then
+            echo "WARN: Different versions of MapR installed."
+            maprver=$(echo "$maprver" | sort -nr | head -1)
+        fi
+        [ -n "$maprpver" ] maprver="$maprver $maprpver"
+
+        local nummfs=$(echo "$maprstr" | grep "# of MFS" | cut -d':' -f2 | sed 's/^ //g' | uniq )
+        if [ "$(echo $nummfs | wc -w)" -gt "1" ]; then
+             echo "WARN: Different # of MFS configured on nodes"
+             nummfs=$(echo "$nummfs" | sort -nr | head -1)
+        fi
+
+        local numsps=$(echo "$maprstr" | grep "# of SPs" | awk '{print $5}' | uniq )
+        if [ "$(echo $numsps | wc -w)" -gt "1" ]; then
+             echo "WARN: Different # of SPs configured on nodes"
+             numsps=$(echo "$numsps" | sort -nr | head -1)
+        fi
+        maprspec="$numnodes nodes, $nummfs MFS, $numsps SP, $maprver"
+    else
+        echo "INFO: No MapR installed on any nodes"
+    fi
+
+    ## Cluester Topology
+
+    echo
+    echo "Cluster Specs : "
+    echo -e "\t H/W  : $hwspec"
+    echo -e "\t MapR : $maprspec" 
 }
 
 function maprutil_applyLicense(){
