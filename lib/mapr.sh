@@ -1716,8 +1716,8 @@ function maprutil_getClusterSpec(){
         if [ "$(echo $memory | wc -w)" -gt "1" ]; then
             echo "WARN: Memory isn't same all node nodes. Not a homogeneous cluster"
             memory=$(echo "$memory" | sort -nr | head -1)
-            memory=$(util_getNearestPower2 $memory)
         fi
+        memory=$(util_getNearestPower2 $memory)
         memory="${memory}${gb}"
     else
         echo "ERROR: No memory listed on any nodes"
@@ -1735,7 +1735,7 @@ function maprutil_getClusterSpec(){
         [ "$(( $niccnt % $numnodes ))" -ne "0" ] && echo "WARN: # of NICs do not match. Not a homogeneous cluster" && nicpernode=0
         local mtus=$(echo "$nwstr" | awk '{print $4}' | tr -d ',' | uniq)
         if [ "$(echo $mtus | wc -w)" -gt "1" ]; then
-            echo "WARN: MTUs on the NIC(s) is not same"
+            echo "WARN: MTUs on the NIC(s) are not same"
             mtus=$(echo "$mtus" | sort -nr | head -1)
         fi
         local nwsp=$(echo "$nwstr" | awk '{print $8}' | tr -d ',' | uniq)
@@ -1781,13 +1781,13 @@ function maprutil_getClusterSpec(){
         fi
         [ -n "$maprpver" ] && maprver="$maprver $maprpver"
 
-        local nummfs=$(echo "$maprstr" | grep "# of MFS" | cut -d':' -f2 | sed 's/^ //g' | uniq )
+        local nummfs=$(echo "$mapstr" | grep "# of MFS" | cut -d':' -f2 | sed 's/^ //g' | uniq )
         if [ "$(echo $nummfs | wc -w)" -gt "1" ]; then
              echo "WARN: Different # of MFS configured on nodes"
              nummfs=$(echo "$nummfs" | sort -nr | head -1)
         fi
 
-        local numsps=$(echo "$maprstr" | grep "# of SPs" | awk '{print $5}' | uniq )
+        local numsps=$(echo "$mapstr" | grep "# of SPs" | awk '{print $5}' | uniq )
         if [ "$(echo $numsps | wc -w)" -gt "1" ]; then
              echo "WARN: Different # of SPs configured on nodes"
              numsps=$(echo "$numsps" | sort -nr | head -1)
