@@ -931,6 +931,8 @@ function maprutil_configure(){
             sleep 30
             maprutil_configureCLDBTopology
         fi
+    else
+        [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
     fi
 
     if [ -n "$GLB_TRACE_ON" ]; then
@@ -1006,17 +1008,46 @@ function maprutil_postConfigure(){
 }
 
 # @param cldbnode ip
-function maprutil_copySecureFilesFromCLDB(){
+function maprutil_copyMapRTicketsFromCLDB(){
+    if [ -z "$1" ]; then
+        return
+    fi
     local cldbhost=$1
-    local cldbnodes=$2
-    local zknodes=$3
-    local hostip=$(util_getHostIP)
-
+    
     # Check if CLDB is configured & files are available for copy
     local cldbisup="false"
     local i=0
     while [ "$cldbisup" = "false" ]; do
-        cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/cldb.key' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && [ -e '/tmp/maprticket_0' ] && echo true || echo false")
+        cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/tmp/maprticket_0' ] && echo true || echo false")
+        if [ "$cldbisup" = "false" ]; then
+            sleep 10
+        else
+            cldbisup="true"
+            break
+        fi
+        let i=i+1
+        if [ "$i" -gt 18 ]; then
+            echo "[$(util_getHostIP)] Timed out waiting to find 'maprticket_0' on CLDB node [$cldbhost]. Copy manually!"
+            break
+        fi
+    done
+    
+    if [ "$cldbisup" = "true" ] && [ "$ISCLIENT" -eq 0 ]; then
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_*" "/tmp" 2>/dev/null
+    fi
+}
+
+# @param cldbnode ip
+function maprutil_copySecureFilesFromCLDB(){
+    local cldbhost=$1
+    local cldbnodes=$2
+    local zknodes=$3
+    
+    # Check if CLDB is configured & files are available for copy
+    local cldbisup="false"
+    local i=0
+    while [ "$cldbisup" = "false" ]; do
+        cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/cldb.key' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && echo true || echo false")
         if [ "$cldbisup" = "false" ]; then
             sleep 10
         else
@@ -1024,7 +1055,7 @@ function maprutil_copySecureFilesFromCLDB(){
         fi
         let i=i+1
         if [ "$i" -gt 18 ]; then
-            echo "Timed out waiting to find cldb.key on CLDB node [$cldbhost]. Exiting!"
+            echo "[$(util_getHostIP)] Timed out waiting to find cldb.key on CLDB node [$cldbhost]. Exiting!"
             exit 1
         fi
     done
@@ -1037,7 +1068,6 @@ function maprutil_copySecureFilesFromCLDB(){
     if [ "$ISCLIENT" -eq 0 ]; then
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"
-        ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_*" "/tmp" 2>/dev/null
     fi
     ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"
     wait
