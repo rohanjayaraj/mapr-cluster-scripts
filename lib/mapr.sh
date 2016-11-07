@@ -1023,6 +1023,7 @@ function maprutil_copyMapRTicketsFromCLDB(){
             sleep 10
         else
             cldbisup="true"
+            sleep 10
             break
         fi
         let i=i+1
@@ -1713,6 +1714,7 @@ function maprutil_getClusterSpec(){
     # Build System Spec
 
     local numnodes=$(echo "$sysinfo" | grep "System info" | wc -l)
+    sysspec="$numnodes nodes"
 
     ## CPU
     local cpucores=$(echo "$sysinfo" | grep -A1 cores | grep -B1 Enabled | grep cores | cut -d ':' -f2 | sed 's/ *//g')
@@ -1836,11 +1838,10 @@ function maprutil_getClusterSpec(){
             os=$(echo "$os" | sort | head -1)
         fi
         os="${os} ${ver}"
+        sysspec="$sysspec, $os"
     else
         echo "ERROR: No OS listed on any nodes"
     fi
-
-    sysspec="$numnodes nodes"
     
     # Build MapR Spec
 
@@ -1867,19 +1868,16 @@ function maprutil_getClusterSpec(){
              echo "WARN: Different # of SPs configured on nodes"
              numsps=$(echo "$numsps" | sort -nr | head -1)
         fi
-        maprspec="$numnodes nodes, $nummfs MFS, $numsps SP, $maprver"
-
+        
         local numdn=$(echo "$maprstr" | grep "mapr-fileserver" | wc -l)
         local numcldb=$(echo "$maprstr" | grep "mapr-cldb" | wc -l)
         local numtopo=$(echo "$maprstr" | grep "Topology" | awk '{print $3}' | sort | uniq)
         if [ "$(echo $numtopo | wc -w)" -gt "1" ]; then
             numdn=$(echo "$maprstr" | grep "Topology" | awk '{print $3}' | sort | uniq -c | sort -nr | head -1 | awk '{print $1}')
         fi
-        sysspec="$sysspec($numcldb CLDB, $numdn Data)"
+        maprspec="$numnodes nodes($numcldb CLDB, $numdn Data), $nummfs MFS, $numsps SP, $maprver"
     fi
 
-    sysspec="$sysspec, $os"
-    
     ## Print specifications
     echo
     echo "Cluster Specs : "
@@ -1895,10 +1893,6 @@ function maprutil_applyLicense(){
     local jobs=1
     while [ "${jobs}" -ne "0" ]; do
         echo "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 30s"
-        if [ -n "$GLB_SECURE_CLUSTER" ]; then
-             echo 'mapr' | maprlogin password  2>/dev/null
-             echo 'mapr' | sudo -su mapr maprlogin password 2>/dev/null
-        fi
         if [ "$jobs" -ne 0 ]; then
             local licenseExists=`/opt/mapr/bin/maprcli license list | grep M7 | wc -l`
             if [ "$licenseExists" -ne 0 ]; then
@@ -1917,6 +1911,10 @@ function maprutil_applyLicense(){
             exit 1
         fi
     done
+    if [ -n "$GLB_SECURE_CLUSTER" ]; then
+        echo 'mapr' | maprlogin password  2>/dev/null
+        echo 'mapr' | sudo -su mapr maprlogin password 2>/dev/null
+    fi
 }
 
 function maprutil_mountSelfHosting(){
