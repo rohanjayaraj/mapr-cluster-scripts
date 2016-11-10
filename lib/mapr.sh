@@ -1748,7 +1748,7 @@ function maprutil_getClusterSpec(){
     fi
     
     ## More disk info
-    local diskstr=$(echo "$sysinfo" | grep -A${numdisks} "Disk Info" | grep -v OS | grep Type: )
+    local diskstr=$(echo "$sysinfo" | grep -A${numdisks} "Disk Info" | grep -v OS | grep -v USED | grep Type: )
     local diskcnt=$(echo "$diskstr" | sort -k1 | awk '{print $1}' | uniq -c | wc -l)
     if [ "$diskcnt" -ge "$numdisks" ]; then
         diskcnt=$(echo "$diskstr" | sort -k1 | awk '{print $1}' | uniq -c | awk '{print $1}' | uniq -c | sort -nr | head -1 | awk '{print $2}')

@@ -245,10 +245,12 @@ function util_removeBinaries(){
 }
 
 function util_getDefaultDisks(){
-    blkid | tr -d ':' | cut -d' ' -f1 | tr -d '[0-9]' | uniq | sort > /tmp/defdisks
-    df -x tmpfs | grep -v : | cut -d' ' -f1 | sed -e /Filesystem/d |  sed '/^$/d' |  tr -d '[0-9]' >> /tmp/defdisks
-    lsblk -nl | grep -v disk | cut -d' ' -f1  >> /tmp/defdisks
-    echo $(cat /tmp/defdisks)
+    local disks=
+    disks=$(blkid | tr -d ':' | cut -d' ' -f1 | tr -d '[0-9]' | uniq | sort)
+    disks="${disks}\n$(df -x tmpfs | grep -v : | cut -d' ' -f1 | sed -e /Filesystem/d |  sed '/^$/d' |  tr -d '[0-9]')"
+    disks="${disks}\n$(lsblk -nl | grep -v disk | cut -d' ' -f1)"
+    disks=$(echo -e "$disks" | sort | uniq)
+    echo -e "$disks"
 }
 
 # returns space separated list of raw disks
@@ -668,6 +670,7 @@ function util_getDiskInfo(){
     local fd=$(fdisk -l 2>/dev/null)
     local disks=$(echo "$fd"| grep "Disk \/" | grep -v mapper | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
     local numdisks=$(echo "$disks" | wc -l)
+    local defdisks=$(util_getDefaultDisks)
     echo "Disk Info : [ #ofdisks: $numdisks ]"
 
     for disk in $disks
@@ -676,6 +679,7 @@ function util_getDiskInfo(){
         local size=$(echo "$fd" | grep "Disk \/" | grep "$disk" | tr -d ':' | awk '{print $3}')
         local dtype=$(cat /sys/block/$blk/queue/rotational)
         local isos=$(echo "$fd" |  grep -wA6 "$disk" | grep "Disk identifier" | awk '{print $3}')
+        local used=$(echo "$defdisks" | grep -w "$disk")
         if [ "$dtype" -eq 0 ]; then
             dtype="SSD"
         else
@@ -685,11 +689,15 @@ function util_getDiskInfo(){
             local dival=$(printf "%d\n" $isos)
             if [[ "$dival" -ne 0 ]]; then
                 isos="[ OS ]"
+                used=
             else
                 isos=
             fi
         fi
-        echo -e "\t $disk : Type: $dtype, Size: ${size} GB $isos"
+        if [ -n "$used" ]; then
+            used="[ USED ]"
+        fi
+        echo -e "\t $disk : Type: $dtype, Size: ${size} GB ${isos}${used}"
     done
 }
 
