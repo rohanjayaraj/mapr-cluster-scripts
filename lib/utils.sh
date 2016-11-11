@@ -256,8 +256,13 @@ function util_getDefaultDisks(){
 # returns space separated list of raw disks
 function util_getRawDisks(){
     local defdisks=$(util_getDefaultDisks)
-    sfdisk -l 2> /dev/null| grep Disk | tr -d ':' | cut -d' ' -f2 | grep -v -f /tmp/defdisks | sort > /tmp/disklist
-    echo $(cat /tmp/disklist)
+    local cmd="sfdisk -l 2> /dev/null| grep Disk | tr -d ':' | cut -d' ' -f2"
+    for disk in $defdisks
+    do
+        cmd="$cmd | grep -v $disk"
+    done
+    local disks=$(bash -c  "$cmd | sort")
+    echo "$disks"
 }
 
 ## @param $1 process to kill
