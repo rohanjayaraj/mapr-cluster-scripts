@@ -842,6 +842,12 @@ function maprutil_configure(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
     fi
+
+    if [ ! -d "/opt/mapr/" ]; then
+        >&2 echo "{WARN} Configuration skipped as no MapR binaries are installed "
+        return
+    fi
+    
     local diskfile="/tmp/disklist"
     local hostip=$(util_getHostIP)
     local cldbnodes=$(util_getCommaSeparated "$1")
