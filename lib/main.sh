@@ -886,6 +886,7 @@ while [ "$2" != "" ]; do
 		-pid)
  			if [ -n "$VALUE" ]; then
  				GLB_PATCH_VERSION=$VALUE
+ 				GLB_MAPR_PATCH=1
  			fi
  		;;
         *)
