@@ -791,7 +791,7 @@ function maprutil_buildDiskList() {
         return
     fi
     local diskfile=$1
-    local disklist=$(util_getRawDisks)
+    echo "$(util_getRawDisks)" > $diskfile
 
     local limit=$GLB_MAX_DISKS
     local numdisks=$(wc -l $diskfile | cut -f1 -d' ')
