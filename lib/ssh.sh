@@ -183,8 +183,8 @@ function ssh_copyPublicKey(){
 	do
 		sshpass -p${pwd} ssh -o StrictHostKeyChecking=no -l $1 $2 exit >/dev/null 2>&1
 		local idfile=
-		[ "$(ls /root/.ssh/id_rsa*.pub)" -gt "1" ] && [ -e "/root/.ssh/id_rsa.pub" ] && idfile="-i"
 		local sshpassret=$?
+		[ "$(ls /root/.ssh/id_rsa*.pub | wc -l)" -gt "1" ] && [ -e "/root/.ssh/id_rsa.pub" ] && idfile="-i"
 		if [ "$sshpassret" -eq 0 ]; then
 			local sshpval=$(sshpass -p${pwd} ssh-copy-id $idfile $1@$2)
 			local retval=$?
