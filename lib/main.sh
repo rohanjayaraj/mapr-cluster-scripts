@@ -155,7 +155,7 @@ function main_install(){
     local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
 	if [ -n "$islist" ]; then
 		echo "MapR is already installed on the node(s) [ $islist] or some stale binaries are still present. Scooting!"
-		exit 1
+		exit 255
 	fi
 
 	# Read properties
@@ -723,7 +723,7 @@ function main_timetaken(){
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
 STARTTS=$(date +%s);
-RUNTEMPDIR="/tmp/maprsetup/maprsetup_$(date +%Y-%m-%d-%H-%M-%S)"
+RUNTEMPDIR="/tmp/maprsetup/maprsetup_$(date +%Y-%m-%d-%H-%M-%S-%6N)"
 mkdir -p $RUNTEMPDIR 2>/dev/null
 
 doInstall=0
