@@ -13,11 +13,21 @@ function getOSFromNode(){
     if [ -z "$1" ]; then
         return
     fi
-    echo "$(ssh root@$1 lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2 )"
+    local osstr="$(ssh root@$1 lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2 )"
+    if [ -n "$(echo $osstr | grep -i redhat)" ]; then
+        echo "centos"
+    else 
+        echo "$osstr"
+    fi
 }
 
 function getOS(){
-    echo "$(lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2)"
+    local osstr="$(lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2)"
+    if [ -n "$(echo $osstr | grep -i redhat)" ]; then
+        echo "centos"
+    else 
+        echo "$osstr"
+    fi
 }
 
 function getOSWithVersion(){
