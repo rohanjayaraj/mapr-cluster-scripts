@@ -47,7 +47,7 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 				echo "$1,dummy" > $dummyrole
 				rolefile=$dummyrole
 			else
-				echo "Role file specified doesn't exist. Scooting!"
+				log_critical "Role file specified doesn't exist. Scooting!"
 				exit 1
 			fi
 		fi
@@ -60,17 +60,17 @@ if [ -n "$(cat $rolefile | grep '^[^#;]' | grep '\[')" ]; then
 fi
 
 # Fetch the nodes to be configured
-echo "Using cluster configuration file : $rolefile "
+log_msg "Using cluster configuration file : $rolefile "
 nodes=$(maprutil_getNodesFromRole $rolefile)
 
 if [ -z "$nodes" ]; then
-	echo "Unable to get the list of nodes. Scooting!"
+	log_error "Unable to get the list of nodes. Scooting!"
 	exit 1
 fi
 
 # Check if current user is root
 if [ "$(util_isUserRoot)" = "false" ]; then
-	echo "Please run the script as root user. Scooting!"
+	log_critical "Please run the script as root user. Scooting!"
 	exit 1
 #else
 #	echo "Executing as user 'root'"
@@ -79,7 +79,7 @@ fi
 # Check if ssh key generated on the executor machine
 keyexists=$(util_fileExists "/root/.ssh/id_rsa")
 if [ -z "$keyexists" ]; then
-	echo "SSH key is missing. Creating..."
+	log_info "SSH key is missing. Creating..."
 	ssh_createkey "/root/.ssh"
 #else
 #	echo "SSH key exists"
@@ -95,7 +95,7 @@ if [ -n $(ssh_checkSSHonNodes "$nodes") ]; then
 	do
 		isEnabled=$(ssh_check "root" "$node")
 		if [ "$isEnabled" != "enabled" ]; then
-			echo "Configuring key-based authentication for the node $node (enter password once if required)"
+			log_info "Configuring key-based authentication for the node $node (enter password once if required)"
 			ssh_copyPublicKey "root" "$node"
 		fi
 	done
@@ -133,12 +133,12 @@ GLB_LOG_VERBOSE=
 function main_install(){
 	#set -x
 	# Warn user 
-	echo "[$(util_getCurDate)] Installing MapR on the following N-O-D-E-S : "
+	log_msg "[$(util_getCurDate)] Installing MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
 	do
-		echo "Node$i : $node"
+		log_msg "Node$i : $node"
 		let i=i+1
 	done
 
@@ -146,15 +146,15 @@ function main_install(){
 		read -p "Press 'y' to confirm... " -n 1 -r
 	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 	    	echo
-	    	echo "Abandoning install! "
+	    	log_critical "Abandoning install! "
 	        return 1
 	    fi
 	fi
     echo
-    echo "Checking if MapR is already installed on the nodes..."
+    log_info "Checking if MapR is already installed on the nodes..."
     local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
 	if [ -n "$islist" ]; then
-		echo "MapR is already installed on the node(s) [ $islist] or some stale binaries are still present. Scooting!"
+		log_error "MapR is already installed on the node(s) [ $islist] or some stale binaries are still present. Scooting!"
 		exit 255
 	fi
 
@@ -172,7 +172,7 @@ function main_install(){
 			main_isValidBuildVersion
 			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
 			if [ -z "$buildexists" ]; then
-				>&2 echo "{ERROR} Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
+				log_error "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
 				exit 1
 			fi
 		fi
@@ -184,14 +184,14 @@ function main_install(){
 	# Configure all nodes
 	for node in ${nodes[@]}
 	do
-		echo "****** Running configure on node -> $node ****** "
+		log_info "****** Running configure on node -> $node ****** "
 		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
 	done
 	wait
 
 	# Configure ES & OpenTSDB nodes
 	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then 
-		echo "****** Installing and configuring Spyglass ****** " 
+		log_info "****** Installing and configuring Spyglass ****** " 
 		for node in ${nodes[@]}
 		do
 			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
@@ -219,28 +219,28 @@ function main_install(){
 	# Perform custom executions
 
 	#set +x
-	echo "[$(util_getCurDate)] Install is complete! [ RunTime - $(main_timetaken) ]"
+	log_msg "[$(util_getCurDate)] Install is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_reconfigure(){
-	echo "[$(util_getCurDate)] Reconfiguring MapR on the following N-O-D-E-S : "
+	log_msg "[$(util_getCurDate)] Reconfiguring MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
 	do
-		echo "Node$i : $node"
+		log_msg "Node$i : $node"
 		let i=i+1
 	done
 
 	if [[ "$doSilent" -eq 0 ]]; then
 		read -p "Press 'y' to confirm... " -n 1 -r
 	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-	    	echo "Reconfigure C-A-N-C-E-L-L-E-D! "
+	    	log_msg "Reconfigure C-A-N-C-E-L-L-E-D! "
 	        return 1
 	    fi
 	fi
     echo
-    echo "Checking if MapR is installed on the nodes..."
+    log_info "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
 	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
 	local notlist=
@@ -252,16 +252,16 @@ function main_reconfigure(){
 		else
 			#??? Get install version
 			[ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
-			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
+			log_info "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
 		fi
 	done
 
 	if [ -n "$notlist" ]; then
-		echo "MapR not installed on the node(s) [ $notlist]. Trying install on the nodes first. Scooting!"
+		log_error "MapR not installed on the node(s) [ $notlist]. Trying install on the nodes first. Scooting!"
 		exit 1
 	fi
 
-	echo "Erasing files/directories from previous configurations"
+	log_info "Erasing files/directories from previous configurations"
 	for node in ${nodes[@]}
 	do
 		maprutil_cleanPrevClusterConfigOnNode "$node" "$rolefile"
@@ -274,7 +274,7 @@ function main_reconfigure(){
 	# Configure all nodes
 	for node in ${nodes[@]}
 	do
-		echo "****** Running configure on node -> $node ****** "
+		log_info "****** Running configure on node -> $node ****** "
 		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
 	done
 	wait
@@ -286,28 +286,28 @@ function main_reconfigure(){
 	done
 	wait
 
-	echo "[$(util_getCurDate)] Reconfiguration is complete! [ RunTime - $(main_timetaken) ]"
+	log_msg "[$(util_getCurDate)] Reconfiguration is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_upgrade(){
-	echo "[$(util_getCurDate)] Upgrading MapR on the following N-O-D-E-S : "
+	log_msg "[$(util_getCurDate)] Upgrading MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
 	do
-		echo "Node$i : $node"
+		log_info "Node$i : $node"
 		let i=i+1
 	done
 
 	if [[ "$doSilent" -eq 0 ]]; then
 		read -p "Press 'y' to confirm... " -n 1 -r
 	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-	    	echo "Upgrade C-A-N-C-E-L-L-E-D! "
+	    	log_msg "Upgrade C-A-N-C-E-L-L-E-D! "
 	        return 1
 	    fi
 	fi
     echo
-    echo "Checking if MapR is installed on the nodes..."
+    log_info "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
 	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
 	local notlist=
@@ -317,12 +317,12 @@ function main_upgrade(){
 		if [ -z "$isInstalled" ]; then
 			notlist=$notlist"$node"" "
 		else
-			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
+			log_info "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
 		fi
 	done
 
 	if [ -n "$notlist" ]; then
-		echo "MapR not installed on the node(s) [ $notlist]. Trying install on the nodes first. Scooting!"
+		log_error "MapR not installed on the node(s) [ $notlist]. Trying install on the nodes first. Scooting!"
 		exit 1
 	fi
 
@@ -333,7 +333,7 @@ function main_upgrade(){
 	do
 		local cldbhost=$(maprutil_getCLDBMasterNode "$node")
 		if [ -z "$cldbhost" ]; then
-			echo " Unable to identifiy CLDB master on node [$node]"
+			log_warn " Unable to identifiy CLDB master on node [$node]"
 			nocldblist=$nocldblist$node" "
 		else
 			local cldbip=$cldbhost
@@ -349,7 +349,7 @@ function main_upgrade(){
 				fi
 			done
 			if [ "$isone" = "false" ]; then
-				echo " Node [$node] is not part of the same cluster. Scooting"
+				log_error " Node [$node] is not part of the same cluster. Scooting"
 			else
 				cldbnode="$cldbip"
 			fi
@@ -357,11 +357,10 @@ function main_upgrade(){
 	done
 
 	if [ -n "$nocldblist" ]; then
-		echo "{WARNING} CLDB not found on nodes [$nocldblist]. May be uninstalling another cluster's nodes. Check the nodes specified."
-    	echo "Over & Out!"
+		log_error "CLDB not found on nodes [$nocldblist]. May be uninstalling another cluster's nodes. Check the nodes specified."
     	exit 1
 	else
-		echo "CLDB Master : $cldbnode"
+		log_info "CLDB Master : $cldbnode"
 	fi
 
 	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
@@ -375,24 +374,24 @@ function main_upgrade(){
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
 		if [ -z "$buildexists" ] && [ -z "$(maprutil_checkNewBuildExists $node)" ]; then
-			>&2 echo "{ERROR} No newer build exists. Please check the repo file [$maprrepo] for configured repositories"
+			log_error "No newer build exists. Please check the repo file [$maprrepo] for configured repositories"
 			exit 1
 		fi
 		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
 			main_isValidBuildVersion
 			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
 			if [ -z "$buildexists" ]; then
-				>&2 echo "{ERROR} Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
+				log_error "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
 				exit 1
 			else
-				echo "Stopping warden on all nodes..."
+				log_info "Stopping warden on all nodes..."
 			fi
 		fi
 		# Stop warden on all nodes
 		maprutil_restartWardenOnNode "$node" "$rolefile" "stop" &
 	done
 
-	echo "Stopping zookeeper..."
+	log_info "Stopping zookeeper..."
 	# Stop ZK on ZK nodes
 	for node in ${zknodes[@]}
 	do
@@ -404,7 +403,7 @@ function main_upgrade(){
 
 	
 	# Upgrade rest of the nodes
-	echo "Upgrading MaPR on all nodes..."
+	log_info "Upgrading MaPR on all nodes..."
 	for node in ${nodes[@]}
 	do	
 		maprutil_upgradeNode "$node" "bg"
@@ -419,25 +418,25 @@ function main_upgrade(){
 	done
 	wait
 
-	echo "[$(util_getCurDate)] Upgrade is complete! [ RunTime - $(main_timetaken) ]"
+	log_msg "[$(util_getCurDate)] Upgrade is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_uninstall(){
 
 	# Warn user 
-	echo "[$(util_getCurDate)] Uninstalling MapR on the following N-O-D-E-S : "
+	log_msg "[$(util_getCurDate)] Uninstalling MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
 	do
-		echo "Node$i : $node"
+		log_msg "Node$i : $node"
 		let i=i+1
 	done
 
 	if [[ "$doSilent" -eq 0 ]]; then
 		read -p "Press 'y' to confirm... " -n 1 -r
 	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-	    	echo "Uninstall C-A-N-C-E-L-L-E-D! "
+	    	log_msg "Uninstall C-A-N-C-E-L-L-E-D! "
 	        return 1
 	    fi
 	fi
@@ -450,7 +449,7 @@ function main_uninstall(){
 	do
 		local cldbhost=$(maprutil_getCLDBMasterNode "$node")
 		if [ -z "$cldbhost" ]; then
-			echo " Unable to identifiy CLDB master on node [$node]"
+			log_warn " Unable to identifiy CLDB master on node [$node]"
 			nocldblist=$nocldblist$node" "
 		else
 			local cldbip=$cldbhost
@@ -467,10 +466,10 @@ function main_uninstall(){
 			done
 			if [ "$isone" = "false" ]; then
 				if [ "$doForce" -eq 0 ]; then
-					echo " Node [$node] is not part of the same cluster. Scooting"
+					log_error " Node [$node] is not part of the same cluster. Scooting"
 					exit 1
 				else
-					echo " Node [$node] is not part of the same cluster"
+					log_warn " Node [$node] is not part of the same cluster"
 				fi
 			else
 				cldbnode="$cldbip"
@@ -479,18 +478,18 @@ function main_uninstall(){
 	done
 
 	if [ -n "$nocldblist" ]; then
-		echo "{WARNING} CLDB not found on nodes [$nocldblist]. May be uninstalling another cluster's nodes."
+		log_warn "CLDB not found on nodes [$nocldblist]. May be uninstalling another cluster's nodes."
 		if [[ "$doForce" -eq 0 ]]; then
 			read -p "Press 'y' to confirm... " -n 1 -r
 		    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-		    	echo "Over & Out!"
+		    	log_msg "Over & Out!"
 		    	exit 1
 		    fi
 		else
-			echo "Continuing uninstallation..."
+			log_msg "Continuing uninstallation..."
 		fi
 	else
-		echo "CLDB Master : $cldbnode"
+		log_info "CLDB Master : $cldbnode"
 	fi
 
 
@@ -517,11 +516,11 @@ function main_uninstall(){
 
 	wait
 
-	echo "[$(util_getCurDate)] Uninstall is complete! [ RunTime - $(main_timetaken) ]"
+	log_msg "[$(util_getCurDate)] Uninstall is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_isMapRInstalled(){
-	echo "Checking if MapR is installed on the nodes..."
+	log_msg "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
 	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
 	local notlist=
@@ -531,22 +530,22 @@ function main_isMapRInstalled(){
 		if [ -z "$isInstalled" ]; then
 			notlist=$notlist"$node"" "
 		else
-			echo "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
+			log_info "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
 		fi
 	done
 
 	if [ -n "$notlist" ]; then
 		if [ "$doForce" -eq 0 ]; then
-			echo "MapR not installed on the node(s) [ $notlist]. Scooting!"
+			log_error "MapR not installed on the node(s) [ $notlist]. Scooting!"
 			exit 1
 		else
-			echo "MapR not installed on the node(s) [ $notlist]."
+			log_warn "MapR not installed on the node(s) [ $notlist]."
 		fi
 	fi
 }
 
 function main_backuplogs(){
-	echo "[$(util_getCurDate)] Backing up MapR log directory on all nodes to $doBackup"
+	log_msg "[$(util_getCurDate)] Backing up MapR log directory on all nodes to $doBackup"
 	
 	main_isMapRInstalled
 
@@ -569,7 +568,7 @@ function main_backuplogs(){
 	echo "for i in \$(ls *.tar);do DIR=\$(echo \$i| sed 's/.tar//g' | tr '.' '_' | cut -d'_' -f2); echo \$DIR;mkdir -p \$DIR;tar -xf \$i -C \$(pwd)/\$DIR && rm -f \${i}; done" >> $scriptfile
 	chmod +x $scriptfile
 
-	echo "[$(util_getCurDate)] Backup complete! [ RunTime - $(main_timetaken) ]"
+	log_msg "[$(util_getCurDate)] Backup complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_runCommandExec(){
@@ -587,7 +586,7 @@ function main_runCommandExec(){
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
 	local isInstalled=$(maprutil_isMapRInstalledOnNode "$cldbnode")
 	if [ "$isInstalled" = "false" ]; then
-		>&2 echo "{ERROR} MapR is not installed on the cluster"
+		log_error "MapR is not installed on the cluster"
 		return
 	fi
 	
@@ -620,27 +619,27 @@ function main_runLogDoctor(){
 				maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck"
         	;;
         	disktest)
-				echo "[$(util_getCurDate)] Running disk tests on all nodes"
+				log_msg "[$(util_getCurDate)] Running disk tests on all nodes"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "disktest"
         	;;
         	mfsgrep)
-				echo "[$(util_getCurDate)] Grepping MFS logs on all nodes"
+				log_msg "[$(util_getCurDate)] Grepping MFS logs on all nodes"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "mfsgrep"
         	;;
         	clsspec)
-				echo "[$(util_getCurDate)] Printing cluster specifications"
+				log_msg "[$(util_getCurDate)] Printing cluster specifications"
 				maprutil_getClusterSpec "$nodes"
         	;;
         	sysinfo)
-				echo "[$(util_getCurDate)] Running system info on all nodes"
+				log_msg "[$(util_getCurDate)] Running system info on all nodes"
 				maprutil_runCommandsOnNodesInParallel "$nodes" "sysinfo"
         	;;
         	greplogs)
-				echo "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ $GLB_GREP_MAPRLOGS ]"
+				log_msg "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ $GLB_GREP_MAPRLOGS ]"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "grepmapr"
         	;;
         	tabletdist)
-				echo "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
+				log_msg "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
         	;;
         esac
@@ -654,21 +653,21 @@ function main_isValidBuildVersion(){
     local vlen=${#GLB_BUILD_VERSION}
     if [ "$(util_isNumber $GLB_BUILD_VERSION)" = "true" ]; then
     	 if [ "$vlen" -lt 5 ]; then
-    	 	>&2 echo "{ERROR} Specify a longer build/changelist id (ex: 38395)"
+    	 	log_error "Specify a longer build/changelist id (ex: 38395)"
             exit 1
     	 fi
     elif [ "$vlen" -lt 11 ]; then
-        >&2 echo "{ERROR} Specify a longer version string (ex: 5.2.0.38395)"
+        log_error "Specify a longer version string (ex: 5.2.0.38395)"
         exit 1
     fi
 }
 
 function main_stopall() {
 	local me=$(basename $BASH_SOURCE)
-    echo "$me script interrupted!!! Stopping... "
+    log_warn "$me script interrupted!!! Stopping... "
     for i in $GLB_BG_PIDS
     do
-        echo "[$me] kill -9 $i"
+        log_info "[$me] kill -9 $i"
         kill -9 $i 2>/dev/null
     done
 }
@@ -701,16 +700,16 @@ function main_getRepoFile(){
 function main_usage () {
 	local me=$(basename $BASH_SOURCE)
 	echo 
-	echo "Usage : "
-    echo "./$me CONFIG_NAME [Options]"
-    echo " Options : "
-    echo -e "\t -h --help"
-    echo -e "\t\t - Print this"
+	log_msg "Usage : "
+    log_msg "./$me CONFIG_NAME [Options]"
+    log_msg " Options : "
+    log_msg "\t -h --help"
+    log_msg "\t\t - Print this"
     echo 
-    echo -e "\t install" 
-    echo -e "\t\t - Install cluster"
-    echo -e "\t uninstall " 
-    echo -e "\t\t - Uninstall cluster"
+    log_msg "\t install" 
+    log_msg "\t\t - Install cluster"
+    log_msg "\t uninstall " 
+    log_msg "\t\t - Uninstall cluster"
     echo 
     
 }
@@ -890,7 +889,7 @@ while [ "$2" != "" ]; do
  			fi
  		;;
         *)
-            >&2 echo "ERROR: unknown option \"$OPTION\""
+            log_error "ERROR: unknown option \"$OPTION\""
             main_usage
             exit 1
             ;;
@@ -900,16 +899,16 @@ done
 
 if [ -z "$dummyrole" ]; then 
 	if [ "$doInstall" -eq 1 ]; then
-		echo " *************** Starting Cluster Installation **************** "
+		log_msg " *************** Starting Cluster Installation **************** "
 		main_install
 	elif [ "$doUninstall" -eq 1 ]; then
-		echo " *************** Starting Cluster Uninstallation **************** "
+		log_msg " *************** Starting Cluster Uninstallation **************** "
 		main_uninstall
 	elif [ "$doUpgrade" -eq 1 ]; then
-		echo " *************** Starting Cluster Upgrade **************** "
+		log_msg " *************** Starting Cluster Upgrade **************** "
 		main_upgrade
 	elif [ "$doConfigure" -eq 1 ]; then
-		echo " *************** Starting Cluster Reset & configuration **************** "
+		log_msg " *************** Starting Cluster Reset & configuration **************** "
 		main_reconfigure
 	fi
 
@@ -919,7 +918,7 @@ if [ -z "$dummyrole" ]; then
 fi
 
 if [ -n "$doBackup" ]; then
-	echo " *************** Starting logs backup **************** "
+	log_msg " *************** Starting logs backup **************** "
 	main_backuplogs	
 fi
 

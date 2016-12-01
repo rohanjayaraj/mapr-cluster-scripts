@@ -10,6 +10,7 @@
 lib_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$lib_dir/utils.sh"
 source "$lib_dir/ssh.sh"
+source "$lib_dir/logger.sh"
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
@@ -224,7 +225,7 @@ function maprutil_removedirs(){
             rm -rfv $(maprutil_coresdirs)
            ;;
         *)
-            >&2 echo "ERROR: unknown parameter passed to removedirs \"$PARAM\""
+            log_warn "unknown parameter passed to removedirs \"$PARAM\""
             ;;
     esac
        
@@ -474,10 +475,10 @@ function maprutil_upgrade(){
     #mv /opt/mapr/conf/warden.conf  /opt/mapr/conf/warden.conf.old
     #cp /opt/mapr/conf.new/warden.conf /opt/mapr/conf/warden.conf
     if [ -e "/opt/mapr/roles/cldb" ]; then
-        echo "Transplant any new changes in warden configs to /opt/mapr/conf/warden.conf. Do so manually!"
+        log_msg "Transplant any new changes in warden configs to /opt/mapr/conf/warden.conf. Do so manually!"
         diff /opt/mapr/conf/warden.conf /opt/mapr/conf.new/warden.conf
         if [ -d "/opt/mapr/conf/conf.d.new" ]; then
-            echo "New configurations from /opt/mapr/conf/conf.d.new aren't merged with existing files. Do so manually!"
+            log_msg "New configurations from /opt/mapr/conf/conf.d.new aren't merged with existing files. Do so manually!"
         fi
     fi
 
@@ -775,7 +776,7 @@ function maprutil_moveTSDBVolumeToCLDBTopology(){
     local tsdbexists=$(maprcli volume info -path /mapr.monitoring -json | grep ERROR)
     local cldbtopo=$(maprcli node topo -path /cldb)
     if [ -n "$tsdbexists" ] || [ -z "$cldbtopo" ]; then
-        echo "OpenTSDB not installed or CLDB not moved to /cldb topology"
+        log_warn "OpenTSDB not installed or CLDB not moved to /cldb topology"
         return
     fi
 
@@ -831,7 +832,7 @@ function maprutil_configureSSH(){
         do
             local isEnabled=$(ssh_check "root" "$node")
             if [ "$isEnabled" != "enabled" ]; then
-                echo "Configuring key-based authentication from $hostip to $node "
+                log_info "Configuring key-based authentication from $hostip to $node "
                 ssh_copyPublicKey "root" "$node"
             fi
         done
@@ -873,10 +874,10 @@ function maprutil_configure(){
     fi
 
     if [ "$ISCLIENT" -eq 1 ]; then
-        echo "[$hostip] /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
+        log_info "[$hostip] /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
         /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops
     else
-        echo "[$hostip] /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
+        log_info "[$hostip] /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
         /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops
     fi
     
@@ -885,11 +886,11 @@ function maprutil_configure(){
 
     # Return if configuring client node after this
     if [ "$ISCLIENT" -eq 1 ]; then
-        echo "[$hostip] Done configuring client node"
+        log_info "[$hostip] Done configuring client node"
         return 
     fi
 
-    [ -n "$GLB_TRIM_SSD" ] && echo "[$hostip] Trimming the SSD disks if present..." && util_trimSSDDrives "$(cat $diskfile)"
+    [ -n "$GLB_TRIM_SSD" ] && log_info "[$hostip] Trimming the SSD disks if present..." && util_trimSSDDrives "$(cat $diskfile)"
     
     #echo "/opt/mapr/server/disksetup -FM /tmp/disklist"
     local multimfs=$GLB_MULTI_MFS
@@ -897,7 +898,7 @@ function maprutil_configure(){
     local numdisks=`wc -l $diskfile | cut -f1 -d' '`
     if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
         if [ "$multimfs" -gt "$numdisks" ]; then
-            echo "[INFO] Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
+            log_info "Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
             multimfs=$numdisks
         fi
         local numstripe=$(echo $numdisks/$multimfs|bc)
@@ -1007,7 +1008,7 @@ function maprutil_postConfigure(){
     fi
     cmd=$cmd" -R"
 
-    echo "$cmd"
+    log_info "$cmd"
     bash -c "$cmd"
 
     #maprutil_restartWarden
@@ -1034,7 +1035,7 @@ function maprutil_copyMapRTicketsFromCLDB(){
         fi
         let i=i+1
         if [ "$i" -gt 18 ]; then
-            echo "[$(util_getHostIP)] Timed out waiting to find 'maprticket_0' on CLDB node [$cldbhost]. Copy manually!"
+            log_warn "[$(util_getHostIP)] Timed out waiting to find 'maprticket_0' on CLDB node [$cldbhost]. Copy manually!"
             break
         fi
     done
@@ -1062,7 +1063,7 @@ function maprutil_copySecureFilesFromCLDB(){
         fi
         let i=i+1
         if [ "$i" -gt 18 ]; then
-            echo "[$(util_getHostIP)] Timed out waiting to find cldb.key on CLDB node [$cldbhost]. Exiting!"
+            log_warn "[$(util_getHostIP)] Timed out waiting to find cldb.key on CLDB node [$cldbhost]. Exiting!"
             exit 1
         fi
     done
@@ -1289,7 +1290,7 @@ function maprutil_disableAllRepo(){
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv opensource | grep Repo-id | cut -d':' -f2 | tr -d " ")
         for repo in $repolist
         do
-            echo "[$(util_getHostIP)] Disabling repository $repo"
+            log_info "[$(util_getHostIP)] Disabling repository $repo"
             yum-config-manager --disable $repo > /dev/null 2>&1
         done
     elif [ "$nodeos" = "ubuntu" ]; then
@@ -1314,7 +1315,7 @@ function maprutil_addLocalRepo(){
     fi
 
     local repourl=$1
-    echo "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
+    log_info "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
     if [ "$nodeos" = "centos" ]; then
         echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
         echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
@@ -1343,7 +1344,7 @@ function maprutil_downloadBinaries(){
     mkdir -p $dlddir > /dev/null 2>&1
     local repourl=$2
     local searchkey=$3
-    echo "[$(util_getHostIP)] Downloading binaries for version [$searchkey]"
+    log_info "[$(util_getHostIP)] Downloading binaries for version [$searchkey]"
     if [ "$nodeos" = "centos" ]; then
         pushd $dlddir > /dev/null 2>&1
         wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
@@ -1441,7 +1442,7 @@ function maprutil_runMapRCmd(){
         sleep 20
         let i=i+1
         if [ "$i" -gt 3 ]; then
-            echo "Failed to run command [ $1 ]"
+            log_warn "Failed to run command [ $1 ]"
            return
         fi
     done
@@ -1509,38 +1510,38 @@ function maprutil_runCommands(){
 }
 
 function maprutil_createYCSBVolume () {
-    echo " *************** Creating YCSB Volume **************** "
+    log_msg " *************** Creating YCSB Volume **************** "
     maprutil_runMapRCmd "maprcli volume create -name tables -path /tables -replication 3 -topology /data"
     maprutil_runMapRCmd "hadoop mfs -setcompression off /tables"
 }
 
 function maprutil_createTableWithCompression(){
-    echo " *************** Creating UserTable (/tables/usertable) with lz4 compression **************** "
+    log_msg " *************** Creating UserTable (/tables/usertable) with lz4 compression **************** "
     maprutil_createYCSBVolume
     maprutil_runMapRCmd "maprcli table create -path /tables/usertable" 
     maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1"
 }
 
 function maprutil_createTableWithCompressionOff(){
-    echo " *************** Creating UserTable (/tables/usertable) with compression off **************** "
+    log_msg " *************** Creating UserTable (/tables/usertable) with compression off **************** "
     maprutil_createYCSBVolume
     maprutil_runMapRCmd "maprcli table create -path /tables/usertable"
     maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression off -maxversions 1"
 }
 
 function maprutil_createJSONTable(){
-    echo " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
+    log_msg " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
     maprutil_createYCSBVolume
     maprutil_runMapRCmd "maprcli table create -path /tables/usertable -tabletype json "
 }
 
 function maprutil_addCFtoJSONTable(){
-    echo " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
+    log_msg " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
     maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname cfother -jsonpath field0 -compression off -inmemory true"
 }
 
 function maprutil_checkDiskErrors(){
-    echo " [$(util_getHostIP)] Checking for disk errors "
+    log_msg " [$(util_getHostIP)] Checking for disk errors "
     local numlines=2
     [ -n "$GLB_LOG_VERBOSE" ] && numlines=all
     util_grepFiles "$numlines" "/opt/mapr/logs/" "mfs.log*" "DHL" "lun.cc"
@@ -1552,7 +1553,7 @@ function maprutil_runDiskTest(){
         return
     fi
     echo
-    echo "[$(util_getHostIP)] Running disk tests [$maprdisks]"
+    log_msg "[$(util_getHostIP)] Running disk tests [$maprdisks]"
     local disktestdir="/tmp/disktest"
     mkdir -p $disktestdir 2>/dev/null
     for disk in ${maprdisks[@]}
@@ -1584,18 +1585,18 @@ function maprutil_checkTabletDistribution(){
     local storagePools=$(/opt/mapr/server/mrconfig sp list | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort)
     local numTablets=$(echo "$tabletContainers" | wc -l)
     local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
-    echo "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
+    log_msg "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
 
     for sp in $storagePools; do
         local spcntrs=$(echo "$cntrlist" | grep $sp | awk '{print $2}')
         local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
-        echo -e "\t$sp : $cnt Tablets"
+        log_msg "\t$sp : $cnt Tablets"
     done
 }
 
 function maprutil_sysinfo(){
     echo
-    echo "[$(util_getHostIP)] System info"
+    log_msg "[$(util_getHostIP)] System info"
     
     local options=
     [ -z "$GLB_SYSINFO_OPTION" ] && GLB_SYSINFO_OPTION="all"
@@ -1643,7 +1644,7 @@ function maprutil_sysinfo(){
 
 function maprutil_grepMFSLogs(){
     echo
-    echo "[$(util_getHostIP)] Searching MFS logs for FATAL & DHL messages"
+    log_msg "[$(util_getHostIP)] Searching MFS logs for FATAL & DHL messages"
     local dirpath="/opt/mapr/logs"
     local fileprefix="mfs.log*"
     local numlines=2
@@ -1655,7 +1656,7 @@ function maprutil_grepMFSLogs(){
 
 function maprutil_grepMapRLogs(){
     echo
-    echo "[$(util_getHostIP)] Searching MapR logs"
+    log_msg "[$(util_getHostIP)] Searching MapR logs"
     local dirpath="/opt/mapr/logs"
     local fileprefix="*"
     local numlines=2
@@ -1697,14 +1698,14 @@ function maprutil_getMapRInfo(){
         command -v maprcli >/dev/null 2>&1 && nodetopo=$(maprcli node list -json | grep "$(hostname -f)" | grep racktopo | sed "s/$(hostname -f)//g" | cut -d ':' -f2 | tr -d '"' | tr -d ',')
     fi
     
-    echo "MapR Info : "
-    [ -n "$roles" ] && echo -e "\t Roles    : $roles"
-    echo -e "\t Version  : ${version}"
-    [ -n "$client" ] && echo -e "\t Client   : ${client}"
-    echo -e "\t Binaries : $bins"
-    [[ -n "$nummfs" ]] && [[ "$nummfs" -gt 0 ]] && echo -e "\t # of MFS : $nummfs"
-    [[ -n "$numsps" ]] && [[ "$numsps" -gt 0 ]] && echo -e "\t # of SPs : $numsps (${sppermfs} per mfs)"
-    [[ -n "$nodetopo" ]] && echo -e "\t Topology : ${nodetopo%?}"
+    log_msg "MapR Info : "
+    [ -n "$roles" ] && log_msg "\t Roles    : $roles"
+    log_msg "\t Version  : ${version}"
+    [ -n "$client" ] && log_msg "\t Client   : ${client}"
+    log_msg "\t Binaries : $bins"
+    [[ -n "$nummfs" ]] && [[ "$nummfs" -gt 0 ]] && log_msg "\t # of MFS : $nummfs"
+    [[ -n "$numsps" ]] && [[ "$numsps" -gt 0 ]] && log_msg "\t # of SPs : $numsps (${sppermfs} per mfs)"
+    [[ -n "$nodetopo" ]] && log_msg "\t Topology : ${nodetopo%?}"
 }
 
 function maprutil_getClusterSpec(){
@@ -1724,10 +1725,10 @@ function maprutil_getClusterSpec(){
 
     ## CPU
     local cpucores=$(echo "$sysinfo" | grep -A1 cores | grep -B1 Enabled | grep cores | cut -d ':' -f2 | sed 's/ *//g')
-    [ -n "$cpucores" ] && [ "$(echo $cpucores| wc -w)" -ne "$numnodes" ] && echo "WARN: CPU hyperthreading mismatch on nodes" && cpucores=0
+    [ -n "$cpucores" ] && [ "$(echo $cpucores| wc -w)" -ne "$numnodes" ] && log_warn "CPU hyperthreading mismatch on nodes" && cpucores=0
     [ -n "$cpucores" ] && cpucores=$(echo "$cpucores" | uniq)
     if [ -n "$cpucores" ] && [ "$(echo $cpucores | wc -w)" -gt "1" ]; then
-        echo "WARN: CPU cores do not match. Not a homogeneous cluster"
+        log_warn "CPU cores do not match. Not a homogeneous cluster"
         cpucores=$(echo "$cpucores" | sort -nr | head -1)
     elif [ -n "$cpucores" ]; then
         cpucores="2x$cpucores"
@@ -1735,21 +1736,21 @@ function maprutil_getClusterSpec(){
     
     if [ -z "$cpucores" ]; then
         cpucores=$(echo "$sysinfo" | grep -A1 cores | grep -B1 Disabled | grep cores | cut -d ':' -f2 | sed 's/ *//g' | uniq)
-        [ -n "$cpucores" ] && [ "$(echo $cpucores | wc -w)" -gt "1" ] && echo "WARN: CPU cores do not match. Not a homogeneous cluster" && cpucores=$(echo "$cpucores" | sort -nr | head -1)
+        [ -n "$cpucores" ] && [ "$(echo $cpucores | wc -w)" -gt "1" ] && log_warn "CPU cores do not match. Not a homogeneous cluster" && cpucores=$(echo "$cpucores" | sort -nr | head -1)
     fi
 
     hwspec="$cpucores cores"
     ## Disk
     local numdisks=$(echo "$sysinfo" | grep "Disk Info" | cut -d':' -f3 | tr -d ']' | sed 's/ *//g')
     if [ -n "$numdisks" ]; then 
-        [ "$(echo $numdisks| wc -w)" -ne "$numnodes" ] && echo "WARN: Few nodes do not have disks"
+        [ "$(echo $numdisks| wc -w)" -ne "$numnodes" ] && log_warn "Few nodes do not have disks"
         numdisks=$(echo "$numdisks" | uniq)
         if [ "$(echo $numdisks | wc -w)" -gt "1" ]; then
-            echo "WARN: # of disks do not match. Not a homogeneous cluster"
+            log_warn "# of disks do not match. Not a homogeneous cluster"
             numdisks=$(echo "$numdisks" | sort -nr | head -1)
         fi
     else
-        echo "ERROR: No disks listed on any nodes"
+        log_error "No disks listed on any nodes"
         numdisks=0
     fi
     
@@ -1763,7 +1764,7 @@ function maprutil_getClusterSpec(){
     
     local disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | uniq)
     if [ "$(echo $disktype | wc -w)" -gt "1" ]; then
-        echo "WARN: Mix of HDD & SSD disks. Not a homogeneous cluster"
+        log_warn "Mix of HDD & SSD disks. Not a homogeneous cluster"
         disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | uniq -c | sort -nr | awk '{print $2}')
     fi
 
@@ -1774,7 +1775,7 @@ function maprutil_getClusterSpec(){
         do
             local sz=$(util_getNearestPower2 $d)
             [ -z "$dz" ] && dz=$sz
-            [ "$sz" -ne "$dz" ] && echo "WARN: Disks are of different capacities"
+            [ "$sz" -ne "$dz" ] && log_warn "Disks are of different capacities"
         done
         disksize=$(echo "$diskstr" | awk '{print $6}' | uniq | sort -nr | head -1)
     fi
@@ -1792,17 +1793,17 @@ function maprutil_getClusterSpec(){
     local memorystr=$(echo "$sysinfo" | grep Memory | grep -v Info | cut -d':' -f2)
     local memcnt=$(echo "$memorystr" | wc -l)
     if [ -n "$memorystr" ]; then 
-        [ "$memcnt" -ne "$numnodes" ] && echo "WARN: No memory listed for few nodes"
+        [ "$memcnt" -ne "$numnodes" ] && log_warn "No memory listed for few nodes"
         memory=$(echo "$memorystr" | awk '{print $1}' | uniq)
         local gb=$(echo "$memorystr" | awk '{print $2}' | uniq | sort -nr | head -1)
         if [ "$(echo $memory | wc -w)" -gt "1" ]; then
-            echo "WARN: Memory isn't same all node nodes. Not a homogeneous cluster"
+            log_warn "Memory isn't same all node nodes. Not a homogeneous cluster"
             memory=$(echo "$memory" | sort -nr | head -1)
         fi
         memory=$(util_getNearestPower2 $memory)
         memory="${memory}${gb}"
     else
-        echo "ERROR: No memory listed on any nodes"
+        log_error "No memory listed on any nodes"
         memory=0
     fi
 
@@ -1814,15 +1815,15 @@ function maprutil_getClusterSpec(){
     if [ -n "$nwstr" ]; then
         local niccnt=$(echo "$nwstr" | wc -l)
         local nicpernode=$(echo "$niccnt/$numnodes" | bc)
-        [ "$(( $niccnt % $numnodes ))" -ne "0" ] && echo "WARN: # of NICs do not match. Not a homogeneous cluster" && nicpernode=0
+        [ "$(( $niccnt % $numnodes ))" -ne "0" ] && log_warn "# of NICs do not match. Not a homogeneous cluster" && nicpernode=0
         local mtus=$(echo "$nwstr" | awk '{print $4}' | tr -d ',' | uniq)
         if [ "$(echo $mtus | wc -w)" -gt "1" ]; then
-            echo "WARN: MTUs on the NIC(s) are not same"
+            log_warn "MTUs on the NIC(s) are not same"
             mtus=$(echo "$mtus" | sort -nr | head -1)
         fi
         local nwsp=$(echo "$nwstr" | awk '{print $8}' | tr -d ',' | uniq)
         if [ "$(echo $nwsp | wc -w)" -gt "1" ]; then
-            echo "WARN: NIC(s) are of different speeds"
+            log_warn "NIC(s) are of different speeds"
             nwsp=$(echo "$nwsp" | sort -nr | head -1)
         fi
         nw="${nicpernode}x${nwsp}"
@@ -1836,17 +1837,17 @@ function maprutil_getClusterSpec(){
     local osstr=$(echo "$sysinfo" | grep -A2 "Machine Info" | grep OS | cut -d ':' -f2 | sed 's/^ //g')
     local oscnt=$(echo "$osstr" | wc -l)
     if [ -n "$osstr" ]; then 
-        [ "$oscnt" -ne "$numnodes" ] && echo "WARN: No OS listed for few nodes"
+        [ "$oscnt" -ne "$numnodes" ] && log_warn "No OS listed for few nodes"
         os=$(echo "$osstr" | awk '{print $1}' | uniq)
         local ver=$(echo "$osstr" | awk '{print $2}' | uniq | sort -nr | head -1)
         if [ "$(echo $os | wc -w)" -gt "1" ]; then
-            echo "WARN: OS isn't same all node nodes. Not a homogeneous cluster"
+            log_warn "OS isn't same all node nodes. Not a homogeneous cluster"
             os=$(echo "$os" | sort | head -1)
         fi
         os="${os} ${ver}"
         sysspec="$sysspec, $os"
     else
-        echo "ERROR: No OS listed on any nodes"
+        log_warn "No OS listed on any nodes"
     fi
     
     # Build MapR Spec
@@ -1858,20 +1859,20 @@ function maprutil_getClusterSpec(){
         local maprver=$(echo "$maprverstr" | awk '{print $1}' | uniq)
         local maprpver=$(echo "$maprverstr" | grep patch | awk '{print $2,$3}' | uniq | head -1)
         if [ "$(echo $maprver | wc -w)" -gt "1" ]; then
-            echo "WARN: Different versions of MapR installed."
+            log_warn "Different versions of MapR installed."
             maprver=$(echo "$maprver" | sort -nr | head -1)
         fi
         [ -n "$maprpver" ] && maprver="$maprver $maprpver"
 
         local nummfs=$(echo "$maprstr" | grep "# of MFS" | cut -d':' -f2 | sed 's/^ //g' | uniq )
         if [ "$(echo $nummfs | wc -w)" -gt "1" ]; then
-             echo "WARN: Different # of MFS configured on nodes"
+             log_warn "Different # of MFS configured on nodes"
              nummfs=$(echo "$nummfs" | sort -nr | head -1)
         fi
 
         local numsps=$(echo "$maprstr" | grep "# of SPs" | awk '{print $5}' | uniq )
         if [ "$(echo $numsps | wc -w)" -gt "1" ]; then
-             echo "WARN: Different # of SPs configured on nodes"
+             log_warn "Different # of SPs configured on nodes"
              numsps=$(echo "$numsps" | sort -nr | head -1)
         fi
         
@@ -1886,10 +1887,10 @@ function maprutil_getClusterSpec(){
 
     ## Print specifications
     echo
-    echo "Cluster Specs : "
-    echo -e "\t H/W   : $hwspec"
-    echo -e "\t Nodes : $sysspec"
-    [ -n "$maprspec" ] && echo -e "\t MapR  : $maprspec" 
+    log_msg "Cluster Specs : "
+    log_msg "\t H/W   : $hwspec"
+    log_msg "\t Nodes : $sysspec"
+    [ -n "$maprspec" ] && log_msg "\t MapR  : $maprspec" 
 }
 
 function maprutil_applyLicense(){
@@ -1898,7 +1899,7 @@ function maprutil_applyLicense(){
     local i=0
     local jobs=1
     while [ "${jobs}" -ne "0" ]; do
-        echo "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 30s"
+        log_info "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 30s"
         if [ "$jobs" -ne 0 ]; then
             local licenseExists=`/opt/mapr/bin/maprcli license list | grep M7 | wc -l`
             if [ "$licenseExists" -ne 0 ]; then
@@ -1913,7 +1914,7 @@ function maprutil_applyLicense(){
         fi
         let i=i+1
         if [ "$i" -gt 10 ]; then
-            echo "Failed to apply license. Node may not be configured correctly"
+            log_error "Failed to apply license. Node may not be configured correctly"
             exit 1
         fi
     done
@@ -1932,7 +1933,7 @@ function maprutil_mountSelfHosting(){
     done
 
     [ ! -d "/home/MAPRTECH" ] && mkdir -p /home/MAPRTECH > /dev/null 2>&1
-     echo "[$(util_getHostIP)] Mounting selfhosting on /home/MAPRTECH"
+    log_info "[$(util_getHostIP)] Mounting selfhosting on /home/MAPRTECH"
     timeout 20 mount -t nfs 10.10.10.20:/mapr/selfhosting/ /home/MAPRTECH  > /dev/null 2>&1
 }
 
@@ -1975,10 +1976,10 @@ function maprutil_restartWarden() {
     elif [[ -e "/etc/init.d/mapr-warden" ]]; then
         execcmd="/etc/init.d/mapr-warden"
     elif [[ -e "/opt/mapr/initscripts/mapr-warden" ]]; then
-        echo "{WARNING} warden init scripts not configured on nodes"
+        log_warn "warden init scripts not configured on nodes"
         execcmd="/opt/mapr/initscripts/mapr-warden"
     else
-        >&2 echo "{ERROR} No mapr-warden on node"
+        log_warn "No mapr-warden on node"
         return
     fi
         #statements
@@ -2047,7 +2048,6 @@ function maprutil_zipDirectory(){
 # @param timestamp
 function maprutil_zipLogsDirectoryOnNode(){
     if [ -z "$1" ]; then
-        echo "Node not specified."
         return
     fi
 
@@ -2075,7 +2075,7 @@ function maprutil_zipLogsDirectoryOnNode(){
 # @param local directory to copy the zip file
 function maprutil_copyZippedLogsFromNode(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
-        echo "Incorrect or null arguments. Ignoring copy of the files"
+        log_warn "Incorrect or null arguments. Ignoring copy of the files"
         return
     fi
 

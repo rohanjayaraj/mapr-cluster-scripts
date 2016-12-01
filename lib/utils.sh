@@ -7,6 +7,9 @@
 #
 ################
 
+lib_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$lib_dir/logger.sh"
+
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
 function getOSFromNode(){
@@ -208,7 +211,7 @@ function util_installBinaries(){
     if [ -n "$2" ]; then
         bins=$(util_appendVersionToPackage "$1" "$2" "$3")
     fi
-    echo "[$(util_getHostIP)] Installing packages : $bins"
+    log_info "[$(util_getHostIP)] Installing packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
         yum clean all > /dev/null 2>&1
         yum install ${bins} -y --nogpgcheck
@@ -224,7 +227,7 @@ function util_upgradeBinaries(){
         return
     fi
     local bins=$1
-    echo "[$(util_getHostIP)] Upgrading packages : $bins"
+    log_info "[$(util_getHostIP)] Upgrading packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
         if [ -n "$2" ]; then
             bins=$(util_appendVersionToPackage "$1" "$2")
@@ -245,7 +248,7 @@ function util_removeBinaries(){
     rembins=$(util_getInstalledBinaries $1)
     [ -z "$rembins" ] && return
 
-    echo "[$(util_getHostIP)] Removing packages : $rembins"
+    log_info "[$(util_getHostIP)] Removing packages : $rembins"
     if [ "$(getOS)" = "centos" ]; then
         rpm -ef $rembins > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
@@ -366,9 +369,9 @@ function util_errorHandler() {
   local message="$2"
   local code="${3:-1}"
   if [[ -n "$message" ]] ; then
-    >&2 echo "Error on or near line ${parent_lineno}: ${message}; exiting with status ${code}"
+    log_error "Error on or near line ${parent_lineno}: ${message}; exiting with status ${code}"
   else
-    >&2 echo "Error on or near line ${parent_lineno}; exiting with status ${code}"
+    log_error "Error on or near line ${parent_lineno}; exiting with status ${code}"
   fi
   exit "${code}"
 }
@@ -512,7 +515,7 @@ function util_expandNodeList(){
                     if [ "$isvalid" = "valid" ]; then
                         echo "$nodeip,$bins" >> $newrolefile
                     else
-                        echo "Invalid IP [$node]. Scooting"
+                        log_error "Invalid IP [$node]. Scooting"
                         exit 1
                     fi
                 done
@@ -523,7 +526,7 @@ function util_expandNodeList(){
             if [ "$isvalid" = "valid" ]; then
                 echo "$i" >> $newrolefile
             else
-                echo "Invalid IP [$node]. Scooting"
+                log_error "Invalid IP [$node]. Scooting"
                 exit 1
             fi
         fi
@@ -648,26 +651,26 @@ function util_getCPUInfo(){
         fi
     done <<<"$(lscpu | grep 'NUMA' | grep 'CPU(s)' | awk '{print $2": "$4}')"
     
-    echo "CPU Info : "
-    echo -e "\t # of cores  : $numcores"
-    echo -e "\t HyperThread : $ht"
-    echo -e "\t # of numa   : "$numnuma
+    log_msg "CPU Info : "
+    log_msg "\t # of cores  : $numcores"
+    log_msg "\t HyperThread : $ht"
+    log_msg "\t # of numa   : "$numnuma
     if [[ "$numnuma" -gt 1 ]]; then
-        echo -e "\t numa cpus   : $numacpus"
+        log_msg "\t numa cpus   : $numacpus"
     fi
 }
 
 function util_getMemInfo(){
     local mem=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     local memgb=$(echo "$mem/1024/1024" | bc)
-    echo "Memory Info : "
-    echo -e "\t Memory : $memgb GB"
+    log_msg "Memory Info : "
+    log_msg "\t Memory : $memgb GB"
     
 }
 
 function util_getNetInfo(){
     local nics="$(ip link show | grep BROADCAST | grep UP | tr -d ':' | awk '{print $2}')"
-    echo "Network Info : "
+    log_msg "Network Info : "
     for nic in $nics
     do
         local ip=$(ip -4 addr show $nic | grep -oP "(?<=inet).*(?=/)" | tr -d ' ')
@@ -677,7 +680,7 @@ function util_getNetInfo(){
         speed=$(echo "$speed/1000" | bc)
         local numa=$(cat /sys/class/net/$nic/device/numa_node)
         local cpulist=$(cat /sys/class/net/$nic/device/local_cpulist)
-        echo -e "\t NIC: $nic, MTU: $mtu, IP: $ip, Speed: ${speed}GbE, NUMA: $numa (cpus: $cpulist)"
+        log_msg "\t NIC: $nic, MTU: $mtu, IP: $ip, Speed: ${speed}GbE, NUMA: $numa (cpus: $cpulist)"
     done
 }
 
@@ -686,7 +689,7 @@ function util_getDiskInfo(){
     local disks=$(echo "$fd"| grep "Disk \/" | grep -v mapper | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
     local numdisks=$(echo "$disks" | wc -l)
     local defdisks=$(util_getDefaultDisks)
-    echo "Disk Info : [ #ofdisks: $numdisks ]"
+    log_msg "Disk Info : [ #ofdisks: $numdisks ]"
 
     for disk in $disks
     do
@@ -712,15 +715,15 @@ function util_getDiskInfo(){
         if [ -n "$used" ]; then
             used="[ USED ]"
         fi
-        echo -e "\t $disk : Type: $dtype, Size: ${size} GB ${isos}${used}"
+        log_msg "\t $disk : Type: $dtype, Size: ${size} GB ${isos}${used}"
     done
 }
 
 function util_getMachineInfo(){
-    echo "Machine Info : "
-    echo -e "\t Hostname : $(hostname -f)"
-    echo -e "\t OS       : $(getOSWithVersion)"
-    command -v mpstat >/dev/null 2>&1 && echo -e "\t Kernel   : $(mpstat | head -n1 | awk '{print $1,$2}')"
+    log_msg "Machine Info : "
+    log_msg "\t Hostname : $(hostname -f)"
+    log_msg "\t OS       : $(getOSWithVersion)"
+    command -v mpstat >/dev/null 2>&1 && log_msg "\t Kernel   : $(mpstat | head -n1 | awk '{print $1,$2}')"
 }
 
 # @param round to power of 2
