@@ -59,6 +59,9 @@ function usage () {
     echo -e "\t -h --help"
     echo -e "\t\t - Print this"
 
+    echo -e "\t -fl | --noformat" 
+    echo -e "\t\t - Remove output formatting (ANSI color)"
+
     echo -e "\t -d | --diskerror" 
     echo -e "\t\t - Find any disk errors on nodes"
 
