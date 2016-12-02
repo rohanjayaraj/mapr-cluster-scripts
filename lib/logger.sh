@@ -15,7 +15,7 @@ function log_msg(){
 		return
 	fi
 	local msg=$1
-	printf "\033[1;34m %s \033[0m" $msg && echo
+	echo -e "\033[1;34m $msg \033[0m"
 }
 
 # @param logmessage
@@ -24,7 +24,7 @@ function log_msghead(){
 		return
 	fi
 	local msg=$1
-	printf "\033[1;96m %s \033[0m" $msg && echo
+	echo -e "\033[1;96m $msg \033[0m"
 }
 
 # @param logmessage
@@ -33,7 +33,7 @@ function log_info(){
 		return
 	fi
 	local msg=$1
-	printf "\033[36m [INFO] %s \033[0m" $msg && echo
+	echo -e "\033[36m [INFO] $msg \033[0m"
 }
 
 # @param logmessage
@@ -42,7 +42,7 @@ function log_warn(){
 		return
 	fi
 	local msg=$1
-	printf "\033[33m [WARN] %s \033[0m" $msg && echo
+	echo -e "\033[33m [WARN] $msg \033[0m"
 }
 
 # @param logmessage
@@ -51,7 +51,7 @@ function log_error(){
 		return
 	fi
 	local msg=$1
-	>&2 printf "\033[31m [ERROR] %s \033[0m" $msg && echo
+	>&2 echo -e "\033[31m [ERROR] $msg \033[0m"
 }
 
 # @param logmessage
@@ -60,7 +60,7 @@ function log_critical(){
 		return
 	fi
 	local msg=$1
-	>&2 printf "\033[1;41m [ERROR] %s \033[0m" $msg && echo
+	>&2 echo -e "\033[1;41m [ERROR] $msg \033[0m"
 }
 
 # @param logmessage
@@ -69,7 +69,7 @@ function log_success(){
 		return
 	fi
 	local msg=$1
-	printf "\033[1;32m [INFO] %s \033[0m" $msg && echo
+	echo -e "\033[1;32m [INFO] $msg \033[0m"
 }
 
 
