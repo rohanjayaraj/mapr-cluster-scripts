@@ -146,7 +146,7 @@ function main_install(){
 		read -p "Press 'y' to confirm... " -n 1 -r
 	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 	    	echo
-	    	log_critical "Abandoning install! "
+	    	log_msg "Abandoning install! "
 	        return 1
 	    fi
 	fi
