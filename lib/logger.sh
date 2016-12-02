@@ -19,6 +19,15 @@ function log_msg(){
 }
 
 # @param logmessage
+function log_msghead(){
+	if [ -z "$1" ]; then
+		return
+	fi
+	local msg=$1
+	echo -e "\033[1;34m $msg \033[0m"
+}
+
+# @param logmessage
 function log_info(){
 	if [ -z "$1" ]; then
 		return

@@ -651,7 +651,7 @@ function util_getCPUInfo(){
         fi
     done <<<"$(lscpu | grep 'NUMA' | grep 'CPU(s)' | awk '{print $2": "$4}')"
     
-    log_msg "CPU Info : "
+    log_msghead "CPU Info : "
     log_msg "\t # of cores  : $numcores"
     log_msg "\t HyperThread : $ht"
     log_msg "\t # of numa   : "$numnuma
@@ -663,14 +663,14 @@ function util_getCPUInfo(){
 function util_getMemInfo(){
     local mem=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     local memgb=$(echo "$mem/1024/1024" | bc)
-    log_msg "Memory Info : "
+    log_msghead "Memory Info : "
     log_msg "\t Memory : $memgb GB"
     
 }
 
 function util_getNetInfo(){
     local nics="$(ip link show | grep BROADCAST | grep UP | tr -d ':' | awk '{print $2}')"
-    log_msg "Network Info : "
+    log_msghead "Network Info : "
     for nic in $nics
     do
         local ip=$(ip -4 addr show $nic | grep -oP "(?<=inet).*(?=/)" | tr -d ' ')
@@ -689,7 +689,7 @@ function util_getDiskInfo(){
     local disks=$(echo "$fd"| grep "Disk \/" | grep -v mapper | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
     local numdisks=$(echo "$disks" | wc -l)
     local defdisks=$(util_getDefaultDisks)
-    log_msg "Disk Info : [ #ofdisks: $numdisks ]"
+    log_msghead "Disk Info : [ #ofdisks: $numdisks ]"
 
     for disk in $disks
     do
@@ -720,7 +720,7 @@ function util_getDiskInfo(){
 }
 
 function util_getMachineInfo(){
-    log_msg "Machine Info : "
+    log_msghead "Machine Info : "
     log_msg "\t Hostname : $(hostname -f)"
     log_msg "\t OS       : $(getOSWithVersion)"
     command -v mpstat >/dev/null 2>&1 && log_msg "\t Kernel   : $(mpstat | head -n1 | awk '{print $1,$2}')"

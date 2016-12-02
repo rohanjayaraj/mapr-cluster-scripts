@@ -475,10 +475,10 @@ function maprutil_upgrade(){
     #mv /opt/mapr/conf/warden.conf  /opt/mapr/conf/warden.conf.old
     #cp /opt/mapr/conf.new/warden.conf /opt/mapr/conf/warden.conf
     if [ -e "/opt/mapr/roles/cldb" ]; then
-        log_msg "Transplant any new changes in warden configs to /opt/mapr/conf/warden.conf. Do so manually!"
+        log_msghead "Transplant any new changes in warden configs to /opt/mapr/conf/warden.conf. Do so manually!"
         diff /opt/mapr/conf/warden.conf /opt/mapr/conf.new/warden.conf
         if [ -d "/opt/mapr/conf/conf.d.new" ]; then
-            log_msg "New configurations from /opt/mapr/conf/conf.d.new aren't merged with existing files. Do so manually!"
+            log_msghead "New configurations from /opt/mapr/conf/conf.d.new aren't merged with existing files. Do so manually!"
         fi
     fi
 
@@ -1510,38 +1510,38 @@ function maprutil_runCommands(){
 }
 
 function maprutil_createYCSBVolume () {
-    log_msg " *************** Creating YCSB Volume **************** "
+    log_msghead " *************** Creating YCSB Volume **************** "
     maprutil_runMapRCmd "maprcli volume create -name tables -path /tables -replication 3 -topology /data"
     maprutil_runMapRCmd "hadoop mfs -setcompression off /tables"
 }
 
 function maprutil_createTableWithCompression(){
-    log_msg " *************** Creating UserTable (/tables/usertable) with lz4 compression **************** "
+    log_msghead " *************** Creating UserTable (/tables/usertable) with lz4 compression **************** "
     maprutil_createYCSBVolume
     maprutil_runMapRCmd "maprcli table create -path /tables/usertable" 
     maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1"
 }
 
 function maprutil_createTableWithCompressionOff(){
-    log_msg " *************** Creating UserTable (/tables/usertable) with compression off **************** "
+    log_msghead " *************** Creating UserTable (/tables/usertable) with compression off **************** "
     maprutil_createYCSBVolume
     maprutil_runMapRCmd "maprcli table create -path /tables/usertable"
     maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression off -maxversions 1"
 }
 
 function maprutil_createJSONTable(){
-    log_msg " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
+    log_msghead " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
     maprutil_createYCSBVolume
     maprutil_runMapRCmd "maprcli table create -path /tables/usertable -tabletype json "
 }
 
 function maprutil_addCFtoJSONTable(){
-    log_msg " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
+    log_msghead " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
     maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname cfother -jsonpath field0 -compression off -inmemory true"
 }
 
 function maprutil_checkDiskErrors(){
-    log_msg " [$(util_getHostIP)] Checking for disk errors "
+    log_msghead " [$(util_getHostIP)] Checking for disk errors "
     local numlines=2
     [ -n "$GLB_LOG_VERBOSE" ] && numlines=all
     util_grepFiles "$numlines" "/opt/mapr/logs/" "mfs.log*" "DHL" "lun.cc"
@@ -1553,7 +1553,7 @@ function maprutil_runDiskTest(){
         return
     fi
     echo
-    log_msg "[$(util_getHostIP)] Running disk tests [$maprdisks]"
+    log_msghead "[$(util_getHostIP)] Running disk tests [$maprdisks]"
     local disktestdir="/tmp/disktest"
     mkdir -p $disktestdir 2>/dev/null
     for disk in ${maprdisks[@]}
@@ -1596,7 +1596,7 @@ function maprutil_checkTabletDistribution(){
 
 function maprutil_sysinfo(){
     echo
-    log_msg "[$(util_getHostIP)] System info"
+    log_msghead "[$(util_getHostIP)] System info"
     
     local options=
     [ -z "$GLB_SYSINFO_OPTION" ] && GLB_SYSINFO_OPTION="all"
@@ -1644,7 +1644,7 @@ function maprutil_sysinfo(){
 
 function maprutil_grepMFSLogs(){
     echo
-    log_msg "[$(util_getHostIP)] Searching MFS logs for FATAL & DHL messages"
+    log_msghead "[$(util_getHostIP)] Searching MFS logs for FATAL & DHL messages"
     local dirpath="/opt/mapr/logs"
     local fileprefix="mfs.log*"
     local numlines=2
@@ -1656,7 +1656,7 @@ function maprutil_grepMFSLogs(){
 
 function maprutil_grepMapRLogs(){
     echo
-    log_msg "[$(util_getHostIP)] Searching MapR logs"
+    log_msghead "[$(util_getHostIP)] Searching MapR logs"
     local dirpath="/opt/mapr/logs"
     local fileprefix="*"
     local numlines=2
@@ -1698,7 +1698,7 @@ function maprutil_getMapRInfo(){
         command -v maprcli >/dev/null 2>&1 && nodetopo=$(maprcli node list -json | grep "$(hostname -f)" | grep racktopo | sed "s/$(hostname -f)//g" | cut -d ':' -f2 | tr -d '"' | tr -d ',')
     fi
     
-    log_msg "MapR Info : "
+    log_msghead "MapR Info : "
     [ -n "$roles" ] && log_msg "\t Roles    : $roles"
     log_msg "\t Version  : ${version}"
     [ -n "$client" ] && log_msg "\t Client   : ${client}"
@@ -1887,7 +1887,7 @@ function maprutil_getClusterSpec(){
 
     ## Print specifications
     echo
-    log_msg "Cluster Specs : "
+    log_msghead "Cluster Specs : "
     log_msg "\t H/W   : $hwspec"
     log_msg "\t Nodes : $sysspec"
     [ -n "$maprspec" ] && log_msg "\t MapR  : $maprspec" 

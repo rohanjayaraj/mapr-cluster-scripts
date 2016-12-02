@@ -60,7 +60,7 @@ if [ -n "$(cat $rolefile | grep '^[^#;]' | grep '\[')" ]; then
 fi
 
 # Fetch the nodes to be configured
-log_msg "Using cluster configuration file : $rolefile "
+log_msghead "Using cluster configuration file : $rolefile "
 nodes=$(maprutil_getNodesFromRole $rolefile)
 
 if [ -z "$nodes" ]; then
@@ -133,7 +133,7 @@ GLB_LOG_VERBOSE=
 function main_install(){
 	#set -x
 	# Warn user 
-	log_msg "[$(util_getCurDate)] Installing MapR on the following N-O-D-E-S : "
+	log_msghead "[$(util_getCurDate)] Installing MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -219,11 +219,11 @@ function main_install(){
 	# Perform custom executions
 
 	#set +x
-	log_msg "[$(util_getCurDate)] Install is complete! [ RunTime - $(main_timetaken) ]"
+	log_msghead "[$(util_getCurDate)] Install is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_reconfigure(){
-	log_msg "[$(util_getCurDate)] Reconfiguring MapR on the following N-O-D-E-S : "
+	log_msghead "[$(util_getCurDate)] Reconfiguring MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -286,11 +286,11 @@ function main_reconfigure(){
 	done
 	wait
 
-	log_msg "[$(util_getCurDate)] Reconfiguration is complete! [ RunTime - $(main_timetaken) ]"
+	log_msghead "[$(util_getCurDate)] Reconfiguration is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_upgrade(){
-	log_msg "[$(util_getCurDate)] Upgrading MapR on the following N-O-D-E-S : "
+	log_msghead "[$(util_getCurDate)] Upgrading MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -418,13 +418,13 @@ function main_upgrade(){
 	done
 	wait
 
-	log_msg "[$(util_getCurDate)] Upgrade is complete! [ RunTime - $(main_timetaken) ]"
+	log_msghead "[$(util_getCurDate)] Upgrade is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_uninstall(){
 
 	# Warn user 
-	log_msg "[$(util_getCurDate)] Uninstalling MapR on the following N-O-D-E-S : "
+	log_msghead "[$(util_getCurDate)] Uninstalling MapR on the following N-O-D-E-S : "
 	echo
 	local i=1
 	for node in ${nodes[@]}
@@ -516,7 +516,7 @@ function main_uninstall(){
 
 	wait
 
-	log_msg "[$(util_getCurDate)] Uninstall is complete! [ RunTime - $(main_timetaken) ]"
+	log_msghead "[$(util_getCurDate)] Uninstall is complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_isMapRInstalled(){
@@ -545,7 +545,7 @@ function main_isMapRInstalled(){
 }
 
 function main_backuplogs(){
-	log_msg "[$(util_getCurDate)] Backing up MapR log directory on all nodes to $doBackup"
+	log_msghead "[$(util_getCurDate)] Backing up MapR log directory on all nodes to $doBackup"
 	
 	main_isMapRInstalled
 
@@ -568,7 +568,7 @@ function main_backuplogs(){
 	echo "for i in \$(ls *.tar);do DIR=\$(echo \$i| sed 's/.tar//g' | tr '.' '_' | cut -d'_' -f2); echo \$DIR;mkdir -p \$DIR;tar -xf \$i -C \$(pwd)/\$DIR && rm -f \${i}; done" >> $scriptfile
 	chmod +x $scriptfile
 
-	log_msg "[$(util_getCurDate)] Backup complete! [ RunTime - $(main_timetaken) ]"
+	log_msghead "[$(util_getCurDate)] Backup complete! [ RunTime - $(main_timetaken) ]"
 }
 
 function main_runCommandExec(){
@@ -619,27 +619,27 @@ function main_runLogDoctor(){
 				maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck"
         	;;
         	disktest)
-				log_msg "[$(util_getCurDate)] Running disk tests on all nodes"
+				log_msghead "[$(util_getCurDate)] Running disk tests on all nodes"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "disktest"
         	;;
         	mfsgrep)
-				log_msg "[$(util_getCurDate)] Grepping MFS logs on all nodes"
+				log_msghead "[$(util_getCurDate)] Grepping MFS logs on all nodes"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "mfsgrep"
         	;;
         	clsspec)
-				log_msg "[$(util_getCurDate)] Printing cluster specifications"
+				log_msghead "[$(util_getCurDate)] Printing cluster specifications"
 				maprutil_getClusterSpec "$nodes"
         	;;
         	sysinfo)
-				log_msg "[$(util_getCurDate)] Running system info on all nodes"
+				log_msghead "[$(util_getCurDate)] Running system info on all nodes"
 				maprutil_runCommandsOnNodesInParallel "$nodes" "sysinfo"
         	;;
         	greplogs)
-				log_msg "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ $GLB_GREP_MAPRLOGS ]"
+				log_msghead "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ $GLB_GREP_MAPRLOGS ]"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "grepmapr"
         	;;
         	tabletdist)
-				log_msg "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
+				log_msghead "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
         	;;
         esac
@@ -700,7 +700,7 @@ function main_getRepoFile(){
 function main_usage () {
 	local me=$(basename $BASH_SOURCE)
 	echo 
-	log_msg "Usage : "
+	log_msghead "Usage : "
     log_msg "./$me CONFIG_NAME [Options]"
     log_msg " Options : "
     log_msg "\t -h --help"
@@ -899,16 +899,16 @@ done
 
 if [ -z "$dummyrole" ]; then 
 	if [ "$doInstall" -eq 1 ]; then
-		log_msg " *************** Starting Cluster Installation **************** "
+		log_msghead " *************** Starting Cluster Installation **************** "
 		main_install
 	elif [ "$doUninstall" -eq 1 ]; then
-		log_msg " *************** Starting Cluster Uninstallation **************** "
+		log_msghead " *************** Starting Cluster Uninstallation **************** "
 		main_uninstall
 	elif [ "$doUpgrade" -eq 1 ]; then
-		log_msg " *************** Starting Cluster Upgrade **************** "
+		log_msghead " *************** Starting Cluster Upgrade **************** "
 		main_upgrade
 	elif [ "$doConfigure" -eq 1 ]; then
-		log_msg " *************** Starting Cluster Reset & configuration **************** "
+		log_msghead " *************** Starting Cluster Reset & configuration **************** "
 		main_reconfigure
 	fi
 
@@ -918,7 +918,7 @@ if [ -z "$dummyrole" ]; then
 fi
 
 if [ -n "$doBackup" ]; then
-	log_msg " *************** Starting logs backup **************** "
+	log_msghead " *************** Starting logs backup **************** "
 	main_backuplogs	
 fi
 
