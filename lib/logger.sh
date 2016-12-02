@@ -15,7 +15,7 @@ function log_msg(){
 		return
 	fi
 	local msg=$1
-	echo -e "\033[44m $msg \033[0m"
+	echo -e "\033[34m $msg \033[0m"
 }
 
 # @param logmessage

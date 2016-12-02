@@ -20,6 +20,7 @@ tbltdist=
 sysinfo=
 grepkey=
 verbose=
+doNoFormat=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -135,6 +136,9 @@ while [ "$1" != "" ]; do
         -v | --verbose)
             verbose=1
         ;;
+        -fl)
+            doNoFormat=1
+        ;;
         *)
             #echo "ERROR: unknown option \"$OPTION\""
             usage
@@ -148,7 +152,12 @@ if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	exit 1
 else
-    $libdir/main.sh "$rolefile" "-l=$args" "-td=$tbltdist" "-si=$sysinfo" "-g=$grepkey" "-v=$verbose"
+    params="$rolefile -l=$args -td=$tbltdist -si=$sysinfo -g=$grepkey -v=$verbose"
+    if [ -z "$doNoFormat" ]; then
+        $libdir/main.sh $params
+    else
+         $libdir/main.sh $params | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g'
+    fi
 fi
 
 echo "DONE!"

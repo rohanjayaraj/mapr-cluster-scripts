@@ -1713,7 +1713,7 @@ function maprutil_getClusterSpec(){
         return
     fi
     local nodelist=$1
-    local sysinfo=$(maprutil_runCommandsOnNodesInParallel "$nodelist" "sysinfo2")
+    local sysinfo=$(maprutil_runCommandsOnNodesInParallel "$nodelist" "sysinfo2" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')
     local hwspec=
     local sysspec=
     local maprspec=
