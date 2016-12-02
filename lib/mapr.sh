@@ -1553,7 +1553,7 @@ function maprutil_runDiskTest(){
         return
     fi
     echo
-    log_msghead "[$(util_getHostIP)] Running disk tests ["$maprdisks"]"
+    log_msghead "[$(util_getHostIP)] Running disk tests [$maprdisks]"
     local disktestdir="/tmp/disktest"
     mkdir -p $disktestdir 2>/dev/null
     for disk in ${maprdisks[@]}
