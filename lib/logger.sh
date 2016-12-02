@@ -23,7 +23,7 @@ function log_msghead(){
 	if [ -z "$1" ]; then
 		return
 	fi
-	local msg=$1
+	local msg=$(echo $1 | tr "\n" " ")
 	echo -e "\033[1;96m $msg \033[0m"
 }
 
