@@ -981,9 +981,9 @@ function maprutil_configureNode(){
         echo "ISCLIENT=0" >> $scriptpath
     fi
     
-    #if [ "$hostip" != "$cldbnode" ]; then
-    #    echo "maprutil_configureSSH \""$allnodes"\"" >> $scriptpath
-    #fi
+    if [ "$hostip" != "$cldbnode" ] && [ "$hostnode" = "$cldbnode" ]; then
+        echo "maprutil_configureSSH \""$allnodes"\"" >> $scriptpath
+    fi
     echo "maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
