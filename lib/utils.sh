@@ -86,7 +86,8 @@ function util_checkAndInstall2(){
 
 function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
-         yum repolist 2>&1 | grep epel || yum install epel-release -y >/dev/null 2>&1
+         yum repolist 2>&1 | grep epel && || yum install epel-release -y >/dev/null 2>&1
+         yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel >/dev/null 2>&1
     fi
     util_checkAndInstall "ifconfig" "net-tools"
     util_checkAndInstall "bzip2" "bzip2"
@@ -109,6 +110,10 @@ function util_installprereq(){
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
+
+    if [ "$(getOS)" = "centos" ]; then
+         yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1
+    fi
 }
 
 # @param ip_address_string

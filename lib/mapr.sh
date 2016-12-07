@@ -425,6 +425,7 @@ function maprutil_uninstall(){
 
     # kill all processes
     util_kill "initaudit.sh"
+    util_kill "mfs"
     util_kill "java" "jenkins" "elasticsearch"
     util_kill "timeout"
     util_kill "guts"

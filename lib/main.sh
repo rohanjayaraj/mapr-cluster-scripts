@@ -540,6 +540,7 @@ function main_isMapRInstalled(){
 			exit 1
 		else
 			log_warn "MapR not installed on the node(s) [ $notlist]."
+			[ "$(echo $nodes | wc -w)" -eq "$(echo $notlist | wc -w)" ] && log_msg "No MapR installed on the cluster. Scooting!" && exit 1
 		fi
 	fi
 }
