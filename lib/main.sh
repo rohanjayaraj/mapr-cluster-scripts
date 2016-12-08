@@ -502,17 +502,17 @@ function main_uninstall(){
 	local dohost="false"
 	for node in ${nodes[@]}
 	do	
-    	if [ "$hostip" != "$node" ]; then
+    	#if [ "$hostip" != "$node" ]; then
 			maprutil_uninstallNode "$node"
-		else
-			dohost="true"
-		fi
+		#else
+		#	dohost="true"
+		#fi
 	done
 	
 	# Run uninstall on the host node at the end
-	if [ "$dohost" = "true" ]; then
-		maprutil_uninstallNode "$hostip"
-	fi
+	#if [ "$dohost" = "true" ]; then
+	#	maprutil_uninstallNode "$hostip"
+	#fi
 
 	wait
 
