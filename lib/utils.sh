@@ -112,7 +112,7 @@ function util_installprereq(){
     util_checkAndInstall2 "/usr/share/dict/words" "words"
 
     if [ "$(getOS)" = "centos" ]; then
-         yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1
+         yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1 && yum clean metadata >/dev/null 2>&1
     fi
 }
 
