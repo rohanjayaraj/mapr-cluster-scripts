@@ -1074,15 +1074,15 @@ function maprutil_copySecureFilesFromCLDB(){
     sleep 10
 
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
-        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/"
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/"; maprutil_addToPIDList "$!" 
     fi
     if [ "$ISCLIENT" -eq 0 ]; then
-        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"
-        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"; maprutil_addToPIDList "$!" 
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"; maprutil_addToPIDList "$!" 
     fi
-    ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"
+    ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"; maprutil_addToPIDList "$!" 
     
-    wait
+    maprutil_wait
 
     if [ "$ISCLIENT" -eq 0 ]; then
         chown mapr:mapr /opt/mapr/conf/maprserverticket > /dev/null 2>&1
@@ -1393,8 +1393,9 @@ function maprutil_runCommandsOnNodesInParallel(){
     do
         local nodefile="$tempdir/$node.log"
         maprutil_runCommandsOnNode "$node" "$cmd" > $nodefile &
+        maprutil_addToPIDList "$!" 
     done
-    wait
+    maprutil_wait
 
     for node in ${nodes[@]}
     do
@@ -2010,12 +2011,13 @@ function maprutil_restartZKOnNode() {
         return
     fi
     if [ -z "$stopstart" ]; then
-        ssh_executeCommandasRoot "$1" "service mapr-zookeeper restart" 
+        ssh_executeCommandasRoot "$1" "service mapr-zookeeper restart" &
     elif [[ "$stopstart" = "stop" ]]; then
-        ssh_executeCommandasRoot "$1" "service mapr-zookeeper stop" 
+        ssh_executeCommandasRoot "$1" "service mapr-zookeeper stop" &
     elif [[ "$stopstart" = "start" ]]; then
-        ssh_executeCommandasRoot "$1" "service mapr-zookeeper start" 
+        ssh_executeCommandasRoot "$1" "service mapr-zookeeper start" &
     fi
+    maprutil_addToPIDList "$!" 
 }
 
 function maprutil_removemMapRPackages(){
