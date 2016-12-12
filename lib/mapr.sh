@@ -2040,10 +2040,10 @@ function maprutil_wait(){
         local pid=${GLB_BG_PIDS[i]}
         wait $pid
         local errcode=$?
-        if [ "$errcode" -eq "0" ]; then
-            log_info "$pid completed successfully"
-        else 
-        #if [ "$errcode" -ne "0" ]; then
+        #if [ "$errcode" -eq "0" ]; then
+        #    log_info "$pid completed successfully"
+        #else 
+        if [ "$errcode" -ne "0" ]; then
             log_error "$pid exited with errorcode : $errcode"
             [ -z "$GLB_EXIT_ERRCODE" ] && GLB_EXIT_ERRCODE=$errcode
         fi
