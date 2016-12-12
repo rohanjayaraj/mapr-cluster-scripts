@@ -1044,7 +1044,6 @@ function maprutil_copyMapRTicketsFromCLDB(){
     
     if [ "$cldbisup" = "true" ] && [ "$ISCLIENT" -eq 0 ]; then
         ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_*" "/tmp" 2>/dev/null
-        maprutil_addToPIDList "$!"
     fi
 }
 
@@ -2103,7 +2102,6 @@ function maprutil_copyZippedLogsFromNode(){
     local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
     
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto"
-    maprutil_addToPIDList "$!"
 }
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
