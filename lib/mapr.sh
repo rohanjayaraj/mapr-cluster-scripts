@@ -1398,9 +1398,8 @@ function maprutil_runCommandsOnNodesInParallel(){
     do
         local nodefile="$tempdir/$node.log"
         maprutil_runCommandsOnNode "$node" "$cmd" > $nodefile &
-        maprutil_addToPIDList "$!"
     done
-    maprutil_wait
+    wait
 
     for node in ${nodes[@]}
     do
@@ -1700,7 +1699,7 @@ function maprutil_getMapRInfo(){
     local numsps=
     local sppermfs=
     local nodetopo=
-    if [ -e "/opt/mapr/server/mrconfig" ]; then
+    if [ -e "/opt/mapr/conf/mapr-clusters.conf" ]; then
         nummfs=$(/opt/mapr/server/mrconfig info instances 2>/dev/null| head -1)
         numsps=$(/opt/mapr/server/mrconfig sp list 2>/dev/null| grep SP[0-9] | wc -l)
         command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json 2>/dev/null| grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
