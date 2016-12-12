@@ -2034,6 +2034,7 @@ function maprutil_wait(){
     log_info "Waiting for background processes to complete [${GLB_BG_PIDS[*]}]"
     for((i=0;i<${#GLB_BG_PIDS[@]};i++)); do
         local pid=${GLB_BG_PIDS[i]}
+        log_info "waiting on pid $pid"
         wait $pid
         local errcode=$?
         if [ "$errcode" -eq "0" ]; then
