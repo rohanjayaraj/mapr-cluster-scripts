@@ -848,7 +848,7 @@ function maprutil_configure(){
 
     if [ ! -d "/opt/mapr/" ]; then
         >&2 echo "{WARN} Configuration skipped as no MapR binaries are installed "
-        return
+        return 1
     fi
     
     local diskfile="/tmp/disklist"
