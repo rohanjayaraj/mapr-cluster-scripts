@@ -472,7 +472,7 @@ function maprutil_upgrade(){
         util_removeBinaries $removebins
     fi
 
-    util_upgradeBinaries "$upbins" "$buildversion"
+    util_upgradeBinaries "$upbins" "$buildversion" || exit 1
     
     #mv /opt/mapr/conf/warden.conf  /opt/mapr/conf/warden.conf.old
     #cp /opt/mapr/conf.new/warden.conf /opt/mapr/conf/warden.conf
@@ -938,7 +938,7 @@ function maprutil_configure(){
         local cldbtopo=$GLB_CLDB_TOPO
         if [ -n "$cldbtopo" ]; then
             sleep 30
-            maprutil_configureCLDBTopology
+            maprutil_configureCLDBTopology || exit 1
         fi
     else
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
