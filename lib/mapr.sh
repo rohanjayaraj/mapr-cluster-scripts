@@ -2027,14 +2027,15 @@ function maprutil_addToPIDList(){
     if [ -z "$1" ]; then
         return
     fi
+    [ -z "$GLB_BG_PIDS" ] && GLB_BG_PIDS=()
     GLB_BG_PIDS+=($1)
 }
 
 function maprutil_wait(){
     log_info "Waiting for background processes to complete [${GLB_BG_PIDS[*]}]"
-    for((i=0;i<${#GLB_BG_PIDS[@]};i++)); do
+    for((i=0;i<${#GLB_BG_PIDS[@]};++i)); do
         local pid=${GLB_BG_PIDS[i]}
-        log_info "waiting on pid $pid"
+        log_info "waiting on pid $pid [$i/${#GLB_BG_PIDS[@]}]"
         wait $pid
         local errcode=$?
         if [ "$errcode" -eq "0" ]; then
