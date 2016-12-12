@@ -2033,12 +2033,14 @@ function maprutil_addToPIDList(){
 
 function maprutil_wait(){
     log_info "Waiting for background processes to complete [${GLB_BG_PIDS[*]}]"
-    for((i=0;i<${#GLB_BG_PIDS[@]};++i)); do
-        if wait ${GLB_BG_PIDS[i]}; then
-            log_info "${GLB_BG_PIDS[i]} completed"
+    for((i=0;i<${#GLB_BG_PIDS[@]};i++)); do
+        local pid=${GLB_BG_PIDS[i]}
+        wait $pid
+        local errcode=$?
+        if [ "$errcode" -eq "0" ]; then
+            log_info "$pid completed successfully"
         else 
-            local errcode=$?
-            log_error "${GLB_BG_PIDS[i]} exited with errorcode : $errcode"
+            log_error "$pid exited with errorcode : $errcode"
             [ -z "$GLB_EXIT_ERRCODE" ] && GLB_EXIT_ERRCODE=$errcode
         fi
     done
