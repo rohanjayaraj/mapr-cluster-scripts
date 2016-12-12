@@ -277,8 +277,9 @@ function maprutil_isMapRInstalledOnNodes(){
     do
         local nodelog="$tmpdir/$node.log"
         maprutil_isMapRInstalledOnNode "$node" > $nodelog &
+        maprutil_addToPIDList "$!"
     done
-    wait
+    maprutil_wait
     for node in ${maprnodes[@]}
     do
         local nodelog=$(cat $tmpdir/$node.log)
@@ -517,7 +518,7 @@ function maprutil_upgradeNode(){
     ssh_executeScriptasRootInBG "$hostnode" "$scriptpath"
     maprutil_addToPIDList "$!"
     if [ -z "$2" ]; then
-        wait
+        maprutil_wait
     fi
 }
 
@@ -572,7 +573,7 @@ function maprutil_installBinariesOnNode(){
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
     if [ -z "$3" ]; then
-        wait
+        maprutil_wait
     fi
 }
 
@@ -990,7 +991,7 @@ function maprutil_configureNode(){
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
     if [ -z "$4" ]; then
-        wait
+        maprutil_wait
     fi
 }
 
@@ -1044,6 +1045,7 @@ function maprutil_copyMapRTicketsFromCLDB(){
     
     if [ "$cldbisup" = "true" ] && [ "$ISCLIENT" -eq 0 ]; then
         ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_*" "/tmp" 2>/dev/null
+        maprutil_addToPIDList "$!"
     fi
 }
 
@@ -1074,13 +1076,18 @@ function maprutil_copySecureFilesFromCLDB(){
 
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/"
+        maprutil_addToPIDList "$!"
     fi
     if [ "$ISCLIENT" -eq 0 ]; then
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"
+        maprutil_addToPIDList "$!"
         ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"
+        maprutil_addToPIDList "$!"
     fi
     ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"
-    wait
+    maprutil_addToPIDList "$!"
+    
+    maprutil_wait
 
     if [ "$ISCLIENT" -eq 0 ]; then
         chown mapr:mapr /opt/mapr/conf/maprserverticket > /dev/null 2>&1
@@ -1117,7 +1124,7 @@ function maprutil_postConfigureOnNode(){
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
     if [ -z "$3" ]; then
-        wait
+        maprutil_wait
     fi
 }
 
@@ -1391,8 +1398,9 @@ function maprutil_runCommandsOnNodesInParallel(){
     do
         local nodefile="$tempdir/$node.log"
         maprutil_runCommandsOnNode "$node" "$cmd" > $nodefile &
+        maprutil_addToPIDList "$!"
     done
-    wait
+    maprutil_wait
 
     for node in ${nodes[@]}
     do
@@ -1965,8 +1973,8 @@ function maprutil_restartWardenOnNode() {
     
     echo "maprutil_restartWarden \"$stopstart\"" >> $scriptpath
    
-    ssh_executeScriptasRoot "$node" "$scriptpath"
-    
+    ssh_executeScriptasRootInBG "$node" "$scriptpath"
+    maprutil_addToPIDList "$!"   
 }
 
 ## @param stop/start/restart
@@ -2008,12 +2016,13 @@ function maprutil_restartZKOnNode() {
         return
     fi
     if [ -z "$stopstart" ]; then
-        ssh_executeCommandasRoot "$1" "service mapr-zookeeper restart"
+        ssh_executeCommandasRoot "$1" "service mapr-zookeeper restart" &
     elif [[ "$stopstart" = "stop" ]]; then
-        ssh_executeCommandasRoot "$1" "service mapr-zookeeper stop"
+        ssh_executeCommandasRoot "$1" "service mapr-zookeeper stop" &
     elif [[ "$stopstart" = "start" ]]; then
-        ssh_executeCommandasRoot "$1" "service mapr-zookeeper start"
+        ssh_executeCommandasRoot "$1" "service mapr-zookeeper start" &
     fi
+    maprutil_addToPIDList "$!" 
 }
 
 function maprutil_removemMapRPackages(){
@@ -2026,11 +2035,21 @@ function maprutil_addToPIDList(){
     if [ -z "$1" ]; then
         return
     fi
-    if [ -z "$GLB_BG_PIDS" ]; then
-        GLB_BG_PIDS=$1
-    else
-        GLB_BG_PIDS=$GLB_BG_PIDS" "$1
-    fi
+    GLB_BG_PIDS+=($1)
+}
+
+function maprutil_wait(){
+    log_info "Waiting for background processes to complete [${GLB_BG_PIDS[*]}]"
+    for((i=0;i<${#GLB_BG_PIDS[@]};++i)); do
+        if wait ${GLB_BG_PIDS[i]}; then
+            log_info "${GLB_BG_PIDS[i]} completed"
+        else 
+            local errcode=$?
+            log_error "${GLB_BG_PIDS[i]} exited with errorcode : $errcode"
+            [ -z "$GLB_EXIT_ERRCODE" ] && GLB_EXIT_ERRCODE=$errcode
+        fi
+    done
+    GLB_BG_PIDS=()
 }
 
 # @param timestamp
@@ -2089,6 +2108,7 @@ function maprutil_copyZippedLogsFromNode(){
     local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
     
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto"
+    maprutil_addToPIDList "$!"
 }
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###

@@ -126,6 +126,7 @@ GLB_SECURE_CLUSTER=
 GLB_SYSINFO_OPTION=
 GLB_GREP_MAPRLOGS=
 GLB_LOG_VERBOSE=
+GLB_EXIT_ERRCODE=
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 ############################### ALL functions to be defined below this ###############################
@@ -179,7 +180,7 @@ function main_install(){
 		local nodebins=$(maprutil_getCoreNodeBinaries "$rolefile" "$node")
 		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
 	done
-	wait
+	maprutil_wait
 
 	# Configure all nodes
 	for node in ${nodes[@]}
@@ -187,7 +188,7 @@ function main_install(){
 		log_info "****** Running configure on node -> $node ****** "
 		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
 	done
-	wait
+	maprutil_wait
 
 	# Configure ES & OpenTSDB nodes
 	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then 
@@ -200,21 +201,21 @@ function main_install(){
 				maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
 			fi
 		done
-		wait
+		maprutil_wait
 
 		for node in ${nodes[@]}
 		do
 			maprutil_postConfigureOnNode "$node" "$rolefile" "bg"
 		done
-		wait
+		maprutil_wait
 	fi
 
 	# Configure all nodes
 	for node in ${nodes[@]}
 	do
-		maprutil_restartWardenOnNode "$node" "$rolefile" &
+		maprutil_restartWardenOnNode "$node" "$rolefile"
 	done
-	wait
+	maprutil_wait
 
 	# Perform custom executions
 
@@ -266,7 +267,7 @@ function main_reconfigure(){
 	do
 		maprutil_cleanPrevClusterConfigOnNode "$node" "$rolefile"
 	done
-	wait
+	maprutil_wait
 
 	# Read properties
 	local clustername=$GLB_CLUSTER_NAME
@@ -277,14 +278,14 @@ function main_reconfigure(){
 		log_info "****** Running configure on node -> $node ****** "
 		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
 	done
-	wait
+	maprutil_wait
 
 	# Restart all nodes
 	for node in ${nodes[@]}
 	do
-		maprutil_restartWardenOnNode "$node" "$rolefile" &
+		maprutil_restartWardenOnNode "$node" "$rolefile"
 	done
-	wait
+	maprutil_wait
 
 	log_msghead "[$(util_getCurDate)] Reconfiguration is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -388,16 +389,16 @@ function main_upgrade(){
 			fi
 		fi
 		# Stop warden on all nodes
-		maprutil_restartWardenOnNode "$node" "$rolefile" "stop" &
+		maprutil_restartWardenOnNode "$node" "$rolefile" "stop" 
 	done
 
 	log_info "Stopping zookeeper..."
 	# Stop ZK on ZK nodes
 	for node in ${zknodes[@]}
 	do
-		maprutil_restartZKOnNode "$node" "$rolefile" "stop" &
+		maprutil_restartZKOnNode "$node" "$rolefile" "stop"
 	done
-	wait
+	maprutil_wait
 	
 	# Kill all mapred jos & yarn applications
 
@@ -408,15 +409,15 @@ function main_upgrade(){
 	do	
 		maprutil_upgradeNode "$node" "bg"
 	done
-	wait
+	maprutil_wait
 
 	sleep 60 && maprutil_postUpgrade "$cldbnode"
 	
 	for node in ${nodes[@]}
 	do
-		maprutil_restartWardenOnNode "$node" "$rolefile" &
+		maprutil_restartWardenOnNode "$node" "$rolefile"
 	done
-	wait
+	maprutil_wait
 
 	log_msghead "[$(util_getCurDate)] Upgrade is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -514,7 +515,7 @@ function main_uninstall(){
 	#	maprutil_uninstallNode "$hostip"
 	#fi
 
-	wait
+	maprutil_wait
 
 	log_msghead "[$(util_getCurDate)] Uninstall is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -555,12 +556,12 @@ function main_backuplogs(){
 	do	
     	maprutil_zipLogsDirectoryOnNode "$node" "$timestamp"
 	done
-	wait
+	maprutil_wait
 	for node in ${nodes[@]}
 	do	
     	maprutil_copyZippedLogsFromNode "$node" "$timestamp" "$doBackup"
 	done
-	wait
+	maprutil_wait
 
 	local scriptfile="$doBackup/extract.sh"
 	echo "echo \"extracting bzip2\"" > $scriptfile
@@ -666,10 +667,10 @@ function main_isValidBuildVersion(){
 function main_stopall() {
 	local me=$(basename $BASH_SOURCE)
     log_warn "$me script interrupted!!! Stopping... "
-    for i in $GLB_BG_PIDS
+    for i in "${GLB_BG_PIDS[@]}"
     do
         log_info "[$me] kill -9 $i"
-        kill -9 $i 2>/dev/null
+        kill -9 ${i} 2>/dev/null
     done
 }
 
