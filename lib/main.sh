@@ -914,6 +914,8 @@ if [ -z "$dummyrole" ]; then
 		main_reconfigure
 	fi
 
+	[ -n "$GLB_EXIT_ERRCODE" ] && log_critical "One or more nodes returned error '$GLB_EXIT_ERRCODE'" && exit "$GLB_EXIT_ERRCODE"
+	
 	if [ -n "$doCmdExec" ]; then
 		main_runCommandExec "$doCmdExec"
 	fi

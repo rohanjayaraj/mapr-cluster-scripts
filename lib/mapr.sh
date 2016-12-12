@@ -279,7 +279,7 @@ function maprutil_isMapRInstalledOnNodes(){
         maprutil_isMapRInstalledOnNode "$node" > $nodelog &
         maprutil_addToPIDList "$!"
     done
-    maprutil_wait
+    maprutil_wait > /dev/null 2>&1
     for node in ${maprnodes[@]}
     do
         local nodelog=$(cat $tmpdir/$node.log)
@@ -1395,7 +1395,7 @@ function maprutil_runCommandsOnNodesInParallel(){
         maprutil_runCommandsOnNode "$node" "$cmd" > $nodefile &
         maprutil_addToPIDList "$!" 
     done
-    maprutil_wait
+    maprutil_wait > /dev/null 2>&1
 
     for node in ${nodes[@]}
     do
