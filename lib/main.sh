@@ -396,9 +396,9 @@ function main_upgrade(){
 	# Stop ZK on ZK nodes
 	for node in ${zknodes[@]}
 	do
-		maprutil_restartZKOnNode "$node" "$rolefile" "stop"
+		maprutil_restartZKOnNode "$node" "$rolefile" "stop" &
 	done
-	maprutil_wait
+	wait
 	
 	# Kill all mapred jos & yarn applications
 
