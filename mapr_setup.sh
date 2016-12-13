@@ -282,6 +282,8 @@ if [ -z "$rolefile" ]; then
 else
     $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
     "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-repo=$repourl" "-prepo=$patchrepourl" "-pid=$patchid"
+    returncode=$?
+    [ "$returncode" -ne "0" ] && exit $returncode
 fi
 
 if [[ "$setupop" =~ ^uninstall.* ]]; then
