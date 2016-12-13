@@ -513,7 +513,7 @@ function maprutil_upgradeNode(){
     if [ -n "$GLB_BUILD_VERSION" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
-    echo "maprutil_upgrade \""$GLB_BUILD_VERSION"\"" >> $scriptpath
+    echo "maprutil_upgrade \""$GLB_BUILD_VERSION"\" || exit 1" >> $scriptpath
 
     ssh_executeScriptasRootInBG "$hostnode" "$scriptpath"
     maprutil_addToPIDList "$!"
@@ -565,9 +565,9 @@ function maprutil_installBinariesOnNode(){
     ## Append MapR release version as there might be conflicts with mapr-patch-client with regex as 'mapr-patch*$VERSION*'
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
-        [ -n "$maprpatch" ] && echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-$GLB_MAPR_VERSION"\"" >> $scriptpath
+        [ -n "$maprpatch" ] && echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
     else
-        [ -n "$maprpatch" ] && echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""$GLB_MAPR_VERSION"\"" >> $scriptpath
+        [ -n "$maprpatch" ] && echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
     fi
     
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
@@ -983,9 +983,9 @@ function maprutil_configureNode(){
     fi
     
     if [ "$hostip" != "$cldbnode" ] && [ "$hostnode" = "$cldbnode" ]; then
-        echo "maprutil_configureSSH \""$allnodes"\" && maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
+        echo "maprutil_configureSSH \""$allnodes"\" && maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$3"\" || exit 1" >> $scriptpath
     else
-        echo "maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$3"\"" >> $scriptpath
+        echo "maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$3"\" || exit 1" >> $scriptpath
     fi
    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
@@ -1114,7 +1114,7 @@ function maprutil_postConfigureOnNode(){
 
     maprutil_addGlobalVars "$scriptpath"
     
-    echo "maprutil_postConfigure \""$esnodes"\" \""$otnodes"\"" >> $scriptpath
+    echo "maprutil_postConfigure \""$esnodes"\" \""$otnodes"\" || exit 1" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
