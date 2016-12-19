@@ -561,7 +561,7 @@ function main_backuplogs(){
 	do	
     	maprutil_copyZippedLogsFromNode "$node" "$timestamp" "$doBackup"
 	done
-	maprutil_wait
+	wait
 
 	local scriptfile="$doBackup/extract.sh"
 	echo "echo \"extracting bzip2\"" > $scriptfile
@@ -915,7 +915,7 @@ if [ -z "$dummyrole" ]; then
 	fi
 
 	[ -n "$GLB_EXIT_ERRCODE" ] && log_critical "One or more nodes returned error '$GLB_EXIT_ERRCODE'" && exit "$GLB_EXIT_ERRCODE"
-	
+
 	if [ -n "$doCmdExec" ]; then
 		main_runCommandExec "$doCmdExec"
 	fi
