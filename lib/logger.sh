@@ -9,7 +9,7 @@
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
-function function log_getTime(){
+function log_getTime(){
     echo "$(date +'%Y-%m-%d %H:%M:%S')"
 }
 
