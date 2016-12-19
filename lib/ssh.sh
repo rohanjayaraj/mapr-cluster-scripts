@@ -138,8 +138,8 @@ function ssh_executeScriptInBG(){
 	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
 		return 1
 	fi
-	
-	ssh $1@$2 'bash -s' < $3 &
+	local logfile="$3.log"
+	ssh $1@$2 'bash -s' < $3 | tee -a $logfile &
 }
 
 # @param host ip
@@ -148,9 +148,11 @@ function ssh_executeScriptasRootInBG(){
 	if [ -z "$1" ] || [ -z "$2" ]; then
 		return 1
 	fi
-	
-	ssh root@$1 'bash -s' < $2 &
-	
+	local node=$1
+	local script=$2
+	local logfile="$script.log"
+
+	ssh root@$node 'bash -s' < $script | tee -a $logfile &
 }
 
 # @param .ssh dir path
