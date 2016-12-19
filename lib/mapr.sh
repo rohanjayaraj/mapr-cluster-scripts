@@ -806,10 +806,10 @@ function maprutil_buildDiskList() {
 
 function maprutil_startTraces() {
     if [[ "$ISCLIENT" -eq "0" ]] && [[ -e "/opt/mapr/roles" ]]; then
-        nohup sh -c 'ec=124; while [ "$ec" -eq 124 ]; do timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all >> /opt/mapr/logs/guts.log; ec=$?; done'  > /dev/null 2>&1 &
-        nohup sh -c 'ec=124; while [ "$ec" -eq 124 ]; do timeout 14 dstat -tcdnim >> /opt/mapr/logs/dstat.log; ec=$?; done' > /dev/null 2>&1 &
-        nohup iostat -dmxt 1 > /opt/mapr/logs/iostat.log 2> /dev/null &
-        nohup sh -c 'rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 10 top -bH -p $mfspid -d 1 >> /opt/mapr/logs/mfstop.log; rc=$?; else sleep 10; fi; done' > /dev/null 2>&1 &
+        nohup sh -c 'log="/opt/mapr/logs/guts.log"; ec=124; while [ "$ec" -eq 124 ]; do timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all >> $log; ec=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+        nohup sh -c 'log="/opt/mapr/logs/dstat.log"; ec=124; while [ "$ec" -eq 124 ]; do timeout 14 dstat -tcdnim >> $log; ec=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        nohup sh -c 'log="/opt/mapr/logs/iostat.log"; ec=124; while [ "$ec" -eq 124 ]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; ec=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        nohup sh -c 'log="/opt/mapr/logs/mfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 10 top -bH -p $mfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
 }
 
@@ -1736,7 +1736,7 @@ function maprutil_getClusterSpec(){
         log_warn "CPU cores do not match. Not a homogeneous cluster"
         cpucores=$(echo "$cpucores" | sort -nr | head -1)
     elif [ -n "$cpucores" ]; then
-        cpucores="2x$cpucores"
+        cpucores="2 x $cpucores"
     fi
     
     if [ -z "$cpucores" ]; then
@@ -1786,12 +1786,12 @@ function maprutil_getClusterSpec(){
     fi
     disksize=$(util_getNearestPower2 $disksize)
     if [ "$disksize" -lt "999" ]; then
-        disksize="${disksize}GB" 
+        disksize="${disksize} GB" 
     else
         disksize="$(echo "$disksize/1000" | bc)TB"
     fi
 
-    hwspec="$hwspec, ${numdisks}x${disksize} $disktype"
+    hwspec="$hwspec, ${numdisks} x ${disksize} $disktype"
 
     ## Memory
     local memory=
@@ -1806,7 +1806,7 @@ function maprutil_getClusterSpec(){
             memory=$(echo "$memory" | sort -nr | head -1)
         fi
         memory=$(util_getNearestPower2 $memory)
-        memory="${memory}${gb}"
+        memory="${memory} ${gb}"
     else
         log_error "No memory listed on any nodes"
         memory=0
@@ -1831,7 +1831,7 @@ function maprutil_getClusterSpec(){
             log_warn "NIC(s) are of different speeds"
             nwsp=$(echo "$nwsp" | sort -nr | head -1)
         fi
-        nw="${nicpernode}x${nwsp}"
+        nw="${nicpernode} x ${nwsp}"
         [ "$mtus" -gt "1500" ] && nw="$nw (mtu : $mtus/jumbo frames)" || nw="$nw (mtu : $mtus)"
     fi
     
@@ -1883,11 +1883,11 @@ function maprutil_getClusterSpec(){
         
         local numdn=$(echo "$maprstr" | grep "mapr-fileserver" | wc -l)
         local numcldb=$(echo "$maprstr" | grep "mapr-cldb" | wc -l)
-        local numtopo=$(echo "$maprstr" | grep "Topology" | awk '{print $3}' | sort | uniq)
+        local numtopo=$(echo "$maprstr" | grep "Topology" | awk '{print $3}' | sort | uniq)H
         if [ "$(echo $numtopo | wc -w)" -gt "1" ]; then
             numdn=$(echo "$maprstr" | grep "Topology" | awk '{print $3}' | sort | uniq -c | sort -nr | head -1 | awk '{print $1}')
         fi
-        maprspec="$numnodes nodes($numcldb CLDB, $numdn Data), $nummfs MFS, $numsps SP, $maprver"
+        maprspec="$numnodes nodes ($numcldb CLDB, $numdn Data), $nummfs MFS, $numsps SP, $maprver"
     fi
 
     ## Print specifications
@@ -1899,6 +1899,11 @@ function maprutil_getClusterSpec(){
 }
 
 function maprutil_applyLicense(){
+    if [ -n "$GLB_SECURE_CLUSTER" ]; then
+        echo 'mapr' | maprlogin password  2>/dev/null
+        echo 'mapr' | sudo -su mapr maprlogin password 2>/dev/null
+    fi
+
     wget http://stage.mapr.com/license/LatestDemoLicense-M7.txt --user=maprqa --password=maprqa -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
     local buildid=$(maprutil_getBuildID)
     local i=0
@@ -1923,10 +1928,6 @@ function maprutil_applyLicense(){
             exit 1
         fi
     done
-    if [ -n "$GLB_SECURE_CLUSTER" ]; then
-        echo 'mapr' | maprlogin password  2>/dev/null
-        echo 'mapr' | sudo -su mapr maprlogin password 2>/dev/null
-    fi
 }
 
 function maprutil_mountSelfHosting(){
@@ -2044,7 +2045,7 @@ function maprutil_wait(){
         #    log_info "$pid completed successfully"
         #else 
         if [ "$errcode" -ne "0" ]; then
-            log_error "$pid exited with errorcode : $errcode"
+            log_warn "Child process [$pid] exited with errorcode : $errcode"
             [ -z "$GLB_EXIT_ERRCODE" ] && GLB_EXIT_ERRCODE=$errcode
         fi
     done
@@ -2062,6 +2063,32 @@ function maprutil_zipDirectory(){
     mkdir -p $tmpdir > /dev/null 2>&1
     
     cd $tmpdir && tar -cjf $tarfile -C $logdir . > /dev/null 2>&1
+    # Copy configurations files 
+    maprutil_copyConfsToDir "$tmpdir"
+}
+
+function maprutil_copyConfsToDir(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local todir="$1/conf"
+    mkdir -p $todir > /dev/null 2>&1
+
+    [ -e "/opt/mapr/conf" ] && cp -r /opt/mapr/conf $todir/mapr-conf/ > /dev/null 2>&1
+    for i in $(ls -d /opt/mapr/hadoop/hadoop-*/)
+    do
+        i=${i%?};
+        local hv=$(echo "$i" | rev | cut -d '/' -f1 | rev)
+        [ -e "$i/conf" ] && cp -r $i/conf $todir/$hv-conf/ > /dev/null 2>&1
+        [ -e "$i/etc/hadoop" ] && cp -r $i/conf $todir/$hv-conf/ > /dev/null 2>&1
+    done
+
+    for i in $(ls -d /opt/mapr/hbase/hbase-*/)
+    do
+        i=${i%?};
+        local hbv=$(echo "$i" | rev | cut -d '/' -f1 | rev)
+        [ -e "$i/conf" ] && cp -r $i/conf $todir/$hbv-conf/ > /dev/null 2>&1
+    done
 }
 
 # @param host ip

@@ -19,6 +19,7 @@ args=
 tbltdist=
 sysinfo=
 grepkey=
+backupdir=
 verbose=
 doNoFormat=
 
@@ -86,7 +87,8 @@ function usage () {
     echo -e "\t -g=<SEARCHKEY> | --greplogs=<SEARCHKEY>" 
     echo -e "\t\t - Grep MapR logs for SEARCHKEY on all nodes"
 
-
+    echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
+    echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
     
     echo 
     echo " Examples : "
@@ -122,6 +124,12 @@ while [ "$1" != "" ]; do
                 tbltdist="$VALUE"
             fi
         ;;
+        -b | --backuplogs)
+            if [ -z "$VALUE" ]; then
+                VALUE="/tmp"
+            fi
+            backupdir=$VALUE
+        ;;
         -si | --systeminfo)
             sysinfo="$VALUE"
             if [ -z "$sysinfo" ]; then
@@ -155,7 +163,7 @@ if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	exit 1
 else
-    params="$rolefile -l=$args -td=$tbltdist -si=$sysinfo -g=$grepkey -v=$verbose"
+    params="$rolefile -l=$args -td=$tbltdist -si=$sysinfo -g=$grepkey -v=$verbose -b=$backupdir"
     if [ -z "$doNoFormat" ]; then
         $libdir/main.sh $params
     else

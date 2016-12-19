@@ -685,7 +685,7 @@ function util_getNetInfo(){
         speed=$(echo "$speed/1000" | bc)
         local numa=$(cat /sys/class/net/$nic/device/numa_node)
         local cpulist=$(cat /sys/class/net/$nic/device/local_cpulist)
-        log_msg "\t NIC: $nic, MTU: $mtu, IP: $ip, Speed: ${speed}GbE, NUMA: $numa (cpus: $cpulist)"
+        log_msg "\t NIC: $nic, MTU: $mtu, IP: $ip, Speed: ${speed}GigE, NUMA: $numa (cpus: $cpulist)"
     done
 }
 
