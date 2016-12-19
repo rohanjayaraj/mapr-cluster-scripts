@@ -2061,10 +2061,15 @@ function maprutil_zipDirectory(){
     local tarfile="maprlogs_$(hostname -f)_$buildid_$timestamp.tar.bz2"
 
     mkdir -p $tmpdir > /dev/null 2>&1
-    
-    cd $tmpdir && tar -cjf $tarfile -C $logdir . > /dev/null 2>&1
     # Copy configurations files 
     maprutil_copyConfsToDir "$tmpdir"
+    # Copy the logs
+    cd $tmpdir
+    cp -r $logdir logs  > /dev/null 2>&1
+    local dirstotar=$(echo $(ls -d */))
+    #tar -cjf $tarfile $dirstotar > /dev/null 2>&1
+    tar -cf $tarfile --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
+    rm -rf $dirstotar > /dev/null 2>&1
 }
 
 function maprutil_copyConfsToDir(){
@@ -2075,7 +2080,7 @@ function maprutil_copyConfsToDir(){
     mkdir -p $todir > /dev/null 2>&1
 
     [ -e "/opt/mapr/conf" ] && cp -r /opt/mapr/conf $todir/mapr-conf/ > /dev/null 2>&1
-    for i in $(ls -d /opt/mapr/hadoop/hadoop-*/)
+    for i in $(ls -d /opt/mapr/hadoop/hadoop-*/ 2>/dev/null)
     do
         i=${i%?};
         local hv=$(echo "$i" | rev | cut -d '/' -f1 | rev)
@@ -2083,7 +2088,7 @@ function maprutil_copyConfsToDir(){
         [ -e "$i/etc/hadoop" ] && cp -r $i/conf $todir/$hv-conf/ > /dev/null 2>&1
     done
 
-    for i in $(ls -d /opt/mapr/hbase/hbase-*/)
+    for i in $(ls -d /opt/mapr/hbase/hbase-*/ 2>/dev/null)
     do
         i=${i%?};
         local hbv=$(echo "$i" | rev | cut -d '/' -f1 | rev)
