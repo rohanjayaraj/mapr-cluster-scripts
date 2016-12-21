@@ -750,7 +750,7 @@ function maprutil_customConfigure(){
         
         if [ -n "$applyfix" ]; then
             wget http://package.mapr.com/scripts/mcs/fixssl -O /tmp/fixssl > /dev/null 2>&1
-            chmod 755 /tmp/fixssl && ./tmp/fixssl > /dev/null 2>&1
+            chmod 755 /tmp/fixssl && /tmp/fixssl > /dev/null 2>&1
         fi
     fi
 }
