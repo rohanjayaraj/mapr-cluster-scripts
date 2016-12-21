@@ -738,6 +738,21 @@ function maprutil_customConfigure(){
     if [ -n "$putbuffer" ]; then
         maprutil_addPutBufferThreshold "core-site.xml" "$putbuffer"
     fi
+
+    if [ -e "/opt/mapr/roles/webserver" ]; then
+        local maprv=($(cat /opt/mapr/MapRBuildVersion | tr '.' ' ' | awk '{print $1,$2,$3}'))
+        local applyfix=
+        if [ "${maprv[0]}" -lt "4" ]
+            applyfix=1
+        elif [ "${maprv[0]}" -eq "4" ] && [ "${maprv[1]}" -eq "0" ] && [ "${maprv[2]}" -le "1" ]; then
+            applyfix=1
+        fi
+        
+        if [ -n "$applyfix" ]; then
+            wget http://package.mapr.com/scripts/mcs/fixssl -O /tmp/fixssl > /dev/null 2>&1
+            chmod 755 /tmp/fixssl && ./tmp/fixssl > /dev/null 2>&1
+        fi
+    fi
 }
 
 # @param force move CLDB topology
