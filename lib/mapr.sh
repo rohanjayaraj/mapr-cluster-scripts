@@ -742,7 +742,7 @@ function maprutil_customConfigure(){
     if [ -e "/opt/mapr/roles/webserver" ]; then
         local maprv=($(cat /opt/mapr/MapRBuildVersion | tr '.' ' ' | awk '{print $1,$2,$3}'))
         local applyfix=
-        if [ "${maprv[0]}" -lt "4" ]
+        if [ "${maprv[0]}" -lt "4" ]; then
             applyfix=1
         elif [ "${maprv[0]}" -eq "4" ] && [ "${maprv[1]}" -eq "0" ] && [ "${maprv[2]}" -le "1" ]; then
             applyfix=1
