@@ -237,23 +237,21 @@ function maprutil_isMapRInstalledOnNode(){
         return
     fi
     
-    # build full script for node
     local hostnode=$1
     local scriptpath="$RUNTEMPDIR/isinstalled_${hostnode: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
+
+    # build full script for node
+    maprutil_buildSingleScript "$scriptpath" "$hostnode"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
     fi
-
-    echo >> $scriptpath
-    echo "##########  Adding execute steps below ########### " >> $scriptpath
     echo "util_getInstalledBinaries 'mapr-'" >> $scriptpath
 
     local bins=
     local hostip=$(util_getHostIP)
-    if [ "$hostip" != "$1" ]; then
-        bins=$(ssh_executeScriptasRoot "$1" "$scriptpath")
+    if [ "$hostip" != "$hostnode" ]; then
+        bins=$(ssh_executeScriptasRoot "$hostnode" "$scriptpath")
     else
         bins=$(util_getInstalledBinaries "mapr-")
     fi
@@ -328,15 +326,12 @@ function maprutil_cleanPrevClusterConfigOnNode(){
     local hostnode=$1
     local client=$(maprutil_isClientNode "$2" "$hostnode")
     local scriptpath="$RUNTEMPDIR/cleanupnode_${hostnode: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$hostnode"
+    maprutil_buildSingleScript "$scriptpath" "$hostnode"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
     fi
     
-    
-    echo >> $scriptpath
-    echo "##########  Adding execute steps below ########### " >> $scriptpath
     echo "maprutil_cleanPrevClusterConfig" >> $scriptpath
     if [ -n "$client" ]; then
          echo "ISCLIENT=1" >> $scriptpath
@@ -449,14 +444,12 @@ function maprutil_uninstallNode(){
     # build full script for node
     local hostnode=$1
     local scriptpath="$RUNTEMPDIR/uninstallnode_${hostnode: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
+    maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
     fi
 
-    echo >> $scriptpath
-    echo "##########  Adding execute steps below ########### " >> $scriptpath
     echo "maprutil_uninstall" >> $scriptpath
 
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
@@ -502,15 +495,12 @@ function maprutil_upgradeNode(){
     # build full script for node
     local hostnode=$1
     local scriptpath="$RUNTEMPDIR/upgradenode_${hostnode: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
+    maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
     fi
 
-    echo >> $scriptpath
-    echo "##########  Adding execute steps below ########### " >> $scriptpath
-    maprutil_addGlobalVars "$scriptpath"
     if [ -n "$GLB_BUILD_VERSION" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
@@ -544,15 +534,12 @@ function maprutil_installBinariesOnNode(){
     # build full script for node
     local hostnode=$1
     local scriptpath="$RUNTEMPDIR/installbinnode_${hostnode: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
+    maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
     fi
 
-    echo >> $scriptpath
-    echo "##########  Adding execute steps below ########### " >> $scriptpath
-    maprutil_addGlobalVars "$scriptpath"
     if [ -n "$GLB_BUILD_VERSION" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
@@ -976,7 +963,7 @@ function maprutil_configureNode(){
      # build full script for node
     local hostnode=$1
     local scriptpath="$RUNTEMPDIR/configurenode_${hostnode: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
+    maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
@@ -988,10 +975,7 @@ function maprutil_configureNode(){
     local cldbnode=$(util_getFirstElement "$cldbnodes")
     local zknodes=$(maprutil_getZKNodes "$2")
     local client=$(maprutil_isClientNode "$2" "$hostnode")
-    echo >> $scriptpath
-    echo "##########  Adding execute steps below ########### " >> $scriptpath
-
-    maprutil_addGlobalVars "$scriptpath"
+    
     if [ -n "$client" ]; then
          echo "ISCLIENT=1" >> $scriptpath
     else
@@ -1117,7 +1101,7 @@ function maprutil_postConfigureOnNode(){
      # build full script for node
     local hostnode=$1
     local scriptpath="$RUNTEMPDIR/postconfigurenode_${hostnode: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$1"
+    maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
@@ -1125,10 +1109,6 @@ function maprutil_postConfigureOnNode(){
 
     local esnodes=$(maprutil_getESNodes "$2")
     local otnodes=$(maprutil_getOTSDBNodes "$2")
-    echo >> $scriptpath
-    echo "##########  Adding execute steps below ########### " >> $scriptpath
-
-    maprutil_addGlobalVars "$scriptpath"
     
     echo "maprutil_postConfigure \""$esnodes"\" \""$otnodes"\" || exit 1" >> $scriptpath
    
@@ -1431,7 +1411,7 @@ function maprutil_runCommandsOnNode(){
     
      # build full script for node
     local scriptpath="$RUNTEMPDIR/cmdonnode_${node: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
+    maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
@@ -1439,9 +1419,6 @@ function maprutil_runCommandsOnNode(){
 
     local client=$(maprutil_isClientNode "$2" "$hostnode")
     local hostip=$(util_getHostIP)
-    echo >> $scriptpath
-    echo "##########  Adding execute steps below ########### " >> $scriptpath
-    maprutil_addGlobalVars "$scriptpath"
     
     echo "maprutil_runCommands \"$2\"" >> $scriptpath
    
@@ -1971,7 +1948,7 @@ function maprutil_restartWardenOnNode() {
 
      # build full script for node
     local scriptpath="$RUNTEMPDIR/restartonnode_${node: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
+    maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
@@ -1980,8 +1957,6 @@ function maprutil_restartWardenOnNode() {
     if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
         return
     fi
-    echo >> $scriptpath
-    echo "##########  Adding execute steps below ########### " >> $scriptpath
     
     echo "maprutil_restartWarden \"$stopstart\"" >> $scriptpath
    
@@ -2123,14 +2098,11 @@ function maprutil_zipLogsDirectoryOnNode(){
     local timestamp=$2
     
     local scriptpath="$RUNTEMPDIR/zipdironnode_${node: -3}.sh"
-    util_buildSingleScript "$lib_dir" "$scriptpath" "$node"
+    maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
         return
     fi
-
-    echo >> $scriptpath
-    echo "##########  Adding execute steps below ########### " >> $scriptpath
 
     echo "maprutil_zipDirectory \"$timestamp\"" >> $scriptpath
    
@@ -2155,6 +2127,23 @@ function maprutil_copyZippedLogsFromNode(){
     local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
     
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto" > /dev/null 2>&1
+}
+
+# @param scriptpath
+# @param node
+function maprutil_buildSingleScript(){
+    local _scriptpath=$1
+    local _fornode=$2
+
+    util_buildSingleScript "$lib_dir" "$_scriptpath" "$_fornode"
+    local rval=$?
+    if [ "$rval" -ne "0" ]; then
+        return $rval
+    fi
+    echo >> $_scriptpath
+    echo "##########  Adding execute steps below ########### " >> $_scriptpath
+    maprutil_addGlobalVars "$_scriptpath"
+    echo >> $_scriptpath
 }
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
