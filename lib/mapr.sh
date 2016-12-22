@@ -510,6 +510,7 @@ function maprutil_upgradeNode(){
 
     echo >> $scriptpath
     echo "##########  Adding execute steps below ########### " >> $scriptpath
+    maprutil_addGlobalVars "$scriptpath"
     if [ -n "$GLB_BUILD_VERSION" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
