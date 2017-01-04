@@ -8,7 +8,7 @@ protect=1
 [QA-Default-Prod]
 name=MapR Latest Prod Build QA Repository
 baseurl=http://yum.qa.lab/default-prodmode/
-enabled=1
+enabled=0
 gpgcheck=0
 protect=1
 
@@ -22,7 +22,7 @@ protect=1
 [QA-Latest-Build]
 name=MapR Latest Build QA Repository
 baseurl=http://yum.qa.lab/mapr/
-enabled=0
+enabled=1
 gpgcheck=0
 protect=1
 
