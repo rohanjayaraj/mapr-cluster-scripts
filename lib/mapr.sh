@@ -2141,8 +2141,10 @@ function maprutil_buildSingleScript(){
         return $rval
     fi
     echo >> $_scriptpath
-    echo "##########  Adding execute steps below ########### " >> $_scriptpath
+    echo "##########  Global Parameters below ########### " >> $_scriptpath
     maprutil_addGlobalVars "$_scriptpath"
+    echo >> $_scriptpath
+    echo "##########  Adding execute steps below ########### " >> $_scriptpath
     echo >> $_scriptpath
 }
 

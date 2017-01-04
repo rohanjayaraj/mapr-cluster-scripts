@@ -8,27 +8,20 @@ protect=1
 [QA-Default-Prod]
 name=MapR Latest Prod Build QA Repository
 baseurl=http://yum.qa.lab/default-prodmode/
-enabled=0
-gpgcheck=0
-protect=1
-
-[QA-6.0.0]
-name=MapR Latest Build QA Repository
-baseurl=http://yum.qa.lab/mapr/
 enabled=1
 gpgcheck=0
 protect=1
 
-[QA-6.0.0-Artifactory]
-name=MapR Latest Build QA Repository
-baseurl=http://artifactory.devops.lab/artifactory/list/local-rpm-core/v6.0.0/
+[QA-Default-Prod-Mode-Artifactory]
+name=MapR Default Prod Mode Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/core-rpm/defaultprodmode/
 enabled=0
 gpgcheck=0
 protect=1
 
-[QA-5.2.0-Artifactory]
-name=MapR v5.2.0 QA Repository
-baseurl=http://artifactory.devops.lab/artifactory/list/local-rpm-core/v5.2.0/
+[QA-Latest-Build]
+name=MapR Latest Build QA Repository
+baseurl=http://yum.qa.lab/mapr/
 enabled=0
 gpgcheck=0
 protect=1
@@ -41,7 +34,7 @@ gpgcheck=0
 protect=1
 
 [QA-5.2.0-PATCH]
-name=MapR v5.1.0 QA Repository
+name=MapR v5.1.0 Patch QA Repository
 baseurl=http://yum.qa.lab/v5.2.0-patch-EBF
 enabled=0
 gpgcheck=0
@@ -55,7 +48,7 @@ gpgcheck=0
 protect=1
 
 [QA-5.1.0-PATCH]
-name=MapR v5.1.0 QA Repository
+name=MapR v5.1.0 Patch QA Repository
 baseurl=http://yum.qa.lab/v5.1.0-patch-EBF
 enabled=0
 gpgcheck=0
@@ -69,8 +62,64 @@ gpgcheck=0
 protect=1
 
 [QA-5.0.0-PATCH]
-name=MapR v5.0.0 QA Repository
+name=MapR v5.0.0 Patch QA Repository
 baseurl=http://yum.qa.lab/v5.0.0-patch-EBF/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-4.1.0]
+name=MapR v4.1.0 QA Repository
+baseurl=http://yum.qa.lab/v4.1.0/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-4.1.0-PATCH]
+name=MapR v4.1.0 Patch QA Repository
+baseurl=http://yum.qa.lab/v4.1.0-patch-EBF/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-4.0.2]
+name=MapR v4.0.2 QA Repository
+baseurl=http://yum.qa.lab/v4.0.2/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-4.0.2-PATCH]
+name=MapR v4.0.2 Patch QA Repository
+baseurl=http://yum.qa.lab/v4.0.2-patch-EBF/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-4.0.1]
+name=MapR v4.0.1 QA Repository
+baseurl=http://yum.qa.lab/v4.0.1/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-4.0.1-PATCH]
+name=MapR v4.0.1 Patch QA Repository
+baseurl=http://yum.qa.lab/v4.0.1-patch-EBF/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-6.0.0-Artifactory]
+name=MapR v6.0.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/core-rpm/v6.0.0/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.2.0-Artifactory]
+name=MapR v5.2.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/core-rpm/v5.2.0/
 enabled=0
 gpgcheck=0
 protect=1
