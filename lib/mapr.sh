@@ -1763,7 +1763,7 @@ function maprutil_getClusterSpec(){
     local disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | uniq)
     if [ "$(echo $disktype | wc -w)" -gt "1" ]; then
         log_warn "Mix of HDD & SSD disks. Not a homogeneous cluster"
-        disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | uniq -c | sort -nr | awk '{print $2}')
+        disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | uniq -c | sort -nr | awk '{print $2}' | tr '\n' ' ')
     fi
 
     local disksize=$(echo "$diskstr" | awk '{print $6}' | uniq)
@@ -2147,5 +2147,91 @@ function maprutil_buildSingleScript(){
     echo "##########  Adding execute steps below ########### " >> $_scriptpath
     echo >> $_scriptpath
 }
+
+# @param file path
+function maprutil_readClusterRoles(){
+  local rfile="$1"
+  local cldbnodes=
+  local mfsnodes=
+  log_msg "Enter Cluster Node IPs ( ex: 10.10.103.[39-40,43-49] ) : "
+  log_inline "Enter CLDB Node IP(s) : "
+  read cldbnodes
+  echo "$cldbnodes,dummy" > $rfile && util_expandNodeList "$rfile" > /dev/null 2>&1
+  cldbnodes=$(cat $(util_expandNodeList "$rfile") | cut -d',' -f1 | tr '\n' ' ')
+
+  log_inline "Enter MFS Node IP(s)  : "
+  read mfsnodes
+  echo "$mfsnodes,dummy" > $rfile && util_expandNodeList "$rfile" > /dev/null 2>&1
+  mfsnodes=$(cat $(util_expandNodeList "$rfile") | cut -d',' -f1 | tr '\n' ' ')
+
+  #log_msg "CLDB Node(s) -> $cldbnodes, MFS Node(s) ->  $mfsnodes"
+
+  log_msg "Select Cluster Role Configuration Type"
+  log_msg "\t 1: Hadoop YARN"
+  log_msg "\t 2: Hadoop MRv1"
+  log_msg "\t 3: YCSB [default]"
+
+  log_inline "Enter selection : "
+  read -n 1 -r
+  echo
+  case $REPLY in
+    1) 
+        local i=1
+        for node in ${cldbnodes[@]}
+        do
+            if [ "$i" -eq "1" ]; then
+                echo "$node,mapr-cldb,mapr-fileserver,mapr-webserver,mapr-zookeeper,mapr-gateway,mapr-nfs,mapr-resourcemanager,mapr-historyserver" > $rfile
+            else
+                echo "$node,mapr-cldb,mapr-fileserver,mapr-zookeeper,mapr-resourcemanager" >> $rfile
+            fi
+            let i=i+1
+        done
+        for node in ${mfsnodes[@]}
+        do
+            [ -n "$(echo "$cldbnodes" | grep $node)" ] && continue
+            echo "$node,mapr-fileserver,mapr-nodemanager" >> $rfile
+            let i=i+1
+        done
+        ;;
+    2) 
+        local i=1
+        for node in ${cldbnodes[@]}
+        do
+            if [ "$i" -eq "1" ]; then
+                echo "$node,mapr-cldb,mapr-fileserver,mapr-webserver,mapr-zookeeper,mapr-gateway,mapr-nfs,mapr-jobtracker" > $rfile
+            else
+                echo "$node,mapr-cldb,mapr-fileserver,mapr-zookeeper,mapr-jobtracker" >> $rfile
+            fi
+            let i=i+1
+        done
+        for node in ${mfsnodes[@]}
+        do
+            [ -n "$(echo "$cldbnodes" | grep $node)" ] && continue
+            echo "$node,mapr-fileserver,mapr-tasktracker" >> $rfile
+            let i=i+1
+        done
+        ;;
+    3 | *)
+        local i=1
+        for node in ${cldbnodes[@]}
+        do
+            if [ "$i" -eq "1" ]; then
+                echo "$node,mapr-cldb,mapr-fileserver,mapr-webserver,mapr-zookeeper,mapr-gateway,mapr-nfs" > $rfile
+            else
+                echo "$node,mapr-cldb,mapr-fileserver,mapr-zookeeper" >> $rfile
+            fi
+            let i=i+1
+        done
+        for node in ${mfsnodes[@]}
+        do
+            [ -n "$(echo "$cldbnodes" | grep $node)" ] && continue
+            echo "$node,mapr-fileserver" >> $rfile
+            let i=i+1
+        done
+        ;;
+    
+  esac
+  #cat $rfile
+} 
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###

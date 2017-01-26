@@ -23,6 +23,15 @@ function log_msg(){
 }
 
 # @param logmessage
+function log_inline(){
+	if [ -z "$1" ]; then
+		return
+	fi
+	local msg=$1
+	echo -n -e "\033[1;100m $msg \033[0m"
+}
+
+# @param logmessage
 function log_msghead(){
 	if [ -z "$1" ]; then
 		return

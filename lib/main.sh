@@ -47,8 +47,8 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 				echo "$1,dummy" > $dummyrole
 				rolefile=$dummyrole
 			else
-				log_critical "Role file specified doesn't exist. Scooting!"
-				exit 1
+				rolefile="/tmp/$1"
+				maprutil_readClusterRoles "$rolefile"
 			fi
 		fi
 	fi

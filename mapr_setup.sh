@@ -19,7 +19,7 @@ volcreate=
 tblcreate=
 
 # Declare Variables
-rolefile=
+rolefile="rolefile"
 restartnodes=
 clustername=
 multimfs=
