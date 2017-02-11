@@ -97,6 +97,8 @@ function usage () {
     echo -e "\t -pbld=<PATCHID> | --patchid=<PATCHID>"
     echo -e "\t\t - Specify a PATCHID for the mapr-patch (not client)"
 
+    echo -e "\t -spy | --spyglass"
+    echo -e "\t\t - Install SpyGlass"
     echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
     echo -e "\t -n=CLUSTER_NAME | --name=CLUSTER_NAME (default : archerx)" 
@@ -207,6 +209,9 @@ while [ "$1" != "" ]; do
         ;;
         -tr | --trim)
             extraarg=$extraarg"trim "
+        ;;
+        -spy | --spyglass)
+            extraarg=$extraarg"spy "
         ;;
         -sp | --storagepool)
             numsps=$VALUE

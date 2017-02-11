@@ -721,6 +721,21 @@ function main_timetaken(){
 	echo $((ENDTS-STARTTS)) | awk '{print int($1/60)"min "int($1%60)"sec"}'
 }
 
+function main_addSpyglass(){
+	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	local cldbnode=$(util_getFirstElement "$cldbnodes")
+	local newrolefile=$(mktemp -p $RUNTEMPDIR)
+	for node in ${nodes[@]}
+	do	
+    	if [ "$node" = "$cldbnode" ]; then
+    		sed -i 's/$/,mapr-opentsdb,mapr-grafana,mapr-elasticsearch,mapr-kibana,mapr-collectd,mapr-fluentd/' $newrolefile
+    	else
+    		sed -i 's/$/,mapr-collectd,mapr-fluentd"/' $newrolefile
+    	fi
+	done
+	rolefile=$newrolefile
+}
+
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
 STARTTS=$(date +%s);
@@ -793,6 +808,8 @@ while [ "$2" != "" ]; do
     				GLB_TRIM_SSD=1
     			elif [[ "$i" = "patch" ]]; then
     				GLB_MAPR_PATCH=1
+    			elif [[ "$i" = "spy" ]]; then
+    				main_addSpyglass
     			fi
     		done
     	;;
@@ -890,7 +907,7 @@ while [ "$2" != "" ]; do
  				GLB_MAPR_PATCH=1
  			fi
  		;;
-        *)
+ 		*)
             log_error "ERROR: unknown option \"$OPTION\""
             main_usage
             exit 1
