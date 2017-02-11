@@ -725,12 +725,13 @@ function main_addSpyglass(){
 	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
 	local newrolefile=$(mktemp -p $RUNTEMPDIR)
+	cat $rolefile > $newrolefile
 	for node in ${nodes[@]}
 	do	
     	if [ "$node" = "$cldbnode" ]; then
-    		sed -i 's/$/,mapr-opentsdb,mapr-grafana,mapr-elasticsearch,mapr-kibana,mapr-collectd,mapr-fluentd/' $newrolefile
+    		sed -i "/$node/ s/$/,mapr-opentsdb,mapr-grafana,mapr-elasticsearch,mapr-kibana,mapr-collectd,mapr-fluentd/" $newrolefile
     	else
-    		sed -i 's/$/,mapr-collectd,mapr-fluentd"/' $newrolefile
+    		sed -i "/$node/ s/$/,mapr-collectd,mapr-fluentd/" $newrolefile
     	fi
 	done
 	rolefile=$newrolefile
