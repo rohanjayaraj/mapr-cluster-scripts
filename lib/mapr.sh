@@ -392,6 +392,8 @@ function maprutil_uninstall(){
     util_kill "iostat"
     util_kill "top -b"
     util_kill "runTraces"
+    util_kill "mfs"
+    util_kill "java" "jenkins" "elasticsearch"
     
     # Unmount NFS
     maprutil_unmountNFS

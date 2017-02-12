@@ -757,11 +757,11 @@ function main_printURLs(){
 	
 	log_msghead "Cluster URLs : "
 	log_msg "\t MCS - https://$mcsnode:8443/"
-	log_mgs "\t CLDB - http://$cldbnode:7221"
-	[ -n "$rmnode"] && log_mgs "\t RM - http://$rmnode:8088"
-	[ -n "$jtnode"] && log_mgs "\t JT - http://$jtnode:50030"
-	[ -n "$gfnode"] && log_mgs "\t Grafana - http://$gfnode:3000"
-	[ -n "$kbnode"] && log_mgs "\t Kibana - http://$kbnode:5601"
+	log_msg "\t CLDB - http://$cldbnode:7221"
+	[ -n "$rmnode" ] && log_msg "\t RM - http://$rmnode:8088"
+	[ -n "$jtnode" ] && log_msg "\t JT - http://$jtnode:50030"
+	[ -n "$gfnode" ] && log_msg "\t Grafana - http://$gfnode:3000"
+	[ -n "$kbnode" ] && log_msg "\t Kibana - http://$kbnode:5601"
 }
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
