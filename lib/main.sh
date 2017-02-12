@@ -219,6 +219,9 @@ function main_install(){
 
 	# Perform custom executions
 
+	# Print URLs
+	main_printURLs
+
 	#set +x
 	log_msghead "[$(util_getCurDate)] Install is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -286,6 +289,9 @@ function main_reconfigure(){
 		maprutil_restartWardenOnNode "$node" "$rolefile"
 	done
 	maprutil_wait
+
+	# Print URLs
+	main_printURLs
 
 	log_msghead "[$(util_getCurDate)] Reconfiguration is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -418,6 +424,9 @@ function main_upgrade(){
 		maprutil_restartWardenOnNode "$node" "$rolefile"
 	done
 	maprutil_wait
+
+	# Print URLs
+	main_printURLs
 
 	log_msghead "[$(util_getCurDate)] Upgrade is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -735,6 +744,24 @@ function main_addSpyglass(){
     	fi
 	done
 	rolefile=$newrolefile
+}
+
+function main_printURLs(){
+	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	local cldbnode=$(util_getFirstElement "$cldbnodes")
+	local mcsnode=$(cat "$rolefile" | grep mapr-webserver | head -1 | cut -d',' -f1)
+	local rmnode=$(cat "$rolefile" | grep mapr-resourcemanager | head -1 | cut -d',' -f1)
+	local jtnode=$(cat "$rolefile" | grep mapr-jobtracker | head -1 | cut -d',' -f1)
+	local gfnode=$(cat "$rolefile" | grep mapr-grafana | head -1 | cut -d',' -f1)
+	local kbnode=$(cat "$rolefile" | grep mapr-kibana | head -1 | cut -d',' -f1)
+	
+	log_msghead "Cluster URLs : "
+	log_msg "\t MCS - https://$mcsnode:8443/"
+	log_mgs "\t CLDB - http://$cldbnode:7221"
+	[ -n "$rmnode"] && log_mgs "\t RM - http://$rmnode:8088"
+	[ -n "$jtnode"] && log_mgs "\t JT - http://$jtnode:50030"
+	[ -n "$gfnode"] && log_mgs "\t Grafana - http://$gfnode:3000"
+	[ -n "$kbnode"] && log_mgs "\t Kibana - http://$kbnode:5601"
 }
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###

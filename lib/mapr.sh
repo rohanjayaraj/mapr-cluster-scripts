@@ -580,10 +580,10 @@ function maprutil_configureMultiMFS(){
     while [ "$failcnt" -gt 0 ] && [ "$iter" -lt 5 ]; do
         failcnt=0;
         maprcli  config save -values {multimfs.numinstances.pernode:${nummfs}}
-        let failcnt=$failcnt+`echo $?`
+        failcnt=$?
         maprcli  config save -values {multimfs.numsps.perinstance:${numspspermfs}}
         let failcnt=$failcnt+`echo $?`
-        sleep 30;
+        [ "$failcnt" -gt "0" ] && sleep 30;
         let iter=$iter+1;
     done
 }
