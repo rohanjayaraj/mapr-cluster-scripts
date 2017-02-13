@@ -95,8 +95,28 @@ function maprutil_getCoreNodeBinaries() {
                 newbinlist=$newbinlist"$bin "
             fi
         done
-        [ -n "$GLB_MAPR_PATCH" ] && [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
+        if [ -z "$(maprutil_isClientNode $1 $2)" ]; then
+            [ -n "$GLB_MAPR_PATCH" ] && [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
+        fi
         echo $newbinlist
+    fi
+}
+
+## @param path to config
+## @param host ip
+function maprutil_hasSpyglass() {
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return 1
+    fi
+    local binlist=$(grep $2 $1 | cut -d, -f 2- | sed 's/,/ /g')
+    if [ -n "$binlist" ]; then
+        for bin in ${binlist[@]}
+        do
+            if [[ "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch ]]; then
+                echo "yes"
+                break
+            fi
+        done
     fi
 }
 

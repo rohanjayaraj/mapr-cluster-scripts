@@ -195,6 +195,7 @@ function main_install(){
 		log_info "****** Installing and configuring Spyglass ****** " 
 		for node in ${nodes[@]}
 		do
+			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
 			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
 			local nodecorebins=$(maprutil_getCoreNodeBinaries "$rolefile" "$node")
 			if [ "$(echo $nodebins | wc -w)" -gt "$(echo $nodecorebins | wc -w)" ]; then
@@ -205,6 +206,7 @@ function main_install(){
 
 		for node in ${nodes[@]}
 		do
+			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
 			maprutil_postConfigureOnNode "$node" "$rolefile" "bg"
 		done
 		maprutil_wait
