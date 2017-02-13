@@ -1946,7 +1946,7 @@ function maprutil_applyLicense(){
         fi
         if [[ -n "$GLB_SECURE_CLUSTER" ]] && [[ ! -e "/tmp/maprticket_0" ]]; then
             echo 'mapr' | maprlogin password  2>/dev/null
-            echo 'mapr' | maprlogin password -user mapr 2>/dev/null
+            echo 'mapr' | su mapr -c 'maprlogin password' 2>/dev/null
         fi
     done
 }
