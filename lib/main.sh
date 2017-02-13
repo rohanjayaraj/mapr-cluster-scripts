@@ -737,7 +737,9 @@ function main_addSpyglass(){
 	cat $rolefile > $newrolefile
 	for node in ${nodes[@]}
 	do	
-    	if [ "$node" = "$cldbnode" ]; then
+    	if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+			continue
+		elif [ "$node" = "$cldbnode" ]; then
     		sed -i "/$node/ s/$/,mapr-opentsdb,mapr-grafana,mapr-elasticsearch,mapr-kibana,mapr-collectd,mapr-fluentd/" $newrolefile
     	else
     		sed -i "/$node/ s/$/,mapr-collectd,mapr-fluentd/" $newrolefile
@@ -756,7 +758,7 @@ function main_printURLs(){
 	local kbnode=$(cat "$rolefile" | grep mapr-kibana | head -1 | cut -d',' -f1)
 	
 	log_msghead "Cluster URLs : "
-	log_msg "\t MCS - https://$mcsnode:8443/"
+	log_msg "\t MCS - https://$mcsnode:8443"
 	log_msg "\t CLDB - http://$cldbnode:7221"
 	[ -n "$rmnode" ] && log_msg "\t RM - http://$rmnode:8088"
 	[ -n "$jtnode" ] && log_msg "\t JT - http://$jtnode:50030"
