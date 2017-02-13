@@ -960,8 +960,7 @@ function maprutil_configure(){
         if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
             maprutil_configureMultiMFS "$multimfs" "$numsps"
         fi
-        local cldbtopo=$GLB_CLDB_TOPO
-        if [ -n "$cldbtopo" ]; then
+        if [ -n "$GLB_CLDB_TOPO" ]; then
             sleep 30
             maprutil_configureCLDBTopology || exit 1
         fi
@@ -1921,11 +1920,7 @@ function maprutil_getClusterSpec(){
 }
 
 function maprutil_applyLicense(){
-    if [ -n "$GLB_SECURE_CLUSTER" ]; then
-        echo 'mapr' | maprlogin password  2>/dev/null
-        echo 'mapr' | sudo -su mapr maprlogin password 2>/dev/null
-    fi
-
+    
     wget http://stage.mapr.com/license/LatestDemoLicense-M7.txt --user=maprqa --password=maprqa -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
     local buildid=$(maprutil_getBuildID)
     local i=0
@@ -1948,6 +1943,10 @@ function maprutil_applyLicense(){
         if [ "$i" -gt 10 ]; then
             log_error "Failed to apply license. Node may not be configured correctly"
             exit 1
+        fi
+        if [[ -n "$GLB_SECURE_CLUSTER" ]] && [[ ! -e "/tmp/maprticket_0" ]]; then
+            echo 'mapr' | maprlogin password  2>/dev/null
+            echo 'mapr' | maprlogin password -user mapr 2>/dev/null
         fi
     done
 }
