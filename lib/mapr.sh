@@ -1252,10 +1252,14 @@ function maprutil_buildRepoFile(){
     local repourl=$2
     local node=$3
     local nodeos=$(getOSFromNode $node)
+    local meprepo=
     if [ "$nodeos" = "centos" ]; then
+        meprepo="http://yum.qa.lab/opensource"
+        [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
+
         echo "[QA-CustomOpensource]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
-        echo "baseurl=http://yum.qa.lab/opensource" >> $repofile
+        echo "baseurl=$meprepo" >> $repofile
         echo "enabled=1" >> $repofile
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
@@ -1278,7 +1282,10 @@ function maprutil_buildRepoFile(){
         fi
         echo >> $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        echo "deb http://apt.qa.lab/opensource binary/" > $repofile
+        meprepo="http://apt.qa.lab/opensource"
+        [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
+
+        echo "deb $meprepo binary/" > $repofile
         echo "deb ${repourl} binary ubuntu" >> $repofile
         [ -n "$GLB_PATCH_REPOURL" ] && echo "deb ${GLB_PATCH_REPOURL} binary ubuntu" >> $repofile
     fi

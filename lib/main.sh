@@ -118,6 +118,7 @@ GLB_MAX_DISKS=
 GLB_MAPR_VERSION=
 GLB_BUILD_VERSION=
 GLB_MAPR_PATCH=
+GLB_MEP_REPOURL=
 GLB_PATCH_VERSION=
 GLB_PATCH_REPOFILE=
 GLB_PUT_BUFFER=
@@ -786,6 +787,7 @@ doSilent=0
 doBackup=
 useBuildID=
 useRepoURL=
+useMEPURL=
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
@@ -931,6 +933,11 @@ while [ "$2" != "" ]; do
 		-prepo)
 			if [ -n "$VALUE" ]; then
 				GLB_PATCH_REPOFILE="$VALUE"
+			fi
+		;;
+		-meprepo)
+			if [ -n "$VALUE" ]; then
+				GLB_MEP_REPOURL="$VALUE"
 			fi
 		;;
 		-pid)

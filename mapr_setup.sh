@@ -31,6 +31,7 @@ backupdir=
 buildid=
 putbuffer=
 repourl=
+meprepourl=
 patchrepourl=
 patchid=
 
@@ -90,7 +91,9 @@ function usage () {
     echo -e "\t\t - Specify a REPOURL to use to download & install binaries"
     echo -e "\t -prepo=<PATCHREPOURL> | --patchrepository=<PATCHREPOURL>" 
     echo -e "\t\t - Specify a PATCHREPOURL to use to download & install binaries. (Optional if using internal repositories)"
-
+    echo -e "\t -meprepo=<MEPREPOURL> | --meprepository=<MEPREPOURL>" 
+    echo -e "\t\t - Specify a MEPREPOURL to use to download & install opensource binaries. (Optional if using internal repositories)"
+    
     # Patch replated parameters
     echo -e "\t -patch | --applypatch"
     echo -e "\t\t - Apply patch"
@@ -264,6 +267,11 @@ while [ "$1" != "" ]; do
                 patchrepourl=$VALUE
             fi
         ;;
+        -meprepo | --meprepository)
+            if [ -n "$VALUE" ]; then
+                meprepourl=$VALUE
+            fi
+        ;;
         -pbld | --patchid)
             if [ -n "$VALUE" ]; then
                 patchid=$VALUE
@@ -286,7 +294,7 @@ if [ -z "$rolefile" ]; then
 	exit 1
 else
     $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
-    "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-repo=$repourl" "-prepo=$patchrepourl" "-pid=$patchid"
+    "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-repo=$repourl" "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid"
     returncode=$?
     [ "$returncode" -ne "0" ] && exit $returncode
 fi
