@@ -208,7 +208,7 @@ function main_install(){
 		for node in ${nodes[@]}
 		do
 			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
-			maprutil_postConfigureOnNode "$node" "$rolefile" "$clustername" "bg"
+			maprutil_postConfigureOnNode "$node" "$rolefile" "bg"
 		done
 		maprutil_wait
 	fi

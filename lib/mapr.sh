@@ -1018,16 +1018,13 @@ function maprutil_configureNode(){
 }
 
 function maprutil_postConfigure(){
-    if [ -z "$1" ] && [ -z "$2" ] && [ -z "$3" ] && [ -z "$4" ] && [ -z "$5" ]; then
+    if [ -z "$1" ] && [ -z "$2" ]; then
         return
     fi
-    local cldbnodes=$(util_getCommaSeparated "$1")
-    local zknodes=$(util_getCommaSeparated "$2")
-    local esnodes=$(util_getCommaSeparated "$3")
-    local otnodes=$(util_getCommaSeparated "$4")
-    local clsname=$5
+    local esnodes=$(util_getCommaSeparated "$1")
+    local otnodes=$(util_getCommaSeparated "$2")
     
-    local cmd="/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -N $clsname"
+    local cmd="/opt/mapr/server/configure.sh "
     if [ -n "$esnodes" ]; then
         cmd=$cmd" -ES "$esnodes
     fi
@@ -1120,7 +1117,7 @@ function maprutil_copySecureFilesFromCLDB(){
 # @param cluster name
 # @param don't wait
 function maprutil_postConfigureOnNode(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
     fi
      # build full script for node
@@ -1134,11 +1131,8 @@ function maprutil_postConfigureOnNode(){
 
     local esnodes=$(maprutil_getESNodes "$2")
     local otnodes=$(maprutil_getOTSDBNodes "$2")
-    local cldbnodes=$(maprutil_getCLDBNodes "$2")
-    local zknodes=$(maprutil_getZKNodes "$2")
-    local clustername=$4
     
-    echo "maprutil_postConfigure \""$cldbnodes"\" \""$zknodes"\" \""$esnodes"\" \""$otnodes"\" \""$clustername"\"|| exit 1" >> $scriptpath
+    echo "maprutil_postConfigure \""$esnodes"\" \""$otnodes"\" || exit 1" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
