@@ -405,10 +405,8 @@ function maprutil_cleanPrevClusterConfig(){
 
 function maprutil_killSpyglass(){
     # Grafana uninstall has a bug (loops in sleep until timeout if warden is not running)
-    [ -d "/opt/mapr/grafana" ] && util_removeBinaries "mapr-grafana" > /dev/null 2>&1
-    [ -d "/opt/mapr/kibana" ] && util_removeBinaries "mapr-kibana" > /dev/null 2>&1
-    [ -d "/opt/mapr/elasticsearch" ] && util_removeBinaries "mapr-elasticsearch" > /dev/null 2>&1
-
+    util_removeBinaries "mapr-opentsdb,mapr-grafana,mapr-elasticsearch,mapr-kibana,mapr-collectd,mapr-fluentd" > /dev/null 2>&1
+    
     util_kill "collectd"
     util_kill "fluentd"
     util_kill "grafana"

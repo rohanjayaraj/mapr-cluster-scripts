@@ -251,7 +251,18 @@ function util_removeBinaries(){
     if [ -z "$1" ]; then
         return
     fi
-    rembins=$(util_getInstalledBinaries $1)
+    local rembins=
+    while [ "$1" != "" ]; do
+        for i in $(echo $1 | tr "," "\n")
+        do 
+            if [ -n "$rembins" ]; then
+                rembins="${rembins} $(util_getInstalledBinaries $i)"
+            else
+                rembins="$(util_getInstalledBinaries $i)"
+            fi
+        done
+        shift
+    done 
     [ -z "$rembins" ] && return
 
     log_info "[$(util_getHostIP)] Removing packages : $rembins"
