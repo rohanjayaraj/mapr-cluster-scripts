@@ -408,10 +408,15 @@ function maprutil_killSpyglass(){
     util_kill "fluentd"
     util_kill "grafana"
     util_kill "kibana"
+    # Grafana uninstall has a bug (loops in sleep until timeout if warden is not running)
+    [ -d "/opt/mapr/grafana" ] && util_removeBinaries "mapr-grafana" > /dev/null 2>&1
 }
 
 function maprutil_uninstall(){
     
+    # Kill Spyglass
+    maprutil_killSpyglass
+
     # Kill running traces 
     util_kill "timeout"
     util_kill "guts"
@@ -420,10 +425,7 @@ function maprutil_uninstall(){
     util_kill "top -b"
     util_kill "runTraces"
     util_kill "mfs"
-    util_kill "java" "jenkins" "elasticsearch"
-    
-    # Kill Spyglass
-    maprutil_killSpyglass
+    util_kill "java" "jenkins"
 
     # Unmount NFS
     maprutil_unmountNFS
@@ -454,7 +456,7 @@ function maprutil_uninstall(){
     # kill all processes
     util_kill "initaudit.sh"
     util_kill "mfs"
-    util_kill "java" "jenkins" "elasticsearch"
+    util_kill "java" "jenkins"
     util_kill "timeout"
     util_kill "guts"
     util_kill "dstat"
