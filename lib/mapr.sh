@@ -403,7 +403,7 @@ function maprutil_cleanPrevClusterConfig(){
     fi
 }
 
-fucntion maprutil_killSpyglass(){
+function maprutil_killSpyglass(){
     util_kill "collectd"
     util_kill "fluentd"
     util_kill "grafana"
