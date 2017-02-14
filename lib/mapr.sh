@@ -403,6 +403,13 @@ function maprutil_cleanPrevClusterConfig(){
     fi
 }
 
+fucntion maprutil_killSpyglass(){
+    util_kill "collectd"
+    util_kill "fluentd"
+    util_kill "grafana"
+    util_kill "kibana"
+}
+
 function maprutil_uninstall(){
     
     # Kill running traces 
@@ -415,6 +422,9 @@ function maprutil_uninstall(){
     util_kill "mfs"
     util_kill "java" "jenkins" "elasticsearch"
     
+    # Kill Spyglass
+    maprutil_killSpyglass
+
     # Unmount NFS
     maprutil_unmountNFS
 
@@ -450,6 +460,7 @@ function maprutil_uninstall(){
     util_kill "dstat"
     util_kill "iostat"
     util_kill "top -b"
+    util_kill "/opt/mapr"
 
     # Remove all directories
     maprutil_removedirs "all"
