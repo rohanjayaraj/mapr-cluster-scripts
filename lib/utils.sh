@@ -295,12 +295,12 @@ function util_getRawDisks(){
     for disk in $(bash -c  "$cmd")
     do
         local sizestr=$(echo "$fdisks" | grep "Disk \/" | grep "$disk" | awk '{print $3, $4}' | tr -d ',')
-        local size=$(echo "$sizestr" | awk '{print $1}')
+        local size=$(printf "%.0f" $(echo "$sizestr" | awk '{print $1}'))
         local rep=$(echo "$sizestr" | awk '{print $2}')
         [ "$rep" = "MB" ] && [ "$size" -lt "100000" ] && cmd="$cmd | grep -v $disk"
         [ "$rep" = "GB" ] && [ "$size" -lt "100" ] &&  cmd="$cmd | grep -v $disk"
     done
-    local $disks=$(bash -c  "$cmd | sort")
+    local disks=$(bash -c  "$cmd | sort")
     echo "$disks"
 }
 
