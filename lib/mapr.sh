@@ -886,7 +886,7 @@ function maprutil_configure(){
     fi
 
     if [ ! -d "/opt/mapr/" ]; then
-        >&2 echo "{WARN} Configuration skipped as no MapR binaries are installed "
+        log_warn "Configuration skipped as no MapR binaries are installed "
         return 1
     fi
     
@@ -985,6 +985,8 @@ function maprutil_configure(){
     if [ -n "$GLB_TRACE_ON" ]; then
         maprutil_startTraces
     fi
+
+    log_info "Node configure complete."
 }
 
 # @param host ip
@@ -1734,6 +1736,7 @@ function maprutil_getMapRInfo(){
         nummfs=$(/opt/mapr/server/mrconfig info instances 2>/dev/null| head -1)
         numsps=$(/opt/mapr/server/mrconfig sp list 2>/dev/null| grep SP[0-9] | wc -l)
         command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json 2>/dev/null| grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
+        [[ "$nummfs" -gt "1" ]] && sppermfs=$(/opt/mapr/server/mrconfig sp list -v 2>/dev/null| grep SP[0-9] | awk '{print $18}' | tr -d ',' | uniq -c | awk '{print $1}' | sort -nr | head -1)
         [[ "$sppermfs" -eq 0 ]] && sppermfs=$numsps
         command -v maprcli >/dev/null 2>&1 && nodetopo=$(maprcli node list -json | grep "$(hostname -f)" | grep racktopo | sed "s/$(hostname -f)//g" | cut -d ':' -f2 | tr -d '"' | tr -d ',')
     fi
