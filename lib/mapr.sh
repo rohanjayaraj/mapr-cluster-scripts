@@ -786,10 +786,10 @@ function maprutil_configureCLDBTopology(){
     local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
     local j=0
     while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ] && [ -z "$1" ]; do
-        sleep 5
+        sleep 15
         numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
         let j=j+1
-        if [ "$j" -gt 12 ]; then
+        if [ "$j" -gt 20 ]; then
             break
         fi
     done
