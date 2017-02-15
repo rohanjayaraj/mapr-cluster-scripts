@@ -613,15 +613,21 @@ function maprutil_configureMultiMFS(){
     fi
     local failcnt=2;
     local iter=0;
-    while [ "$failcnt" -gt 0 ] && [ "$iter" -lt 5 ]; do
+    local iterlimit=5
+    while [ "$failcnt" -gt 0 ] && [ "$iter" -lt "$iterlimit" ]; do
         failcnt=0;
-        maprcli  config save -values {multimfs.numinstances.pernode:${nummfs}}
-        failcnt=$?
-        maprcli  config save -values {multimfs.numsps.perinstance:${numspspermfs}}
+        maprcli config load -json > /dev/null 2>&1
         let failcnt=$failcnt+`echo $?`
         [ "$failcnt" -gt "0" ] && sleep 30;
         let iter=$iter+1;
     done
+    if [ "$iter" -lt "$iterlimit" ]; then
+        local setnumsps=$(maprcli config load -json 2>/dev/null| grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
+        if [ "$setnumsps" -lt "$numspspermfs" ]; then
+            maprcli  config save -values {multimfs.numinstances.pernode:${nummfs}}
+            maprcli  config save -values {multimfs.numsps.perinstance:${numspspermfs}}
+        fi
+    fi
 }
 
 function maprutil_configurePontis(){
@@ -937,7 +943,7 @@ function maprutil_configure(){
     local multimfs=$GLB_MULTI_MFS
     local numsps=$GLB_NUM_SP
     local numdisks=`wc -l $diskfile | cut -f1 -d' '`
-    if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
+    if [ -n "$multimfs" ] && [ "$multimfs" -gt 0 ]; then
         if [ "$multimfs" -gt "$numdisks" ]; then
             log_info "Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
             multimfs=$numdisks
@@ -971,7 +977,7 @@ function maprutil_configure(){
    if [ "$hostip" = "$cldbnode" ]; then
         maprutil_mountSelfHosting
         maprutil_applyLicense
-        if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
+        if [ -n "$multimfs" ] && [ "$multimfs" -gt 0 ]; then
             maprutil_configureMultiMFS "$multimfs" "$numsps"
         fi
         if [ -n "$GLB_CLDB_TOPO" ]; then
@@ -980,13 +986,17 @@ function maprutil_configure(){
         fi
     else
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
+        [ ! -f "/opt/mapr/bin/guts" ] && maprutil_copyGutsFromCLDB
+        if [ -n "$multimfs" ] && [ "$multimfs" -gt 0 ]; then
+            maprutil_configureMultiMFS "$multimfs" "$numsps"
+        fi
     fi
 
     if [ -n "$GLB_TRACE_ON" ]; then
         maprutil_startTraces
     fi
 
-    log_info "Node configure complete."
+    log_info "[$(util_getHostIP)] Node configuration complete"
 }
 
 # @param host ip
@@ -1052,6 +1062,33 @@ function maprutil_postConfigure(){
     bash -c "$cmd"
 
     #maprutil_restartWarden
+}
+
+# @param cldbnode ip
+function maprutil_copyGutsFromCLDB(){
+    if [ -z "$1" ] || [ ! -d "/opt/mapr/bin" ]; then
+        return
+    fi
+    local cldbhost=$1
+    local gutsexists="false"
+    local i=0
+    while [ "$gutsexists" = "false" ]; do
+        gutsexists=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/bin/guts' ] && echo true || echo false")
+        if [ "$gutsexists" = "false" ]; then
+            sleep 10
+        else
+            gutsexists="true"
+            sleep 1
+        fi
+        let i=i+1
+        if [ "$i" -gt 18 ]; then
+            log_warn "[$(util_getHostIP)] Failed to copy guts from CLDB node"
+            break
+        fi
+    done
+    if [ "$gutsexists" = "true" ]; then
+        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/bin/guts" "/opt/mapr/bin/" 2>/dev/null
+    fi
 }
 
 # @param cldbnode ip
@@ -1735,8 +1772,9 @@ function maprutil_getMapRInfo(){
     if [ -e "/opt/mapr/conf/mapr-clusters.conf" ]; then
         nummfs=$(/opt/mapr/server/mrconfig info instances 2>/dev/null| head -1)
         numsps=$(/opt/mapr/server/mrconfig sp list 2>/dev/null| grep SP[0-9] | wc -l)
-        command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json 2>/dev/null| grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
-        [[ "$nummfs" -gt "1" ]] && sppermfs=$(/opt/mapr/server/mrconfig sp list -v 2>/dev/null| grep SP[0-9] | awk '{print $18}' | tr -d ',' | uniq -c | awk '{print $1}' | sort -nr | head -1)
+        #command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json 2>/dev/null| grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
+        sppermfs=$(/opt/mapr/server/mrconfig sp list -v 2>/dev/null| grep SP[0-9] | awk '{print $18}' | tr -d ',' | uniq -c | awk '{print $1}' | sort -nr | head -1)
+        #[[ "$nummfs" -gt "1" ]] && [[ "$sppermfs" -eq "0" ]] && sppermfs=$(/opt/mapr/server/mrconfig sp list -v 2>/dev/null| grep SP[0-9] | awk '{print $18}' | tr -d ',' | uniq -c | awk '{print $1}' | sort -nr | head -1)
         [[ "$sppermfs" -eq 0 ]] && sppermfs=$numsps
         command -v maprcli >/dev/null 2>&1 && nodetopo=$(maprcli node list -json | grep "$(hostname -f)" | grep racktopo | sed "s/$(hostname -f)//g" | cut -d ':' -f2 | tr -d '"' | tr -d ',')
     fi

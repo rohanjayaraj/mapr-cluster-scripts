@@ -286,6 +286,28 @@ function main_reconfigure(){
 	done
 	maprutil_wait
 
+	# Configure ES & OpenTSDB nodes
+	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then 
+		log_info "****** Installing and configuring Spyglass ****** " 
+		for node in ${nodes[@]}
+		do
+			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
+			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
+			local nodecorebins=$(maprutil_getCoreNodeBinaries "$rolefile" "$node")
+			if [ "$(echo $nodebins | wc -w)" -gt "$(echo $nodecorebins | wc -w)" ]; then
+				maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
+			fi
+		done
+		maprutil_wait
+
+		for node in ${nodes[@]}
+		do
+			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
+			maprutil_postConfigureOnNode "$node" "$rolefile" "bg"
+		done
+		maprutil_wait
+	fi
+	
 	# Restart all nodes
 	for node in ${nodes[@]}
 	do
