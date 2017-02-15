@@ -139,7 +139,7 @@ function maprutil_isClientNode() {
         return 1
     fi
     
-    local isclient=$(grep $2 $1 | grep 'mapr-client\|mapr-loopbacknfs' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local isclient=$(grep $2 $1 | grep 'mapr-client\|mapr-loopbacknfs\|mapr-core-internal' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ -n "$isclient" ]; then
         echo $isclient
     fi
@@ -1754,12 +1754,12 @@ function maprutil_getMapRInfo(){
     local client=
     local bins=
     if [ "$nodeos" = "centos" ]; then
-        local rpms=$(rpm -qa)
+        local rpms=$(rpm -qa | grep mapr)
         patch=$(echo "$rpms" | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1)
         client=$(echo "$rpms" | grep mapr-client | cut -d'-' -f3)
         bins=$(echo "$rpms" | grep mapr- | sort | cut -d'-' -f1-2 | tr '\n' ' ')
     elif [ "$nodeos" = "ubuntu" ]; then
-        local debs=$(dpkg -l)
+        local debs=$(dpkg -l | grep mapr)
         patch=$(echo "$debs" | grep mapr-patch | awk '{print $3}' | cut -d'-' -f4 | cut -d'.' -f1)
         client=$(echo "$debs" | grep mapr-client | awk '{print $3}' | cut -d'-' -f1)
         bins=$(echo "$debs" | grep mapr- | awk '{print $2}' | sort | tr '\n' ' ')
