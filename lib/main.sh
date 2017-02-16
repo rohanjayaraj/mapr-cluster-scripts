@@ -105,7 +105,7 @@ trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 
 # Global Variables : All need to start with 'GLB_' as they are replayed back to other cluster nodes during setup
 GLB_CLUSTER_NAME="archerx"
-GLB_CLUSTER_SIZE=$(cat $rolefile |  grep "^[^#;]" | grep -v 'mapr-client\|mapr-loopbacknfs\|mapr-core-internal' | wc -l)
+GLB_CLUSTER_SIZE=$(cat $rolefile |  grep "^[^#;]" | grep -v 'mapr-client\|mapr-loopbacknfs\|mapr-core' | wc -l)
 GLB_TRACE_ON=
 GLB_MULTI_MFS=
 GLB_NUM_SP=
@@ -617,6 +617,10 @@ function main_runCommandExec(){
         return
     fi
     local cmds=$1
+
+    if [[ "$GLB_TRACE_ON" -eq "1" ]]; then
+    	cmds=$(echo $cmds | sed 's/traceon//')
+    fi
 
     local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
