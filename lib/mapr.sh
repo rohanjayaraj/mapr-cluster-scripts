@@ -822,6 +822,7 @@ function maprutil_configureCLDBTopology(){
 }
 
 function maprutil_moveTSDBVolumeToCLDBTopology(){
+    [ -n "$(maprcli volume info -name mapr.monitoring -json 2>/dev/null | grep rackpath | grep cldb)" ] && return
     local tsdbexists=$(maprcli volume info -name mapr.monitoring -json 2>/dev/null| grep ERROR)
     local cldbtopo=$(maprcli node topo -path /cldb 2>/dev/null)
     if [ -n "$tsdbexists" ] || [ -z "$cldbtopo" ]; then
