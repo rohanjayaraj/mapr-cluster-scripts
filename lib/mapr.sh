@@ -822,8 +822,8 @@ function maprutil_configureCLDBTopology(){
 }
 
 function maprutil_moveTSDBVolumeToCLDBTopology(){
-    local tsdbexists=$(maprcli volume info -name mapr.monitoring -json | grep ERROR)
-    local cldbtopo=$(maprcli node topo -path /cldb)
+    local tsdbexists=$(maprcli volume info -name mapr.monitoring -json 2>/dev/null| grep ERROR)
+    local cldbtopo=$(maprcli node topo -path /cldb 2>/dev/null)
     if [ -n "$tsdbexists" ] || [ -z "$cldbtopo" ]; then
         log_warn "OpenTSDB not installed or CLDB not moved to /cldb topology"
         return

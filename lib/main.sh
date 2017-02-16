@@ -213,7 +213,7 @@ function main_install(){
 		done
 		maprutil_wait
 
-		[ -n "$GLB_TSDB_TOPO" ] && maprutil_moveTSDBVolumeToCLDBTopology
+		[ -n "$GLB_TSDB_TOPO" ] && main_runCommandExec "tsdbtopo"
 	fi
 
 	# Configure all nodes
@@ -310,7 +310,7 @@ function main_reconfigure(){
 		done
 		maprutil_wait
 
-		[ -n "$GLB_TSDB_TOPO" ] && maprutil_moveTSDBVolumeToCLDBTopology 
+		[ -n "$GLB_TSDB_TOPO" ] && main_runCommandExec "tsdbtopo" 
 	fi
 
 	# Restart all nodes
@@ -618,10 +618,6 @@ function main_runCommandExec(){
     fi
     local cmds=$1
 
-    if [[ "$GLB_TRACE_ON" -eq "1" ]]; then
-    	cmds=$(echo $cmds | sed 's/traceon//')
-    fi
-
     local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
 	local isInstalled=$(maprutil_isMapRInstalledOnNode "$cldbnode")
@@ -630,11 +626,12 @@ function main_runCommandExec(){
 		return
 	fi
 	
-	if [[ "$GLB_TRACE_ON" -eq "1" ]]; then
+	if [[ -n "$(echo $cmds | grep traceon)" ]]; then
 		for node in ${nodes[@]}
 		do	
 	    	maprutil_runCommandsOnNode "$node" "traceon"
 		done
+		cmds=$(echo $cmds | sed 's/traceon//')
 	fi
 	maprutil_runCommandsOnNode "$cldbnode" "$cmds"
 	
