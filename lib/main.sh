@@ -633,11 +633,11 @@ function main_runCommandExec(){
 	if [[ "$GLB_TRACE_ON" -eq "1" ]]; then
 		for node in ${nodes[@]}
 		do	
-	    	maprutil_runCommandsOnNode "$node" "$cmds"
+	    	maprutil_runCommandsOnNode "$node" "traceon"
 		done
-	else
-		maprutil_runCommandsOnNode "$cldbnode" "$cmds"
 	fi
+	maprutil_runCommandsOnNode "$cldbnode" "$cmds"
+	
 }
 
 function main_runLogDoctor(){
