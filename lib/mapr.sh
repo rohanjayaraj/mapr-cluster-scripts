@@ -422,6 +422,7 @@ function maprutil_uninstall(){
     util_kill "timeout"
     util_kill "guts"
     util_kill "dstat"
+    util_kill "ycsb"
     util_kill "iostat"
     util_kill "top -b"
     util_kill "runTraces"
@@ -820,7 +821,7 @@ function maprutil_configureCLDBTopology(){
 }
 
 function maprutil_moveTSDBVolumeToCLDBTopology(){
-    local tsdbexists=$(maprcli volume info -path /mapr.monitoring -json | grep ERROR)
+    local tsdbexists=$(maprcli volume info -name mapr.monitoring -json | grep ERROR)
     local cldbtopo=$(maprcli node topo -path /cldb)
     if [ -n "$tsdbexists" ] || [ -z "$cldbtopo" ]; then
         log_warn "OpenTSDB not installed or CLDB not moved to /cldb topology"
