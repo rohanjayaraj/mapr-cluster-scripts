@@ -112,6 +112,7 @@ GLB_NUM_SP=
 GLB_TRIM_SSD=
 GLB_TABLE_NS=
 GLB_CLDB_TOPO=
+GLB_TSDB_TOPO=
 GLB_PONTIS=
 GLB_BG_PIDS=
 GLB_MAX_DISKS=
@@ -211,6 +212,8 @@ function main_install(){
 			maprutil_postConfigureOnNode "$node" "$rolefile" "bg"
 		done
 		maprutil_wait
+
+		[ -n "$GLB_TSDB_TOPO" ] && maprutil_moveTSDBVolumeToCLDBTopology
 	fi
 
 	# Configure all nodes
@@ -306,8 +309,10 @@ function main_reconfigure(){
 			maprutil_postConfigureOnNode "$node" "$rolefile" "bg"
 		done
 		maprutil_wait
+
+		[ -n "$GLB_TSDB_TOPO" ] && maprutil_moveTSDBVolumeToCLDBTopology 
 	fi
-	
+
 	# Restart all nodes
 	for node in ${nodes[@]}
 	do
@@ -611,12 +616,7 @@ function main_runCommandExec(){
 	if [ -z "$1" ]; then
         return
     fi
-    local allnodes=
     local cmds=$1
-
-    if [[ "$GLB_TRACE_ON" -eq "1" ]]; then
-    	allnodes=1
-    fi
 
     local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
@@ -626,13 +626,13 @@ function main_runCommandExec(){
 		return
 	fi
 	
-	if [ -z "$allnodes" ]; then
-		maprutil_runCommandsOnNode "$cldbnode" "$cmds"
-	else
+	if [[ "$GLB_TRACE_ON" -eq "1" ]]; then
 		for node in ${nodes[@]}
 		do	
 	    	maprutil_runCommandsOnNode "$node" "$cmds"
 		done
+	else
+		maprutil_runCommandsOnNode "$cldbnode" "$cmds"
 	fi
 }
 
@@ -846,6 +846,8 @@ while [ "$2" != "" ]; do
     					GLB_CLDB_TOPO=1
     				elif [[ "$i" = "traceon" ]]; then
     					GLB_TRACE_ON=1
+    				elif [[ "$i" = "tsdbtopo" ]]; then
+    					GLB_TSDB_TOPO=1
     				fi
     				if [ -z "$doCmdExec" ]; then
     					doCmdExec=$i
