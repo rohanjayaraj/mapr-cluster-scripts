@@ -139,7 +139,8 @@ function maprutil_isClientNode() {
         return 1
     fi
     
-    local isclient=$(grep $2 $1 | grep 'mapr-client\|mapr-loopbacknfs\|mapr-core-internal' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local isclient=$(grep $2 $1 | grep 'mapr-client\|mapr-loopbacknfs' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    [ -z "$isclient" ] && isclient=$(grep $2 $1 | cut -d',' -f2 | grep mapr-core)
     if [ -n "$isclient" ]; then
         echo $isclient
     fi
