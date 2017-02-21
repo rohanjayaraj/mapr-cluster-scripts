@@ -44,6 +44,17 @@ function maprutil_getCLDBNodes() {
 }
 
 ## @param path to config
+function maprutil_getGatewayNodes() {
+    if [ -z "$1" ]; then
+        return 1
+    fi
+    local gwnodes=$(grep mapr-gateway $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    if [ ! -z "$gwnodes" ]; then
+        echo $gwnodes
+    fi
+}
+
+## @param path to config
 function maprutil_getESNodes() {
     if [ -z "$1" ]; then
         return 1
@@ -987,6 +998,7 @@ function maprutil_configure(){
             sleep 30
             maprutil_configureCLDBTopology || exit 1
         fi
+        [ -n "$GWNODES" ] && maprutil_setGatewayNodes "$3" "$GWNODES"
     else
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
         [ ! -f "/opt/mapr/bin/guts" ] && maprutil_copyGutsFromCLDB
@@ -1025,11 +1037,13 @@ function maprutil_configureNode(){
     local cldbnode=$(util_getFirstElement "$cldbnodes")
     local zknodes=$(maprutil_getZKNodes "$2")
     local client=$(maprutil_isClientNode "$2" "$hostnode")
+    local gwnodes=$(maprutil_getGatewayNodes "$2")
     
     if [ -n "$client" ]; then
          echo "ISCLIENT=1" >> $scriptpath
     else
         echo "ISCLIENT=0" >> $scriptpath
+        echo "GWNODES=$gwnodes" >> $scriptpath
     fi
     
     if [ "$hostip" != "$cldbnode" ] && [ "$hostnode" = "$cldbnode" ]; then
@@ -2007,6 +2021,36 @@ function maprutil_applyLicense(){
             echo 'mapr' | su mapr -c 'maprlogin password' 2>/dev/null
         fi
     done
+}
+
+function maprutil_waitForCLDB() {
+    local rc=1;
+    local iter=0;
+    local iterlimit=9
+    while [ "$rc" -gt 0 ] && [ "$iter" -lt "$iterlimit" ]; do
+        rc=0;
+        timeout 10 maprcli node cldbmaster -json > /dev/null 2>&1
+        let rc=$rc+`echo $?`
+        [ "$rc" -gt "0" ] && sleep 10;
+        let iter=$iter+1;
+    done
+    if [ "$iter" -lt "$iterlimit" ]; then
+        echo "ready"
+    fi
+}
+
+function maprutil_setGatewayNodes(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local clsname=$1
+    local gwnodes=$2
+
+    if [ -n "$(maprutil_waitForCLDB)" ]; then
+        maprcli cluster gateway set -dstcluster $clsname -gateways $gwnodes > /dev/null 2>&1
+    else
+        log_warn "[$(util_getHostIP)] Failed to set gateway nodes[$gwnodes] for cluster $clsname"
+    fi
 }
 
 function maprutil_mountSelfHosting(){
