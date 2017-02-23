@@ -73,7 +73,7 @@ function log_errormsg(){
 		return
 	fi
 	local msg=$1
-	>&2 echo -e "\033[31m \t$msg \033[0m"
+	>&2 echo -e "\033[31m \t[$(log_getTime)] ERROR $msg \033[0m"
 }
 
 # @param logmessage
