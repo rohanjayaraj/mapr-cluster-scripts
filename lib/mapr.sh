@@ -2198,7 +2198,7 @@ function maprutil_checkClusterSetupOnNodes(){
             rc=1
         fi
     done
-    [ "$rc" -eq "0" ] && log_msg "ALL OK (phew!)"
+    [ "$rc" -eq "0" ] && log_msg "\tALL OK (phew!)"
     return $rc
 }
 
