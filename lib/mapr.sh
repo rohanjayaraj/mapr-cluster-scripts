@@ -2092,6 +2092,7 @@ function maprutil_checkClusterSetup(){
     for binary in ${bins[@]}
     do
         [ -z "$(util_getInstalledBinaries $binary)" ] && log_errormsg "$binary NOT installed"
+        [[ "${binary}" =~ mapr-hbase|mapr-client|mapr-patch|mapr-asynchbase ]] && continue
         [ -z "$(echo $roles | grep $(echo $binary | cut -d'-' -f2))" ] && log_errormsg "$(echo $binary | cut -d'-' -f2) role not configured"
     done
 
