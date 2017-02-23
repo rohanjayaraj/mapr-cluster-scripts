@@ -14,6 +14,7 @@ me=$(basename $BASH_SOURCE)
 meid=$$
 
 # Declare Variables
+returncode=0
 rolefile=
 args=
 tbltdist=
@@ -167,16 +168,15 @@ done
 
 if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
-	exit 1
+	returncode=1
 else
-    params="$libdir/main.sh $rolefile \"-l=$args\" -td=$tbltdist -si=$sysinfo \"-g=$grepkey\" -v=$verbose \"-b=$backupdir\""
+    params="$libdir/main.sh $rolefile -td=$tbltdist -si=$sysinfo -v=$verbose \"-g=$grepkey\" \"-b=$backupdir\" \"-l=$args\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else
         bash -c "$params" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g'
     fi
     returncode=$?
-    [ "$returncode" -ne "0" ] && exit $returncode
 fi
 
-echo "DONE!"
+exit $returncode

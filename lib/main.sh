@@ -640,6 +640,7 @@ function main_runCommandExec(){
 function main_runLogDoctor(){
 	[ -z "$doLogAnalyze" ] && return
 	local nodelist=
+	local rc=0
 	for node in ${nodes[@]}
 	do	
 		if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
@@ -684,7 +685,10 @@ function main_runLogDoctor(){
 				maprutil_checkClusterSetupOnNodes "$nodelist" "$rolefile"
         	;;
         esac
+        local ec=$?
+        [ "$rc" -eq "0" ] && rc=$ec
 	done
+	return $rc
 }
 
 function main_isValidBuildVersion(){
@@ -1013,14 +1017,11 @@ if [ -n "$doBackup" ]; then
 	main_backuplogs	
 fi
 
-exitcode=`echo $?`
-if [ "$exitcode" -ne 0 ]; then
-	#echo "exiting with exit code $exitcode"
-	exit
-fi
-
 if [ -n "$doLogAnalyze" ]; then
 	main_runLogDoctor
 fi
 
+exitcode=`echo $?`
+
 rm -rf $RUNTEMPDIR 2>/dev/null
+exit $exitcode
