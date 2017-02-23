@@ -2091,7 +2091,7 @@ function maprutil_checkClusterSetup(){
     local roles=$(ls /opt/mapr/roles/ 2>/dev/null)
     for binary in ${bins[@]}
     do
-        [ -z "$(echo $installedbins | grep $binary)" ] && log_errormsg "$binary NOT installed"
+        [ -z "$(util_getInstalledBinaries $binary)" ] && log_errormsg "$binary NOT installed"
         [ -z "$(echo $roles | grep $(echo $binary | cut -d'-' -f2))" ] && log_errormsg "$(echo $binary | cut -d'-' -f2) role not configured"
     done
 
