@@ -81,6 +81,9 @@ function usage () {
     echo -e "\t -cs | --clusterspec" 
     echo -e "\t\t - Print overall cluster specifications"
 
+    echo -e "\t -sc | --setupcheck" 
+    echo -e "\t\t - Validate a cluster setup & the services"
+
     echo -e "\t -l | --mfsloggrep" 
     echo -e "\t\t - Grep mfs logs for FATAL & Disk errors"
 
@@ -117,6 +120,9 @@ while [ "$1" != "" ]; do
         ;;
         -cs | --clusterspec)
             args=$args"clsspec "
+        ;;
+        -sc | --setupcheck)
+            args=$args"setupcheck "
         ;;
         -td | --tabletdist)
             if [ -n "$VALUE" ]; then
