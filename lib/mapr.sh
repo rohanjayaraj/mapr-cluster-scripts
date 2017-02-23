@@ -2073,6 +2073,7 @@ function maprutil_checkClusterSetup(){
 
     local cldbnode="$1"
     local bins="$2"
+    local javapids=$(su mapr -c jps)
     
     # Check if configure for different CLDB node
     local cldbconf=$(cat /opt/mapr/conf/mapr-clusters.conf | head -1 | grep $cldbnode)
@@ -2089,6 +2090,7 @@ function maprutil_checkClusterSetup(){
     # Check if Zk node & is running
     if [ -n "$(echo $bins | grep zookeeper)" ]; then
         local zkpid=$(ps -ef | grep -i [o]rg.apache.zookeeper.server.quorum.QuorumPeerMain | awk '{print $2}')
+        [ -z "$zkpid" ] && zkpid=$(echo "$javapids" | grep QuorumPeerMain | awk '{print $1}')
         [ -z "$zkpid" ] && log_error "Zookeeper is not running"
         local zkok="$(echo ruok | nc 127.0.0.1 5181)"
         [ "$zkok" != "imok" ] && log_error "Zookeeper is not OK"
@@ -2097,6 +2099,7 @@ function maprutil_checkClusterSetup(){
     # Check if CLDB node & is running
     if [ -n "$(echo $bins | grep cldb)" ]; then
         local cldbpid=$(ps -ef | grep [c]om.mapr.fs.cldb.CLDB | awk '{print $2}')
+        [ -z "$cldbpid" ] && cldbpid=$(echo "$javapids" | grep CLDB | awk '{print $1}')
         if [ -n "$cldbpid" ]; then
             local cldbstatus=$(cat /proc/$cldbpid/stat | awk '{print $3}')
             [ "$cldbstatus" = "D" ] && log_error "CLDB('$cldbpid') is running in uninterruptible state. Possibly dead!"
@@ -2120,8 +2123,8 @@ function maprutil_checkClusterSetup(){
     # Check if warden is up and running
     if [ -n "$(echo $roles | grep -v mapr-client)" ]; then
         local wpid=$( ps -ef | grep [c]om.mapr.warden.WardenMain | awk '{print $2}')
-         [ -z "$wpid" ] && log_error "Warden is not running on the node"
-        fi
+         [ -z "$wpid" ] && wpid=$(echo "$javapids" | grep WardenMain | awk '{print $1}')
+        [ -z "$wpid" ] && log_error "Warden is not running on the node"
         hasWarden=1
     fi
 
@@ -2170,7 +2173,6 @@ function maprutil_checkClusterSetupOnNodes(){
     local maprnodes=$1
     local rfile=$2
     local cldbnodes=$(maprutil_getCLDBNodes "$rfile")
-    local bins=$(maprutil_getNodeBinaries "$rfile" "$node")
     local cldbnode=$(util_getFirstElement "$cldbnodes")
 
     local tmpdir="$RUNTEMPDIR/setupcheck"
@@ -2178,7 +2180,8 @@ function maprutil_checkClusterSetupOnNodes(){
     for node in ${maprnodes[@]}
     do
         local nodelog="$tmpdir/$node.log"
-        maprutil_checkClusterSetupOnNode "$node" "$cldnnode" "$bins" > $nodelog &
+        local bins=$(maprutil_getNodeBinaries "$rfile" "$node")
+        maprutil_checkClusterSetupOnNode "$node" "$cldbnode" "$bins" > $nodelog 2>&1 &
         maprutil_addToPIDList "$!"
     done
     maprutil_wait > /dev/null 2>&1
@@ -2188,7 +2191,8 @@ function maprutil_checkClusterSetupOnNodes(){
     do
         local nodelog=$(cat $tmpdir/$node.log)
         if [ -n "$nodelog" ]; then
-            log_error "[$node] : $nodelog"
+            log_msg " $node : "
+            log_inline "$nodelog"
             rc=1
         fi
     done
