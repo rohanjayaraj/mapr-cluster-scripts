@@ -2128,7 +2128,7 @@ function maprutil_checkClusterSetup(){
         hasWarden=1
     fi
 
-    local maprpids=$(ps -u mapr | grep -v 'TTY\|hoststats' | awk '{print $1}' | tr '\n' ' ')
+    local maprpids=$(ps -u mapr -Oppid | grep -v 'TTY\|hoststats' | awk '{if($2==1) print $1}' | tr '\n' ' ')
     local numpids=$(echo $maprpids | wc -w)
     [ -n "$hasWarden" ] && numpids=$(echo $numpids-1|bc)
     [ "$(echo $roles | wc -w)" -ne "$numpids" ] && log_error "One or more/few process is running under mapr user than configured roles"
