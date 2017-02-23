@@ -169,11 +169,11 @@ if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	exit 1
 else
-    params="$rolefile -l=$args -td=$tbltdist -si=$sysinfo -g=$grepkey -v=$verbose -b=$backupdir"
+    params="$libdir/main.sh $rolefile \"-l=$args\" -td=$tbltdist -si=$sysinfo \"-g=$grepkey\" -v=$verbose \"-b=$backupdir\""
     if [ -z "$doNoFormat" ]; then
-        $libdir/main.sh $params
+        bash -c "$params"
     else
-        $libdir/main.sh $params | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g'
+        bash -c "$params" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g'
     fi
     returncode=$?
     [ "$returncode" -ne "0" ] && exit $returncode

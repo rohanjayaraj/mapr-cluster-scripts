@@ -978,7 +978,7 @@ while [ "$2" != "" ]; do
  			fi
  		;;
  		*)
-            log_error "ERROR: unknown option \"$OPTION\""
+            log_error "unknown option \"$OPTION\""
             main_usage
             exit 1
             ;;
