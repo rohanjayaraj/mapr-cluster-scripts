@@ -2111,8 +2111,8 @@ function maprutil_checkClusterSetup(){
     # Check if node is configure with the same set of cldb nodes
     if [ -n "$(echo $bins | grep fileserver)" ]; then
         local mfspid=$(ps -ef | grep [/]opt/mapr/server/mfs | awk '{print $2}')
-        if [ -n "$cldbpid" ]; then
-            local mfsstatus=$(cat /proc/$cldbpid/stat | awk '{print $3}')
+        if [ -n "$mfspid" ]; then
+            local mfsstatus=$(cat /proc/$mfspid/stat | awk '{print $3}')
             [ "$mfsstatus" = "D" ] && log_error "MFS ('$mfspid') is running in uninterruptible state. Possibly dead!"
         else
             log_error "MFS is not running on the node"
@@ -2123,13 +2123,15 @@ function maprutil_checkClusterSetup(){
     # Check if warden is up and running
     if [ -n "$(echo $roles | grep -v mapr-client)" ]; then
         local wpid=$( ps -ef | grep [c]om.mapr.warden.WardenMain | awk '{print $2}')
-         [ -z "$wpid" ] && wpid=$(echo "$javapids" | grep WardenMain | awk '{print $1}')
+        [ -z "$wpid" ] && wpid=$(echo "$javapids" | grep WardenMain | awk '{print $1}')
         [ -z "$wpid" ] && log_error "Warden is not running on the node"
         hasWarden=1
     fi
 
     local maprpids=$(ps -u mapr | grep -v 'TTY\|hoststats' | awk '{print $1}' | tr '\n' ' ')
-    [ "$(echo $roles | wc -w)" -ne "$(echo $maprpids | wc -w)" ] && log_error "One or more/few process is running under mapr user than configured roles"
+    local numpids=$(echo $maprpids | wc -w)
+    [ -n "$hasWarden" ] && numpids=$(echo $numpids-1|bc)
+    [ "$(echo $roles | wc -w)" -ne "$numpids" ] && log_error "One or more/few process is running under mapr user than configured roles"
 
     for maprpid in ${maprpids[@]}
     do
@@ -2192,7 +2194,7 @@ function maprutil_checkClusterSetupOnNodes(){
         local nodelog=$(cat $tmpdir/$node.log)
         if [ -n "$nodelog" ]; then
             log_msg " $node : "
-            log_inline "$nodelog"
+            echo "$nodelog"
             rc=1
         fi
     done
