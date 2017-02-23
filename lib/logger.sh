@@ -68,6 +68,15 @@ function log_error(){
 }
 
 # @param logmessage
+function log_errormsg(){
+	if [ -z "$1" ]; then
+		return
+	fi
+	local msg=$1
+	>&2 echo -e "\033[31m \t$msg \033[0m"
+}
+
+# @param logmessage
 function log_critical(){
 	if [ -z "$1" ]; then
 		return

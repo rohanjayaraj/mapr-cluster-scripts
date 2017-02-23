@@ -2077,23 +2077,23 @@ function maprutil_checkClusterSetup(){
     
     # Check if configure for different CLDB node
     local cldbconf=$(cat /opt/mapr/conf/mapr-clusters.conf | head -1 | grep $cldbnode)
-    [ -z "$cldbconf" ] && log_error "Node configured with different CLDB IP"
+    [ -z "$cldbconf" ] && log_errormsg "Node configured with different CLDB IP"
 
     # Check if binaries are installed on the cluster
     local roles=$(ls /opt/mapr/roles/)
     for binary in ${bins[@]}
     do
-        [ -z "$(util_getInstalledBinaries $binary)" ] && log_error "$binary NOT installed"
-        [ -z "$(echo $roles | grep $(echo $binary | cut -d'-' -f2))" ] && log_error "$(echo $binary | cut -d'-' -f2) role not configured"
+        [ -z "$(util_getInstalledBinaries $binary)" ] && log_errormsg "$binary NOT installed"
+        [ -z "$(echo $roles | grep $(echo $binary | cut -d'-' -f2))" ] && log_errormsg "$(echo $binary | cut -d'-' -f2) role not configured"
     done
 
     # Check if Zk node & is running
     if [ -n "$(echo $bins | grep zookeeper)" ]; then
         local zkpid=$(ps -ef | grep -i [o]rg.apache.zookeeper.server.quorum.QuorumPeerMain | awk '{print $2}')
         [ -z "$zkpid" ] && zkpid=$(echo "$javapids" | grep QuorumPeerMain | awk '{print $1}')
-        [ -z "$zkpid" ] && log_error "Zookeeper is not running"
+        [ -z "$zkpid" ] && log_errormsg "Zookeeper is not running"
         local zkok="$(echo ruok | nc 127.0.0.1 5181)"
-        [ "$zkok" != "imok" ] && log_error "Zookeeper is not OK"
+        [ "$zkok" != "imok" ] && log_errormsg "Zookeeper is not OK"
     fi
 
     # Check if CLDB node & is running
@@ -2102,9 +2102,9 @@ function maprutil_checkClusterSetup(){
         [ -z "$cldbpid" ] && cldbpid=$(echo "$javapids" | grep CLDB | awk '{print $1}')
         if [ -n "$cldbpid" ]; then
             local cldbstatus=$(cat /proc/$cldbpid/stat | awk '{print $3}')
-            [ "$cldbstatus" = "D" ] && log_error "CLDB('$cldbpid') is running in uninterruptible state. Possibly dead!"
+            [ "$cldbstatus" = "D" ] && log_errormsg "CLDB('$cldbpid') is running in uninterruptible state. Possibly dead!"
         else
-            log_error "CLDB process is not running"
+            log_errormsg "CLDB process is not running"
         fi
     fi
 
@@ -2113,9 +2113,9 @@ function maprutil_checkClusterSetup(){
         local mfspid=$(ps -ef | grep [/]opt/mapr/server/mfs | awk '{print $2}')
         if [ -n "$mfspid" ]; then
             local mfsstatus=$(cat /proc/$mfspid/stat | awk '{print $3}')
-            [ "$mfsstatus" = "D" ] && log_error "MFS ('$mfspid') is running in uninterruptible state. Possibly dead!"
+            [ "$mfsstatus" = "D" ] && log_errormsg "MFS ('$mfspid') is running in uninterruptible state. Possibly dead!"
         else
-            log_error "MFS is not running on the node"
+            log_errormsg "MFS is not running on the node"
         fi
     fi
 
@@ -2124,19 +2124,19 @@ function maprutil_checkClusterSetup(){
     if [ -n "$(echo $roles | grep -v mapr-client)" ]; then
         local wpid=$( ps -ef | grep [c]om.mapr.warden.WardenMain | awk '{print $2}')
         [ -z "$wpid" ] && wpid=$(echo "$javapids" | grep WardenMain | awk '{print $1}')
-        [ -z "$wpid" ] && log_error "Warden is not running on the node"
+        [ -z "$wpid" ] && log_errormsg "Warden is not running on the node"
         hasWarden=1
     fi
 
     local maprpids=$(ps -u mapr -Oppid | grep -v 'TTY\|hoststats' | awk '{if($2==1) print $1}' | tr '\n' ' ')
     local numpids=$(echo $maprpids | wc -w)
     [ -n "$hasWarden" ] && numpids=$(echo $numpids-1|bc)
-    [ "$(echo $roles | wc -w)" -ne "$numpids" ] && log_error "One or more/few process is running under mapr user than configured roles"
+    [ "$(echo $roles | wc -w)" -ne "$numpids" ] && log_errormsg "One or more/few process is running under mapr user than configured roles"
 
     for maprpid in ${maprpids[@]}
     do
         local pidstatus=$(cat /proc/$maprpid/stat | awk '{print $3}')
-        [ "$pidstatus" = "D" ] && log_error "MapR process '$maprpid' is running in uninterruptible state. Possibly dead!"
+        [ "$pidstatus" = "D" ] && log_errormsg "MapR process '$maprpid' is running in uninterruptible state. Possibly dead!"
     done
 }
 
