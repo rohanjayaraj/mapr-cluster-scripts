@@ -2074,16 +2074,24 @@ function maprutil_checkClusterSetup(){
     local cldbnode="$1"
     local bins="$2"
     local javapids=$(su mapr -c jps)
+    local installedbins=$(util_getInstalledBinaries "mapr-")
+
+    [ -n "$(echo $installedbins | grep mapr-fluentd)" ] && [ -z "$(echo $bins | grep mapr-fluentd)" ] && bins="$bins mapr-fluentd"
+    [ -n "$(echo $installedbins | grep mapr-collectd)" ] && [ -z "$(echo $bins | grep mapr-collectd)" ] && bins="$bins mapr-collectd"
+    [ -n "$(echo $installedbins | grep mapr-kibana)" ] && [ -z "$(echo $bins | grep mapr-kibana)" ] && bins="$bins mapr-kibana"
+    [ -n "$(echo $installedbins | grep mapr-grafana)" ] && [ -z "$(echo $bins | grep mapr-grafana)" ] && bins="$bins mapr-grafana"
+    [ -n "$(echo $installedbins | grep mapr-elasticsearch)" ] && [ -z "$(echo $bins | grep mapr-elasticsearch)" ] && bins="$bins mapr-elasticsearch"
+    [ -n "$(echo $installedbins | grep mapr-opentsdb)" ] && [ -z "$(echo $bins | grep mapr-opentsdb)" ] && bins="$bins mapr-opentsdb"
     
     # Check if configure for different CLDB node
-    local cldbconf=$(cat /opt/mapr/conf/mapr-clusters.conf | head -1 | grep $cldbnode)
+    local cldbconf=$(cat /opt/mapr/conf/mapr-clusters.conf 2>/dev/null | head -1 | grep $cldbnode)
     [ -z "$cldbconf" ] && log_errormsg "Node configured with different CLDB IP"
 
     # Check if binaries are installed on the cluster
-    local roles=$(ls /opt/mapr/roles/)
+    local roles=$(ls /opt/mapr/roles/ 2>/dev/null)
     for binary in ${bins[@]}
     do
-        [ -z "$(util_getInstalledBinaries $binary)" ] && log_errormsg "$binary NOT installed"
+        [ -z "$(echo $installedbins | grep $binary)" ] && log_errormsg "$binary NOT installed"
         [ -z "$(echo $roles | grep $(echo $binary | cut -d'-' -f2))" ] && log_errormsg "$(echo $binary | cut -d'-' -f2) role not configured"
     done
 
@@ -2101,7 +2109,7 @@ function maprutil_checkClusterSetup(){
         local cldbpid=$(ps -ef | grep [c]om.mapr.fs.cldb.CLDB | awk '{print $2}')
         [ -z "$cldbpid" ] && cldbpid=$(echo "$javapids" | grep CLDB | awk '{print $1}')
         if [ -n "$cldbpid" ]; then
-            local cldbstatus=$(cat /proc/$cldbpid/stat | awk '{print $3}')
+            local cldbstatus=$(cat /proc/$cldbpid/stat 2>/dev/null | awk '{print $3}')
             [ "$cldbstatus" = "D" ] && log_errormsg "CLDB('$cldbpid') is running in uninterruptible state. Possibly dead!"
         else
             log_errormsg "CLDB process is not running"
@@ -2112,32 +2120,39 @@ function maprutil_checkClusterSetup(){
     if [ -n "$(echo $bins | grep fileserver)" ]; then
         local mfspid=$(ps -ef | grep [/]opt/mapr/server/mfs | awk '{print $2}')
         if [ -n "$mfspid" ]; then
-            local mfsstatus=$(cat /proc/$mfspid/stat | awk '{print $3}')
+            local mfsstatus=$(cat /proc/$mfspid/stat 2>/dev/null | awk '{print $3}')
             [ "$mfsstatus" = "D" ] && log_errormsg "MFS ('$mfspid') is running in uninterruptible state. Possibly dead!"
         else
             log_errormsg "MFS is not running on the node"
         fi
     fi
 
-    local hasWarden=
+    # Remove client roles from 
+    if [ -n "$(echo $roles | grep 'hbinternal\|asynchbase')" ]; then
+        roles=$(echo $roles | sed 's/hbinternal//g;s/asynchbase//g')
+    fi
+    roles=$(echo $roles | xargs)
+
     # Check if warden is up and running
-    if [ -n "$(echo $roles | grep -v mapr-client)" ]; then
+    if [ -n "$$roles" ]; then
         local wpid=$( ps -ef | grep [c]om.mapr.warden.WardenMain | awk '{print $2}')
         [ -z "$wpid" ] && wpid=$(echo "$javapids" | grep WardenMain | awk '{print $1}')
         [ -z "$wpid" ] && log_errormsg "Warden is not running on the node"
-        hasWarden=1
+        local maprpids=$(ps -u mapr -Oppid | grep -v 'TTY\|hoststats\|initaudit.sh\|createsystemvolumes' | awk '{if($2==1) print $1}' | tr '\n' ' ')
+        local numpids=$(echo $maprpids | wc -w)
+        
+        # Subtract one for warden process
+        numpids=$(echo $numpids-1|bc)
+        [ "$(echo $roles | wc -w)" -ne "$numpids" ] && log_errormsg "One or more/few process is running under mapr user than configured roles"
+
+        for maprpid in ${maprpids[@]}
+        do
+            local pidstatus=$(cat /proc/$maprpid/stat 2>/dev/null | awk '{print $3}')
+            [ "$pidstatus" = "D" ] && log_errormsg "MapR process '$maprpid' is running in uninterruptible state. Possibly dead!"
+        done
     fi
 
-    local maprpids=$(ps -u mapr -Oppid | grep -v 'TTY\|hoststats\|initaudit.sh\|createsystemvolumes' | awk '{if($2==1) print $1}' | tr '\n' ' ')
-    local numpids=$(echo $maprpids | wc -w)
-    [ -n "$hasWarden" ] && numpids=$(echo $numpids-1|bc)
-    [ "$(echo $roles | wc -w)" -ne "$numpids" ] && log_errormsg "One or more/few process is running under mapr user than configured roles"
-
-    for maprpid in ${maprpids[@]}
-    do
-        local pidstatus=$(cat /proc/$maprpid/stat | awk '{print $3}')
-        [ "$pidstatus" = "D" ] && log_errormsg "MapR process '$maprpid' is running in uninterruptible state. Possibly dead!"
-    done
+    
 }
 
 function maprutil_checkClusterSetupOnNode(){
