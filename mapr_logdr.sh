@@ -173,8 +173,10 @@ else
     if [ -z "$doNoFormat" ]; then
         $libdir/main.sh $params
     else
-         $libdir/main.sh $params | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g'
+        $libdir/main.sh $params | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g'
     fi
+    returncode=$?
+    [ "$returncode" -ne "0" ] && exit $returncode
 fi
 
 echo "DONE!"
