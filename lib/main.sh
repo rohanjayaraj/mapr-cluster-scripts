@@ -854,7 +854,7 @@ while [ "$2" != "" ]; do
 					if [[ "$i" = "cldbtopo" ]]; then
     					GLB_CLDB_TOPO=1
     				elif [[ "$i" = "traceon" ]]; then
-    					GLB_TRACE_ON=1
+    					GLB_TRACE_ON=
     				elif [[ "$i" = "tsdbtopo" ]]; then
     					GLB_TSDB_TOPO=1
     				fi
