@@ -394,7 +394,7 @@ function main_upgrade(){
 	done
 
 	if [ -n "$nocldblist" ]; then
-		log_error "CLDB not found on nodes [$nocldblist]. May be uninstalling another cluster's nodes. Check the nodes specified."
+		log_error "CLDB not found on nodes [$nocldblist]. May be upgrading another cluster's nodes. Check the nodes specified."
     	exit 1
 	else
 		log_info "CLDB Master : $cldbnode"
@@ -686,7 +686,7 @@ function main_runLogDoctor(){
         	;;
         esac
         local ec=$?
-        [ "$rc" -eq "0" ] && rc=$ec
+        [ -n "$ec" ] && [ "$rc" -eq "0" ] && rc=$ec
 	done
 	return $rc
 }
