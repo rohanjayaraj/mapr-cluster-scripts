@@ -59,6 +59,15 @@ function log_warn(){
 }
 
 # @param logmessage
+function log_warnmsg(){
+	if [ -z "$1" ]; then
+		return
+	fi
+	local msg=$1
+	echo -e "\033[33m \t[$(log_getTime)] WARN $msg \033[0m"
+}
+
+# @param logmessage
 function log_error(){
 	if [ -z "$1" ]; then
 		return

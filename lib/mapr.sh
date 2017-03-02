@@ -484,6 +484,8 @@ function maprutil_uninstall(){
     maprutil_removedirs "all"
 
     echo 1 > /proc/sys/vm/drop_caches
+
+    log_info "[$(util_getHostIP)] Uninstall complete"
 }
 
 # @param host ip
@@ -2147,7 +2149,7 @@ function maprutil_checkClusterSetup(){
         
         # Subtract one for warden process
         numpids=$(echo $numpids-1|bc)
-        [ "$(echo $roles | wc -w)" -ne "$numpids" ] && log_errormsg "One or more/few process is running under mapr user than configured roles"
+        [ "$numpids" -gt "$(echo $roles | wc -w)" ] && log_warnmsg "One or more/few process is running under mapr user than configured roles"
 
         for maprpid in ${maprpids[@]}
         do
@@ -2214,7 +2216,8 @@ function maprutil_checkClusterSetupOnNodes(){
         if [ -n "$nodelog" ]; then
             log_msg " $node : "
             echo "$nodelog"
-            rc=1
+            local errors=$(echo "$nodelog" | grep ERROR)
+            [ -n "$errors" ] && rc=1
         fi
     done
     [ "$rc" -eq "0" ] && log_msg "\tALL OK (phew!)"
