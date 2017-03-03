@@ -808,7 +808,7 @@ function maprutil_configureCLDBTopology(){
     local datatopo=$(maprcli node list -json | grep racktopo | grep "/data/" | wc -l)
     local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
     local j=0
-    while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ] && [ -z "$1" ]; do
+    while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ]; do
         sleep 15
         numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
         let j=j+1
@@ -821,12 +821,12 @@ function maprutil_configureCLDBTopology(){
     if [ "$datatopo" -eq "$numdnodes" ]; then
         return
     fi
-    #local clustersize=$(maprcli node list -json | grep 'id'| wc -l)
-    local clustersize=$GLB_CLUSTER_SIZE
-    if [ "$clustersize" -gt 5 ] || [ -n "$1" ]; then
-        ## Move all nodes under /data topology
-        local datanodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ",")
-        maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
+    ## Move all nodes under /data topology
+    local datanodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ",")
+    maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
+    
+    ## Move CLDB if only forced or # of nodes > 5
+    if [ "$GLB_CLUSTER_SIZE" -gt 5 ] || [ -n "$1" ]; then
         ### Moving CLDB Nodes to CLDB topology
         #local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
         local cldbnodes=$(maprcli node list -json | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')
@@ -999,7 +999,6 @@ function maprutil_configure(){
             maprutil_configureMultiMFS "$multimfs" "$numsps"
         fi
         if [ -n "$GLB_CLDB_TOPO" ]; then
-            sleep 30
             maprutil_configureCLDBTopology || exit 1
         fi
         [ -n "$GWNODES" ] && maprutil_setGatewayNodes "$3" "$GWNODES"
@@ -2096,9 +2095,9 @@ function maprutil_checkClusterSetup(){
     local roles=$(ls /opt/mapr/roles/ 2>/dev/null)
     for binary in ${bins[@]}
     do
-        [ -z "$(util_getInstalledBinaries $binary)" ] && log_errormsg "$binary NOT installed"
+        [ -z "$(util_getInstalledBinaries $binary)" ] && log_errormsg "Package '$binary' NOT installed"
         [[ "${binary}" =~ mapr-hbase|mapr-client|mapr-patch|mapr-asynchbase ]] && continue
-        [ -z "$(echo $roles | grep $(echo $binary | cut -d'-' -f2))" ] && log_errormsg "$(echo $binary | cut -d'-' -f2) role not configured"
+        [ -z "$(echo $roles | grep $(echo $binary | cut -d'-' -f2))" ] && log_errormsg "Role '$(echo $binary | cut -d'-' -f2)' not configured"
     done
 
     # Check if Zk node & is running
@@ -2116,7 +2115,7 @@ function maprutil_checkClusterSetup(){
         [ -z "$cldbpid" ] && cldbpid=$(echo "$javapids" | grep CLDB | awk '{print $1}')
         if [ -n "$cldbpid" ]; then
             local cldbstatus=$(cat /proc/$cldbpid/stat 2>/dev/null | awk '{print $3}')
-            [ "$cldbstatus" = "D" ] && log_errormsg "CLDB('$cldbpid') is running in uninterruptible state. Possibly dead!"
+            [ "$cldbstatus" = "D" ] && log_errormsg "CLDB($cldbpid) is running in uninterruptible state. Possibly dead!"
         else
             log_errormsg "CLDB process is not running"
         fi
@@ -2127,7 +2126,7 @@ function maprutil_checkClusterSetup(){
         local mfspid=$(ps -ef | grep [/]opt/mapr/server/mfs | awk '{print $2}')
         if [ -n "$mfspid" ]; then
             local mfsstatus=$(cat /proc/$mfspid/stat 2>/dev/null | awk '{print $3}')
-            [ "$mfsstatus" = "D" ] && log_errormsg "MFS ('$mfspid') is running in uninterruptible state. Possibly dead!"
+            [ "$mfsstatus" = "D" ] && log_errormsg "MFS ($mfspid) is running in uninterruptible state. Possibly dead!"
         else
             log_errormsg "MFS is not running on the node"
         fi
@@ -2154,7 +2153,7 @@ function maprutil_checkClusterSetup(){
         for maprpid in ${maprpids[@]}
         do
             local pidstatus=$(cat /proc/$maprpid/stat 2>/dev/null | awk '{print $3}')
-            [ "$pidstatus" = "D" ] && log_errormsg "MapR process '$maprpid' is running in uninterruptible state. Possibly dead!"
+            [ "$pidstatus" = "D" ] && log_errormsg "MapR process($maprpid) is running in uninterruptible state. Possibly dead!"
         done
     fi
 
