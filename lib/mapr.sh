@@ -1790,13 +1790,13 @@ function maprutil_getMapRInfo(){
     local sppermfs=
     local nodetopo=
     if [ -e "/opt/mapr/conf/mapr-clusters.conf" ]; then
-        nummfs=$(/opt/mapr/server/mrconfig info instances 2>/dev/null| head -1)
-        numsps=$(/opt/mapr/server/mrconfig sp list 2>/dev/null| grep SP[0-9] | wc -l)
+        nummfs=$(timeout 10 /opt/mapr/server/mrconfig info instances 2>/dev/null| head -1)
+        numsps=$(timeout 10 /opt/mapr/server/mrconfig sp list 2>/dev/null| grep SP[0-9] | wc -l)
         #command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json 2>/dev/null| grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
-        sppermfs=$(/opt/mapr/server/mrconfig sp list -v 2>/dev/null| grep SP[0-9] | awk '{print $18}' | tr -d ',' | uniq -c | awk '{print $1}' | sort -nr | head -1)
+        sppermfs=$(timeout 10 /opt/mapr/server/mrconfig sp list -v 2>/dev/null| grep SP[0-9] | awk '{print $18}' | tr -d ',' | uniq -c | awk '{print $1}' | sort -nr | head -1)
         #[[ "$nummfs" -gt "1" ]] && [[ "$sppermfs" -eq "0" ]] && sppermfs=$(/opt/mapr/server/mrconfig sp list -v 2>/dev/null| grep SP[0-9] | awk '{print $18}' | tr -d ',' | uniq -c | awk '{print $1}' | sort -nr | head -1)
         [[ "$sppermfs" -eq 0 ]] && sppermfs=$numsps
-        command -v maprcli >/dev/null 2>&1 && nodetopo=$(maprcli node list -json | grep "$(hostname -f)" | grep racktopo | sed "s/$(hostname -f)//g" | cut -d ':' -f2 | tr -d '"' | tr -d ',')
+        command -v maprcli >/dev/null 2>&1 && nodetopo=$(timeout 10 maprcli node list -json | grep "$(hostname -f)" | grep racktopo | sed "s/$(hostname -f)//g" | cut -d ':' -f2 | tr -d '"' | tr -d ',')
     fi
     
     log_msghead "MapR Info : "
@@ -2013,7 +2013,7 @@ function maprutil_applyLicense(){
         fi
         ### Attempt using Downloaded License
         if [ "${jobs}" -ne "0" ]; then
-            jobs=`/opt/mapr/bin/maprcli license add -license /tmp/LatestDemoLicense-M7.txt -is_file true > /dev/null;echo $?`;
+            jobs=$(/opt/mapr/bin/maprcli license add -license /tmp/LatestDemoLicense-M7.txt -is_file true > /dev/null;echo $?);
         fi
         let i=i+1
         if [ "$i" -gt 10 ]; then
@@ -2025,6 +2025,15 @@ function maprutil_applyLicense(){
             echo 'mapr' | su mapr -c 'maprlogin password' 2>/dev/null
         fi
     done
+
+    if [[ "${jobs}" -eq "0" ]] && [[ -n "$(util_getInstalledBinaries mapr-posix)" ]]; then
+        local clusterid=$(maprcli dashboard info -json | grep -A5 cluster | grep id | tr -d '"' | tr -d ',' | cut -d':' -f2)
+        local expdate=$(date -d "+30 days" +%Y-%m-%d)
+        local licfile="/tmp/LatestFuseLicensePlatinum.txt"
+        curl -F 'username=maprmanager' -F 'password=maprmapr' -X POST --cookie-jar /tmp/tmpckfile https://apitest.mapr.com/license/authenticate/
+        curl --cookie /tmp/tmpckfile -X POST -F "license_type=additionalfeatures_posixclientplatinum" -F "cluster=${clusterid}" -F "customer_name=maprqa" -F "expiration_date=${expdate}" -F "number_of_nodes=${GLB_CLUSTER_SIZE}" -F "enforcement_type=HARD" https://apitest.mapr.com/license/licenses/createlicense/ -o ${licfile} 2>/dev/null
+        [ -e "$licfile" ] && /opt/mapr/bin/maprcli license add -license ${licfile} -is_file true > /dev/null
+    fi
 }
 
 function maprutil_waitForCLDB() {
