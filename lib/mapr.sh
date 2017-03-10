@@ -1232,8 +1232,8 @@ function maprutil_addGlobalVars(){
         return
     fi
     local scriptpath=$1
-    local glbvars=$( set -o posix ; set  | grep GLB_)
-    for i in $glbvars
+    local OIFS=$IFS; IFS=$(echo -en "\n\b");
+    for i in $( set -o posix ; set  | grep GLB_)
     do
         #echo "%%%%%%%%%% -> $i <- %%%%%%%%%%%%%"
         if [[ "$i" =~ ^GLB_BG_PIDS.* ]]; then
@@ -1241,8 +1241,9 @@ function maprutil_addGlobalVars(){
         elif [[ ! "$i" =~ ^GLB_.* ]]; then
             continue
         fi
-        echo $i >> $scriptpath
+        echo "$i" >> $scriptpath
     done
+    IFS=$OIFS
 }
 
 function maprutil_getBuildID(){
