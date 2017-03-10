@@ -191,7 +191,7 @@ function maprutil_getNodesFromRole() {
             exit 1
         fi
     done
-    echo $nodes | tr ' ' '\n' | sort -n | tr '\n' ' '
+    echo $nodes | tr ' ' '\n' | sort -t . -k 3,3n -k 4,4n | tr '\n' ' '
 }
 
 function maprutil_ycsbdirs(){
