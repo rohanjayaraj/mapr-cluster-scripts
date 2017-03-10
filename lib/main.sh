@@ -674,7 +674,7 @@ function main_runLogDoctor(){
 				maprutil_runCommandsOnNodesInParallel "$nodes" "sysinfo"
         	;;
         	greplogs)
-				log_msghead "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ $GLB_GREP_MAPRLOGS ]"
+				log_msghead "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ \"$GLB_GREP_MAPRLOGS\" ]"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "grepmapr"
         	;;
         	tabletdist)
