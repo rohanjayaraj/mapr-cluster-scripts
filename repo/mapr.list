@@ -13,8 +13,8 @@ deb http://apt.qa.lab/ubuntu/ mapr optional
 
 # 5.2 Binaries
 #deb http://apt.qa.lab/v5.2.0/ mapr optional
-#deb http://apt.qa.lab/v5.2.0-patch-EBF/ mapr optional
+#deb http://apt.qa.lab/v5.2.0-patch-EBF/ mapr binary
 
 # 5.1 Binaries
 #deb http://apt.qa.lab/v5.1.0/ mapr optional
-#deb http://apt.qa.lab/v5.1.0-patch-EBF/ mapr optional
+#deb http://apt.qa.lab/v5.1.0-patch-EBF/ mapr binary

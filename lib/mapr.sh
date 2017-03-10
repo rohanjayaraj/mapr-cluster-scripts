@@ -109,6 +109,7 @@ function maprutil_getCoreNodeBinaries() {
         if [ -z "$(maprutil_isClientNode $1 $2)" ]; then
             [ -n "$GLB_MAPR_PATCH" ] && [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
         fi
+        [ -z "$GLB_HAS_FUSE" ] && [ -n "$(echo $newbinlist | grep mapr-posix)" ] && GLB_HAS_FUSE=1
         echo $newbinlist
     fi
 }
@@ -1358,8 +1359,8 @@ function maprutil_buildRepoFile(){
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
 
         echo "deb $meprepo binary/" > $repofile
-        echo "deb ${repourl} binary ubuntu" >> $repofile
-        [ -n "$GLB_PATCH_REPOURL" ] && echo "deb ${GLB_PATCH_REPOURL} binary ubuntu" >> $repofile
+        echo "deb ${repourl} mapr optional" >> $repofile
+        [ -n "$GLB_PATCH_REPOURL" ] && echo "deb ${GLB_PATCH_REPOURL} mapr binary" >> $repofile
     fi
 }
 
@@ -2026,7 +2027,7 @@ function maprutil_applyLicense(){
         fi
     done
 
-    if [[ "${jobs}" -eq "0" ]] && [[ -n "$(util_getInstalledBinaries mapr-posix)" ]]; then
+    if [[ "${jobs}" -eq "0" ]] && [[ -n "$GLB_HAS_FUSE" ]]; then
         local clusterid=$(maprcli dashboard info -json | grep -A5 cluster | grep id | tr -d '"' | tr -d ',' | cut -d':' -f2)
         local expdate=$(date -d "+30 days" +%Y-%m-%d)
         local licfile="/tmp/LatestFuseLicensePlatinum.txt"
@@ -2105,7 +2106,7 @@ function maprutil_checkClusterSetup(){
     for binary in ${bins[@]}
     do
         [ -z "$(util_getInstalledBinaries $binary)" ] && log_errormsg "Package '$binary' NOT installed"
-        [[ "${binary}" =~ mapr-hbase|mapr-client|mapr-patch|mapr-asynchbase ]] && continue
+        [[ "${binary}" =~ mapr-hbase|mapr-client|mapr-patch|mapr-asynchbase|mapr-posix ]] && continue
         [ -z "$(echo $roles | grep $(echo $binary | cut -d'-' -f2))" ] && log_errormsg "Role '$(echo $binary | cut -d'-' -f2)' not configured"
     done
 
