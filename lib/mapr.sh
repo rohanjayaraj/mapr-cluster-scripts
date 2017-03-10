@@ -109,7 +109,6 @@ function maprutil_getCoreNodeBinaries() {
         if [ -z "$(maprutil_isClientNode $1 $2)" ]; then
             [ -n "$GLB_MAPR_PATCH" ] && [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
         fi
-        [ -z "$GLB_HAS_FUSE" ] && [ -n "$(echo $newbinlist | grep mapr-posix)" ] && GLB_HAS_FUSE=1
         echo $newbinlist
     fi
 }
@@ -195,6 +194,15 @@ function maprutil_getNodesFromRole() {
     echo $nodes | tr ' ' '\n' | sort | tr '\n' ' '
 }
 
+function maprutil_ycsbdirs(){
+    local dirlist=()
+    for i in $(find /var/ycsb -maxdepth 1 -type d -ctime +10)
+    do
+      dirlist+=("$i")
+    done
+    echo ${dirlist[*]}
+}
+
 function maprutil_coresdirs(){
     local dirlist=()
     dirlist+=("/opt/cores/guts*")
@@ -247,6 +255,7 @@ function maprutil_removedirs(){
             rm -rfv $(maprutil_knowndirs) > /dev/null 2>&1
             rm -rfv $(maprutil_tempdirs)  > /dev/null 2>&1
             rm -rfv $(maprutil_coresdirs) > /dev/null 2>&1
+            rm -rfv $(maprutil_ycsbdirs) > /dev/null 2>&1
            ;;
          known)
             rm -rfv $(maprutil_knowndirs) 
@@ -256,6 +265,9 @@ function maprutil_removedirs(){
            ;;
          cores)
             rm -rfv $(maprutil_coresdirs)
+           ;;
+         ycsb)
+            rm -rfv $(maprutil_ycsbdirs)
            ;;
         *)
             log_warn "unknown parameter passed to removedirs \"$PARAM\""

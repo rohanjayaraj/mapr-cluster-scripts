@@ -801,6 +801,10 @@ function main_printURLs(){
 	[ -n "$kbnode" ] && log_msg "\t Kibana - http://$kbnode:5601"
 }
 
+function main_preSetup(){
+	[ -z "$GLB_HAS_FUSE" ] && [ -n "$(cat $rolefile | grep mapr-posix)" ] && GLB_HAS_FUSE=1
+}
+
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
 STARTTS=$(date +%s);
@@ -990,6 +994,9 @@ while [ "$2" != "" ]; do
     esac
     shift
 done
+
+## Run presetup
+main_preSetup
 
 if [ -z "$dummyrole" ]; then 
 	if [ "$doInstall" -eq 1 ]; then
