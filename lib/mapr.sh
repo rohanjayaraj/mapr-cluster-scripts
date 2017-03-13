@@ -359,6 +359,14 @@ function maprutil_unmountNFS(){
     do
         timeout 20 umount -l $i
     done
+
+    if [ -n "$(util_getInstalledBinaries mapr-posix)" ]; then
+        local fusemnt=$(mount -l | grep posix-client | awk '{print $3}')
+        service mapr-posix-client* stop > /dev/null 2>&1
+        /etc/init.d/mapr-fuse stop > /dev/null 2>&1
+        /etc/init.d/mapr-posix-* stop > /dev/null 2>&1
+        [ -n "$fusemnt" ] && timeout 10 fusermount -uq $fusemnt > /dev/null 2>&1
+    fi
 }
 
 # @param host ip
