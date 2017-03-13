@@ -196,7 +196,7 @@ function maprutil_getNodesFromRole() {
 
 function maprutil_ycsbdirs(){
     local dirlist=()
-    for i in $(find /var/ycsb -maxdepth 1 -type d -ctime +10)
+    for i in $(find /var/ycsb -maxdepth 1 -type d -ctime +10 2>/dev/null)
     do
       dirlist+=("$i")
     done
