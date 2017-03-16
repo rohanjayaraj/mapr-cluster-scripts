@@ -492,7 +492,7 @@ function maprutil_uninstall(){
 
     # Kill running traces 
     maprutil_killTraces
-    
+
     # kill all processes
     util_kill "initaudit.sh"
     util_kill "mfs"
@@ -2088,7 +2088,7 @@ function maprutil_setGatewayNodes(){
     local gwnodes=$2
 
     if [ -n "$(maprutil_waitForCLDB)" ]; then
-        maprcli cluster gateway set -dstcluster $clsname -gateways $gwnodes > /dev/null 2>&1
+        timeout 10 maprcli cluster gateway set -dstcluster $clsname -gateways "$gwnodes" > /dev/null 2>&1
     else
         log_warn "[$(util_getHostIP)] Failed to set gateway nodes[$gwnodes] for cluster $clsname"
     fi
