@@ -289,16 +289,18 @@ function util_getRawDisks(){
     local cmd="sfdisk -l 2> /dev/null| grep Disk | tr -d ':' | cut -d' ' -f2"
     for disk in $defdisks
     do
-        cmd="$cmd | grep -v $disk"
+        cmd="$cmd | grep -v \"$disk\""
     done
     local fdisks=$(fdisk -l 2>/dev/null)
     for disk in $(bash -c  "$cmd")
     do
         local sizestr=$(echo "$fdisks" | grep "Disk \/" | grep "$disk" | awk '{print $3, $4}' | tr -d ',')
+        # If no disk found in fdisk, ignore that disk
+        [ -z "$sizestr" ] && cmd="$cmd | grep -v \"$disk\"" && continue
         local size=$(printf "%.0f" $(echo "$sizestr" | awk '{print $1}'))
         local rep=$(echo "$sizestr" | awk '{print $2}')
-        [ "$rep" = "MB" ] && [ "$size" -lt "100000" ] && cmd="$cmd | grep -v $disk"
-        [ "$rep" = "GB" ] && [ "$size" -lt "100" ] &&  cmd="$cmd | grep -v $disk"
+        [ "$rep" = "MB" ] && [ "$size" -lt "100000" ] && cmd="$cmd | grep -v \"$disk\""
+        [ "$rep" = "GB" ] && [ "$size" -lt "100" ] &&  cmd="$cmd | grep -v \"$disk\""
     done
     local disks=$(bash -c  "$cmd | sort")
     echo "$disks"
@@ -712,7 +714,7 @@ function util_getNetInfo(){
 
 function util_getDiskInfo(){
     local fd=$(fdisk -l 2>/dev/null)
-    local disks=$(echo "$fd"| grep "Disk \/" | grep -v mapper | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
+    local disks=$(echo "$fd"| grep "Disk \/" | grep -v 'mapper\|docker' | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
     local numdisks=$(echo "$disks" | wc -l)
     local defdisks=$(util_getDefaultDisks)
     log_msghead "Disk Info : [ #ofdisks: $numdisks ]"
