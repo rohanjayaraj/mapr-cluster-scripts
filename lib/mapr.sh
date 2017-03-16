@@ -385,13 +385,13 @@ function maprutil_cleanPrevClusterConfigOnNode(){
         return
     fi
     
-    echo "maprutil_cleanPrevClusterConfig" >> $scriptpath
     if [ -n "$client" ]; then
          echo "ISCLIENT=1" >> $scriptpath
     else
         echo "ISCLIENT=0" >> $scriptpath
     fi
-    
+    echo "maprutil_cleanPrevClusterConfig" >> $scriptpath
+
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
 }
@@ -399,6 +399,9 @@ function maprutil_cleanPrevClusterConfigOnNode(){
 function maprutil_cleanPrevClusterConfig(){
     # Kill running traces 
     maprutil_killTraces
+
+    # Kill YCSB processes
+    maprutil_killYCSB
 
     # Unmount NFS
     maprutil_unmountNFS
@@ -414,6 +417,7 @@ function maprutil_cleanPrevClusterConfig(){
     # kill all processes
     util_kill "initaudit.sh"
     util_kill "pullcentralconfig"
+    util_kill "mfs"
     util_kill "java" "jenkins" "QuorumPeerMain"
     util_kill "FsShell"
     util_kill "CentralConfigCopyHelper"
@@ -452,15 +456,11 @@ function maprutil_uninstall(){
     maprutil_killSpyglass
 
     # Kill running traces 
-    util_kill "timeout"
-    util_kill "guts"
-    util_kill "dstat"
-    util_kill "ycsb-driver"
-    util_kill "/var/ycsb/"
-    util_kill "/tmp/ycsb"
-    util_kill "iostat"
-    util_kill "top -b"
-    util_kill "runTraces"
+    maprutil_killTraces
+
+    # Kill YCSB processes
+    maprutil_killYCSB
+
     util_kill "mfs"
     util_kill "java" "jenkins"
 
@@ -490,16 +490,14 @@ function maprutil_uninstall(){
     # Remove mapr shared memory segments
     util_removeSHMSegments "mapr"
 
+    # Kill running traces 
+    maprutil_killTraces
+    
     # kill all processes
     util_kill "initaudit.sh"
     util_kill "mfs"
     util_kill "java" "jenkins"
-    util_kill "timeout"
-    util_kill "guts"
-    util_kill "dstat"
-    util_kill "iostat"
-    util_kill "top -b"
-    util_kill "/opt/mapr"
+    util_kill "/opt/mapr"     
 
     # Remove all directories
     maprutil_removedirs "all"
@@ -904,6 +902,12 @@ function maprutil_killTraces() {
     util_kill "iostat"
     util_kill "top -b"
     util_kill "runTraces"
+}
+
+function maprutil_killYCSB() {
+    util_kill "ycsb-driver"
+    util_kill "/var/ycsb/"
+    util_kill "/tmp/ycsb"
 }
 
 function maprutil_configureSSH(){
