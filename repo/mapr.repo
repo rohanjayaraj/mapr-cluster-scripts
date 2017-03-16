@@ -1,20 +1,85 @@
 [QA-Opensource]
 name=MapR Latest Build QA Repository
-baseurl=http://yum.qa.lab/opensource
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-3.0/redhat/
 enabled=1
 gpgcheck=0
 protect=1
 
 [QA-Default-Prod]
-name=MapR Latest Prod Build QA Repository
-baseurl=http://yum.qa.lab/default-prodmode/
+name=MapR Default Prod Mode Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/core-rpm/defaultprodmode/
 enabled=0
 gpgcheck=0
 protect=1
 
-[QA-Default-Prod-Mode-Artifactory]
-name=MapR Default Prod Mode Artifactory Repository
-baseurl=http://artifactory.devops.lab/artifactory/core-rpm/defaultprodmode/
+[QA-6.0.0-Artifactory]
+name=MapR v6.0.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.0.0/redhat/
+enabled=1
+gpgcheck=0
+protect=1
+
+[QA-SIDEV-Artifactory]
+name=MapR v6.0.0 SIDEV Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/core-rpm/v6.0.0_sidev/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-ALL EBF Patches]
+name=MapR All EBF Patches Repository
+baseurl=http://artifactory.devops.lab/artifactory/list/ebf-rpm/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### RELEASES #####################################
+
+[QA-5.2.1-Artifactory]
+name=MapR v5.2.1 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.2.1/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.2.0-Artifactory]
+name=MapR v5.2.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.2.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.2.0-Patch-Artifactory]
+name=MapR v5.2.0 Patch Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.2.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.1.0-Artifactory]
+name=MapR v5.1.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.1.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.1.0-Patch-Artifactory]
+name=MapR v5.1.0 Patch Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.1.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.0.0-Artifactory]
+name=MapR v5.0.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.0.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.0.0-Patch-Artifactory]
+name=MapR v5.0.0 Patch Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.0.0/redhat/
 enabled=0
 gpgcheck=0
 protect=1
@@ -22,7 +87,14 @@ protect=1
 [QA-Latest-Build]
 name=MapR Latest Build QA Repository
 baseurl=http://yum.qa.lab/mapr/
-enabled=1
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-Default-Prod]
+name=MapR Latest Prod Build QA Repository
+baseurl=http://yum.qa.lab/default-prodmode/
+enabled=0
 gpgcheck=0
 protect=1
 
@@ -106,20 +178,6 @@ protect=1
 [QA-4.0.1-PATCH]
 name=MapR v4.0.1 Patch QA Repository
 baseurl=http://yum.qa.lab/v4.0.1-patch-EBF/
-enabled=0
-gpgcheck=0
-protect=1
-
-[QA-6.0.0-Artifactory]
-name=MapR v6.0.0 Artifactory Repository
-baseurl=http://artifactory.devops.lab/artifactory/core-rpm/v6.0.0/
-enabled=0
-gpgcheck=0
-protect=1
-
-[QA-5.2.0-Artifactory]
-name=MapR v5.2.0 Artifactory Repository
-baseurl=http://artifactory.devops.lab/artifactory/core-rpm/v5.2.0/
 enabled=0
 gpgcheck=0
 protect=1
