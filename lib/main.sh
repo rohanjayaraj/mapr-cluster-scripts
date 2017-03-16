@@ -805,6 +805,16 @@ function main_preSetup(){
 	[ -z "$GLB_HAS_FUSE" ] && [ -n "$(cat $rolefile | grep mapr-posix)" ] && GLB_HAS_FUSE=1
 }
 
+function main_extractMapRVersion(){
+	[ -z "$1" ] && return
+	local url=$1
+	url=$(echo $url | sed 's/\/$//g')
+	local ver=$(echo $url | rev | cut -d'/' -f1 | rev)
+	[ -z "$(echo $ver | grep 'v[0-9]*.[0-9]*.[0-9]*$')" ] && return
+	GLB_MAPR_VERSION=$(echo $ver | cut -d 'v' -f2)
+	echo $GLB_MAPR_VERSION
+}
+
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
 STARTTS=$(date +%s);
@@ -965,7 +975,7 @@ while [ "$2" != "" ]; do
     	;;
     	-repo)
 			if [ -n "$VALUE" ]; then
-				useRepoURL="$VALUE"
+				useRepoURL="$VALUE" && main_extractMapRVersion "$useRepoURL"
 				[ -z "$GLB_PATCH_REPOFILE" ] && GLB_PATCH_REPOFILE="${useRepoURL%?}-patch-EBF"
 				[ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE=
 			fi

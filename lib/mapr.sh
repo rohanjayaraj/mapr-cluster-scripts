@@ -1067,7 +1067,7 @@ function maprutil_configureNode(){
          echo "ISCLIENT=1" >> $scriptpath
     else
         echo "ISCLIENT=0" >> $scriptpath
-        echo "GWNODES=$gwnodes" >> $scriptpath
+        echo "GWNODES=\"$gwnodes\"" >> $scriptpath
     fi
     
     if [ "$hostip" != "$cldbnode" ] && [ "$hostnode" = "$cldbnode" ]; then
@@ -1289,7 +1289,7 @@ function maprutil_checkNewBuildExists(){
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
         #ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
-        newchangeset=$(ssh_executeCommandasRoot "$node" "yum clean all > /dev/null 2>&1; yum --showduplicates list mapr-core | grep -v '$curchangeset' | tail -n1 | awk '{print \$2}' | cut -d'.' -f4")
+        newchangeset=$(ssh_executeCommandasRoot "$node" "yum clean all > /dev/null 2>&1; yum --showduplicates list mapr-core | grep -v '$curchangeset' | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.GA/)) print \$0}' | tail -n1 | awk '{print \$2}' | cut -d'.' -f4")
     elif [ "$nodeos" = "ubuntu" ]; then
         newchangeset=$(ssh_executeCommandasRoot "$node" "apt-get update > /dev/null 2>&1; apt-cache policy mapr-core | grep Candidate | grep -v '$curchangeset' | awk '{print \$2}' | cut -d'.' -f4")
     fi
@@ -1308,7 +1308,7 @@ function maprutil_getMapRVersionFromRepo(){
     local maprversion=
     if [ "$nodeos" = "centos" ]; then
         #ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
-        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | grep mapr-core | tail -n1 | awk '{print \$2}' | cut -d'.' -f1-3")
+        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.GA/)) print \$0}' | tail -n1 | awk '{print \$2}' | cut -d'.' -f1-3")
     elif [ "$nodeos" = "ubuntu" ]; then
         maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | awk '{print \$2}' | cut -d'.' -f1-3")
     fi
@@ -1326,7 +1326,7 @@ function maprutil_copyRepoFile(){
     local repofile=$2
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
-        ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled = 0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1"
+        ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled=0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1"
         ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/"
     elif [ "$nodeos" = "ubuntu" ]; then
         ssh_executeCommandasRoot "$1" "rm -rf /etc/apt/sources.list.d/*mapr*.list > /dev/null 2>&1"
@@ -1350,6 +1350,7 @@ function maprutil_buildRepoFile(){
     if [ "$nodeos" = "centos" ]; then
         meprepo="http://yum.qa.lab/opensource"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
+        [ -z "$GLB_PATCH_REPOFILE" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-rpm/"
 
         echo "[QA-CustomOpensource]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
@@ -1378,6 +1379,7 @@ function maprutil_buildRepoFile(){
     elif [ "$nodeos" = "ubuntu" ]; then
         meprepo="http://apt.qa.lab/opensource"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
+        [ -z "$GLB_PATCH_REPOFILE" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-deb/"
 
         echo "deb $meprepo binary/" > $repofile
         echo "deb ${repourl} mapr optional" >> $repofile
