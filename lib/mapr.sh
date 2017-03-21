@@ -149,7 +149,7 @@ function maprutil_isClientNode() {
     if [ -z "$1" ] || [ -z "$2" ]; then
         return 1
     fi
-    
+    [ -n "$(grep $2 $1 | grep mapr-fileserver)" ] && return
     local isclient=$(grep $2 $1 | grep 'mapr-client\|mapr-loopbacknfs' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     [ -z "$isclient" ] && isclient=$(grep $2 $1 | cut -d',' -f2 | grep mapr-core)
     if [ -n "$isclient" ]; then
@@ -2133,7 +2133,7 @@ function maprutil_checkClusterSetup(){
     for binary in ${bins[@]}
     do
         [ -z "$(util_getInstalledBinaries $binary)" ] && log_errormsg "Package '$binary' NOT installed"
-        [[ "${binary}" =~ mapr-hbase|mapr-client|mapr-patch|mapr-asynchbase|mapr-posix ]] && continue
+        [[ "${binary}" =~ mapr-hbase|mapr-client|mapr-patch|mapr-asynchbase|mapr-posix|mapr-loopbacknfs ]] && continue
         [ -z "$(echo $roles | grep $(echo $binary | cut -d'-' -f2))" ] && log_errormsg "Role '$(echo $binary | cut -d'-' -f2)' not configured"
     done
 
@@ -2170,8 +2170,8 @@ function maprutil_checkClusterSetup(){
     fi
 
     # Remove client roles from 
-    if [ -n "$(echo $roles | grep 'hbinternal\|asynchbase')" ]; then
-        roles=$(echo $roles | sed 's/hbinternal//g;s/asynchbase//g')
+    if [ -n "$(echo $roles | grep 'hbinternal\|asynchbase\|loopbacknfs')" ]; then
+        roles=$(echo $roles | sed 's/hbinternal//g;s/asynchbase//g;s/loopbacknfs//g')
     fi
     roles=$(echo $roles | xargs)
 
