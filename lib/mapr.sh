@@ -1884,7 +1884,7 @@ function maprutil_getClusterSpec(){
     fi
     
     ## More disk info
-    local diskstr=$(echo "$sysinfo" | grep -A${numdisks} "Disk Info" | grep -v OS | grep -v USED | grep Type: )
+    local diskstr=$(echo "$sysinfo" | grep -A${numdisks} "Disk Info" | grep Type: )
     local diskcnt=$(echo "$diskstr" | sort -k1 | awk '{print $1}' | uniq -c | wc -l)
     if [ "$diskcnt" -ge "$numdisks" ]; then
         diskcnt=$(echo "$diskstr" | sort -k1 | awk '{print $1}' | uniq -c | awk '{print $1}' | uniq -c | sort -nr | head -1 | awk '{print $2}')
@@ -2058,7 +2058,7 @@ function maprutil_applyLicense(){
         local clusterid=$(maprcli dashboard info -json | grep -A5 cluster | grep id | tr -d '"' | tr -d ',' | cut -d':' -f2)
         local expdate=$(date -d "+30 days" +%Y-%m-%d)
         local licfile="/tmp/LatestFuseLicensePlatinum.txt"
-        curl -F 'username=maprmanager' -F 'password=maprmapr' -X POST --cookie-jar /tmp/tmpckfile https://apitest.mapr.com/license/authenticate/
+        curl -F 'username=maprmanager' -F 'password=maprmapr' -X POST --cookie-jar /tmp/tmpckfile https://apitest.mapr.com/license/authenticate/ 2>/dev/null
         curl --cookie /tmp/tmpckfile -X POST -F "license_type=additionalfeatures_posixclientplatinum" -F "cluster=${clusterid}" -F "customer_name=maprqa" -F "expiration_date=${expdate}" -F "number_of_nodes=${GLB_CLUSTER_SIZE}" -F "enforcement_type=HARD" https://apitest.mapr.com/license/licenses/createlicense/ -o ${licfile} 2>/dev/null
         [ -e "$licfile" ] && /opt/mapr/bin/maprcli license add -license ${licfile} -is_file true > /dev/null
     fi

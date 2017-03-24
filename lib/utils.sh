@@ -101,6 +101,7 @@ function util_installprereq(){
     util_checkAndInstall "mpstat" "sysstat"
     util_checkAndInstall "lynx" "lynx"
     util_checkAndInstall "pbzip2" "pbzip2"
+    util_checkAndInstall "fio" "fio"
     if [ "$(getOS)" = "centos" ]; then
         util_checkAndInstall "createrepo" "createrepo"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
