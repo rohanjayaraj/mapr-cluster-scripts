@@ -1720,7 +1720,7 @@ function maprutil_checkTabletDistribution(){
     for sp in $storagePools; do
         local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
         local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
-        local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | uniq | wc -l)
+        local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
         log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
     done
 }
