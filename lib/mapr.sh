@@ -1736,7 +1736,7 @@ function maprutil_checkContainerDistribution(){
     local cids="$(echo "$cntrlist" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/,/g')"
     local nummcids=$(timeout 10 maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep Master | grep $hostip | wc -l)
     
-    log_msg "$(util_getHostIP) : [ # of containers master / total : $nummcids / $numcnts]"
+    log_msg "$(util_getHostIP) : [ # of containers master/total : $nummcids/$numcnts]"
 
     local splist=$(/opt/mapr/server/mrconfig sp list 2>/dev/null | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort -n -k1.3)
     for sp in $splist
