@@ -1734,7 +1734,7 @@ function maprutil_checkContainerDistribution(){
     local numcnts=$(echo "$cntrlist" | wc -l)
     local cids="$(echo "$cntrlist" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/,/g')"
     local nummcids=$(timeout 10 maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep Master | grep $hostip | wc -l)
-    log_msg "$(util_getHostIP) : [# of containers: $numcnts], [# of master containers: $nummcids]"
+    log_msg "$(util_getHostIP) : [ # of containers master/total : $nummcids/$numcnts]"
 
     local splist=$(echo "$cntrlist" | awk '{print $2}' | uniq | sed ':a;N;$!ba;s/\n/ /g')
     for sp in $splist
@@ -1742,7 +1742,7 @@ function maprutil_checkContainerDistribution(){
         cids="$(echo "$cntrlist" | grep -w $sp | awk '{print $1}' | sed ':a;N;$!ba;s/\n/,/g')"
         numcids=$(echo "$cntrlist" | grep -w $sp | awk '{print $1}' | wc -l)
         nummcids=$(timeout 10 maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep Master | grep $hostip | wc -l)
-        log_msg "\t$sp : $nummcids/$(echo $numcids-$nummcids|bc) "
+        log_msg "\t$sp : $nummcids / $(echo $numcids-$nummcids|bc) "
     done
 }
 
