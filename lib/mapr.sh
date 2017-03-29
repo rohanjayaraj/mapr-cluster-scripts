@@ -1610,6 +1610,9 @@ function maprutil_runCommands(){
             tabletdist)
                 maprutil_checkTabletDistribution
             ;;
+            cntrdist)
+                maprutil_checkContainerDistribution
+            ;;
             disktest)
                 maprutil_runDiskTest
             ;;
@@ -1704,12 +1707,12 @@ function maprutil_checkTabletDistribution(){
     local filepath=$GLB_TABLET_DIST
     local hostnode=$(hostname -f)
 
-    local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
-    local tabletContainers=$(maprcli table region list -path $filepath -json | grep -v 'secondary' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
+    local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
+    local tabletContainers=$(maprcli table region list -path $filepath -json 2>/dev/null | grep -v 'secondary' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
     if [ -z "$tabletContainers" ]; then
         return
     fi
-    local storagePools=$(/opt/mapr/server/mrconfig sp list | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort)
+    local storagePools=$(/opt/mapr/server/mrconfig sp list 2>/dev/null | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort)
     local numTablets=$(echo "$tabletContainers" | wc -l)
     local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
     log_msg "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
@@ -1718,6 +1721,28 @@ function maprutil_checkTabletDistribution(){
         local spcntrs=$(echo "$cntrlist" | grep $sp | awk '{print $2}')
         local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
         log_msg "\t$sp : $cnt Tablets"
+    done
+}
+
+function maprutil_checkContainerDistribution(){
+    if [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
+        return
+    fi
+
+    local hostip=$(util_getHostIP)
+    local cntrlist=$(timeout 10 /opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null | grep sp: | awk '{print substr($1,5),substr($3,4,4)}' | tr -d ':' | sort -n -k2.4)
+    local numcnts=$(echo "$cntrlist" | wc -l)
+    local cids="$(echo "$cntrlist" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/,/g')"
+    local nummcids=$(timeout 10 maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep Master | grep $hostip | wc -l)
+    log_msg "$(util_getHostIP) : [# of containers: $numcnts], [# of master containers: $nummcids]"
+
+    local splist=$(echo "$cntrlist" | awk '{print $2}' | uniq | sed ':a;N;$!ba;s/\n/ /g')
+    for sp in $splist
+    do
+        cids="$(echo "$cntrlist" | grep -w $sp | awk '{print $1}' | sed ':a;N;$!ba;s/\n/,/g')"
+        numcids=$(echo "$cntrlist" | grep -w $sp | awk '{print $1}' | wc -l)
+        nummcids=$(timeout 10 maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep Master | grep $hostip | wc -l)
+        log_msg "\t$sp : $nummcids/$(echo $numcids-$nummcids|bc) "
     done
 }
 

@@ -73,6 +73,9 @@ function usage () {
     echo -e "\t -dt | --disktest" 
     echo -e "\t\t - Run 'hdparm' disk tests on all nodes for MapR disks"
 
+    echo -e "\t -cd | --containerdist" 
+    echo -e "\t\t - Check Container distribution across SPs on each node"
+
     echo -e "\t -td=<FILEPATH> | --tabletdist=<FILEPATH>" 
     echo -e "\t\t - Check Tablet distribution across SPs on each node for FILEPATH"
 
@@ -124,6 +127,9 @@ while [ "$1" != "" ]; do
         ;;
         -sc | --setupcheck)
             args=$args"setupcheck "
+        ;;
+        -cd | --containerdist)
+            args=$args"cntrdist "
         ;;
         -td | --tabletdist)
             if [ -n "$VALUE" ]; then

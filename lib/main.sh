@@ -681,6 +681,10 @@ function main_runLogDoctor(){
 				log_msghead "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
         	;;
+        	cntrdist)
+				log_msghead "[$(util_getCurDate)] Checking container distribution"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "cntrdist"
+        	;;
         	setupcheck)
 				log_msghead "[$(util_getCurDate)] Checking cluster services"
 				maprutil_checkClusterSetupOnNodes "$nodelist" "$rolefile"
@@ -905,6 +909,8 @@ while [ "$2" != "" ]; do
 	    			doLogAnalyze="$doLogAnalyze mfsgrep"
 	    		elif [[ "$i" = "clsspec" ]]; then
 	    			doLogAnalyze="$doLogAnalyze clsspec"
+	    		elif [[ "$i" = "cntrdist" ]]; then
+	    			doLogAnalyze="$doLogAnalyze cntrdist"
 	    		elif [[ "$i" = "setupcheck" ]]; then
 	    			doLogAnalyze="$doLogAnalyze setupcheck"
 	    		fi
