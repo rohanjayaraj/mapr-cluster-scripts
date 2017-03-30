@@ -743,6 +743,8 @@ function main_getRepoFile(){
 	fi
 	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
+	
+	[ -z "$(echo $rolefile | grep mapr-patch)" ] && [ -z "$GLB_MAPR_PATCH" ] && GLB_PATCH_REPOFILE=
 	maprutil_buildRepoFile "$repofile" "$useRepoURL" "$cldbnode"
 	echo "$repofile"
 }

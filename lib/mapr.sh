@@ -892,6 +892,7 @@ function maprutil_startTraces() {
         nohup sh -c 'log="/opt/mapr/logs/dstat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 dstat -tcdnim >> $log; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/iostat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/mfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 10 top -bH -p $mfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        nohup sh -c 'log="/opt/mapr/logs/gatewayguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if [ -n "$gwpid" ]; then timeout 14 stdbuf -o0 /opt/mapr/bin/guts clientpid:$gwpid time:all gateway:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
     fi
 }
 
@@ -965,12 +966,14 @@ function maprutil_configure(){
 
     if [ "$ISCLIENT" -eq 1 ]; then
         log_info "[$hostip] /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
-        /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops
+        # SSH session exits after running for few seconds with error "Write failed: Broken pipe"; Running in background and waiting
+        /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops &
     else
         log_info "[$hostip] /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
-        /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops
+        /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops &
     fi
-    
+    wait
+
     # Perform series of custom configuration based on selected options
     maprutil_customConfigure
 
@@ -997,16 +1000,18 @@ function maprutil_configure(){
         else
             numsps=
         fi
-        /opt/mapr/server/disksetup -FW $numstripe $diskfile
+        # SSH session exits after running for few seconds with error "Write failed: Broken pipe"; Running in background and waiting
+        /opt/mapr/server/disksetup -FW $numstripe $diskfile &
     elif [[ -n "$numsps" ]] &&  [[ "$numsps" -le "$numdisks" ]]; then
         if [ $((numdisks%2)) -eq 1 ] && [ $((numsps%2)) -eq 0 ]; then
             numdisks=$(echo "$numdisks+1" | bc)
         fi
         local numstripe=$(echo "$numdisks/$numsps"|bc)
-        /opt/mapr/server/disksetup -FW $numstripe $diskfile
+        /opt/mapr/server/disksetup -FW $numstripe $diskfile &
     else
-        /opt/mapr/server/disksetup -FM $diskfile
+        /opt/mapr/server/disksetup -FM $diskfile &
     fi
+    wait
 
     # Add root user to container-executor.cfg
     maprutil_addRootUserToCntrExec
@@ -1371,7 +1376,7 @@ function maprutil_buildRepoFile(){
         echo "protect=1" >> $repofile
 
         # Add patch if specified
-        if [ -n "$GLB_PATCH_REPOFILE" ] ; then
+        if [ -n "$GLB_PATCH_REPOFILE" ]; then
             echo "[QA-CustomPatchRepo]" >> $repofile
             echo "name=MapR Custom Repository" >> $repofile
             echo "baseurl=${GLB_PATCH_REPOFILE}" >> $repofile
