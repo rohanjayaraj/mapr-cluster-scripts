@@ -176,7 +176,7 @@ if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	returncode=1
 else
-    params="$libdir/main.sh $rolefile -td=$tbltdist -si=$sysinfo -v=$verbose \"-g=$grepkey\" \"-b=$backupdir\" \"-l=$args\""
+    params="$libdir/main.sh $rolefile -td=$tbltdist -si=$sysinfo -v=$verbose \"-e=force\" \"-g=$grepkey\" \"-b=$backupdir\" \"-l=$args\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else

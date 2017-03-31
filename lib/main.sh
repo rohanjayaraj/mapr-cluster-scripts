@@ -185,6 +185,9 @@ function main_install(){
 	done
 	maprutil_wait
 
+	# SSH session exits after running for few seconds with error "Write failed: Broken pipe";
+	#util_restartSSHD
+
 	# Configure all nodes
 	for node in ${nodes[@]}
 	do
@@ -282,6 +285,9 @@ function main_reconfigure(){
 	# Read properties
 	local clustername=$GLB_CLUSTER_NAME
 	
+	# SSH session exits after running for few seconds with error "Write failed: Broken pipe";
+	#util_restartSSHD
+
 	# Configure all nodes
 	for node in ${nodes[@]}
 	do
@@ -743,8 +749,8 @@ function main_getRepoFile(){
 	fi
 	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
-	
-	[ -z "$(echo $rolefile | grep mapr-patch)" ] && [ -z "$GLB_MAPR_PATCH" ] && GLB_PATCH_REPOFILE=
+
+	#[ -z "$(echo $rolefile | grep mapr-patch)" ] && [ -z "$GLB_MAPR_PATCH" ] && GLB_PATCH_REPOFILE=
 	maprutil_buildRepoFile "$repofile" "$useRepoURL" "$cldbnode"
 	echo "$repofile"
 }
@@ -818,7 +824,7 @@ function main_extractMapRVersion(){
 	local ver=$(echo $url | rev | cut -d'/' -f1 | rev)
 	[ -z "$(echo $ver | grep 'v[0-9]*.[0-9]*.[0-9]*$')" ] && return
 	GLB_MAPR_VERSION=$(echo $ver | cut -d 'v' -f2)
-	echo $GLB_MAPR_VERSION
+	#echo $GLB_MAPR_VERSION
 }
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
