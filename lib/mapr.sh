@@ -332,9 +332,9 @@ function maprutil_isMapRInstalledOnNodes(){
     for node in ${maprnodes[@]}
     do
         local nodelog=$(cat $tmpdir/$node.log)
-        local nodevlog=$(cat $tmpdir/$node_ver.log)
         if [ "$nodelog" = "true" ]; then
             if [ -n "$maprversion" ]; then
+                local nodevlog=$(cat $tmpdir/$node_ver.log)
                 yeslist=$yeslist"$node $nodevlog""\n"
             else
                 yeslist=$yeslist"$node"" "
