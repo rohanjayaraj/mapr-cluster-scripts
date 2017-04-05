@@ -632,12 +632,14 @@ function maprutil_installBinariesOnNode(){
     local bins="$2"
     local maprpatch=$(echo "$bins" | tr ' ' '\n' | grep mapr-patch)
     [ -n "$maprpatch" ] && bins=$(echo "$bins" | tr ' ' '\n' | grep -v mapr-patch | tr '\n' ' ')
-    echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\"" >> $scriptpath
+    
     ## Append MapR release version as there might be conflicts with mapr-patch-client with regex as 'mapr-patch*$VERSION*'
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
+        echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""-$GLB_MAPR_VERSION"\"" >> $scriptpath
         [ -n "$maprpatch" ] && echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
     else
+        echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""$GLB_MAPR_VERSION"\"" >> $scriptpath
         [ -n "$maprpatch" ] && echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
     fi
     
