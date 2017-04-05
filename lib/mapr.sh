@@ -313,6 +313,7 @@ function maprutil_isMapRInstalledOnNodes(){
         return
     fi
     local maprnodes=$1
+    local maprversion=$2
     local tmpdir="$RUNTEMPDIR/installed"
     mkdir -p $tmpdir 2>/dev/null
     local yeslist=
@@ -321,13 +322,23 @@ function maprutil_isMapRInstalledOnNodes(){
         local nodelog="$tmpdir/$node.log"
         maprutil_isMapRInstalledOnNode "$node" > $nodelog &
         maprutil_addToPIDList "$!"
+        if [ -n "$maprversion" ]; then
+            local nodevlog="$tmpdir/$node_ver.log"
+            maprutil_getMapRVersionOnNode "$node" > $nodevlog &
+            maprutil_addToPIDList "$!"
+        fi
     done
     maprutil_wait > /dev/null 2>&1
     for node in ${maprnodes[@]}
     do
         local nodelog=$(cat $tmpdir/$node.log)
+        local nodevlog=$(cat $tmpdir/$node_ver.log)
         if [ "$nodelog" = "true" ]; then
-            yeslist=$yeslist"$node"" "
+            if [ -n "$maprversion" ]; then
+                yeslist=$yeslist"$node $nodevlog""\n"
+            else
+                yeslist=$yeslist"$node"" "
+            fi
         fi
     done
     echo "$yeslist"
@@ -2422,6 +2433,7 @@ function maprutil_zipDirectory(){
     if [ -z "$fileregex" ]; then
         cp -r $logdir logs  > /dev/null 2>&1
     else
+        [ -z "$(ls $logdir/$fileregex 2> /dev/null)" ] && return
         mkdir -p logs  > /dev/null 2>&1
         cp -r $logdir/$fileregex logs > /dev/null 2>&1
     fi

@@ -569,7 +569,7 @@ function main_uninstall(){
 function main_isMapRInstalled(){
 	log_msg "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
-	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
+	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes" "version")
 	local notlist=
 	for node in ${nodes[@]}
 	do
@@ -577,7 +577,7 @@ function main_isMapRInstalled(){
 		if [ -z "$isInstalled" ]; then
 			notlist=$notlist"$node"" "
 		else
-			log_info "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
+			log_info "MapR is installed on node '$node' [ $(echo $isInstalled | awk '{print $2}') ]"
 		fi
 	done
 
