@@ -90,7 +90,7 @@ ssh_installsshpass
 
 # Check if SSH is configured
 #echo "Checking Key-based authentication to all nodes listed... "
-if [ -n $(ssh_checkSSHonNodes "$nodes") ]; then
+if [ -n "$(ssh_checkSSHonNodes "$nodes")" ]; then
 	for node in ${nodes[@]}
 	do
 		isEnabled=$(ssh_check "root" "$node")
@@ -256,7 +256,7 @@ function main_reconfigure(){
     echo
     log_info "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
-	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
+	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes" "version")
 	local notlist=
 	for node in ${nodes[@]}
 	do
@@ -265,8 +265,8 @@ function main_reconfigure(){
 			notlist=$notlist"$node"" "
 		else
 			#??? Get install version
-			[ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
-			log_info "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
+			[ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(echo $isInstalled | awk '{print $2}')
+			log_info "MapR is installed on node '$node' [ $(echo $isInstalled | awk '{print $2}') ]"
 		fi
 	done
 
@@ -353,7 +353,7 @@ function main_upgrade(){
     echo
     log_info "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
-	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes")
+	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes" "version")
 	local notlist=
 	for node in ${nodes[@]}
 	do
@@ -361,7 +361,7 @@ function main_upgrade(){
 		if [ -z "$isInstalled" ]; then
 			notlist=$notlist"$node"" "
 		else
-			log_info "MapR is installed on node '$node' [ $(maprutil_getMapRVersionOnNode $node) ]"
+			log_info "MapR is installed on node '$node' [ $(echo $isInstalled | awk '{print $2}') ]"
 		fi
 	done
 

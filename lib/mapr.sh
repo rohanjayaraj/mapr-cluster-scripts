@@ -341,7 +341,7 @@ function maprutil_isMapRInstalledOnNodes(){
             fi
         fi
     done
-    echo "$yeslist"
+    echo -e "$yeslist"
 }
 
 # @param host ip
