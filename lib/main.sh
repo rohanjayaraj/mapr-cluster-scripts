@@ -600,7 +600,7 @@ function main_backuplogs(){
 	local timestamp=$(date +%Y-%m-%d-%H-%M)
 	for node in ${nodes[@]}
 	do	
-    	maprutil_zipLogsDirectoryOnNode "$node" "$timestamp"
+    	maprutil_zipLogsDirectoryOnNode "$node" "$timestamp" "$bkpRegex"
 	done
 	maprutil_wait
 	for node in ${nodes[@]}
@@ -843,6 +843,7 @@ doPontis=0
 doForce=0
 doSilent=0
 doBackup=
+bkpRegex=
 useBuildID=
 useRepoURL=
 useMEPURL=
@@ -975,6 +976,11 @@ while [ "$2" != "" ]; do
     	-b)
 			if [ -n "$VALUE" ]; then
 				doBackup=$VALUE
+			fi
+    	;;
+    	-bf)
+			if [ -n "$VALUE" ]; then
+				bkpRegex=$VALUE
 			fi
     	;;
     	-bld)

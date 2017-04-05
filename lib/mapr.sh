@@ -2407,6 +2407,8 @@ function maprutil_wait(){
 # @param timestamp
 function maprutil_zipDirectory(){
     local timestamp=$1
+    local fileregex=$2
+
     local tmpdir="/tmp/maprlogs/$(hostname -f)/"
     local logdir="/opt/mapr/logs"
     local buildid=$(cat /opt/mapr/MapRBuildVersion)
@@ -2417,7 +2419,12 @@ function maprutil_zipDirectory(){
     maprutil_copyConfsToDir "$tmpdir"
     # Copy the logs
     cd $tmpdir
-    cp -r $logdir logs  > /dev/null 2>&1
+    if [ -z "$fileregex" ]; then
+        cp -r $logdir logs  > /dev/null 2>&1
+    else
+        mkdir -p logs  > /dev/null 2>&1
+        cp -r $logdir/$fileregex logs > /dev/null 2>&1
+    fi
     local dirstotar=$(echo $(ls -d */))
     #tar -cjf $tarfile $dirstotar > /dev/null 2>&1
     tar -cf $tarfile --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
@@ -2457,6 +2464,7 @@ function maprutil_zipLogsDirectoryOnNode(){
 
     local node=$1
     local timestamp=$2
+    local fileregex=$3
     
     local scriptpath="$RUNTEMPDIR/zipdironnode_${node: -3}.sh"
     maprutil_buildSingleScript "$scriptpath" "$node"
@@ -2465,7 +2473,7 @@ function maprutil_zipLogsDirectoryOnNode(){
         return
     fi
 
-    echo "maprutil_zipDirectory \"$timestamp\"" >> $scriptpath
+    echo "maprutil_zipDirectory \"$timestamp\" \"$fileregex\"" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$node" "$scriptpath"
     maprutil_addToPIDList "$!"

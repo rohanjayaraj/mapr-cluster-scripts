@@ -21,6 +21,7 @@ tbltdist=
 sysinfo=
 grepkey=
 backupdir=
+backupregex=
 verbose=
 doNoFormat=
 
@@ -96,11 +97,19 @@ function usage () {
 
     echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
     echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
+
+    echo -e "\t -bf=<FILEREGEX> | --backupregex=<FILEREGEX>" 
+    echo -e "\t\t - When passed with -b option, backup only log files with name matching the FILEREGEX"
     
     echo 
     echo " Examples : "
-    echo -e "\t ./$me -c=maprdb -d" 
-    echo -e "\t ./$me -c=maprdb -td=/tables/usertable"
+    echo -e "\t ./$me -c=maprdb -d -l" 
+    echo -e "\t ./$me -c=maprdb -td=/tables/usertable -cd"
+    echo -e "\t ./$me -c=maprdb -b=~/logsbkp/ -bf=\"*mfs*\""
+    echo -e "\t ./$me -c=maprdb -si -cs"
+    echo -e "\t ./$me -c=maprdb -si -fl > /tmp/sysinfo.log"
+    echo -e "\t ./$me -c=maprdb -sc"
+    echo -e "\t ./$me -c=maprdb -g=\"error 5\""
     echo
 }
 
@@ -143,6 +152,9 @@ while [ "$1" != "" ]; do
             fi
             backupdir=$VALUE
         ;;
+        -bf | --backupregex)
+            [ -n "$VALUE" ] && backupregex=$VALUE
+        ;;
         -si | --systeminfo)
             sysinfo="$VALUE"
             if [ -z "$sysinfo" ]; then
@@ -176,7 +188,7 @@ if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	returncode=1
 else
-    params="$libdir/main.sh $rolefile -td=$tbltdist -si=$sysinfo -v=$verbose \"-e=force\" \"-g=$grepkey\" \"-b=$backupdir\" \"-l=$args\""
+    params="$libdir/main.sh $rolefile -td=$tbltdist -si=$sysinfo -v=$verbose \"-e=force\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else
