@@ -2522,10 +2522,11 @@ function maprutil_analyzeCores(){
     log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -l) core files"
     for core in $cores
     do
-        core="/opt/cores/$core"
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
-        log_msg "\t Core : $core ($tracefile)"
+        core="/opt/cores/$core"
         local backtrace=$(maprutil_debugCore $core $tracefile)
+
+        log_msg "\t Core : $core ($tracefile)"
 
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
             log_msg "\t\t Core file is truncated!"
