@@ -1547,7 +1547,8 @@ function maprutil_runCommandsOnNodesInParallel(){
 
     for node in ${nodes[@]}
     do
-        cat "$tempdir/$node.log" 2>/dev/null
+        local nodefile="$tempdir/$node.log"
+        [ "$(cat $nodefile | wc -w)" -gt "0" ] && cat "$nodefile" 2>/dev/null
     done
     rm -rf $tempdir > /dev/null 2>&1
 }
@@ -2519,7 +2520,8 @@ function maprutil_analyzeCores(){
     local cores=$(ls /opt/cores/ | grep 'mfs.core\|java.core')
     [ -z "$cores" ] && return
 
-    log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -l) core files"
+    echo
+    log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -l) core file(s)"
     for core in $cores
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
