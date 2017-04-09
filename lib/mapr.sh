@@ -2525,16 +2525,18 @@ function maprutil_analyzeCores(){
         log_msg "\t Core : $core"
         
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
-        local backtrace=$(maprutil_debugCore $core $tracefile)
+        local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile)
 
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
             log_msg "\t\t Core file is truncated"
-        else
+        elif [ -n "$backtrace" ]; then
             if [ -z "$GLB_LOG_VERBOSE" ]; then
                 echo -e "$backtrace" | sed 's/^/\t\t/'
             else
-                cat $tracefile | sed 's/^/\t\t/'
+                cat $tracefile | sed -e '1,/Thread debugging using/d' | sed 's/^/\t\t/'
             fi
+        else
+            log_msg "\t\t Unable to print the stack. Please check $tracefile."
         fi
     done
 }
@@ -2561,9 +2563,9 @@ function maprutil_debugCore(){
         btline=$(cat $tracefile | grep -B10 -n  "abort ()" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
     fi
     
-    [ -z "$btline" ] && btline=$(cat $tracefile | grep -n "Thread 1" | cut -f1 -d:)
+    [ -z "$btline" ] && btline=$(cat $tracefile | grep -n "Thread 1 " | cut -f1 -d:)
     local backtrace=$(cat $tracefile | sed -n "${btline},/^\s*$/p")
-    [ -z "$backtrace" ] && echo "$backtrace"
+    [ -n "$backtrace" ] && echo "$backtrace"
 }
 
 # @param scriptpath

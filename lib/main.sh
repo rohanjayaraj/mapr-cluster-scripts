@@ -697,7 +697,7 @@ function main_runLogDoctor(){
         	;;
         	analyzecores)
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "$analyzecores"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzecores"
         	;;
         esac
         local ec=$?
