@@ -1028,7 +1028,7 @@ function maprutil_configure(){
     else
         /opt/mapr/server/disksetup -FM $diskfile &
     fi
-    for i in {1..10}; do echo -ne "."; sleep 1; done
+    for i in {1..20}; do echo -ne "."; sleep 1; done
     wait
 
     # Add root user to container-executor.cfg
@@ -1654,6 +1654,9 @@ function maprutil_runCommands(){
             traceon)
                 maprutil_killTraces
                 maprutil_startTraces
+            ;;
+            analyzecores)
+                maprutil_analyzeCores
             ;;
             *)
             echo "Nothing to do!!"
@@ -2510,6 +2513,57 @@ function maprutil_copyZippedLogsFromNode(){
     local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
     
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto" > /dev/null 2>&1
+}
+
+function maprutil_analyzeCores(){
+    local cores=$(ls /opt/cores/ | grep 'mfs.core\|java.core')
+    [ -z "$cores" ] && return
+
+    log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -l) core files"
+    for core in $cores
+    do
+        log_msg "\t Core : $core"
+        
+        local tracefile="/opt/mapr/logs/$core.gdbtrace"
+        local backtrace=$(maprutil_debugCore $core $tracefile)
+
+        if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
+            log_msg "\t\t Core file is truncated"
+        else
+            if [ -z "$GLB_LOG_VERBOSE" ]; then
+                echo -e "$backtrace" | sed 's/^/\t\t/'
+            else
+                cat $tracefile | sed 's/^/\t\t/'
+            fi
+        fi
+    done
+}
+
+# @param corefile
+# @param gdb trace file
+function maprutil_debugCore(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    command -v gdb >/dev/null 2>&1 || return
+
+    local corefile=$1
+    local tracefile=$2
+    local isjava=$(echo $corefile | grep "java.core")
+
+    local btline=
+
+    if [ -z "$isjava" ]; then
+        gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
+        btline=$(cat $tracefile | grep -B10 -n "mapr::fs::FileServer::CoreHandler" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
+    else
+        gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
+        btline=$(cat $tracefile | grep -B10 -n  "abort ()" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
+    fi
+    
+    [ -z "$btline" ] && btline=$(cat $tracefile | grep -n "Thread 1" | cut -f1 -d:)
+    local backtrace=$(cat $tracefile | sed -n "${btline},/^\s*$/p")
+    [ -z "$backtrace" ] && echo "$backtrace"
 }
 
 # @param scriptpath

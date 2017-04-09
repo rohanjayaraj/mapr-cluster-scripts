@@ -695,6 +695,10 @@ function main_runLogDoctor(){
 				log_msghead "[$(util_getCurDate)] Checking cluster services"
 				maprutil_checkClusterSetupOnNodes "$nodelist" "$rolefile"
         	;;
+        	analyzecores)
+				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "$analyzecores"
+        	;;
         esac
         local ec=$?
         [ -n "$ec" ] && [ "$rc" -eq "0" ] && rc=$ec
@@ -922,6 +926,8 @@ while [ "$2" != "" ]; do
 	    			doLogAnalyze="$doLogAnalyze cntrdist"
 	    		elif [[ "$i" = "setupcheck" ]]; then
 	    			doLogAnalyze="$doLogAnalyze setupcheck"
+	    		elif [[ "$i" = "analyzecores" ]]; then
+	    			doLogAnalyze="$doLogAnalyze analyzecores"
 	    		fi
 	    	done
 		;;

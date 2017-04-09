@@ -68,6 +68,9 @@ function usage () {
     echo -e "\t -d | --diskerror" 
     echo -e "\t\t - Find any disk errors on nodes"
 
+    echo -e "\t -ac | --analyzecores" 
+    echo -e "\t\t - Analyze cores present"
+
     echo -e "\t -v | --verbose" 
     echo -e "\t\t - Print verbose of messages"
 
@@ -128,6 +131,9 @@ while [ "$1" != "" ]; do
     	-d | --diskerror)
     		args=$args"diskerror "
     	;;
+        -ac | --analyzecores)
+            args=$args"analyzecores "
+        ;;
         -dt | --disktest)
             args=$args"disktest "
         ;;
