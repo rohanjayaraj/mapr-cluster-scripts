@@ -2522,13 +2522,13 @@ function maprutil_analyzeCores(){
     log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -l) core files"
     for core in $cores
     do
-        log_msg "\t Core : $core"
-        
+        core="/opt/cores/$core"
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
-        local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile)
+        log_msg "\t Core : $core ($tracefile)"
+        local backtrace=$(maprutil_debugCore $core $tracefile)
 
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
-            log_msg "\t\t Core file is truncated"
+            log_msg "\t\t Core file is truncated!"
         elif [ -n "$backtrace" ]; then
             if [ -z "$GLB_LOG_VERBOSE" ]; then
                 echo -e "$backtrace" | sed 's/^/\t\t/'
@@ -2536,7 +2536,7 @@ function maprutil_analyzeCores(){
                 cat $tracefile | sed -e '1,/Thread debugging using/d' | sed 's/^/\t\t/'
             fi
         else
-            log_msg "\t\t Unable to print the stack. Please check $tracefile."
+            log_msg "\t\t Unable to fetch the backtrace"
         fi
     done
 }
@@ -2544,24 +2544,24 @@ function maprutil_analyzeCores(){
 # @param corefile
 # @param gdb trace file
 function maprutil_debugCore(){
+    command -v gdb >/dev/null 2>&1 || return
     if [ -z "$1" ]; then
         return
     fi
-    command -v gdb >/dev/null 2>&1 || return
 
     local corefile=$1
     local tracefile=$2
-    local isjava=$(echo $corefile | grep "java.core")
+    
+    local binary="/opt/mapr/server/mfs"
+    local btkey="mapr::fs::FileServer::CoreHandler"
 
-    local btline=
-
-    if [ -z "$isjava" ]; then
-        gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
-        btline=$(cat $tracefile | grep -B10 -n "mapr::fs::FileServer::CoreHandler" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
-    else
-        gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
-        btline=$(cat $tracefile | grep -B10 -n  "abort ()" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
+    if [ -n "$(echo $corefile | grep "java.core")" ]; then
+        binary=$(which java)
+        bykey="abort ()"
     fi
+
+    gdb -ex "thread apply all bt" --batch -c ${corefile} ${binary} > $tracefile 2>&1    
+    local btline=$(cat $tracefile | grep -B10 -n "$bykey" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
     
     [ -z "$btline" ] && btline=$(cat $tracefile | grep -n "Thread 1 " | cut -f1 -d:)
     local backtrace=$(cat $tracefile | sed -n "${btline},/^\s*$/p")
