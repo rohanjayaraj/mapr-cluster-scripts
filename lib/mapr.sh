@@ -2555,16 +2555,15 @@ function maprutil_debugCore(){
     local tracefile=$2
     local isjava=$(echo $corefile | grep "java.core")
 
-    local btline=
-
-    if [ -z "$isjava" ]; then
-        gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
-        btline=$(cat $tracefile | grep -B10 -n "mapr::fs::FileServer::CoreHandler" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
-    else
-        gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
-        btline=$(cat $tracefile | grep -B10 -n  "abort ()" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
+    if [ ! -e "$tracefile" ]; then
+        if [ -z "$isjava" ]; then
+            gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
+        else
+            gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
+        fi
     fi
-    
+    local btline=$(cat $tracefile | grep -B10 -n "mapr::fs::FileServer::CoreHandler" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
+    [ -z "$btline" ] && btline=$(cat $tracefile | grep -B10 -n  "abort ()" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
     [ -z "$btline" ] && btline=$(cat $tracefile | grep -n "Thread 1 " | cut -f1 -d:)
     local backtrace=$(cat $tracefile | sed -n "${btline},/^\s*$/p")
     [ -n "$backtrace" ] && echo "$backtrace"
