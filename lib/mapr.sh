@@ -1353,13 +1353,13 @@ function maprutil_copyRepoFile(){
     local repofile=$2
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
-        ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled=0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1"
+        ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled=0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1" > /dev/null 2>&1
         ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/"
     elif [ "$nodeos" = "ubuntu" ]; then
-        ssh_executeCommandasRoot "$1" "rm -rf /etc/apt/sources.list.d/*mapr*.list > /dev/null 2>&1"
-        ssh_executeCommandasRoot "$1" "sed -i '/apt.qa.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1"
-        ssh_executeCommandasRoot "$1" "sed -i '/artifactory.devops.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1"
-        ssh_executeCommandasRoot "$1" "sed -i '/package.mapr.com/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1"
+        ssh_executeCommandasRoot "$1" "rm -rf /etc/apt/sources.list.d/*mapr*.list > /dev/null 2>&1" > /dev/null 2>&1
+        ssh_executeCommandasRoot "$1" "sed -i '/apt.qa.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
+        ssh_executeCommandasRoot "$1" "sed -i '/artifactory.devops.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
+        ssh_executeCommandasRoot "$1" "sed -i '/package.mapr.com/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
 
         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
     fi
@@ -2525,7 +2525,8 @@ function maprutil_analyzeCores(){
     for core in $cores
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
-        log_msg "\t Core : $core ($tracefile)"
+        local ftime=$(date -r /opt/cores/$core +'%Y-%m-%d %H:%M:%S')
+        log_msg "\t Core : [$ftime] $core ( $tracefile )"
         local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile)
 
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then

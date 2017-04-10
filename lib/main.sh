@@ -160,6 +160,8 @@ function main_install(){
 	if [ -n "$islist" ]; then
 		log_error "MapR is already installed on the node(s) [ $islist] or some stale binaries are still present. Scooting!"
 		exit 255
+	else
+		log_info "No MapR installed on any node. Continuing installation..."
 	fi
 
 	# Read properties
@@ -181,6 +183,7 @@ function main_install(){
 			fi
 		fi
 		local nodebins=$(maprutil_getCoreNodeBinaries "$rolefile" "$node")
+		log_info "****** Installing binaries on node -> $node ****** "
 		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
 	done
 	maprutil_wait
@@ -368,6 +371,8 @@ function main_upgrade(){
 	if [ -n "$notlist" ]; then
 		log_error "MapR not installed on the node(s) [ $notlist]. Trying install on the nodes first. Scooting!"
 		exit 1
+	else
+		log_info "No MapR installed on any node. Continuing upgrade..."
 	fi
 
 	local cldbnode=
