@@ -414,7 +414,7 @@ function maprutil_cleanPrevClusterConfig(){
     # Kill YCSB processes
     maprutil_killYCSB
 
-    util_kill "mfs"
+    #util_kill "mfs"
     util_kill "java" "jenkins"
 
     # Unmount NFS
