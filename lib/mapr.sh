@@ -2525,6 +2525,7 @@ function maprutil_analyzeCores(){
     local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java.core' | awk '{print $9}')
     [ -z "$cores" ] && return
 
+    echo
     log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -w) core file(s)"
     for core in $cores
     do
