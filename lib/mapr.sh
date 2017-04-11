@@ -414,6 +414,9 @@ function maprutil_cleanPrevClusterConfig(){
     # Kill YCSB processes
     maprutil_killYCSB
 
+    util_kill "mfs"
+    util_kill "java" "jenkins"
+
     # Unmount NFS
     maprutil_unmountNFS
 
@@ -1354,14 +1357,14 @@ function maprutil_copyRepoFile(){
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
         ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled=0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1" > /dev/null 2>&1
-        ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/"
+        ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/" > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
         ssh_executeCommandasRoot "$1" "rm -rf /etc/apt/sources.list.d/*mapr*.list > /dev/null 2>&1" > /dev/null 2>&1
         ssh_executeCommandasRoot "$1" "sed -i '/apt.qa.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
         ssh_executeCommandasRoot "$1" "sed -i '/artifactory.devops.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
         ssh_executeCommandasRoot "$1" "sed -i '/package.mapr.com/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
 
-        ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/"
+        ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/" > /dev/null 2>&1
     fi
 }
 
@@ -1561,6 +1564,7 @@ function maprutil_runCommandsOnNode(){
     fi
     
     local node=$1
+    local silent=$3
     
      # build full script for node
     local scriptpath="$RUNTEMPDIR/cmdonnode_${node: -3}.sh"
@@ -1575,10 +1579,11 @@ function maprutil_runCommandsOnNode(){
     
     echo "maprutil_runCommands \"$2\"" >> $scriptpath
    
-    if [ "$hostip" != "$node" ]; then
+
+    if [ -z "$silent" ]; then
         ssh_executeScriptasRoot "$node" "$scriptpath"
     else
-        maprutil_runCommands "$2"
+        ssh_executeScriptasRoot "$node" "$scriptpath" > /dev/null 2>&1
     fi
 }
 
@@ -2517,16 +2522,15 @@ function maprutil_copyZippedLogsFromNode(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls /opt/cores/ | grep 'mfs.core\|java.core')
+    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java.core' | awk '{print $9}')
     [ -z "$cores" ] && return
 
-    echo
-    log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -l) core file(s)"
+    log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -w) core file(s)"
     for core in $cores
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
         local ftime=$(date -r /opt/cores/$core +'%Y-%m-%d %H:%M:%S')
-        log_msg "\t Core : [$ftime] $core ( $tracefile )"
+        log_msg "\n\t Core : [$ftime] $core ( $tracefile )"
         local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile)
 
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
@@ -2555,7 +2559,7 @@ function maprutil_debugCore(){
     local tracefile=$2
     local isjava=$(echo $corefile | grep "java.core")
 
-    if [ ! -e "$tracefile" ]; then
+    if [ ! -e "$tracefile" ] || ; then
         if [ -z "$isjava" ]; then
             gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
         else

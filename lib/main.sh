@@ -641,7 +641,7 @@ function main_runCommandExec(){
 	if [[ -n "$(echo $cmds | grep traceon)" ]]; then
 		for node in ${nodes[@]}
 		do	
-	    	maprutil_runCommandsOnNode "$node" "traceon"
+	    	maprutil_runCommandsOnNode "$node" "traceon" "silent"
 		done
 		cmds=$(echo $cmds | sed 's/traceon//')
 	fi
