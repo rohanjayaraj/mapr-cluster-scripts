@@ -2527,11 +2527,12 @@ function maprutil_analyzeCores(){
 
     echo
     log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -w) core file(s)"
+    local i=1
     for core in $cores
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
         local ftime=$(date -r /opt/cores/$core +'%Y-%m-%d %H:%M:%S')
-        log_msg "\n\t Core : [$ftime] $core ( $tracefile )"
+        log_msg "\n\t Core #${i} : [$ftime] $core ( $tracefile )"
         local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile)
 
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
@@ -2545,6 +2546,7 @@ function maprutil_analyzeCores(){
         else
             log_msg "\t\t Unable to fetch the backtrace"
         fi
+        let i=i+1
     done
 }
 
