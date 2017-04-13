@@ -1810,7 +1810,7 @@ function maprutil_checkIndexTabletDistribution(){
         local tabletmap="${idxcntr}.${tabletfid}"
         local idxtabletfids=$(maprcli debugdb dump -fid $tabletmap -json | grep fid | cut -d':' -f2 | tr -d '"' | grep "$localcids")
 
-        echo -e "\t Index $(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2) $(echo "$idxtabletfids" | wc -w) Tablet Statistics"
+        log_msg "\t Index $(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2) $(echo "$idxtabletfids" | wc -w) Tablet Statistics"
 
         local sleeptime=5
         local maxnumcli=$(echo $(nproc)/2|bc)
@@ -1820,11 +1820,13 @@ function maprutil_checkIndexTabletDistribution(){
             maprutil_printTabletStats "$i" "$tabletfid" &
             let i=i+1
             local curnumcli=$(jps | grep CLIMainDriver | wc -l)
-            while [ $curnumcli -gt $maxnumcli ]; do
-                sleep $sleeptime;
+            while [ "$curnumcli" -gt "$maxnumcli" ]
+            do
+                sleep $sleeptime
                 curnumcli=$(jps | grep CLIMainDriver | wc -l)
             done
         done
+        wait
     done
 }
 
