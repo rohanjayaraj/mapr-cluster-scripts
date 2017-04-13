@@ -1787,7 +1787,6 @@ function maprutil_checkIndexTabletDistribution(){
     if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
         return
     fi
-    if 
     local hostip=$(util_getHostIP)
     local tablepath=$GLB_TABLET_DIST
     
