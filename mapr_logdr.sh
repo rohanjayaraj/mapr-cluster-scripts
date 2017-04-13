@@ -84,6 +84,9 @@ function usage () {
     echo -e "\t -td=<FILEPATH> | --tabletdist=<FILEPATH>" 
     echo -e "\t\t - Check Tablet distribution across SPs on each node for FILEPATH"
 
+    echo -e "\t -in | --indexname= | -in=<INDEXNAME> | --indexname=<INDEXNAME>" 
+    echo -e "\t\t - When passed with -td option, check INDEXNAME table's Tablet distribution across nodes"
+
     echo -e "\t -si=<OPTIONS> | --systeminfo=<OPTIONS>" 
     echo -e "\t\t - Print system info of each node. OPTIONS : mapr,machine,cpu,disk,nw,mem or all (comma separated)"
 
