@@ -18,6 +18,7 @@ returncode=0
 rolefile=
 args=
 tbltdist=
+indexname=
 sysinfo=
 grepkey=
 backupdir=
@@ -152,6 +153,13 @@ while [ "$1" != "" ]; do
                 tbltdist="$VALUE"
             fi
         ;;
+        -in | --indexname)
+            if [ -n "$VALUE" ]; then
+                indexname="$VALUE"
+            else
+                indexname="all"
+            fi
+        ;;
         -b | --backuplogs)
             if [ -z "$VALUE" ]; then
                 VALUE="/tmp"
@@ -194,7 +202,7 @@ if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	returncode=1
 else
-    params="$libdir/main.sh $rolefile -td=$tbltdist -si=$sysinfo -v=$verbose \"-e=force\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\""
+    params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else

@@ -1639,6 +1639,9 @@ function maprutil_runCommands(){
             tabletdist)
                 maprutil_checkTabletDistribution
             ;;
+            indexdist)
+                maprutil_checkIndexTabletDistribution
+            ;;
             cntrdist)
                 maprutil_checkContainerDistribution
             ;;
@@ -1778,6 +1781,68 @@ function maprutil_checkContainerDistribution(){
         nummcids=$(timeout 10 maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep Master | grep $hostip | wc -l)
         log_msg "\t$sp : $nummcids / $numcids"
     done
+}
+
+function maprutil_checkIndexTabletDistribution(){
+    if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
+        return
+    fi
+    if 
+    local hostip=$(util_getHostIP)
+    local tablepath=$GLB_TABLET_DIST
+    
+    local ciddump=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null)
+    local cids=$(echo "$ciddump" |  grep cid: | awk '{print $1}' | cut -d':' -f2 | sort -n | uniq | sed ':a;N;$!ba;s/\n/,/g')
+    local localcids=$(maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep 'ContainerId\|Master' | grep -B1 $hostip | grep ContainerId | tr -d '"' | tr -d ',' | tr -d "'" | cut -d':' -f2 | sed 's/^/\^/')
+
+    local indexlist=
+    if [ -z "$GLB_INDEX_NAME" ] || [ "$GLB_INDEX_NAME" = "all" ]; then
+        indexlist=$(maprcli table index list -path $tablepath -json | grep "indexFid\|indexName" | tr -d '"' | tr -d ',' | tr -d "'")
+    else
+        indexlist=$(maprcli table index list -path $tablepath -json | grep "indexFid\|indexName" | grep -iB1 "$GLB_INDEX_NAME" | tr -d '"' | tr -d ',' | tr -d "'")
+    fi
+
+    local indexfids=$(echo "$indexlist" | grep indexFid | cut -d':' -f2)
+    for idxfid in $indexfids
+    do
+        local idxcntr=$(echo $idxfid | cut -d'.' -f1)
+        local tabletfid=$(maprcli debugdb dump -fid $idxfid -json | grep -A2 tabletmap | grep fid | cut -d'.' -f2- | tr -d '"')
+        local tabletmap="${idxcntr}.${tabletfid}"
+        local idxtabletfids=$(maprcli debugdb dump -fid $tabletmap -json | grep fid | cut -d':' -f2 | tr -d '"' | grep "$localcids")
+
+        echo -e "\t Index $(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2) $(echo "$idxtabletfids" | wc -w) Tablet Statistics"
+
+        local sleeptime=5
+        local maxnumcli=$(echo $(nproc)/2|bc)
+        local i=1
+        for tabletfid in $idxtabletfids
+        do
+            maprutil_printTabletStats "$i" "$tabletfid" &
+            let i=i+1
+            local curnumcli=$(jps | grep CLIMainDriver | wc -l)
+            while [ $curnumcli -gt $maxnumcli ]; do
+                sleep $sleeptime;
+                curnumcli=$(jps | grep CLIMainDriver | wc -l)
+            done
+        done
+    done
+}
+
+function maprutil_printTabletStats(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+    local tabletindex=$1
+    local tabletfid=$2
+
+    local tabletinfo=$(maprcli debugdb dump -fid $tabletfid -json | grep 'numLogicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
+    local tabletsize=$(echo "$tabletinfo" |  grep numLogicalBlocks | cut -d':' -f2 | awk '{sum+=$1}END{print sum*8192/1073741824}')
+    tabletsize=$(printf "%.2f\n" $tabletsize)
+    local numrows=$(echo "$tabletinfo" | grep numRows | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+    local numdelrows=$(echo "$tabletinfo" | grep numRowsWithDelete | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+    local numspills=$(echo "$tabletinfo" | grep numSpills | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+    local numsegs=$(echo "$tabletinfo" | grep numSegments | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+    log_msg "\t\t Tablet #${tabletindex} [$tabletfid] Size: $tabletsize GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills"
 }
 
 function maprutil_sysinfo(){

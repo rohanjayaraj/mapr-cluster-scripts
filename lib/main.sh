@@ -125,6 +125,7 @@ GLB_PATCH_VERSION=
 GLB_PATCH_REPOFILE=
 GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
+GLB_INDEX_NAME=
 GLB_SECURE_CLUSTER=
 GLB_SYSINFO_OPTION=
 GLB_GREP_MAPRLOGS=
@@ -689,8 +690,13 @@ function main_runLogDoctor(){
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "grepmapr"
         	;;
         	tabletdist)
-				log_msghead "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
+				if [ -z "$GLB_INDEX_NAME" ]; then
+					log_msghead "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
+					maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
+				else
+					log_msghead "[$(util_getCurDate)] Checking $GLB_INDEX_NAME index table(s) tablet distribution for table '$GLB_TABLET_DIST'"
+					maprutil_runCommandsOnNodesInParallel "$nodelist" "indexdist"
+				fi
         	;;
         	cntrdist)
 				log_msghead "[$(util_getCurDate)] Checking container distribution"
@@ -952,6 +958,11 @@ while [ "$2" != "" ]; do
 			if [ -n "$VALUE" ]; then
 				doLogAnalyze="$doLogAnalyze tabletdist"
 				GLB_TABLET_DIST=$VALUE
+			fi
+		;;
+		-in)
+			if [ -n "$VALUE" ]; then
+				GLB_INDEX_NAME=$VALUE
 			fi
 		;;
 		-c)
