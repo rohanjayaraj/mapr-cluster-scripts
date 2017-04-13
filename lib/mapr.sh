@@ -1801,8 +1801,6 @@ function maprutil_checkIndexTabletDistribution(){
         indexlist=$(maprcli table index list -path $tablepath -json | grep "indexFid\|indexName" | grep -iB1 "$GLB_INDEX_NAME" | tr -d '"' | tr -d ',' | tr -d "'")
     fi
 
-    log_msg "$(util_getHostIP) : "
-
     local indexfids=$(echo "$indexlist" | grep indexFid | cut -d':' -f2)
     for idxfid in $indexfids
     do
@@ -1813,7 +1811,7 @@ function maprutil_checkIndexTabletDistribution(){
 
         local totaltablets=$(echo "$idxtabletfids" | wc -w)
         [ "$totaltablets" -lt "1" ] && continue
-        log_msg "\t Index $(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2) $totaltablets Tablet Statistics"
+        log_msg "$(util_getHostIP) : Index $(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2) $totaltablets Tablet Statistics"
 
         local sleeptime=5
         local maxnumcli=$(echo $(nproc)/2|bc)
