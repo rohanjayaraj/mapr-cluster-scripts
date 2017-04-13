@@ -1789,29 +1789,31 @@ function maprutil_checkIndexTabletDistribution(){
     fi
     local hostip=$(util_getHostIP)
     local tablepath=$GLB_TABLET_DIST
-    
-    local ciddump=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null)
-    local cids=$(echo "$ciddump" |  grep cid: | awk '{print $1}' | cut -d':' -f2 | sort -n | uniq | sed ':a;N;$!ba;s/\n/,/g')
-    local localcids=$(maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep 'ContainerId\|Master' | grep -B1 $hostip | grep ContainerId | tr -d '"' | tr -d ',' | tr -d "'" | cut -d':' -f2 | sed 's/^/\^/')
 
     local indexlist=
     if [ -z "$GLB_INDEX_NAME" ] || [ "$GLB_INDEX_NAME" = "all" ]; then
-        indexlist=$(maprcli table index list -path $tablepath -json | grep "indexFid\|indexName" | tr -d '"' | tr -d ',' | tr -d "'")
+        indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | tr -d '"' | tr -d ',' | tr -d "'")
     else
-        indexlist=$(maprcli table index list -path $tablepath -json | grep "indexFid\|indexName" | grep -iB1 "$GLB_INDEX_NAME" | tr -d '"' | tr -d ',' | tr -d "'")
+        indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | grep -iB1 "$GLB_INDEX_NAME" | tr -d '"' | tr -d ',' | tr -d "'")
     fi
+    
+    [ -z "$indexlist" ] && return
+
+    local ciddump=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null)
+    local cids=$(echo "$ciddump" |  grep cid: | awk '{print $1}' | cut -d':' -f2 | sort -n | uniq | sed ':a;N;$!ba;s/\n/,/g')
+    local localcids=$(maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep 'ContainerId\|Master' | grep -B1 $hostip | grep ContainerId | tr -d '"' | tr -d ',' | tr -d "'" | cut -d':' -f2 | sed 's/^/\^/')
 
     local indexfids=$(echo "$indexlist" | grep indexFid | cut -d':' -f2)
     for idxfid in $indexfids
     do
         local idxcntr=$(echo $idxfid | cut -d'.' -f1)
-        local tabletfid=$(maprcli debugdb dump -fid $idxfid -json | grep -A2 tabletmap | grep fid | cut -d'.' -f2- | tr -d '"')
+        local tabletfid=$(maprcli debugdb dump -fid $idxfid -json 2>/dev/null | grep -A2 tabletmap | grep fid | cut -d'.' -f2- | tr -d '"')
         local tabletmap="${idxcntr}.${tabletfid}"
-        local idxtabletfids=$(maprcli debugdb dump -fid $tabletmap -json | grep fid | cut -d':' -f2 | tr -d '"' | grep "$localcids")
+        local idxtabletfids=$(maprcli debugdb dump -fid $tabletmap -json 2>/dev/null | grep fid | cut -d':' -f2 | tr -d '"' | grep "$localcids")
 
         local totaltablets=$(echo "$idxtabletfids" | wc -w)
         [ "$totaltablets" -lt "1" ] && continue
-        log_msg "\n\t$(util_getHostIP) : Index $(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2) $totaltablets Tablet Statistics"
+        log_msg "\n\t$(util_getHostIP) : Index '$(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2)' [# of tablets: $totaltablets]"
 
         local sleeptime=5
         local maxnumcli=$(echo $(nproc)/2|bc)
