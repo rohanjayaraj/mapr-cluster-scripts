@@ -1811,7 +1811,7 @@ function maprutil_checkIndexTabletDistribution(){
 
         local totaltablets=$(echo "$idxtabletfids" | wc -w)
         [ "$totaltablets" -lt "1" ] && continue
-        log_msg "$(util_getHostIP) : Index $(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2) $totaltablets Tablet Statistics"
+        log_msg "\n\t$(util_getHostIP) : Index $(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2) $totaltablets Tablet Statistics"
 
         local sleeptime=5
         local maxnumcli=$(echo $(nproc)/2|bc)
