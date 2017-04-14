@@ -1805,6 +1805,7 @@ function maprutil_checkIndexTabletDistribution(){
 
     local indexfids=$(echo "$indexlist" | grep indexFid | cut -d':' -f2)
     local tempdir=$(mktemp -d)
+
     for idxfid in $indexfids
     do
         local idxcntr=$(echo $idxfid | cut -d'.' -f1)
@@ -1832,11 +1833,16 @@ function maprutil_checkIndexTabletDistribution(){
             done
         done
         wait
-        local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
-        local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
-        log_msg "\n\t$(util_getHostIP) : Index '$indexname' [# of tablets: $totaltablets, Size : ${indexSize} GB, #ofRows: $numrows]"
-        [ "$(cat $indexlog | wc -w)" -gt "0" ] && cat "$indexlog" 2>/dev/null
+
+        # Print the output
+        if [ "$(cat $indexlog | wc -w)" -gt "0" ]; then
+            local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
+            local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
+            log_msg "\n\t$(util_getHostIP) : Index '$indexname' [ #ofTablets: ${totaltablets}, Size: ${indexSize} GB, #ofRows: ${numrows} ]"
+            cat "$indexlog" 2>/dev/null
+        fi
     done
+    
     rm -rf $tempdir > /dev/null 2>&1
 }
 
