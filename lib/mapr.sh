@@ -1804,23 +1804,25 @@ function maprutil_checkIndexTabletDistribution(){
     local localcids=$(maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep 'ContainerId\|Master' | grep -B1 $hostip | grep ContainerId | tr -d '"' | tr -d ',' | tr -d "'" | cut -d':' -f2 | sed 's/^/\^/')
 
     local indexfids=$(echo "$indexlist" | grep indexFid | cut -d':' -f2)
+    local tempdir=$(mktemp -d)
     for idxfid in $indexfids
     do
         local idxcntr=$(echo $idxfid | cut -d'.' -f1)
-        local tabletfid=$(maprcli debugdb dump -fid $idxfid -json 2>/dev/null | grep -A2 tabletmap | grep fid | cut -d'.' -f2- | tr -d '"')
-        local tabletmap="${idxcntr}.${tabletfid}"
-        local idxtabletfids=$(maprcli debugdb dump -fid $tabletmap -json 2>/dev/null | grep fid | cut -d':' -f2 | tr -d '"' | grep "$localcids")
+        local tabletsubfid=$(maprcli debugdb dump -fid $idxfid -json 2>/dev/null | grep -A2 tabletmap | grep fid | cut -d'.' -f2- | tr -d '"')
+        local tabletmapfid="${idxcntr}.${tabletsubfid}"
+        local idxtabletfids=$(maprcli debugdb dump -fid $tabletmapfid -json 2>/dev/null | grep fid | cut -d':' -f2 | tr -d '"' | grep "$localcids")
 
         local totaltablets=$(echo "$idxtabletfids" | wc -w)
         [ "$totaltablets" -lt "1" ] && continue
-        log_msg "\n\t$(util_getHostIP) : Index '$(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2)' [# of tablets: $totaltablets]"
-
+        local indexname=$(echo "$indexlist" | grep -A1 $idxfid | grep indexName | cut -d':' -f2)
+        
         local sleeptime=5
         local maxnumcli=$(echo $(nproc)/2|bc)
         local i=1
+        local indexlog="$tempdir/$indexname.log"
         for tabletfid in $idxtabletfids
         do
-            maprutil_printTabletStats "$i" "$tabletfid" &
+            maprutil_printTabletStats "$i" "$tabletfid" >> $indexlog &
             let i=i+1
             local curnumcli=$(jps | grep CLIMainDriver | wc -l)
             while [ "$curnumcli" -gt "$maxnumcli" ]
@@ -1830,7 +1832,12 @@ function maprutil_checkIndexTabletDistribution(){
             done
         done
         wait
+        local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
+        local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
+        log_msg "\n\t$(util_getHostIP) : Index '$indexname' [# of tablets: $totaltablets, Size : ${indexSize} GB, #ofRows: $numrows]"
+        [ "$(cat $indexlog | wc -w)" -gt "0" ] && cat "$indexlog" 2>/dev/null
     done
+    rm -rf $tempdir > /dev/null 2>&1
 }
 
 function maprutil_printTabletStats(){
