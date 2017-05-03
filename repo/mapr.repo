@@ -26,7 +26,7 @@ enabled=0
 gpgcheck=0
 protect=1
 
-[QA-ALL EBF Patches]
+[QA-ALL-EBF-Patches]
 name=MapR All EBF Patches Repository
 baseurl=http://artifactory.devops.lab/artifactory/list/ebf-rpm/
 enabled=0
