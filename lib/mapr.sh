@@ -2669,7 +2669,7 @@ function maprutil_debugCore(){
     [ -z "$btline" ] && btline=$(cat $tracefile | grep -n "Thread 1 " | cut -f1 -d:)
     local backtrace=$(cat $tracefile | sed -n "${btline},/^\s*$/p")
     [ -n "$backtrace" ] && btthread=$(echo "$backtrace" | head -1 | awk '{print $2}')
-    if [ -n "$newcore" ] && [ -n "$btthread" ]; then
+    if [ -z "$isjava" ] && [ -n "$newcore" ] && [ -n "$btthread" ]; then
         local tmpfile=$(mktemp)
         echo "info threads" > $tmpfile
         echo "info registers" >> $tmpfile
@@ -2682,9 +2682,9 @@ function maprutil_debugCore(){
             echo "info args" >> $tmpfile
             echo "info locals" >> $tmpfile
             echo "print *this" >> $tmpfile
-            echo "up"
+            echo "up" >> $tmpfile
         done
-        gdb -x $tmpfile -f -batch -c ${corefile} $(which java) > $tracefile 2>&1
+        gdb -x $tmpfile -f -batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1
         rm -f $tmpfile >/dev/null 2>&1
     fi
     [ -n "$backtrace" ] && echo "$backtrace"
