@@ -2678,11 +2678,11 @@ function maprutil_debugCore(){
         echo "backtrace" >> $tmpfile
         for i in {0..10}
         do
+            echo "f $i" >> $tmpfile
             echo "info frame" >> $tmpfile
             echo "info args" >> $tmpfile
             echo "info locals" >> $tmpfile
-            echo "print *this" >> $tmpfile
-            echo "up" >> $tmpfile
+            echo "print" >> $tmpfile
         done
         gdb -x $tmpfile -f -batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1
         rm -f $tmpfile >/dev/null 2>&1
