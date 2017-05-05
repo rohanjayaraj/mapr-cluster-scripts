@@ -2664,8 +2664,8 @@ function maprutil_debugCore(){
         fi
         newcore=1
     fi
-    local btline=$(cat $tracefile | grep -B10 -n "mapr::fs::FileServer::CoreHandler" | grep "Thread [0-9]*" | head -1 | cut -d '-' -f1)
-    [ -z "$btline" ] && btline=$(cat $tracefile | grep -B10 -n  "abort ()" | grep "Thread [0-9]*" | head -1 | cut -d '-' -f1)
+    local btline=$(cat $tracefile | grep -B10 -n "mapr::fs::FileServer::CoreHandler" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
+    [ -z "$btline" ] && btline=$(cat $tracefile | grep -B10 -n  "abort ()" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
     [ -z "$btline" ] && btline=$(cat $tracefile | grep -n "Thread 1 " | cut -f1 -d:)
     local backtrace=$(cat $tracefile | sed -n "${btline},/^\s*$/p")
     [ -n "$backtrace" ] && btthread=$(echo "$backtrace" | head -1 | awk '{print $2}')
