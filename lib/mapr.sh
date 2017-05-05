@@ -2681,12 +2681,11 @@ function maprutil_debugCore(){
             echo "info frame" >> $tmpfile
             echo "info args" >> $tmpfile
             echo "info locals" >> $tmpfile
-            echo "print" >> $tmpfile
         done
         gdb -x $tmpfile -f -batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1
         rm -f $tmpfile >/dev/null 2>&1
     fi
-    [ -n "$backtrace" ] && echo "$backtrace"
+    [ -n "$backtrace" ] && echo "$backtrace" | sed  -n '/Switching to thread/q;p'
 }
 
 # @param scriptpath
