@@ -2645,7 +2645,7 @@ function maprutil_debugCore(){
     local tracefile=$2
     local isjava=$(echo $corefile | grep "java.core")
 
-    if [ -z "$(find $tracefile -type f -size +20k 2> /dev/null)" ]; then
+    if [ -z "$(find $tracefile -type f -size +15k 2> /dev/null)" ]; then
         if [ -z "$isjava" ]; then
             gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
         else

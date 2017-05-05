@@ -84,11 +84,49 @@ function util_checkAndInstall2(){
     fi
 }
 
+function util_maprprereq(){
+    local DEPENDENCY_BASE_DEB="apt-utils curl dnsutils file iputils-ping libssl1.0.0 \
+    net-tools nfs-common openssl sudo syslinux sysv-rc-conf tzdata wget"
+    local DEPENDENCY_BASE_RPM="curl file net-tools openssl sudo syslinux wget which"
+    local DEPENDENCY_DEB="$DEPENDENCY_BASE_DEB debianutils libnss3 libsysfs2 netcat ntp \
+    ntpdate openssh-client openssh-server python-dev python-pycurl sdparm sshpass \
+    syslinux sysstat"
+    local DEPENDENCY_RPM="$DEPENDENCY_BASE_RPM device-mapper initscripts iputils \
+    libsysfs lvm2 nc nfs-utils nss ntp openssh-clients openssh-server \
+    python-devel python-pycurl rpcbind sdparm sshpass sysstat"
+    if [ "$(getOS)" = "centos" ]; then
+        yum --disablerepo=epel -q -y update ca-certificates 
+        yum -q -y install $DEPENDENCY_RPM
+        yum -q -y install java-1.8.0-openjdk-devel
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        apt-get update -qq 
+        apt-get install -qq -y ca-certificates
+        apt-get install -qq -y $DEPENDENCY
+        apt-get install -qq -y --force-yes openjdk-8-jdk
+    fi
+
+    local MAPR_UID=${MAPR_UID:-5000}
+    local MAPR_GID=${MAPR_GID:-5000}
+    local MAPR_USER=${MAPR_USER-mapr}
+    local MAPR_GROUP=${MAPR_GROUP:-mapr}
+
+    groupadd -g $MAPR_GID $MAPR_GROUP
+    useradd -m -u $MAPR_UID -g $MAPR_GID -G $(stat -c '%G' /etc/shadow) $MAPR_USER
+    passwd $MAPR_USER > /dev/null 2>&1 << EOM
+$MAPR_USER
+$MAPR_USER
+EOM
+
+}
+
 function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
          yum repolist all 2>&1 | grep "epel/" || yum install epel-release -y >/dev/null 2>&1
          yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel >/dev/null 2>&1
     fi
+
+    [ -z "$(getent passwd mapr)" ] && util_maprprereq
+
     util_checkAndInstall "ifconfig" "net-tools"
     util_checkAndInstall "bzip2" "bzip2"
     util_checkAndInstall "screen" "screen"
