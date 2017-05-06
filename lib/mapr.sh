@@ -2651,7 +2651,7 @@ function maprutil_mfstrace(){
     for i in $(seq $iter)
     do
         local tracefile="$tmpdir/mfstrace_$(date '+%Y-%m-%d-%H-%M-%S')"
-        gtrace $mfspid > $tracefile
+        gstack $mfspid > $tracefile
         sleep 1
     done
 }
