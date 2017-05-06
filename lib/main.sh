@@ -626,7 +626,7 @@ function main_backuplogs(){
 }
 
 function main_getmfstrace(){
-	log_msghead "[$(util_getCurDate)] Running & copying gtrace on mfs process on all nodes to $doMFSTrace"
+	log_msghead "[$(util_getCurDate)] Running 'gstack' on mfs process on all nodes and copying the trace files to $doMFSTrace"
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}
 	do	
