@@ -185,6 +185,7 @@ while [ "$1" != "" ]; do
                 VALUE="/tmp"
             fi
             mfstracedir=$VALUE
+            args=$args"mfstrace "
         ;;
         -it | --iterations)
             numiter=$VALUE

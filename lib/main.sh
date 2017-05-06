@@ -725,6 +725,9 @@ function main_runLogDoctor(){
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzecores"
         	;;
+        	mfstrace)
+				main_getmfstrace
+			;;
         esac
         local ec=$?
         [ -n "$ec" ] && [ "$rc" -eq "0" ] && rc=$ec
@@ -956,6 +959,8 @@ while [ "$2" != "" ]; do
 	    			doLogAnalyze="$doLogAnalyze setupcheck"
 	    		elif [[ "$i" = "analyzecores" ]]; then
 	    			doLogAnalyze="$doLogAnalyze analyzecores"
+	    		elif [[ "$i" = "mfstrace" ]]; then
+	    			doLogAnalyze="$doLogAnalyze mfstrace"
 	    		fi
 	    	done
 		;;
