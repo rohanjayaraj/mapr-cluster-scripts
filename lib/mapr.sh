@@ -2604,6 +2604,58 @@ function maprutil_copyZippedLogsFromNode(){
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto" > /dev/null 2>&1
 }
 
+function maprutil_copymfstrace(){
+    local node=$1
+    local timestamp=$2
+    local copyto=$3
+    mkdir -p $copyto > /dev/null 2>&1
+    local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+    local dirtocopy="/tmp/mfstrace/$timestamp/$host"
+
+    ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
+}
+
+function maprutil_mfstraceonNode(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+
+    local node=$1
+    local timestamp=$2
+    local iter=$3
+    
+    local scriptpath="$RUNTEMPDIR/mfsrtace_${node: -3}.sh"
+    maprutil_buildSingleScript "$scriptpath" "$node"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    echo "maprutil_mfstrace \"$timestamp\" \"$iter\"" >> $scriptpath
+   
+    ssh_executeScriptasRootInBG "$node" "$scriptpath"
+    maprutil_addToPIDList "$!"
+}
+
+function maprutil_mfstrace(){
+    [ ! -e "/opt/mapr/roles/fileserver" ] && return
+    local mfspid=$(pidof mfs)
+    [ -z "$mfspid" ] && return
+    
+    local timestamp=$1
+    local iter=$2
+    [ -z "$iter" ] && iter=10
+    local tmpdir="/tmp/mfstrace/$timestamp/$(hostname -f)"
+    mkdir -p $tmpdir > /dev/null 2>&1
+
+    for i in $(seq $iter)
+    do
+        local tracefile="$tmpdir/mfstrace_$(date '+%Y-%m-%d-%H-%M-%S')"
+        gtrace $mfspid > $tracefile
+        sleep 1
+    done
+}
+
 function maprutil_analyzeCores(){
     local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java.core' | awk '{print $9}')
     [ -z "$cores" ] && return

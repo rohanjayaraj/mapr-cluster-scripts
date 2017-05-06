@@ -625,6 +625,21 @@ function main_backuplogs(){
 	log_msghead "[$(util_getCurDate)] Backup complete! [ RunTime - $(main_timetaken) ]"
 }
 
+function main_getmfstrace(){
+	log_msghead "[$(util_getCurDate)] Running & copying gtrace on mfs process on all nodes to $doMFSTrace"
+	local timestamp=$(date +%S)
+	for node in ${nodes[@]}
+	do	
+    	maprutil_mfstraceonNode "$node" "$timestamp" "$doNumIter"
+	done
+	maprutil_wait
+	for node in ${nodes[@]}
+	do	
+    	maprutil_copymfstrace "$node" "$timestamp" "$doMFSTrace"
+	done
+	wait
+}
+
 function main_runCommandExec(){
 	if [ -z "$1" ]; then
         return
@@ -858,6 +873,8 @@ doPontis=0
 doForce=0
 doSilent=0
 doBackup=
+doMFSTrace=
+doNumIter=10
 bkpRegex=
 useBuildID=
 useRepoURL=
@@ -1000,6 +1017,16 @@ while [ "$2" != "" ]; do
 				doBackup=$VALUE
 			fi
     	;;
+    	-mt)
+			if [ -n "$VALUE" ]; then
+				doMFSTrace=$VALUE
+			fi
+		;;
+		-it)
+			if [ -n "$VALUE" ]; then
+				doNumIter=$VALUE
+			fi
+		;;
     	-bf)
 			if [ -n "$VALUE" ]; then
 				bkpRegex=$VALUE

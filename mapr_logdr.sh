@@ -22,6 +22,8 @@ indexname=
 sysinfo=
 grepkey=
 backupdir=
+mfstracedir=
+numiter=
 backupregex=
 verbose=
 doNoFormat=
@@ -105,6 +107,12 @@ function usage () {
     echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
     echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
 
+    echo -e "\t -mt | -mt=<COPYTODIR> | --mfstrace=<COPYTODIR>" 
+    echo -e "\t\t - Run gtrace on MFS process on each node & copy trace files to COPYTODIR (default COPYTODIR : /tmp/)"
+
+    echo -e "\t -it=<NUM> | --iterations=<NUM>" 
+    echo -e "\t\t - When passed with -mt option, will run gtrace for NUM iterations (default: 10)"
+
     echo -e "\t -bf=<FILEREGEX> | --backupregex=<FILEREGEX>" 
     echo -e "\t\t - When passed with -b option, backup only log files with name matching the FILEREGEX"
     
@@ -172,6 +180,15 @@ while [ "$1" != "" ]; do
         -bf | --backupregex)
             [ -n "$VALUE" ] && backupregex=$VALUE
         ;;
+        -mt | --mfstrace)
+            if [ -z "$VALUE" ]; then
+                VALUE="/tmp"
+            fi
+            mfstracedir=$VALUE
+        ;;
+        -it | --iterations)
+            numiter=$VALUE
+        ;;
         -si | --systeminfo)
             sysinfo="$VALUE"
             if [ -z "$sysinfo" ]; then
@@ -205,7 +222,8 @@ if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	returncode=1
 else
-    params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\""
+    params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
+    \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-mt=$mfstracedir\" \"-it=$numiter\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else
