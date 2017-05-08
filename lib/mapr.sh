@@ -1839,7 +1839,7 @@ function maprutil_checkIndexTabletDistribution(){
             local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
             local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
             log_msg "\n\t$(util_getHostIP) : Index '$indexname' [ #ofTablets: ${totaltablets}, Size: ${indexSize} GB, #ofRows: ${numrows} ]"
-            cat "$indexlog" 2>/dev/null
+            cat "$indexlog" | sort -nk2.3 2>/dev/null
         fi
     done
     
