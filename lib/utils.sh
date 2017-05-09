@@ -810,6 +810,20 @@ function util_restartSSHD(){
     fi
 }
 
+function util_getResourceUseHeader(){
+    echo -e "TIME\tMEMORY\t%CPU\t%MEM"
+}
+
+function util_getResourceUse(){
+    [ -z "$1" ] && return
+    local ppid=$1
+    if kill -0 ${ppid}; then
+        local curtime=$(date '+%Y-%m-%d-%H-%M-%S')
+        local topline=$(top -bn 1 -p $ppid | tail -1 | awk '{ printf("%s\t%s\t%s\n", $6, $9, $10); }')
+        echo -e "$curtime\t$topline"
+    fi
+}
+
 # @param host name with domin
 function util_getIPfromHostName(){
     if [ -z "$1" ]; then
