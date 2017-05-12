@@ -127,6 +127,8 @@ GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
 GLB_INDEX_NAME=
 GLB_SECURE_CLUSTER=
+GLB_FS_THREADS=
+GLB_GW_THREADS=
 GLB_SYSINFO_OPTION=
 GLB_GREP_MAPRLOGS=
 GLB_LOG_VERBOSE=
@@ -1045,6 +1047,16 @@ while [ "$2" != "" ]; do
     	-pb)
 			if [ -n "$VALUE" ]; then
 				GLB_PUT_BUFFER=$VALUE
+			fi
+    	;;
+    	-ft)
+			if [ -n "$VALUE" ]; then
+				GLB_FS_THREADS=$VALUE
+			fi
+    	;;
+    	-gt)
+			if [ -n "$VALUE" ]; then
+				GLB_GW_THREADS=$VALUE
 			fi
     	;;
     	-repo)

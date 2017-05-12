@@ -724,6 +724,8 @@ function maprutil_addFSThreads(){
     if [ -z "$1" ]; then
         return
     fi
+    local fsthreads=64
+    [ -n "$GLB_FS_THREADS" ] && fsthreads=$GLB_FS_THREADS
     local filelist=$(find /opt/mapr/ -name $1 -type f ! -path "*/templates/*")
     for i in $filelist; do
         local present=$(cat $i | grep "fs.mapr.threads")
@@ -735,11 +737,18 @@ function maprutil_addFSThreads(){
     <!-- MapRDB -->
     <property>
         <name>fs.mapr.threads</name>
-        <value>64</value>
+        <value>${fsthreads}</value>
     </property>
 </configuration>
 EOL
     done
+}
+
+# @param filename
+function maprutil_updateGWThreads(){
+    [ ! -e "/opt/mapr/conf/gateway.conf" ] && return
+    [ -z "$GLB_GW_THREADS" ] && return
+    sed -i "/gateway.receive.numthreads/c\gateway.receive.numthreads=${GLB_GW_THREADS}" /opt/mapr/conf/gateway.conf
 }
 
 # @param filename
@@ -816,7 +825,9 @@ function maprutil_customConfigure(){
 
     maprutil_addFSThreads "core-site.xml"
     maprutil_addTabletLRU "core-site.xml"
-     local putbuffer=$GLB_PUT_BUFFER
+    maprutil_updateGWThreads
+    
+    local putbuffer=$GLB_PUT_BUFFER
     if [ -n "$putbuffer" ]; then
         maprutil_addPutBufferThreshold "core-site.xml" "$putbuffer"
     fi

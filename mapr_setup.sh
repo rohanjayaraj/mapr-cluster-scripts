@@ -30,6 +30,8 @@ extraarg=
 backupdir=
 buildid=
 putbuffer=
+fsthreads=
+gwthreads=
 repourl=
 meprepourl=
 patchrepourl=
@@ -112,18 +114,22 @@ function usage () {
     echo -e "\t\t - Specify number of storage pools per node"
     echo -e "\t -m=<#ofMFS> | --multimfs=<#ofMFS>" 
     echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
-    echo -e "\t -p | --pontis" 
-    echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
-    echo -e "\t -f | --force" 
-    echo -e "\t\t - Force uninstall a node/cluster"
-    echo -e "\t -et | --enabletrace" 
-    echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (WARN: may fill the root partition)"
-    echo -e "\t -pb=<#ofMBs> | --putbuffer=<#ofMBs>" 
-    echo -e "\t\t - Increase client put buffer threshold to <#ofMBs> (default : 1000)"
     echo -e "\t -s | --secure" 
     echo -e "\t\t - Enable wire-level security on the cluster nodes"
+    echo -e "\t -f | --force" 
+    echo -e "\t\t - Force uninstall a node/cluster"
+    echo -e "\t -pb=<#ofMBs> | --putbuffer=<#ofMBs>" 
+    echo -e "\t\t - Increase client put buffer threshold to <#ofMBs> (default : 1000)"
+    echo -e "\t -ft=<#ofThreads> | --flusherthreads=<#ofThreads>" 
+    echo -e "\t\t - Update flusher threads config 'fs.mapr.threads' in core-site.xml (default: 64)"
+    echo -e "\t -gt=<#ofThreads> | --gatewaythreads=<#ofThreads>" 
+    echo -e "\t\t - Update gateway receive threads config 'gateway.receive.numthreads' in gateway.conf"
     echo -e "\t -tr | --trim" 
     echo -e "\t\t - Trim SSD drives before configuring the node (WARNING: DO NOT TRIM OFTEN)"
+    echo -e "\t -et | --enabletrace" 
+    echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (Can be run post install as well)"
+    echo -e "\t -p | --pontis" 
+    echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
     
     echo 
 	echo " Post install Options : "
@@ -257,6 +263,16 @@ while [ "$1" != "" ]; do
                 putbuffer=2000
             fi
         ;;
+        -ft | --flusherthreads)
+            if [ -n "$VALUE" ]; then
+                fsthreads=$VALUE
+            fi
+        ;;
+        -gt | --gatewaythreads)
+            if [ -n "$VALUE" ]; then
+                gwthreads=$VALUE
+            fi
+        ;;
         -repo | --repository)
             if [ -n "$VALUE" ]; then
                 repourl=$VALUE
@@ -294,7 +310,8 @@ if [ -z "$rolefile" ]; then
 	exit 1
 else
     $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
-    "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-repo=$repourl" "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid"
+    "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-ft=$fsthreads" "-gt=$gwthreads" "-repo=$repourl" \
+    "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid"
     returncode=$?
     [ "$returncode" -ne "0" ] && exit $returncode
 fi
