@@ -605,8 +605,14 @@ function maprutil_postUpgrade(){
         return
     fi
     local node=$1
-    ssh_executeCommandasRoot "$node" "timeout 50 maprcli config save -values {mapr.targetversion:\"\$(cat /opt/mapr/MapRBuildVersion)\"}" > /dev/null 2>&1
-    ssh_executeCommandasRoot "$node" "timeout 10 maprcli node list -columns hostname,csvc" 
+    local isCLDBUp=$(maprutil_waitForCLDBonNode "$node")
+    
+    if [ -n "$isCLDBUp" ]; then
+        ssh_executeCommandasRoot "$node" "timeout 50 maprcli config save -values {mapr.targetversion:\"\$(cat /opt/mapr/MapRBuildVersion)\"}" > /dev/null 2>&1
+        ssh_executeCommandasRoot "$node" "timeout 10 maprcli node list -columns hostname,csvc" 
+    else
+        log_warn "Timed out waiting for CLDB to come up. Please update 'mapr.targetversion' manually"
+    fi
 }
 
 # @param host ip
@@ -2222,6 +2228,25 @@ function maprutil_applyLicense(){
         curl -F 'username=maprmanager' -F 'password=maprmapr' -X POST --cookie-jar /tmp/tmpckfile https://apitest.mapr.com/license/authenticate/ 2>/dev/null
         curl --cookie /tmp/tmpckfile -X POST -F "license_type=additionalfeatures_posixclientplatinum" -F "cluster=${clusterid}" -F "customer_name=maprqa" -F "expiration_date=${expdate}" -F "number_of_nodes=${GLB_CLUSTER_SIZE}" -F "enforcement_type=HARD" https://apitest.mapr.com/license/licenses/createlicense/ -o ${licfile} 2>/dev/null
         [ -e "$licfile" ] && /opt/mapr/bin/maprcli license add -license ${licfile} -is_file true > /dev/null
+    fi
+}
+
+function maprutil_waitForCLDBonNode(){
+    local node=$1
+    
+    local scriptpath="$RUNTEMPDIR/waitforcldb_${node: -3}.sh"
+    maprutil_buildSingleScript "$scriptpath" "$node"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    echo "maprutil_waitForCLDB" >> $scriptpath
+   
+    local result=$(ssh_executeScriptasRoot "$node" "$scriptpath")
+    
+    if [ -n "$result" ]; then
+        echo "$result"
     fi
 }
 
