@@ -241,6 +241,7 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/maprbuilds*")
     dirlist+=("/tmp/restartonnode_*")
     dirlist+=("/tmp/maprsetup_*")
+    dirlist+=("/tmp/ycsb*.sh")
 
     echo  ${dirlist[*]}
 }  
@@ -606,7 +607,7 @@ function maprutil_postUpgrade(){
     fi
     local node=$1
     local isCLDBUp=$(maprutil_waitForCLDBonNode "$node")
-    
+
     if [ -n "$isCLDBUp" ]; then
         ssh_executeCommandasRoot "$node" "timeout 50 maprcli config save -values {mapr.targetversion:\"\$(cat /opt/mapr/MapRBuildVersion)\"}" > /dev/null 2>&1
         ssh_executeCommandasRoot "$node" "timeout 10 maprcli node list -columns hostname,csvc" 
@@ -944,6 +945,7 @@ function maprutil_killTraces() {
     util_kill "dstat"
     util_kill "iostat"
     util_kill "top -b"
+    util_kill "sh -c log="
     util_kill "runTraces"
 }
 
@@ -1688,6 +1690,9 @@ function maprutil_runCommands(){
             traceon)
                 maprutil_killTraces
                 maprutil_startTraces
+            ;;
+            traceoff)
+                maprutil_killTraces
             ;;
             analyzecores)
                 maprutil_analyzeCores

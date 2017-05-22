@@ -106,7 +106,7 @@ trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 # Global Variables : All need to start with 'GLB_' as they are replayed back to other cluster nodes during setup
 GLB_CLUSTER_NAME="archerx"
 GLB_CLUSTER_SIZE=$(cat $rolefile |  grep "^[^#;]" | grep 'mapr-fileserver' | wc -l)
-GLB_TRACE_ON=
+GLB_TRACE_ON=1
 GLB_MULTI_MFS=
 GLB_NUM_SP=
 GLB_TRIM_SSD=
@@ -656,7 +656,7 @@ function main_runCommandExec(){
 		return
 	fi
 	
-	if [[ -n "$(echo $cmds | grep traceon)" ]]; then
+	if [[ -n "$(echo $cmds | grep traceon)" ]] && [[ -z "$(echo $cmds | grep traceoff)" ]]; then
 		for node in ${nodes[@]}
 		do	
 	    	maprutil_runCommandsOnNode "$node" "traceon" "silent"
@@ -730,6 +730,10 @@ function main_runLogDoctor(){
         	mfstrace)
 				main_getmfstrace
 			;;
+			traceoff)
+				log_msghead "[$(util_getCurDate)] Disable traces on all nodes"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "traceoff"
+        	;;
         esac
         local ec=$?
         [ -n "$ec" ] && [ "$rc" -eq "0" ] && rc=$ec
@@ -1129,3 +1133,4 @@ exitcode=`echo $?`
 
 rm -rf $RUNTEMPDIR 2>/dev/null
 exit $exitcode
+x

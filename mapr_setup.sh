@@ -128,6 +128,8 @@ function usage () {
     echo -e "\t\t - Trim SSD drives before configuring the node (WARNING: DO NOT TRIM OFTEN)"
     echo -e "\t -et | --enabletrace" 
     echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (Can be run post install as well)"
+    echo -e "\t -dt | --disabletrace" 
+    echo -e "\t\t - Disable trace processes on all nodes"
     echo -e "\t -p | --pontis" 
     echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
     
@@ -215,6 +217,9 @@ while [ "$1" != "" ]; do
         ;;
         -et | --enabletrace)
             extraarg=$extraarg"traceon "
+        ;;
+        -dt | --disabletrace)
+            extraarg=$extraarg"traceoff "
         ;;
         -tr | --trim)
             extraarg=$extraarg"trim "
