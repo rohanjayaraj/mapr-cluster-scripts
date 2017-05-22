@@ -945,7 +945,7 @@ function maprutil_killTraces() {
     util_kill "dstat"
     util_kill "iostat"
     util_kill "top -b"
-    util_kill "sh -c log="
+    util_kill "sh -c log"
     util_kill "runTraces"
 }
 

@@ -352,27 +352,22 @@ function util_kill(){
     if [ -z "$1" ]; then
         return
     fi
-    local key=$1
-    local i=0
+    local key="$1"
     local ignore=
-    while [ "$1" != "" ]; do
-        if [ "$i" -eq 0 ]; then 
-            let i=i+1
-            shift  
-            continue 
-        else
-            let i=i+1 
-        fi
-        local ig=$1
-        if [ -z "$ignore" ]; then
-            ignore="grep -vi \""$ig"\""
-        else
-            ignore=$ignore"| grep -vi \""$ig"\""
-        fi
+    if [ -n "$2" ]; then
         shift
-    done
+        while [ "$1" != "" ]; do
+            local ig=$1
+            if [ -z "$ignore" ]; then
+                ignore="grep -vi \""$ig"\""
+            else
+                ignore=$ignore"| grep -vi \""$ig"\""
+            fi
+            shift
+        done
+    fi
     local esckey="[${key:0:1}]${key:1}"
-    if [ -n "$(ps aux | grep $esckey)" ]; then
+    if [ -n "$(ps aux | grep "$esckey")" ]; then
         if [ -n "$ignore" ]; then
             bash -c "ps aux | grep '$esckey' | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9" > /dev/null 2>&1
         else
