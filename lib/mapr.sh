@@ -1697,6 +1697,9 @@ function maprutil_runCommands(){
             analyzecores)
                 maprutil_analyzeCores
             ;;
+            mfsthreads)
+                maprutil_mfsthreads
+            ;;
             *)
             echo "Nothing to do!!"
             ;;
@@ -2702,6 +2705,21 @@ function maprutil_mfstrace(){
         local tracefile="$tmpdir/mfstrace_$(date '+%Y-%m-%d-%H-%M-%S')"
         gstack $mfspid > $tracefile
         sleep 1
+    done
+}
+
+function maprutil_mfsthreads(){
+    [ ! -e "/opt/mapr/roles/fileserver" ] && return
+    local mfspid=$(pidof mfs)
+    [ -z "$mfspid" ] && return
+    
+    local types="CpuQ_FS CpuQ_Compress CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_SysCalls"
+    local mfstrace=$(gstack $mfspid | sed '1!G;h;$!d')
+    log_msg "$(util_getHostIP) : MFS($mfspid) Thread Details"
+    for type in $types
+    do
+        local ids=$(echo "$mfstrace" | grep -e "$type" -e "^Thread" | grep -A1 "$type" | grep -o "LWP [0-9]*" | awk '{print $2}' | sed ':a;N;$!ba;s/\n/,/g')
+        [ -n "$ids" ] && log_msg "\t$type : $ids"
     done
 }
 

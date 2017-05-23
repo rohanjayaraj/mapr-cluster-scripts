@@ -734,6 +734,10 @@ function main_runLogDoctor(){
 				log_msghead "[$(util_getCurDate)] Disable traces on all nodes"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "traceoff"
         	;;
+        	mfsthreads)
+				log_msghead "[$(util_getCurDate)] Listing MFS Process thread details"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "mfsthreads"
+        	;;
         esac
         local ec=$?
         [ -n "$ec" ] && [ "$rc" -eq "0" ] && rc=$ec

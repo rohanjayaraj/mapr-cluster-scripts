@@ -107,14 +107,17 @@ function usage () {
     echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
     echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
 
+    echo -e "\t -bf=<FILEREGEX> | --backupregex=<FILEREGEX>" 
+    echo -e "\t\t - When passed with -b option, backup only log files with name matching the FILEREGEX"
+
     echo -e "\t -mt | -mt=<COPYTODIR> | --mfstrace=<COPYTODIR>" 
     echo -e "\t\t - Run gstack on MFS process on each node & copy trace files to COPYTODIR (default COPYTODIR : /tmp/)"
 
     echo -e "\t -it=<NUM> | --iterations=<NUM>" 
     echo -e "\t\t - When passed with -mt option, will run gstack for NUM iterations (default: 10)"
 
-    echo -e "\t -bf=<FILEREGEX> | --backupregex=<FILEREGEX>" 
-    echo -e "\t\t - When passed with -b option, backup only log files with name matching the FILEREGEX"
+    echo -e "\t -mti | --mfsthreadinfo" 
+    echo -e "\t\t - List MFS thread id details from all MFS nodes"
     
     echo 
     echo " Examples : "
@@ -186,6 +189,9 @@ while [ "$1" != "" ]; do
             fi
             mfstracedir=$VALUE
             args=$args"mfstrace "
+        ;;
+        -mti | --mfsthreadinfo)
+            args=$args"mfsthreads "
         ;;
         -it | --iterations)
             numiter=$VALUE
