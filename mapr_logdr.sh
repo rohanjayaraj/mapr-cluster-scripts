@@ -24,6 +24,9 @@ grepkey=
 backupdir=
 mfstracedir=
 numiter=
+mfscpuusedir=
+startstr=
+endstr=
 backupregex=
 verbose=
 doNoFormat=
@@ -118,6 +121,15 @@ function usage () {
 
     echo -e "\t -mti | --mfsthreadinfo" 
     echo -e "\t\t - List MFS thread id details from all MFS nodes"
+
+    echo -e "\t -mcu | --mfscpuuse=<COPYTODIR>" 
+    echo -e "\t\t - Build consolidated MFS thread-wise CPU Use log (default COPYTODIR : /tmp/)"
+
+    echo -e "\t -st=<STRING> | --starttime=<STRING>" 
+    echo -e "\t\t - Specify start time STRING for -mcu option "
+
+    echo -e "\t -et=<STRING> | --endtime=<STRING>" 
+    echo -e "\t\t - Specify end time STRING for -mcu option "
     
     echo 
     echo " Examples : "
@@ -196,6 +208,23 @@ while [ "$1" != "" ]; do
         -it | --iterations)
             numiter=$VALUE
         ;;
+        -mcu | --mfscpuuse)
+            if [ -z "$VALUE" ]; then
+                VALUE="/tmp"
+            fi
+            mfscpuusedir=$VALUE
+            args=$args"mfscpuuse "
+        ;;
+        -st | --starttime)
+            if [ -z "$VALUE" ]; then
+                startstr="$VALUE"
+            fi
+        ;;
+        -et | --endtime)
+            if [ -z "$VALUE" ]; then
+                endstr="$VALUE"
+            fi
+        ;;
         -si | --systeminfo)
             sysinfo="$VALUE"
             if [ -z "$sysinfo" ]; then
@@ -230,7 +259,8 @@ if [ -z "$rolefile" ]; then
 	returncode=1
 else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
-    \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-mt=$mfstracedir\" \"-it=$numiter\""
+    \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-mt=$mfstracedir\" \"-it=$numiter\" \
+    \"-mcu=$mfscpuusedir\" \"-st=$startstr\" \"-et=$endstr\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else

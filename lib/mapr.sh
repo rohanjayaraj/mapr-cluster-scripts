@@ -2714,13 +2714,116 @@ function maprutil_mfsthreads(){
     [ -z "$mfspid" ] && return
     
     local types="CpuQ_FS CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_Compress CpuQ_SysCalls CpuQ_Rpc"
-    local mfstrace=$(gstack $mfspid | sed '1!G;h;$!d')
-    log_msg "$(util_getHostIP) : MFS($mfspid) Thread Details"
+    local mfsgstack="/opt/mapr/logs/$mfspid.gstack"
+    local mfstrace=
+
+    if [ -s "$mfsgstack" ] && [ -n "$(cat $mfsgstack | grep CpuQ_FS)" ]; then
+        mfstrace=$(cat $mfsgstack) 
+    else
+        mfstrace=$(gstack $mfspid | sed '1!G;h;$!d')
+        echo "mfstrace" > $mfsgstack
+    fi
+    echo
+    log_msg "$(util_getHostIP): MFS ($mfspid) thread id(s)"
     for type in $types
     do
         local ids=$(echo "$mfstrace" | grep -e "$type" -e "^Thread" | grep -A1 "$type" | grep -o "LWP [0-9]*" | awk '{print $2}' | sed ':a;N;$!ba;s/\n/,/g')
-        [ -n "$ids" ] && log_msg "\t$type : $ids"
+        [ -n "$ids" ] && log_msg "\t${type}: $ids"
     done
+}
+
+function maprutil_copymfscpuuse(){
+    local node=$1
+    local timestamp=$2
+    local copyto=$3
+    mkdir -p $copyto > /dev/null 2>&1
+    local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+    local dirtocopy="/tmp/mfscpuuse/$timestamp/$host"
+
+    ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
+}
+
+function maprutil_mfsCpuUseOnNode(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+
+    local node=$1
+    local timestamp=$2
+    local stime="$3"
+    local etime="$4"
+    
+    local scriptpath="$RUNTEMPDIR/mfscpuuse_${node: -3}.sh"
+    maprutil_buildSingleScript "$scriptpath" "$node"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    echo "maprutil_buildMFSCpuUse \"$timestamp\" \"$stime\" \"$etime\"" >> $scriptpath
+   
+    ssh_executeScriptasRootInBG "$node" "$scriptpath"
+    maprutil_addToPIDList "$!"
+}
+
+function maprutil_buildMFSCpuUse(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+    local mfstop="/opt/mapr/logs/mfstop.log"
+    [ ! -s "$mfstop" ] && return
+    local mfsthreads=$(maprutil_mfsthreads)
+    [ -z "$mfsthreads" ] && return
+    [ -z "$(echo "$mfsthreads" | grep CpuQ)" ] && return 
+
+    local timestamp="$1"
+    local stime="$2"
+    local etime="$3"
+
+    local sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1)
+    local el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1)
+    [ -z "$el" ] || [ -z "$sl" ] && return
+    local tempdir="/tmp/mfscpuuse/$timestamp/$(hostname -f)"
+
+    local fsthreads="$(echo "$mfsthreads" | grep CpuQ_FS | awk '{print $2}' | sed 's/,/ /g')"
+    for fsthread in $fsthreads
+    do
+        local fsfile="$tempdir/fs_$fsthread.log"
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$fsthread" | awk '{print $9}' > ${fsfile}.log
+    done
+    [ -n "$fsthreads" ] && paste $tempdir/fs_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/fs.log
+
+    local dbthreads="$(echo "$mfsthreads" | grep CpuQ_DBMain | awk '{print $2}' | sed 's/,/ /g')"
+    for dbthread in $dbthreads
+    do
+        local dbfile="$tempdir/db_$dbthread.log"
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$dbthread" | awk '{print $9}' > ${dbfile}.log
+    done
+    [ -n "$dbthreads" ] && paste $tempdir/db_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/db.log
+
+    local dbhthreads="$(echo "$mfsthreads" | grep CpuQ_DBHelper | awk '{print $2}' | sed 's/,/ /g')"
+    for dbhthread in $dbhthreads
+    do
+        local dbhfile="$tempdir/dbh_$dbhthread.log"
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$dbhthread" | awk '{print $9}' > ${dbhfile}.log
+    done
+    [ -n "$dbhthreads" ] && paste $tempdir/dbh_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/dbh.log
+
+    local dbfthreads="$(echo "$mfsthreads" | grep CpuQ_DBFlush | awk '{print $2}' | sed 's/,/ /g')"
+    for dbfthread in $dbfthreads
+    do
+        local dbffile="$tempdir/dbf_$dbfthread.log"
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$dbfthread" | awk '{print $9}' > ${dbffile}.log
+    done
+    [ -n "$dbfthreads" ] && paste $tempdir/dbf_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/dbf.log
+
+    local compthreads="$(echo "$mfsthreads" | grep CpuQ_Compress | awk '{print $2}' | sed 's/,/ /g')"
+    for compthread in $compthreads
+    do
+        local compfile="$tempdir/comp_$compthread.log"
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$compthread" | awk '{print $9}' > ${compfile}.log
+    done
+    [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/comp.log
 }
 
 function maprutil_analyzeCores(){

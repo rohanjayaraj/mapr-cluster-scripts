@@ -642,6 +642,23 @@ function main_getmfstrace(){
 	wait
 }
 
+function main_getmfscpuuse(){
+	log_msghead "[$(util_getCurDate)] Building & collecting MFS threads CPU usage logs to $doMFSCPUUse"
+	[ -z "$startstr" ] || [ -z "$endstr" ] && log_error "Start and End time not specified" && return
+	local timestamp=$(date +%s)
+	for node in ${nodes[@]}
+	do	
+		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
+		maprutil_mfsCpuUseOnNode "$node" "$timestamp" "$startstr" "$endstr"
+	done
+	maprutil_wait
+	for node in ${nodes[@]}
+	do	
+		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
+    	maprutil_copymfscpuuse "$node" "$timestamp" "$doMFSTrace"
+	done
+}
+
 function main_runCommandExec(){
 	if [ -z "$1" ]; then
         return
@@ -729,6 +746,9 @@ function main_runLogDoctor(){
         	;;
         	mfstrace)
 				main_getmfstrace
+			;;
+			mfscpuuse)
+				main_getmfscpuuse
 			;;
 			traceoff)
 				log_msghead "[$(util_getCurDate)] Disable traces on all nodes"
@@ -888,6 +908,9 @@ doSilent=0
 doBackup=
 doMFSTrace=
 doNumIter=10
+doMFSCPUUse=
+startstr=
+endstr=
 bkpRegex=
 useBuildID=
 useRepoURL=
@@ -971,6 +994,8 @@ while [ "$2" != "" ]; do
 	    			doLogAnalyze="$doLogAnalyze analyzecores"
 	    		elif [[ "$i" = "mfstrace" ]]; then
 	    			doLogAnalyze="$doLogAnalyze mfstrace"
+	    		elif [[ "$i" = "mfscpuuse" ]]; then
+	    			doLogAnalyze="$doLogAnalyze mfscpuuse"
 	    		elif [[ "$i" = "mfsthreads" ]]; then
 	    			doLogAnalyze="$doLogAnalyze $i"
 	    		fi
@@ -1037,6 +1062,21 @@ while [ "$2" != "" ]; do
     	-mt)
 			if [ -n "$VALUE" ]; then
 				doMFSTrace=$VALUE
+			fi
+		;;
+		-mcu)
+			if [ -n "$VALUE" ]; then
+				doMFSCPUUse=$VALUE
+			fi
+		;;
+		-st)
+			if [ -n "$VALUE" ]; then
+				startstr="$VALUE"
+			fi
+		;;
+		-et)
+			if [ -n "$VALUE" ]; then
+				endstr="$VALUE"
 			fi
 		;;
 		-it)
