@@ -2784,6 +2784,7 @@ function maprutil_buildMFSCpuUse(){
     local el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1)
     [ -z "$el" ] || [ -z "$sl" ] && return
     local tempdir="/tmp/mfscpuuse/$timestamp/$(hostname -f)"
+    mkdir -p $tempdir > /dev/null 2>&1
 
     local fsthreads="$(echo "$mfsthreads" | grep CpuQ_FS | awk '{print $2}' | sed 's/,/ /g')"
     for fsthread in $fsthreads

@@ -655,7 +655,7 @@ function main_getmfscpuuse(){
 	for node in ${nodes[@]}
 	do	
 		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
-    	maprutil_copymfscpuuse "$node" "$timestamp" "$doMFSTrace"
+    	maprutil_copymfscpuuse "$node" "$timestamp" "$doMFSCPUUse"
 	done
 }
 
