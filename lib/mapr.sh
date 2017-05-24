@@ -2771,6 +2771,7 @@ function maprutil_mfsCPUUseOnCluster(){
         dirlist="$dirlist $logdir/$host/"
     done
     [ -z "$(echo $dirlist | grep "$logdir")" ] && return
+    [ -z "$(ls $logdir/* 2>/dev/null)" ] && return
     logdir="$logdir/cluster"
     mkdir -p $logdir > /dev/null 2&>1
 
