@@ -2713,7 +2713,7 @@ function maprutil_mfsthreads(){
     local mfspid=$(pidof mfs)
     [ -z "$mfspid" ] && return
     
-    local types="CpuQ_FS CpuQ_Compress CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_SysCalls"
+    local types="CpuQ_FS CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_Compress CpuQ_SysCalls CpuQ_Rpc"
     local mfstrace=$(gstack $mfspid | sed '1!G;h;$!d')
     log_msg "$(util_getHostIP) : MFS($mfspid) Thread Details"
     for type in $types
