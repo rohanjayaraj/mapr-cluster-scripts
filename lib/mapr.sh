@@ -2790,7 +2790,7 @@ function maprutil_buildMFSCpuUse(){
     for fsthread in $fsthreads
     do
         local fsfile="$tempdir/fs_$fsthread.log"
-        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$fsthread" | awk '{print $9}' > ${fsfile}.log
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$fsthread" | awk '{print $9}' > ${fsfile}
     done
     [ -n "$fsthreads" ] && paste $tempdir/fs_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/fs.log
 
@@ -2798,7 +2798,7 @@ function maprutil_buildMFSCpuUse(){
     for dbthread in $dbthreads
     do
         local dbfile="$tempdir/db_$dbthread.log"
-        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$dbthread" | awk '{print $9}' > ${dbfile}.log
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$dbthread" | awk '{print $9}' > ${dbfile}
     done
     [ -n "$dbthreads" ] && paste $tempdir/db_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/db.log
 
@@ -2806,7 +2806,7 @@ function maprutil_buildMFSCpuUse(){
     for dbhthread in $dbhthreads
     do
         local dbhfile="$tempdir/dbh_$dbhthread.log"
-        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$dbhthread" | awk '{print $9}' > ${dbhfile}.log
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$dbhthread" | awk '{print $9}' > ${dbhfile}
     done
     [ -n "$dbhthreads" ] && paste $tempdir/dbh_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/dbh.log
 
@@ -2814,7 +2814,7 @@ function maprutil_buildMFSCpuUse(){
     for dbfthread in $dbfthreads
     do
         local dbffile="$tempdir/dbf_$dbfthread.log"
-        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$dbfthread" | awk '{print $9}' > ${dbffile}.log
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$dbfthread" | awk '{print $9}' > ${dbffile}
     done
     [ -n "$dbfthreads" ] && paste $tempdir/dbf_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/dbf.log
 
@@ -2822,7 +2822,7 @@ function maprutil_buildMFSCpuUse(){
     for compthread in $compthreads
     do
         local compfile="$tempdir/comp_$compthread.log"
-        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$compthread" | awk '{print $9}' > ${compfile}.log
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep "$compthread" | awk '{print $9}' > ${compfile}
     done
     [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/comp.log
 }
