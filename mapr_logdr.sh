@@ -216,12 +216,12 @@ while [ "$1" != "" ]; do
             args=$args"mfscpuuse "
         ;;
         -st | --starttime)
-            if [ -z "$VALUE" ]; then
+            if [ -n "$VALUE" ]; then
                 startstr="$VALUE"
             fi
         ;;
         -et | --endtime)
-            if [ -z "$VALUE" ]; then
+            if [ -n "$VALUE" ]; then
                 endstr="$VALUE"
             fi
         ;;
