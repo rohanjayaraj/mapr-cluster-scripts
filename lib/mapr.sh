@@ -81,13 +81,19 @@ function maprutil_getMFSDataNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
-    local cldbnode=$(util_getFirstElement "$cldbnodes")
     local mfsnodes=
-    local isCLDBUp=$(maprutil_waitForCLDBonNode "$cldbnode")
+    local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+    local cldbnode=
 
+    if [ -n "$cldbnodes" ]; then
+        cldbnode=$(util_getFirstElement "$cldbnodes")
+    else
+        cldbnode=$(cat $rolefile | grep '^[^#;]' | head -1 | awk -F, '{print $1}')
+    fi
+    
+    local isCLDBUp=$(maprutil_waitForCLDBonNode "$cldbnode")
     if [ -n "$isCLDBUp" ]; then
-        local mfshosts="$(ssh_executeCommandasRoot "$node" "timeout 50 maprcli node list -json | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
+        local mfshosts="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -json | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep hostname | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
         for mfshost in $mfshosts
         do
             mfsnodes="$mfsnodes $(host $mfshost | awk '{print $4}')"
@@ -2762,7 +2768,7 @@ function maprutil_mfsCPUUseOnCluster(){
     for node in ${nodes[@]}
     do
         local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
-        dirlist="$dirlist $dirlist/$host/"
+        dirlist="$dirlist $logdir/$host/"
     done
     [ -z "$(echo $dirlist | grep "$logdir")" ] && return
     logdir="$logdir/cluster"
