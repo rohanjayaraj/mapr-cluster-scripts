@@ -87,7 +87,11 @@ function maprutil_getMFSDataNodes() {
     local isCLDBUp=$(maprutil_waitForCLDBonNode "$cldbnode")
 
     if [ -n "$isCLDBUp" ]; then
-        mfsnodes="$(ssh_executeCommandasRoot "$node" "timeout 50 maprcli node list -json | grep 'ip\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
+        local mfshosts="$(ssh_executeCommandasRoot "$node" "timeout 50 maprcli node list -json | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
+        for mfshost in $mfshosts
+        do
+            mfsnodes="$mfsnodes $(host $mfshost | awk '{print $4}')"
+        done
     else
         mfsnodes=$(grep mapr-fileserver $1 | grep '^[^#;]' | grep -v cldb | awk -F, '{print $1}')
     fi
