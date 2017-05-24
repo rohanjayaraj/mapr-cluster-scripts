@@ -644,7 +644,7 @@ function main_getmfstrace(){
 
 function main_getmfscpuuse(){
 	log_msghead "[$(util_getCurDate)] Building & collecting MFS threads CPU usage logs to $doMFSCPUUse"
-	[ -z "$startstr" ] || [ -z "$endstr" ] && log_error "Start and End time not specified" && return
+	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start and End time not specified. Using entire time range available"
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}
 	do	
@@ -657,6 +657,9 @@ function main_getmfscpuuse(){
 		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
     	maprutil_copymfscpuuse "$node" "$timestamp" "$doMFSCPUUse"
 	done
+	wait
+	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
+	maprutil_mfsCPUUseOnCluster "$mfsnodes" "$doMFSCPUUse"
 }
 
 function main_runCommandExec(){

@@ -77,6 +77,24 @@ function maprutil_getOTSDBNodes() {
 }
 
 ## @param path to config
+function maprutil_getMFSDataNodes() {
+    if [ -z "$1" ]; then
+        return 1
+    fi
+    local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+    local cldbnode=$(util_getFirstElement "$cldbnodes")
+    local mfsnodes=
+    local isCLDBUp=$(maprutil_waitForCLDBonNode "$cldbnode")
+
+    if [ -n "$isCLDBUp" ]; then
+        mfsnodes="$(ssh_executeCommandasRoot "$node" "timeout 50 maprcli node list -json | grep 'ip\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
+    else
+        mfsnodes=$(grep mapr-fileserver $1 | grep '^[^#;]' | grep -v cldb | awk -F, '{print $1}')
+    fi
+    [ -n "$mfsnodes" ] && echo "$mfsnodes" | sed ':a;N;$!ba;s/\n/ /g'
+}
+
+## @param path to config
 ## @param host ip
 function maprutil_getNodeBinaries() {
     if [ -z "$1" ] || [ -z "$2" ]; then
@@ -2712,7 +2730,8 @@ function maprutil_mfsthreads(){
     [ ! -e "/opt/mapr/roles/fileserver" ] && return
     local mfspid=$(pidof mfs)
     [ -z "$mfspid" ] && return
-    
+    [ -n "$(ls /opt/mapr/logs/*$mfs*.gdbtrace 2>/dev/null)" ] && return
+
     local types="CpuQ_FS CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_Compress CpuQ_SysCalls CpuQ_Rpc"
     local mfsgstack="/opt/mapr/logs/$mfspid.gstack"
     local mfstrace=
@@ -2732,6 +2751,27 @@ function maprutil_mfsthreads(){
     done
 }
 
+function maprutil_mfsCPUUseOnCluster(){
+    local nodes="$1"
+    local logdir="$2"
+    local dirlist=
+    for node in ${nodes[@]}
+    do
+        local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+        dirlist="$dirlist $dirlist/$host/"
+    done
+    [ -z "$(echo $dirlist | grep "$logdir")" ] && return
+    logdir="$logdir/cluster"
+    mkdir -d $logdir > /dev/null 2&>1
+
+    local files="fs.log db.log dbh.log dbf.log comp.log"
+    for fname in $files
+    do
+        local filelist=$(find $dirlist -name $fname)
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $logdir/$fname
+    done
+}
+
 function maprutil_copymfscpuuse(){
     local node=$1
     local timestamp=$2
@@ -2744,7 +2784,7 @@ function maprutil_copymfscpuuse(){
 }
 
 function maprutil_mfsCpuUseOnNode(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
 
@@ -2767,7 +2807,7 @@ function maprutil_mfsCpuUseOnNode(){
 }
 
 function maprutil_buildMFSCpuUse(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    if [ -z "$1" ]; then
         return
     fi
     local mfstop="/opt/mapr/logs/mfstop.log"
@@ -2779,10 +2819,13 @@ function maprutil_buildMFSCpuUse(){
     local timestamp="$1"
     local stime="$2"
     local etime="$3"
+    local sl=1
+    local el=$(cat $mfstop | wc -l)
 
-    local sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1)
-    local el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1)
+    [ -n "$stime" ] && sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1)
+    [ -n "$etime" ] && el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1)
     [ -z "$el" ] || [ -z "$sl" ] && return
+
     local tempdir="/tmp/mfscpuuse/$timestamp/$(hostname -f)"
     mkdir -p $tempdir > /dev/null 2>&1
 
