@@ -2772,7 +2772,7 @@ function maprutil_buildMFSCpuUse(){
     fi
     local mfstop="/opt/mapr/logs/mfstop.log"
     [ ! -s "$mfstop" ] && return
-    local mfsthreads=$(maprutil_mfsthreads)
+    local mfsthreads=$(maprutil_mfsthreads | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')
     [ -z "$mfsthreads" ] && return
     [ -z "$(echo "$mfsthreads" | grep CpuQ)" ] && return 
 
@@ -2786,7 +2786,7 @@ function maprutil_buildMFSCpuUse(){
     local tempdir="/tmp/mfscpuuse/$timestamp/$(hostname -f)"
     mkdir -p $tempdir > /dev/null 2>&1
 
-    local fsthreads="$(echo "$mfsthreads" | grep CpuQ_FS | cut -d':' -f2- | sed 's/,/ /g')"
+    local fsthreads="$(echo "$mfsthreads" | grep CpuQ_FS | awk '{print $2}' | sed 's/,/ /g')"
     for fsthread in $fsthreads
     do
         local fsfile="$tempdir/fs_$fsthread.log"
@@ -2794,7 +2794,7 @@ function maprutil_buildMFSCpuUse(){
     done
     [ -n "$fsthreads" ] && paste $tempdir/fs_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/fs.log
 
-    local dbthreads="$(echo "$mfsthreads" | grep CpuQ_DBMain | cut -d':' -f2- | sed 's/ //g' | sed 's/,/ /g')"
+    local dbthreads="$(echo "$mfsthreads" | grep CpuQ_DBMain | awk '{print $2}' | sed 's/,/ /g')"
     for dbthread in $dbthreads
     do
         local dbfile="$tempdir/db_$dbthread.log"
@@ -2802,7 +2802,7 @@ function maprutil_buildMFSCpuUse(){
     done
     [ -n "$dbthreads" ] && paste $tempdir/db_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/db.log
 
-    local dbhthreads="$(echo "$mfsthreads" | grep CpuQ_DBHelper | cut -d':' -f2- | sed 's/ //g' | sed 's/,/ /g')"
+    local dbhthreads="$(echo "$mfsthreads" | grep CpuQ_DBHelper | awk '{print $2}' | sed 's/,/ /g')"
     for dbhthread in $dbhthreads
     do
         local dbhfile="$tempdir/dbh_$dbhthread.log"
@@ -2810,7 +2810,7 @@ function maprutil_buildMFSCpuUse(){
     done
     [ -n "$dbhthreads" ] && paste $tempdir/dbh_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/dbh.log
 
-    local dbfthreads="$(echo "$mfsthreads" | grep CpuQ_DBFlush | cut -d':' -f2- | sed 's/ //g' | sed 's/,/ /g')"
+    local dbfthreads="$(echo "$mfsthreads" | grep CpuQ_DBFlush | awk '{print $2}' | sed 's/,/ /g')"
     for dbfthread in $dbfthreads
     do
         local dbffile="$tempdir/dbf_$dbfthread.log"
@@ -2818,7 +2818,7 @@ function maprutil_buildMFSCpuUse(){
     done
     [ -n "$dbfthreads" ] && paste $tempdir/dbf_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF)}' > $tempdir/dbf.log
 
-    local compthreads="$(echo "$mfsthreads" | grep CpuQ_Compress | cut -d':' -f2- | sed 's/ //g' | sed 's/,/ /g')"
+    local compthreads="$(echo "$mfsthreads" | grep CpuQ_Compress | awk '{print $2}' | sed 's/,/ /g')"
     for compthread in $compthreads
     do
         local compfile="$tempdir/comp_$compthread.log"
