@@ -2894,13 +2894,15 @@ function maprutil_buildMFSCpuUse(){
     fi
 
     local gwresuse="/opt/mapr/logs/gwresusage.log"
-    sl=1
-    el=$(cat $gwresuse | wc -l)
+    if [ -s "$gwresuse" ]; then
+        sl=1
+        el=$(cat $gwresuse | wc -l)
 
-    [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1)
-    [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1)
-    if [ -n "$el" ] && [ -n "$sl" ]; then
-        sed -n ${sl},${el}p $gwresuse | awk '{print $4}' > gw.log
+        [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1)
+        [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1)
+        if [ -n "$el" ] && [ -n "$sl" ]; then
+            sed -n ${sl},${el}p $gwresuse | awk '{print $4}' > gw.log
+        fi
     fi
 }
 
