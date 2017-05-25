@@ -143,11 +143,13 @@ function util_installprereq(){
     util_checkAndInstall "pip" "python-pip"
     if [ "$(getOS)" = "centos" ]; then
         util_checkAndInstall "createrepo" "createrepo"
+        util_checkAndInstall "host" "bind-utils"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         util_checkAndInstall "add-apt-repository" "python-software-properties"
         util_checkAndInstall "add-apt-repository" "software-properties-common"
         util_checkAndInstall "dpkg-scanpackages" "dpkg-dev"
         util_checkAndInstall "gzip" "gzip"
+        util_checkAndInstall "host" "dnsutils"
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"

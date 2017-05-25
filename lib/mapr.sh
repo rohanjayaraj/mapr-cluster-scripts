@@ -2682,6 +2682,7 @@ function maprutil_copyZippedLogsFromNode(){
     local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
     
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto" > /dev/null 2>&1
+    ssh_executeCommandasRoot "rm -rf $filetocopy" > /dev/null 2>&1
 }
 
 function maprutil_copymfstrace(){
@@ -2693,6 +2694,7 @@ function maprutil_copymfstrace(){
     local dirtocopy="/tmp/mfstrace/$timestamp/$host"
 
     ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
+    ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
 }
 
 function maprutil_mfstraceonNode(){
@@ -2775,7 +2777,7 @@ function maprutil_mfsCPUUseOnCluster(){
     logdir="$logdir/cluster"
     mkdir -p $logdir > /dev/null 2&>1
 
-    local files="fs.log db.log dbh.log dbf.log comp.log"
+    local files="fs.log db.log dbh.log dbf.log comp.log mfs.log gw.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname)
@@ -2792,6 +2794,7 @@ function maprutil_copymfscpuuse(){
     local dirtocopy="/tmp/mfscpuuse/$timestamp/$host"
 
     ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
+    ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
 }
 
 function maprutil_mfsCpuUseOnNode(){
@@ -2879,6 +2882,26 @@ function maprutil_buildMFSCpuUse(){
         sed -n ${sl},${el}p $mfstop | grep mfs | grep "$compthread" | awk '{print $9}' > ${compfile}
     done
     [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/comp.log
+
+    local mfsresuse="/opt/mapr/logs/mfsresusage.log"
+    sl=1
+    el=$(cat $mfsresuse | wc -l)
+
+    [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1)
+    [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1)
+    if [ -n "$el" ] && [ -n "$sl" ]; then
+        sed -n ${sl},${el}p $mfsresuse | awk '{print $4}' > mfs.log
+    fi
+
+    local gwresuse="/opt/mapr/logs/gwresusage.log"
+    sl=1
+    el=$(cat $gwresuse | wc -l)
+
+    [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1)
+    [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1)
+    if [ -n "$el" ] && [ -n "$sl" ]; then
+        sed -n ${sl},${el}p $gwresuse | awk '{print $4}' > gw.log
+    fi
 }
 
 function maprutil_analyzeCores(){
