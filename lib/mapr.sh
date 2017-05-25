@@ -2890,7 +2890,7 @@ function maprutil_buildMFSCpuUse(){
     [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1)
     [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1)
     if [ -n "$el" ] && [ -n "$sl" ]; then
-        sed -n ${sl},${el}p $mfsresuse | awk '{print $4}' > mfs.log
+        sed -n ${sl},${el}p $mfsresuse | awk '{print $4}' > $tempdir/mfs.log
     fi
 
     local gwresuse="/opt/mapr/logs/gwresusage.log"
@@ -2901,7 +2901,7 @@ function maprutil_buildMFSCpuUse(){
         [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1)
         [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1)
         if [ -n "$el" ] && [ -n "$sl" ]; then
-            sed -n ${sl},${el}p $gwresuse | awk '{print $4}' > gw.log
+            sed -n ${sl},${el}p $gwresuse | awk '{print $4}' > $tempdir/gw.log
         fi
     fi
 }
