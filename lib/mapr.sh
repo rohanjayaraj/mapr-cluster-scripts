@@ -2777,11 +2777,18 @@ function maprutil_mfsCPUUseOnCluster(){
     logdir="$logdir/cluster"
     mkdir -p $logdir > /dev/null 2&>1
 
-    local files="fs.log db.log dbh.log dbf.log comp.log mfs.log gw.log"
+    local files="fs.log db.log dbh.log dbf.log comp.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname
+    done
+    files="mfs.log gw.log"
+    for fname in $files
+    do
+        local filelist=$(find $dirlist -name $fname)
+        local numfiles=$(echo "$filelist" | wc -l)
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) sum+=$i; printf("%s %s %.0f\n", $1, $2, sum/NF); sum=0}' > $logdir/$fname
     done
 }
 
@@ -2890,7 +2897,7 @@ function maprutil_buildMFSCpuUse(){
     [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1)
     [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1)
     if [ -n "$el" ] && [ -n "$sl" ]; then
-        sed -n ${sl},${el}p $mfsresuse | awk '{print $4}' > $tempdir/mfs.log
+        sed -n ${sl},${el}p $mfsresuse | awk '{print $1,$2,$4}' > $tempdir/mfs.log
     fi
 
     local gwresuse="/opt/mapr/logs/gwresusage.log"
@@ -2901,7 +2908,7 @@ function maprutil_buildMFSCpuUse(){
         [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1)
         [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1)
         if [ -n "$el" ] && [ -n "$sl" ]; then
-            sed -n ${sl},${el}p $gwresuse | awk '{print $4}' > $tempdir/gw.log
+            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$4}' > $tempdir/gw.log
         fi
     fi
 }
