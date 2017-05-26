@@ -2783,6 +2783,7 @@ function maprutil_mfsCPUUseOnCluster(){
     done
     [ -z "$(echo $dirlist | grep "$logdir")" ] && return
     [ -z "$(ls $logdir/* 2>/dev/null)" ] && return
+    pushd $$logdir > /dev/null 2>&1
     logdir="$logdir/cluster"
     mkdir -p $logdir > /dev/null 2&>1
 
@@ -2809,6 +2810,7 @@ function maprutil_mfsCPUUseOnCluster(){
     echo "for i in \$(ls *.tar);do tar -xf \$i && rm -f \${i}; done" >> $scriptfile
     chmod +x $scriptfile
     rm -rf $dirlist > /dev/null 2>&1
+    popd > /dev/null 2>&1
 }
 
 function maprutil_copymfscpuuse(){
