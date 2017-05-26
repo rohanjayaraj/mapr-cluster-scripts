@@ -2762,10 +2762,19 @@ function maprutil_mfsthreads(){
         [ -n "$ids" ] && log_msg "\t${type}: $ids"
     done
 }
+function maprutil_publishMFSCPUUse(){
+    local portal="$1"
+    local logdir="$2"
+
+    echo
+}
 
 function maprutil_mfsCPUUseOnCluster(){
     local nodes="$1"
     local logdir="$2"
+    local timestamp="$3"
+    local publish="$4"
+
     local dirlist=
     for node in ${nodes[@]}
     do
@@ -2788,8 +2797,18 @@ function maprutil_mfsCPUUseOnCluster(){
     do
         local filelist=$(find $dirlist -name $fname)
         local numfiles=$(echo "$filelist" | wc -l)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) sum+=$i; printf("%s %s %.0f\n", $1, $2, sum/NF); sum=0}' > $logdir/$fname
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) sum+=$i; printf("%s %s %.0f\n",$1,$2,sum/NF); sum=0}' > $logdir/$fname
     done
+
+    [ -n "$publish" ] && maprutil_publishMFSCPUUse "$publish" "$logdir"
+
+    local tarfile="maprcpuuse_$timestamp.tar.bz2"
+    tar -cf $tarfile --use-compress-prog=pbzip2 $dirlist > /dev/null 2>&1
+    local scriptfile="extract.sh"
+    echo "for i in \$(ls *.bz2);do bzip2 -dk \$i;done " >> $scriptfile
+    echo "for i in \$(ls *.tar);do tar -xf \$i && rm -f \${i}; done" >> $scriptfile
+    chmod +x $scriptfile
+    rm -rf $dirlist > /dev/null 2>&1
 }
 
 function maprutil_copymfscpuuse(){

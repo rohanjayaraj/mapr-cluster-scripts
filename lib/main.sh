@@ -659,7 +659,7 @@ function main_getmfscpuuse(){
 	done
 	wait
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
-	maprutil_mfsCPUUseOnCluster "$mfsnodes" "$doMFSCPUUse"
+	maprutil_mfsCPUUseOnCluster "$mfsnodes" "$doMFSCPUUse" "$timestamp"
 }
 
 function main_runCommandExec(){
