@@ -645,9 +645,7 @@ function main_getmfstrace(){
 
 function main_getmfscpuuse(){
 	log_msghead "[$(util_getCurDate)] Building & collecting MFS threads CPU usage logs to $doMFSCPUUse"
-	maprutil_publishMFSCPUUse "dash.perf.lab" "/tmp/mcu01/cluster"
-	return
-
+	
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start and End time not specified. Using entire time range available"
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}

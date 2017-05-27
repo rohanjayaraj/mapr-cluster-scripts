@@ -2775,7 +2775,7 @@ function maprutil_publishMFSCPUUse(){
 
     pushd $logdir > /dev/null 2>&1
 
-    local json="cpuuse={"
+    local json="{"
     json="$json\"timestamp\":$timestamp,\"nodes\":\"$hostlist\""
     json="$json,\"builid\":\"$buildid\",\"description\":\"$desc\","
 
@@ -2806,6 +2806,7 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$tjson" ] && json="$json,$tjson"
     json="$json}"
     json=$(echo $json | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+    json="cpuuse=$json"
     #echo $json > cpuuse.json
     local tmpfile=$(mktemp)
     echo "$json" > $tmpfile
