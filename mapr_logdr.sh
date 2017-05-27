@@ -25,6 +25,7 @@ backupdir=
 mfstracedir=
 numiter=
 mfscpuusedir=
+publishdesc=
 startstr=
 endstr=
 backupregex=
@@ -122,7 +123,7 @@ function usage () {
     echo -e "\t -mti | --mfsthreadinfo" 
     echo -e "\t\t - List MFS thread id details from all MFS nodes"
 
-    echo -e "\t -mcu | --mfscpuuse=<COPYTODIR>" 
+    echo -e "\t -mcu | -mcu=<COPYTODIR> |--mfscpuuse=<COPYTODIR>" 
     echo -e "\t\t - Build consolidated MFS thread-wise CPU Use log (default COPYTODIR : /tmp/)"
 
     echo -e "\t -st=<STRING> | --starttime=<STRING>" 
@@ -130,6 +131,9 @@ function usage () {
 
     echo -e "\t -et=<STRING> | --endtime=<STRING>" 
     echo -e "\t\t - Specify end time STRING for -mcu option "
+
+    echo -e "\t -pub | -pub=<DESCRIPTION> | --publish=<DESCRIPTION>" 
+    echo -e "\t\t - When used with -mcu option, publish MFS/GW CPU Usage to Dashboard (dash.perf.lab)"
     
     echo 
     echo " Examples : "
@@ -225,6 +229,12 @@ while [ "$1" != "" ]; do
                 endstr="$VALUE"
             fi
         ;;
+        -pub | --publish)
+            if [ -n "$VALUE" ]; then
+                publishdesc="$VALUE"
+            fi
+            args=$args"publish "
+        ;;
         -si | --systeminfo)
             sysinfo="$VALUE"
             if [ -z "$sysinfo" ]; then
@@ -260,7 +270,7 @@ if [ -z "$rolefile" ]; then
 else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
     \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-mt=$mfstracedir\" \"-it=$numiter\" \
-    \"-mcu=$mfscpuusedir\" \"-st=$startstr\" \"-et=$endstr\""
+    \"-mcu=$mfscpuusedir\" \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else

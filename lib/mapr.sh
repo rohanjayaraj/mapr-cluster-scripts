@@ -2763,10 +2763,55 @@ function maprutil_mfsthreads(){
     done
 }
 function maprutil_publishMFSCPUUse(){
-    local portal="$1"
-    local logdir="$2"
+    [ -z "$GLB_PERF_URL" ] && return
 
-    echo
+    local logdir="$1"
+    local timestamp="$2"
+    local hostlist="$3"
+    local buildid="$4"
+    local desc="$5"
+
+    [ -z "$desc" ] && desc="${buildid}-${timestamp}"
+
+    pushd $logdir > /dev/null 2>&1
+
+    local json="cpuuse={"
+    json="$json\"timestamp\":$timestamp,\"nodes\":\"$hostlist\""
+    json="$json,\"builid\":\"$buildid\",\"description\":\"$desc\","
+
+
+    local tjson=
+    local ttime=0
+    local files="fs.log db.log dbh.log dbf.log"
+    for fname in $files
+    do
+        [ ! -s "$fname" ] && continue
+        local tlog=$(cat $fname | awk 'BEGIN{printf("["); i=1} { if(i!=1 || i!=NR) printf(","); printf("%s",$1); i++} END{printf("]")}')
+        [ -n "$tjson" ] && tjson="$tjson,"
+        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$tlog"
+        [ "$ttime" -lt "$(cat $fname | wc -l)" ] && ttime=$(cat $fname | wc -l)
+    done
+    [ -n "$tjson" ] && json="$json\"threads\":{\"maxcount\":$ttime,$tjson}"
+
+    # add MFS & GW cpu
+    files="mfs.log gw.log"
+    tjson=
+    for fname in $files
+    do
+        [ ! -s "$fname" ] && continue
+        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i!=0 || i!=NR-1) printf(","); printf("{\"time\":%d,\"ts\":\"%s %s\",\"pcpu\":%s}",i,$1,$2,$3); i++} END{printf("]")}')
+        [ -n "$tjson" ] && tjson="$tjson,"
+        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
+    done
+    [ -n "$tjson" ] && json="$json,$tjson"
+    json="$json}"
+    json=$(echo $json | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+    #echo $json > cpuuse.json
+    local tmpfile=$(mktemp)
+    echo "$json" > $tmpfile
+    curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
+    rm -f $tmpfile > /dev/null 2>&1
+    popd > /dev/null 2>&1
 }
 
 function maprutil_mfsCPUUseOnCluster(){
@@ -2775,17 +2820,21 @@ function maprutil_mfsCPUUseOnCluster(){
     local timestamp="$3"
     local publish="$4"
 
+    local hostlist=
+    local buildid=
     local dirlist=
     for node in ${nodes[@]}
     do
         local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
         dirlist="$dirlist $tmpdir/$host/"
+        hostlist="$hostlist $node"
+        [ -z "$buildid" ] && buildid=$(ssh_executeCommandasRoot "$node" "cat /opt/mapr/MapRBuildVersion")
     done
     [ -z "$(echo $dirlist | grep "$tmpdir")" ] && return
     [ -z "$(ls $tmpdir/* 2>/dev/null)" ] && return
     
     local logdir="$tmpdir/cluster"
-    mkdir -p $logdir > /dev/null 2&>1
+    mkdir -p $logdir > /dev/null 2>&1
 
     local files="fs.log db.log dbh.log dbf.log comp.log"
     for fname in $files
@@ -2801,7 +2850,7 @@ function maprutil_mfsCPUUseOnCluster(){
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) sum+=$i; printf("%s %s %.0f\n",$1,$2,sum/NF); sum=0}' > $logdir/$fname
     done
 
-    [ -n "$publish" ] && maprutil_publishMFSCPUUse "$publish" "$logdir"
+    [ -n "$GLB_PERF_URL" ] && maprutil_publishMFSCPUUse "$logdir" "$timestamp" "$hostlist" "$buildid" "$publish"
 
     pushd $tmpdir > /dev/null 2>&1
     local dirstotar=$dirlist

@@ -129,6 +129,7 @@ GLB_INDEX_NAME=
 GLB_SECURE_CLUSTER=
 GLB_FS_THREADS=
 GLB_GW_THREADS=
+GLB_PERF_URL=
 GLB_SYSINFO_OPTION=
 GLB_GREP_MAPRLOGS=
 GLB_LOG_VERBOSE=
@@ -644,6 +645,9 @@ function main_getmfstrace(){
 
 function main_getmfscpuuse(){
 	log_msghead "[$(util_getCurDate)] Building & collecting MFS threads CPU usage logs to $doMFSCPUUse"
+	maprutil_publishMFSCPUUse "dash.perf.lab" "/tmp/mcu01/cluster"
+	return
+
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start and End time not specified. Using entire time range available"
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}
@@ -659,7 +663,7 @@ function main_getmfscpuuse(){
 	done
 	wait
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
-	maprutil_mfsCPUUseOnCluster "$mfsnodes" "$doMFSCPUUse" "$timestamp"
+	maprutil_mfsCPUUseOnCluster "$mfsnodes" "$doMFSCPUUse" "$timestamp" "$doPublish"
 }
 
 function main_runCommandExec(){
@@ -912,6 +916,7 @@ doBackup=
 doMFSTrace=
 doNumIter=10
 doMFSCPUUse=
+doPublish=
 startstr=
 endstr=
 bkpRegex=
@@ -1001,6 +1006,8 @@ while [ "$2" != "" ]; do
 	    			doLogAnalyze="$doLogAnalyze mfscpuuse"
 	    		elif [[ "$i" = "mfsthreads" ]]; then
 	    			doLogAnalyze="$doLogAnalyze $i"
+	    		elif [[ "$i" = "publish" ]]; then
+	    			GLB_PERF_URL="http://dash.perf.lab/puffd/"
 	    		fi
 	    	done
 		;;
@@ -1080,6 +1087,11 @@ while [ "$2" != "" ]; do
 		-et)
 			if [ -n "$VALUE" ]; then
 				endstr="$VALUE"
+			fi
+		;;
+		-pub)
+			if [ -n "$VALUE" ]; then
+				doPublish="$VALUE"
 			fi
 		;;
 		-it)
