@@ -2788,8 +2788,8 @@ function maprutil_publishMFSCPUUse(){
         [ ! -s "$fname" ] && continue
         local tlog=$(cat $fname | awk 'BEGIN{printf("["); i=1} { if(i!=1 || i!=NR) printf(","); printf("%s",$1); i++} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
-        tlog=$(echo $tlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
-        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$tlog"
+        # tlog=$(echo $tlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":\"$tlog\""
         [ "$ttime" -lt "$(cat $fname | wc -l)" ] && ttime=$(cat $fname | wc -l)
     done
     [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
