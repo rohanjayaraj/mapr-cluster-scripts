@@ -2771,7 +2771,7 @@ function maprutil_publishMFSCPUUse(){
 
 function maprutil_mfsCPUUseOnCluster(){
     local nodes="$1"
-    local logdir="$2"
+    local tmpdir="$2"
     local timestamp="$3"
     local publish="$4"
 
@@ -2779,12 +2779,12 @@ function maprutil_mfsCPUUseOnCluster(){
     for node in ${nodes[@]}
     do
         local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
-        dirlist="$dirlist $logdir/$host/"
+        dirlist="$dirlist $tmpdir/$host/"
     done
-    [ -z "$(echo $dirlist | grep "$logdir")" ] && return
-    [ -z "$(ls $logdir/* 2>/dev/null)" ] && return
-    pushd $$logdir > /dev/null 2>&1
-    logdir="$logdir/cluster"
+    [ -z "$(echo $dirlist | grep "$tmpdir")" ] && return
+    [ -z "$(ls $tmpdir/* 2>/dev/null)" ] && return
+    
+    local logdir="$tmpdir/cluster"
     mkdir -p $logdir > /dev/null 2&>1
 
     local files="fs.log db.log dbh.log dbf.log comp.log"
@@ -2803,13 +2803,19 @@ function maprutil_mfsCPUUseOnCluster(){
 
     [ -n "$publish" ] && maprutil_publishMFSCPUUse "$publish" "$logdir"
 
-    local tarfile="maprcpuuse_$timestamp.tar.bz2"
-    tar -cf $tarfile --use-compress-prog=pbzip2 $dirlist > /dev/null 2>&1
+    pushd $tmpdir > /dev/null 2>&1
+    local dirstotar=$dirlist
+    if [ "$2" != "/tmp" ] || [ "$2" != "/tmp/" ]; then
+        dirstotar=$(echo $(ls -d */))
+    fi        
+    tar -cf maprcpuuse_$timestamp.tar.bz2 --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
+
     local scriptfile="extract.sh"
     echo "for i in \$(ls *.bz2);do bzip2 -dk \$i;done " >> $scriptfile
     echo "for i in \$(ls *.tar);do tar -xf \$i && rm -f \${i}; done" >> $scriptfile
     chmod +x $scriptfile
-    rm -rf $dirlist > /dev/null 2>&1
+
+    [ "$dirstotar" != "$dirlist" ] && rm -rf $dirstotar > /dev/null 2>&1 
     popd > /dev/null 2>&1
 }
 
