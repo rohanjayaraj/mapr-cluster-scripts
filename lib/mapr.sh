@@ -2788,6 +2788,7 @@ function maprutil_publishMFSCPUUse(){
         [ ! -s "$fname" ] && continue
         local tlog=$(cat $fname | awk 'BEGIN{printf("["); i=1} { if(i!=1 || i!=NR) printf(","); printf("%s",$1); i++} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
+        tlog=$(echo $tlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$tlog"
         [ "$ttime" -lt "$(cat $fname | wc -l)" ] && ttime=$(cat $fname | wc -l)
     done
@@ -2801,11 +2802,11 @@ function maprutil_publishMFSCPUUse(){
         [ ! -s "$fname" ] && continue
         local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i!=0 || i!=NR-1) printf(","); printf("{\"time\":%d,\"ts\":\"%s %s\",\"pcpu\":%s}",i,$1,$2,$3); i++} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
+        mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
     done
     [ -n "$tjson" ] && json="$json,$tjson"
     json="$json}"
-    json=$(echo $json | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
     json="cpuuse=$json"
     #echo $json > cpuuse.json
     local tmpfile=$(mktemp)
