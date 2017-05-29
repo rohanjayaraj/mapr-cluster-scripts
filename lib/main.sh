@@ -664,6 +664,18 @@ function main_getmfscpuuse(){
 	maprutil_mfsCPUUseOnCluster "$mfsnodes" "$doMFSCPUUse" "$timestamp" "$doPublish"
 }
 
+function main_getgutsstats(){
+	log_msghead "[$(util_getCurDate)] Building & collecting 'guts' trends to $doGutsStats"
+	
+	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start and End time not specified. Using entire time range available"
+	local timestamp=$(date +%s)
+	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
+	local node=$(util_getFirstElement "$mfsnodes")
+
+	marutil_getGutsSample "$node"
+
+}
+
 function main_runCommandExec(){
 	if [ -z "$1" ]; then
         return
@@ -754,6 +766,9 @@ function main_runLogDoctor(){
 			;;
 			mfscpuuse)
 				main_getmfscpuuse
+			;;
+			gutsstats)
+				main_getgutsstats
 			;;
 			traceoff)
 				log_msghead "[$(util_getCurDate)] Disable traces on all nodes"
@@ -915,6 +930,7 @@ doMFSTrace=
 doNumIter=10
 doMFSCPUUse=
 doPublish=
+doGutsStats=
 startstr=
 endstr=
 bkpRegex=
@@ -1006,6 +1022,8 @@ while [ "$2" != "" ]; do
 	    			doLogAnalyze="$doLogAnalyze $i"
 	    		elif [[ "$i" = "publish" ]]; then
 	    			GLB_PERF_URL="http://dash.perf.lab/puffd/"
+	    		elif [[ "$i" = "gutsstats" ]]; then
+	    			doLogAnalyze="$doLogAnalyze gutsstats"
 	    		fi
 	    	done
 		;;
@@ -1090,6 +1108,11 @@ while [ "$2" != "" ]; do
 		-pub)
 			if [ -n "$VALUE" ]; then
 				doPublish="$VALUE"
+			fi
+		;;
+		-guts)
+			if [ -n "$VALUE" ]; then
+				doGutsStats="$VALUE"
 			fi
 		;;
 		-it)

@@ -25,6 +25,7 @@ backupdir=
 mfstracedir=
 numiter=
 mfscpuusedir=
+gutsdir=
 publishdesc=
 startstr=
 endstr=
@@ -232,8 +233,14 @@ while [ "$1" != "" ]; do
         -pub | --publish)
             if [ -n "$VALUE" ]; then
                 publishdesc="$VALUE"
+                args=$args"publish "
             fi
-            args=$args"publish "
+        ;;
+        -guts)
+            if [ -n "$VALUE" ]; then
+                gutsdir=$VALUE
+                args=$args"gutsstats "
+            fi
         ;;
         -si | --systeminfo)
             sysinfo="$VALUE"
@@ -270,7 +277,7 @@ if [ -z "$rolefile" ]; then
 else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
     \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-mt=$mfstracedir\" \"-it=$numiter\" \
-    \"-mcu=$mfscpuusedir\" \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\""
+    \"-mcu=$mfscpuusedir\" \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-guts=$gutsdir\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else

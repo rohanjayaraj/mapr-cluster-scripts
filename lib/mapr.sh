@@ -2789,7 +2789,7 @@ function maprutil_publishMFSCPUUse(){
         local tlog=$(cat $fname | awk 'BEGIN{printf("["); i=1} { if(i!=1 || i!=NR) printf(","); printf("%s",$1); i++} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
         # tlog=$(echo $tlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
-        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":\"$tlog\""
+        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$tlog"
         [ "$ttime" -lt "$(cat $fname | wc -l)" ] && ttime=$(cat $fname | wc -l)
     done
     [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
@@ -2801,7 +2801,7 @@ function maprutil_publishMFSCPUUse(){
     for fname in $files
     do
         [ ! -s "$fname" ] && continue
-        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i!=0 || i!=NR-1) printf(","); printf("{\"time\":%d,\"ts\":\"%s %s\",\"pcpu\":%s}",i,$1,$2,$3); i++} END{printf("]")}')
+        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i!=0 || i!=NR-1) printf(","); printf("{\"ts\":\"%s %s\",\"pcpu\":%s}",$1,$2,$3); i++} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
         mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
@@ -2829,6 +2829,7 @@ function maprutil_mfsCPUUseOnCluster(){
     for node in ${nodes[@]}
     do
         local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+        [ ! -d "$tmpdir/$host/" ] && log_error "Incomplete logs; '$host' logs are missing. Exiting!" && return
         dirlist="$dirlist $tmpdir/$host/"
         hostlist="$hostlist $node"
         [ -z "$buildid" ] && buildid=$(ssh_executeCommandasRoot "$node" "cat /opt/mapr/MapRBuildVersion")
@@ -2842,13 +2843,13 @@ function maprutil_mfsCPUUseOnCluster(){
     local files="fs.log db.log dbh.log dbf.log comp.log"
     for fname in $files
     do
-        local filelist=$(find $dirlist -name $fname)
+        local filelist=$(find $dirlist -name $fname 2>/dev/null)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname
     done
     files="mfs.log gw.log"
     for fname in $files
     do
-        local filelist=$(find $dirlist -name $fname)
+        local filelist=$(find $dirlist -name $fname 2>/dev/null)
         local numfiles=$(echo "$filelist" | wc -l)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) sum+=$i; printf("%s %s %.0f\n",$1,$2,sum/NF); sum=0}' > $logdir/$fname
     done
@@ -2922,9 +2923,10 @@ function maprutil_buildMFSCpuUse(){
     local sl=1
     local el=$(cat $mfstop | wc -l)
 
-    [ -n "$stime" ] && sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1)
-    [ -n "$etime" ] && el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1)
+    [ -n "$stime" ] && sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1 | tail -1)
+    [ -n "$etime" ] && el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1 | tail -1)
     [ -z "$el" ] || [ -z "$sl" ] && return
+    [ "$sl" -gt "$el" ] && el=$(cat $mfstop | wc -l)
 
     local tempdir="/tmp/mfscpuuse/$timestamp/$(hostname -f)"
     mkdir -p $tempdir > /dev/null 2>&1
@@ -2973,9 +2975,10 @@ function maprutil_buildMFSCpuUse(){
     sl=1
     el=$(cat $mfsresuse | wc -l)
 
-    [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1)
-    [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1)
+    [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
+    [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
     if [ -n "$el" ] && [ -n "$sl" ]; then
+        [ "$sl" -gt "$el" ] && el=$(cat $mfsresuse | wc -l)
         sed -n ${sl},${el}p $mfsresuse | awk '{print $1,$2,$4}' > $tempdir/mfs.log
     fi
 
@@ -2984,12 +2987,49 @@ function maprutil_buildMFSCpuUse(){
         sl=1
         el=$(cat $gwresuse | wc -l)
 
-        [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1)
-        [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1)
+        [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
+        [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
         if [ -n "$el" ] && [ -n "$sl" ]; then
+            [ "$sl" -gt "$el" ] && el=$(cat $gwresuse | wc -l)
             sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$4}' > $tempdir/gw.log
         fi
     fi
+}
+
+function marutil_getGutsSample(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local node=$1
+    local gutsfile="/opt/mapr/logs/guts.log"
+    [ -n "$2" ] && gutsfile="/opt/mapr/logs/gatewayguts.log"
+
+    local gutsline="$(ssh_executeCommandasRoot "$node" "grep '[a-z]' $gutsfile | grep -v PID | grep -v Printing | head -1 | sed 's/ \+/ /g'")"
+    local twocols="tiime bucketWr write lwrite bwrite read lread inode small large meta dir ior iow icache dcache"
+    local collist=
+    local i=1
+    for gline in $gutsline
+    do
+        if [ "$(util_isNumber $gline)" = "true" ]; then
+            collist="$collist $i=cpu_$gline, "
+        elif [ -n "$(echo $twocols | grep -w $gline)" ]; then
+            if [ "$gline" = "time" ]; then
+                collist="$collist $i=date, "
+                let i=i+1
+                collist="$collist $i=$gline, "
+            else
+                collist="$collist $i=${gline}_ops, "
+                let i=i+1
+                if [ "$gline" != "icache" ] || [ "$gline" != "dcache" ]; then
+                    collist="$collist $i=${gline}_mb, "
+                else
+                    collist="$collist $i=${gline}_miss, "
+                fi
+            fi
+        fi
+        let i=i+1
+    done
+    [ -n "$collist" ] && echo "$collist" | sed 's/,$//'
 }
 
 function maprutil_analyzeCores(){
