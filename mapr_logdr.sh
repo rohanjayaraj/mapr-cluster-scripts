@@ -127,14 +127,20 @@ function usage () {
     echo -e "\t -mcu | -mcu=<COPYTODIR> |--mfscpuuse=<COPYTODIR>" 
     echo -e "\t\t - Build consolidated MFS thread-wise CPU Use log (default COPYTODIR : /tmp/)"
 
+    echo -e "\t -guts=<COPYTODIR>" 
+    echo -e "\t\t - Build & copy consolidated guts stats from all MFS nodes to COPYTODIR"
+
     echo -e "\t -st=<STRING> | --starttime=<STRING>" 
-    echo -e "\t\t - Specify start time STRING for -mcu option "
+    echo -e "\t\t - Specify start time STRING for -mcu or -guts option "
 
     echo -e "\t -et=<STRING> | --endtime=<STRING>" 
-    echo -e "\t\t - Specify end time STRING for -mcu option "
+    echo -e "\t\t - Specify end time STRING for -mcu or -guts option "
 
     echo -e "\t -pub | -pub=<DESCRIPTION> | --publish=<DESCRIPTION>" 
-    echo -e "\t\t - When used with -mcu option, publish MFS/GW CPU Usage to Dashboard (dash.perf.lab)"
+    echo -e "\t\t - When used with -mcu or -guts option, publish stats to Dashboard (dash.perf.lab)"
+
+    echo -e "\t -gwguts" 
+    echo -e "\t\t - When passed with -guts option, build gateway guts instead of mfs"
     
     echo 
     echo " Examples : "
@@ -241,6 +247,12 @@ while [ "$1" != "" ]; do
                 gutsdir=$VALUE
                 args=$args"gutsstats "
             fi
+        ;;
+        -gwguts)
+            args=$args"gwguts "
+        ;;
+        -defguts)
+            args=$args"defaultguts "
         ;;
         -si | --systeminfo)
             sysinfo="$VALUE"

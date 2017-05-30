@@ -2762,6 +2762,7 @@ function maprutil_mfsthreads(){
         [ -n "$ids" ] && log_msg "\t${type}: $ids"
     done
 }
+
 function maprutil_publishMFSCPUUse(){
     [ -z "$GLB_PERF_URL" ] && return
 
@@ -2813,6 +2814,7 @@ function maprutil_publishMFSCPUUse(){
     local tmpfile=$(mktemp)
     echo "$json" > $tmpfile
     curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
+    # TODO : Print URL
     rm -f $tmpfile > /dev/null 2>&1
     popd > /dev/null 2>&1
 }
@@ -3002,34 +3004,219 @@ function marutil_getGutsSample(){
     fi
     local node=$1
     local gutsfile="/opt/mapr/logs/guts.log"
-    [ -n "$2" ] && gutsfile="/opt/mapr/logs/gatewayguts.log"
+    [ -n "$2" ] && [ "$2" = "gw" ] && gutsfile="/opt/mapr/logs/gatewayguts.log"
 
     local gutsline="$(ssh_executeCommandasRoot "$node" "grep '[a-z]' $gutsfile | grep -v PID | grep -v Printing | head -1 | sed 's/ \+/ /g'")"
-    local twocols="tiime bucketWr write lwrite bwrite read lread inode small large meta dir ior iow icache dcache"
+    local twocols="time bucketWr write lwrite bwrite read lread inode small large meta dir ior iow icache dcache"
     local collist=
     local i=1
     for gline in $gutsline
     do
         if [ "$(util_isNumber $gline)" = "true" ]; then
-            collist="$collist $i=cpu_$gline, "
+            collist="$collist $i=cpu_$gline"
         elif [ -n "$(echo $twocols | grep -w $gline)" ]; then
             if [ "$gline" = "time" ]; then
-                collist="$collist $i=date, "
+                collist="$collist $i=date"
                 let i=i+1
-                collist="$collist $i=$gline, "
+                collist="$collist $i=$gline"
             else
-                collist="$collist $i=${gline}_ops, "
+                collist="$collist $i=${gline}_ops"
                 let i=i+1
                 if [ "$gline" != "icache" ] || [ "$gline" != "dcache" ]; then
-                    collist="$collist $i=${gline}_mb, "
+                    collist="$collist $i=${gline}_mb"
                 else
-                    collist="$collist $i=${gline}_miss, "
+                    collist="$collist $i=${gline}_miss"
                 fi
             fi
+        else
+            collist="$collist $i=$gline"
         fi
         let i=i+1
+        [ "$(($i % 10))" -eq "0" ] && collist="$collist\n"
     done
-    [ -n "$collist" ] && echo "$collist" | sed 's/,$//'
+    [ -n "$collist" ] && echo -e "$collist" 
+}
+
+function maprutil_copygutsstats(){
+    local node=$1
+    local timestamp=$2
+    local copyto=$3
+    mkdir -p $copyto > /dev/null 2>&1
+    local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+    local dirtocopy="/tmp/gutsstats/$timestamp/$host"
+
+    ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
+    ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
+}
+
+function maprutil_gutsStatsOnNode(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+
+    local node=$1
+    local timestamp=$2
+    local gutstype=$3
+    local colids="$4"
+    local stime="$5"
+    local etime="$6"
+    
+    local scriptpath="$RUNTEMPDIR/gutsstats_${node: -3}.sh"
+    maprutil_buildSingleScript "$scriptpath" "$node"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    echo "maprutil_buildGutsStats \"$timestamp\" \"$gutstype\" \"$colids\" \"$stime\" \"$etime\"" >> $scriptpath
+   
+    ssh_executeScriptasRootInBG "$node" "$scriptpath"
+    maprutil_addToPIDList "$!"
+}
+
+function maprutil_publishGutsStats(){
+    [ -z "$GLB_PERF_URL" ] && return
+
+    local logdir="$1"
+    local timestamp="$2"
+    local hostlist="$3"
+    local buildid="$4"
+    local colnames="$5"
+    local desc="$6"
+    
+    [ -z "$desc" ] && desc="${buildid}-${timestamp}"
+
+    pushd $logdir > /dev/null 2>&1
+    local fname="guts.log"
+    [ ! -s "$fname" ] && return
+
+    local json="{"
+    json="$json\"timestamp\":$timestamp,\"nodes\":\"$hostlist\""
+    json="$json,\"build\":\"$buildid\",\"description\":\"$desc\""
+
+    local ttime=0
+    local fieldarr="["
+    for col in $colnames
+    do
+        fieldarr="$fieldarr\"$col\","
+    done
+    fieldarr=$(echo $fieldarr | sed 's/,$//')
+    fieldarr="$fieldarr]"
+    fieldarr=$(echo $fieldarr | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+
+    json="$json,\"columns\":$fieldarr"
+
+    local glog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i!=0 || i!=NR-1) printf(","); printf("{\"ts\":\"%s %s\",\"val\":[",$1,$2); for(j=3;j<=NF;j++) { printf("%s", $j); if(j!=NF) printf(",");} printf("]}"); i++} END{printf("]")}')
+    glog=$(echo $glog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+    json="$json,\"data\":$glog"
+    json="$json}"
+
+    json="gutstats=$json"
+    echo $json > guts.json
+    local tmpfile=$(mktemp)
+    echo "$json" > $tmpfile
+    curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
+    # TODO : Print URL
+    rm -f $tmpfile > /dev/null 2>&1
+    popd > /dev/null 2>&1
+}
+
+function maprutil_gutstatsOnCluster(){
+    local nodes="$1"
+    local tmpdir="$2"
+    local timestamp="$3"
+    local colids="$4"
+    local colnames="$5"
+    local publish="$6"
+
+
+    local hostlist=
+    local buildid=
+    local dirlist=
+    for node in ${nodes[@]}
+    do
+        local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+        [ ! -d "$tmpdir/$host/" ] && log_error "Incomplete logs; '$host' logs are missing. Exiting!" && return
+        dirlist="$dirlist $tmpdir/$host/"
+        hostlist="$hostlist $node"
+        [ -z "$buildid" ] && buildid=$(ssh_executeCommandasRoot "$node" "cat /opt/mapr/MapRBuildVersion")
+    done
+    [ -z "$(echo $dirlist | grep "$tmpdir")" ] && return
+    [ -z "$(ls $tmpdir/* 2>/dev/null)" ] && return
+    
+    local logdir="$tmpdir/cluster"
+    mkdir -p $logdir > /dev/null 2>&1
+
+    local filelist=$(find $dirlist -name guts.log 2>/dev/null)
+    [ -z "$filelist" ] && log_warn "No guts log found" && return
+
+    local colarr=
+
+    local filecnt=$(echo "$filelist" | wc -l)
+    local colcnt=$(echo "$colids" | wc -w)
+    local i=1
+    for col in $colids
+    do  
+        for ((j = 0; j < $filecnt; j++))
+        do
+            if [ "$col" -eq "1" ] || [ "$col" -eq "2" ]; then
+                colarr="$colarr $i"
+                break
+            fi
+            colarr="$colarr $(echo "$j*$colcnt+$i" | bc)"
+        done
+        let i=i+1
+    done
+
+    paste $filelist | awk -v var="$colarr" -v fcnt="$filecnt" 'BEGIN{split(var,cids," ")} {j=0; for (i=1;i<=length(cids);i++) { if(cids[i] < 3) printf("%s ", $cids[i]); else { sum+=$cids[i]; j++;  if(j==fcnt) { printf("%s ", sum); sum=0; j=0}}}  printf("\n");}' > $logdir/guts.log
+
+    [ -n "$GLB_PERF_URL" ] && maprutil_publishGutsStats "$logdir" "$timestamp" "$hostlist" "$buildid" "$colnames" "$publish"
+    
+    pushd $tmpdir > /dev/null 2>&1
+    local dirstotar=$dirlist
+    if [ "$2" != "/tmp" ] || [ "$2" != "/tmp/" ]; then
+        dirstotar=$(echo $(ls -d */))
+    fi        
+    tar -cf maprgutsstats_$timestamp.tar.bz2 --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
+
+    local scriptfile="extract.sh"
+    echo "for i in \$(ls *.bz2);do bzip2 -dk \$i;done " >> $scriptfile
+    echo "for i in \$(ls *.tar);do tar -xf \$i && rm -f \${i}; done" >> $scriptfile
+    chmod +x $scriptfile
+
+    [ "$dirstotar" != "$dirlist" ] && rm -rf $dirstotar > /dev/null 2>&1 
+    popd > /dev/null 2>&1
+}
+
+function maprutil_buildGutsStats(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+    
+    local timestamp="$1"
+    local gutstype="$2"
+    local colids="$3"
+    local stime="$4"
+    local etime="$5"
+
+    local gutslog="/opt/mapr/logs/guts.log"
+    [ "$gutstype" = "gw" ] && gutslog="/opt/mapr/logs/gatewayguts.log"
+
+    [ ! -s "$gutslog" ] && return
+
+    local sl=1
+    local el=$(cat $gutslog | wc -l)
+
+    [ -n "$stime" ] && sl=$(cat $gutslog | grep -n "$stime" | cut -d':' -f1 | tail -1)
+    [ -n "$etime" ] && el=$(cat $gutslog | grep -n "$etime" | cut -d':' -f1 | tail -1)
+    [ -z "$el" ] || [ -z "$sl" ] && return
+    [ "$sl" -gt "$el" ] && el=$(cat $gutslog | wc -l)
+
+    local tempdir="/tmp/gutsstats/$timestamp/$(hostname -f)"
+    mkdir -p $tempdir > /dev/null 2>&1
+
+    local gutsfile="$tempdir/guts.log"
+    sed -n ${sl},${el}p $gutslog | grep "^2" |  awk -v var="$colids" 'BEGIN{split(var,cids," ")} {for (i=1;i<=length(cids);i++) printf("%s ", $cids[i]); printf("\n");}' > ${gutsfile}
 }
 
 function maprutil_analyzeCores(){

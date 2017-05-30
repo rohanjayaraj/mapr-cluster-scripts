@@ -668,12 +668,54 @@ function main_getgutsstats(){
 	log_msghead "[$(util_getCurDate)] Building & collecting 'guts' trends to $doGutsStats"
 	
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start and End time not specified. Using entire time range available"
-	local timestamp=$(date +%s)
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
 	local node=$(util_getFirstElement "$mfsnodes")
 
-	marutil_getGutsSample "$node"
+	local collist=$(marutil_getGutsSample "$node" "$doGutsType")
+	local defaultcols="date time rputR rgetR rscR"
+	local colids=
 
+	if [ -n "$doGutsDefault" ]; then
+		for c in $defaultcols
+		do
+			local cid=$(echo $collist | grep -o -w "[0-9]*=$c" | cut -d'=' -f1)
+			colids="$colids $cid"
+		done
+	else
+		log_msghead "Guts column list : "
+		log_msg "$collist"
+		log_inline "Enter column numbers(space separated) to collect :"
+		read colids
+		log_info "Column list selected : $colids"
+	fi
+
+	[ -z "$(echo $colids | grep -o -w "1")" ] && colids="$colids 1"
+	[ -z "$(echo $colids | grep -o -w "2")" ] && colids="$colids 2"
+	colids=$(echo $colids | sed 's/ /\n/g' | sort -n | sed 's/\n/ /g')
+
+
+	local colnames=
+	for colid in $colids
+	do
+		[ "$(util_isNumber "$colid")" = "false" ] && log_error "Invalid column id specified" && return
+		[ -z "$(echo $collist | grep -o -w "$colid=[a-Z]*")" ] && log_error "Column id '$colid' doesn't exist" && return
+		colnames="$colnames $(echo $collist | grep -o -w "$colid=[a-Z]*" | cut -d'=' -f2)"
+	done
+
+	[ -z "$doGutsType" ] && doGutsType="mfs"
+
+	local timestamp=$(date +%s)
+	for node in ${mfsnodes[@]}
+	do	
+		maprutil_gutsStatsOnNode "$node" "$timestamp" "$doGutsType" "$colids" "$startstr" "$endstr"
+	done
+	maprutil_wait
+	for node in ${mfsnodes[@]}
+	do	
+		maprutil_copygutsstats "$node" "$timestamp" "$doGutsStats"
+	done
+	wait
+	maprutil_gutstatsOnCluster "$mfsnodes" "$doGutsStats" "$timestamp" "$colids" "$colnames" "$doPublish"
 }
 
 function main_runCommandExec(){
@@ -931,6 +973,8 @@ doNumIter=10
 doMFSCPUUse=
 doPublish=
 doGutsStats=
+doGutsDefault=
+doGutsType=
 startstr=
 endstr=
 bkpRegex=
@@ -1024,6 +1068,10 @@ while [ "$2" != "" ]; do
 	    			GLB_PERF_URL="http://dash.perf.lab/puffd/"
 	    		elif [[ "$i" = "gutsstats" ]]; then
 	    			doLogAnalyze="$doLogAnalyze gutsstats"
+	    		elif [[ "$i" = "gwguts" ]]; then
+	    			doGutsType="gw"
+	    		elif [[ "$i" = "defaultguts" ]]; then
+	    			doGutsDefault=1
 	    		fi
 	    	done
 		;;
