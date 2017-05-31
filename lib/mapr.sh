@@ -83,24 +83,23 @@ function maprutil_getMFSDataNodes() {
     fi
     local mfsnodes=
     local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
-    local cldbnode=
-
+    
     if [ -n "$cldbnodes" ]; then
-        cldbnode=$(util_getFirstElement "$cldbnodes")
+        local cldbnode=$(util_getFirstElement "$cldbnodes")
+        local isCLDBUp=$(maprutil_waitForCLDBonNode "$cldbnode")
+        if [ -n "$isCLDBUp" ]; then
+            local mfshosts="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -json | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep hostname | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
+            for mfshost in $mfshosts
+            do
+                mfsnodes="$mfsnodes $(host $mfshost | awk '{print $4}')"
+            done
+        else
+            mfsnodes=$(grep mapr-fileserver $1 | grep '^[^#;]' | grep -v cldb | awk -F, '{print $1}')
+        fi
     else
-        cldbnode=$(cat $rolefile | grep '^[^#;]' | head -1 | awk -F, '{print $1}')
+        mfsnodes=$(cat $rolefile | grep '^[^#;]' | awk -F, '{print $1}')
     fi
     
-    local isCLDBUp=$(maprutil_waitForCLDBonNode "$cldbnode")
-    if [ -n "$isCLDBUp" ]; then
-        local mfshosts="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -json | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep hostname | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
-        for mfshost in $mfshosts
-        do
-            mfsnodes="$mfsnodes $(host $mfshost | awk '{print $4}')"
-        done
-    else
-        mfsnodes=$(grep mapr-fileserver $1 | grep '^[^#;]' | grep -v cldb | awk -F, '{print $1}')
-    fi
     [ -n "$mfsnodes" ] && echo "$mfsnodes" | sed ':a;N;$!ba;s/\n/ /g'
 }
 
