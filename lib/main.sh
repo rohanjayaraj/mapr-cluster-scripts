@@ -672,23 +672,24 @@ function main_getgutsstats(){
 	local node=$(util_getFirstElement "$mfsnodes")
 
 	local collist=$(marutil_getGutsSample "$node" "$doGutsType")
-	local defaultcols="date time rputR rgetR rscR"
+	local defaultcols="date time rpc rputR rgetR rscR ior_ops iow_ops"
 	local colids=
 
 	if [ -n "$doGutsDefault" ]; then
 		for c in $defaultcols
 		do
 			local cid=$(echo $collist | grep -o -w "[0-9]*=$c" | cut -d'=' -f1)
-			colids="$colids $cid"
+			[ -n "$cid" ] && colids="$colids $cid"
 		done
 	else
 		log_msghead "Guts column list : "
 		log_msg "$collist"
 		log_inline "Enter column numbers(space separated) to collect :"
 		read colids
-		log_info "Column list selected : $colids"
+		[ -n "$colids" ] && log_info "Column list selected : $colids"
 	fi
 
+	[ -z "$colids" ] && log_error "No columns specified!"
 	[ -z "$(echo $colids | grep -o -w "1")" ] && colids="$colids 1"
 	[ -z "$(echo $colids | grep -o -w "2")" ] && colids="$colids 2"
 	colids=$(echo $colids | sed 's/ /\n/g' | sort -n | sed 's/\n/ /g')
