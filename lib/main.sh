@@ -689,18 +689,17 @@ function main_getgutsstats(){
 		[ -n "$colids" ] && log_info "Column list selected : $colids"
 	fi
 
-	[ -z "$colids" ] && log_error "No columns specified!"
+	[ -z "$colids" ] && log_error "No columns specified!" && return
 	[ -z "$(echo $colids | grep -o -w "1")" ] && colids="$colids 1"
 	[ -z "$(echo $colids | grep -o -w "2")" ] && colids="$colids 2"
 	colids=$(echo $colids | sed 's/ /\n/g' | sort -n | sed 's/\n/ /g')
-
 
 	local colnames=
 	for colid in $colids
 	do
 		[ "$(util_isNumber "$colid")" = "false" ] && log_error "Invalid column id specified" && return
-		[ -z "$(echo $collist | grep -o -w "$colid=[a-Z]*")" ] && log_error "Column id '$colid' doesn't exist" && return
-		colnames="$colnames $(echo $collist | grep -o -w "$colid=[a-Z]*" | cut -d'=' -f2)"
+		[ -z "$(echo $collist | grep -o -w "$colid=[a-Z_]*")" ] && log_error "Column id '$colid' doesn't exist" && return
+		colnames="$colnames $(echo $collist | grep -o -w "$colid=[a-Z_]*" | cut -d'=' -f2)"
 	done
 
 	[ -z "$doGutsType" ] && doGutsType="mfs"
