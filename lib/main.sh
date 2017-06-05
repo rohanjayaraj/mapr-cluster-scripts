@@ -732,7 +732,13 @@ function main_runCommandExec(){
 		return
 	fi
 	
-	if [[ -n "$(echo $cmds | grep traceon)" ]] && [[ -z "$(echo $cmds | grep traceoff)" ]]; then
+	if [[ -n "$(echo $cmds | grep traceoff)" ]]; then
+		for node in ${nodes[@]}
+		do	
+	    	maprutil_runCommandsOnNode "$node" "traceoff" "silent"
+		done
+		cmds=$(echo $cmds | sed 's/traceoff//')
+	elif [[ -n "$(echo $cmds | grep traceon)" ]]; then
 		for node in ${nodes[@]}
 		do	
 	    	maprutil_runCommandsOnNode "$node" "traceon" "silent"
@@ -1012,7 +1018,7 @@ while [ "$2" != "" ]; do
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
-				if [[ "$i" = "ycsb" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]] || [[ "$i" = "traceon" ]]; then
+				if [[ "$i" = "ycsb" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]] || [[ "$i" = "traceon" ]] || [[ "$i" = "traceoff" ]]; then
 					if [[ "$i" = "cldbtopo" ]]; then
     					GLB_CLDB_TOPO=1
     				elif [[ "$i" = "traceon" ]]; then
