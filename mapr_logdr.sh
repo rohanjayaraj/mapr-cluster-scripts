@@ -92,7 +92,7 @@ function usage () {
     echo -e "\t\t - Check Tablet distribution across SPs on each node for FILEPATH"
 
     echo -e "\t -in | --indexname= | -in=<INDEXNAME> | --indexname=<INDEXNAME>" 
-    echo -e "\t\t - When passed with -td option, check INDEXNAME table's Tablet distribution across nodes"
+    echo -e "\t\t - When passed with -td option, check INDEXNAME table's tablet distribution across nodes"
 
     echo -e "\t -si=<OPTIONS> | --systeminfo=<OPTIONS>" 
     echo -e "\t\t - Print system info of each node. OPTIONS : mapr,machine,cpu,disk,nw,mem or all (comma separated)"
@@ -122,7 +122,7 @@ function usage () {
     echo -e "\t\t - When passed with -mt option, will run gstack for NUM iterations (default: 10)"
 
     echo -e "\t -mti | --mfsthreadinfo" 
-    echo -e "\t\t - List MFS thread id details from all MFS nodes"
+    echo -e "\t\t - List MFS thread id details from all MFS nodes (works on new GLIBC versions only)"
 
     echo -e "\t -mcu | -mcu=<COPYTODIR> |--mfscpuuse=<COPYTODIR>" 
     echo -e "\t\t - Build consolidated MFS thread-wise CPU Use log (default COPYTODIR : /tmp/)"
@@ -144,13 +144,18 @@ function usage () {
     
     echo 
     echo " Examples : "
-    echo -e "\t ./$me -c=maprdb -d -l" 
-    echo -e "\t ./$me -c=maprdb -td=/tables/usertable -cd"
-    echo -e "\t ./$me -c=maprdb -b=~/logsbkp/ -bf=\"*mfs*\""
-    echo -e "\t ./$me -c=maprdb -si -cs"
-    echo -e "\t ./$me -c=maprdb -si -fl > /tmp/sysinfo.log"
-    echo -e "\t ./$me -c=maprdb -sc"
-    echo -e "\t ./$me -c=maprdb -g=\"error 5\""
+    echo -e "\t ./mapr_logdr.sh -c=maprdb -d -l"
+    echo -e "\t ./mapr_logdr.sh -c=maprdb -td=/tables/usertable -cd"
+    echo -e "\t ./mapr_logdr.sh -c=maprdb -b=~/logsbkp/ -bf=\"*mfs*\""
+    echo -e "\t ./mapr_logdr.sh -c=maprdb -si -cs"
+    echo -e "\t ./mapr_logdr.sh -c=maprdb -si -fl > /tmp/sysinfo.log"
+    echo -e "\t ./mapr_logdr.sh -c=maprdb -sc"
+    echo -e "\t ./mapr_logdr.sh -c=maprdb -g=\"error 5\""
+    echo -e "\t ./mapr_logdr.sh -c=10.10.103.[165,171-175] -mt=/tmp/mfstrace -it=20"
+    echo -e "\t ./mapr_logdr.sh -c=maprdb -mti"
+    echo -e "\t ./mapr_logdr.sh -c=10.10.103.171 -mcu=/tmp/mfscpuuse -st=\"13:00:00\" -et=\"15:00:00\" -pub=\"YCSB-LOAD\""
+    echo -e "\t ./mapr_logdr.sh -c=10.10.103.[171-175] -guts=/tmp/gutsstats -pub=\"PONTIS-6.0\""
+    echo -e "\t ./mapr_logdr.sh -c=10.10.103.[171-175] -mcu=/tmp/cdcmfs -guts=/tmp/cdcguts -pub=\"CDC JSON\" -st=\"2017-06-01 11:00\" -et=\"2017-06-06 13:00\""
     echo
 }
 

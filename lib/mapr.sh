@@ -37,7 +37,7 @@ function maprutil_getCLDBNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local cldbnodes=$(grep cldb $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local cldbnodes=$(grep cldb $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$cldbnodes" ]; then
             echo $cldbnodes
     fi
@@ -48,7 +48,7 @@ function maprutil_getGatewayNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local gwnodes=$(grep mapr-gateway $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local gwnodes=$(grep mapr-gateway $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$gwnodes" ]; then
         echo $gwnodes
     fi
@@ -59,7 +59,7 @@ function maprutil_getESNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local esnodes=$(grep elastic $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local esnodes=$(grep elastic $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$esnodes" ]; then
             echo $esnodes
     fi
@@ -70,9 +70,20 @@ function maprutil_getOTSDBNodes() {
     if [ -z "$1" ]; then
         return 1
     fi
-    local otnodes=$(grep opentsdb $1 | grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local otnodes=$(grep opentsdb $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$otnodes" ]; then
             echo $otnodes
+    fi
+}
+
+## @param path to config
+function maprutil_getDrillNodes() {
+    if [ -z "$1" ]; then
+        return 1
+    fi
+    local drillnodes=$(grep drill $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    if [ ! -z "$drillnodes" ]; then
+        echo $drillnodes
     fi
 }
 
@@ -129,7 +140,7 @@ function maprutil_getCoreNodeBinaries() {
         local newbinlist=
         for bin in ${binlist[@]}
         do
-            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase ]]; then
+            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill ]]; then
                 newbinlist=$newbinlist"$bin "
             fi
         done

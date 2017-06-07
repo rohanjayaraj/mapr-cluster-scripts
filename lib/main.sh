@@ -203,6 +203,23 @@ function main_install(){
 	done
 	maprutil_wait
 
+	# Install & configure DRILL
+	local drillnodes=$(maprutil_getDrillNodes $rolefile)
+	if [ -n "$drillnodes" ]; then
+		for node in ${drillnodes[@]}
+		do
+			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
+			local drillbin=$(echo "$nodebins" | tr ' ' '\n' | grep drill | tr '\n' ' ')
+			maprutil_installBinariesOnNode "$node" "$drillbin" "bg"
+		done
+		maprutil_wait
+		for node in ${drillnodes[@]}
+		do
+			maprutil_postConfigureOnNode "$node" "junk" "bg"
+		done
+		maprutil_wait
+	fi
+
 	# Configure ES & OpenTSDB nodes
 	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then 
 		log_info "****** Installing and configuring Spyglass ****** " 
