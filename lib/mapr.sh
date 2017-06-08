@@ -1082,8 +1082,8 @@ function maprutil_configure(){
     if [ "$ISCLIENT" -eq 1 ]; then
         configurecmd="$configurecmd -c"
     else
-        [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS \"$hsnodes\""
-        [ -n "$rmnodes" ] && configurecmd="$configurecmd -RM \"$rmnodes\""
+        [ -n "$rmnodes" ] && configurecmd="$configurecmd -RM $(util_getCommaSeparated "$rmnodes")"
+        [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS $(util_getFirstElement "$hsnodes")"
     fi
     log_info "[$hostip] $configurecmd"
     bash -c "$configurecmd"
