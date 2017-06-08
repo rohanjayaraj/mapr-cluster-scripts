@@ -1078,13 +1078,17 @@ function maprutil_configure(){
         fi
     fi
 
-    local configurecmd="/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
+    local configurecmd="/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
+    [ -n "$extops" ] && configurecmd="$configurecmd $extops"
+
     if [ "$ISCLIENT" -eq 1 ]; then
         configurecmd="$configurecmd -c"
     else
         [ -n "$rmnodes" ] && configurecmd="$configurecmd -RM $(util_getCommaSeparated "$rmnodes")"
         [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS $(util_getFirstElement "$hsnodes")"
     fi
+
+    # Run configure.sh on the node
     log_info "[$hostip] $configurecmd"
     bash -c "$configurecmd"
     
