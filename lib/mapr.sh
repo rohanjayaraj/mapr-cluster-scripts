@@ -87,6 +87,33 @@ function maprutil_getDrillNodes() {
     fi
 }
 
+## @param service name
+function maprutil_getNodesForService() {
+    if [ -z "$GLB_ROLE_LIST" ] || [ -z "$1" ]; then
+        return 1
+    fi
+    local rolelist="$(maprutil_getRolesList)"
+    local servicenodes=$(echo "$rolelist" | grep "$1" | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    if [ ! -z "$servicenodes" ]; then
+        echo $servicenodes
+    fi
+}
+
+## @param path to config
+function maprutil_buildRolesList(){
+     if [ -z "$1" ]; then
+        return 1
+    fi
+    echo "$(cat $1 2>/dev/null| grep '^[^#;]' | tr '\n' '#')"
+}
+
+function maprutil_getRolesList(){
+     if [ -z "$GLB_ROLE_LIST" ]; then
+        return 1
+    fi
+    echo "$(echo "$GLB_ROLE_LIST" | tr '#' '\n')"
+}
+
 ## @param path to config
 function maprutil_getMFSDataNodes() {
     if [ -z "$1" ]; then
@@ -1030,6 +1057,8 @@ function maprutil_configure(){
     local cldbnodes=$(util_getCommaSeparated "$1")
     local cldbnode=$(util_getFirstElement "$1")
     local zknodes=$(util_getCommaSeparated "$2")
+    local hsnodes=$(maprutil_getNodesForService "historyserver")
+    local rmnodes=$(maprutil_getNodesForService "resourcemanager")
     maprutil_buildDiskList "$diskfile"
 
     if [ "$hostip" != "$cldbnode" ] && [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
@@ -1049,16 +1078,16 @@ function maprutil_configure(){
         fi
     fi
 
+    local configurecmd="/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
     if [ "$ISCLIENT" -eq 1 ]; then
-        log_info "[$hostip] /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
-        # SSH session exits after running for few seconds with error "Write failed: Broken pipe"; Running in background and waiting
-        /opt/mapr/server/configure.sh -c -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops &
+        configurecmd="$configurecmd -c"
     else
-        log_info "[$hostip] /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops"
-        /opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3 $extops &
+        [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS \"$hsnodes\""
+        [ -n "$rmnodes" ] && configurecmd="$configurecmd -RM \"$rmnodes\""
     fi
-    wait
-
+    log_info "[$hostip] $configurecmd"
+    bash -c "$configurecmd"
+    
     # Perform series of custom configuration based on selected options
     maprutil_customConfigure
 
