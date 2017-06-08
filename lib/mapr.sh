@@ -104,7 +104,7 @@ function maprutil_buildRolesList(){
      if [ -z "$1" ]; then
         return 1
     fi
-    echo "$(cat $1 2>/dev/null| grep '^[^#;]' | tr '\n' '#')"
+    echo "$(cat $1 2>/dev/null| grep '^[^#;]' | tr '\n' '#' | sed 's/#$//')"
 }
 
 function maprutil_getRolesList(){
