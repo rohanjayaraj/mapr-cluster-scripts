@@ -703,7 +703,7 @@ function maprutil_installBinariesOnNode(){
     fi
     echo "keyexists=\$(util_fileExists \"/root/.ssh/id_rsa\")" >> $scriptpath
     echo "[ -z \"\$keyexists\" ] && ssh_createkey \"/root/.ssh\"" >> $scriptpath
-    echo "util_installprereq" >> $scriptpath
+    echo "util_installprereq > /dev/null 2>&1" >> $scriptpath
     local bins="$2"
     local maprpatch=$(echo "$bins" | tr ' ' '\n' | grep mapr-patch)
     [ -n "$maprpatch" ] && bins=$(echo "$bins" | tr ' ' '\n' | grep -v mapr-patch | tr '\n' ' ')

@@ -38,7 +38,7 @@ function getOSWithVersion(){
 }
 
 function util_getHostIP(){
-    command -v ifconfig >/dev/null 2>&1 || util_installprereq
+    command -v ifconfig >/dev/null 2>&1 || util_installprereq > /dev/null 2>&1
     local ipadd=$(/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1\|0.0.0.0" | head -n 1 | awk '{print $2}' | cut -c6-)
     if [ -z "$ipadd" ]; then
         ipadd=$(ip addr | grep 'state UP' -A2 | head -n 3 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
@@ -121,8 +121,8 @@ EOM
 
 function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
-         yum repolist all 2>&1 | grep "epel/" || yum install epel-release -y >/dev/null 2>&1
-         yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel >/dev/null 2>&1
+         yum repolist all 2>&1 | grep "epel/" || yum install epel-release -y > /dev/null 2>&1
+         yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
     fi
 
     [ -z "$(getent passwd mapr)" ] && util_maprprereq
@@ -157,7 +157,7 @@ function util_installprereq(){
     util_checkAndInstall2 "/usr/share/dict/words" "words"
 
     if [ "$(getOS)" = "centos" ]; then
-         yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1 && yum clean metadata >/dev/null 2>&1
+         yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1 && yum clean metadata > /dev/null 2>&1
     fi
 }
 
@@ -787,7 +787,7 @@ function util_getDiskInfo(){
 }
 
 function util_getNumaInfo(){
-    command -v lstopo >/dev/null 2>&1 || util_installprereq
+    command -v lstopo >/dev/null 2>&1 || util_installprereq > /dev/null 2>&1
     local lstopo=$(lstopo --no-caches)
     local numnuma=$(echo "$lstopo" |  grep NUMANode | wc -l)
     local fd=$(fdisk -l 2>/dev/null)
