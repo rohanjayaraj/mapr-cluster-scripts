@@ -698,7 +698,7 @@ function main_getgutsstats(){
 	local colids=
 
 	if [ -n "$doGutsCol" ]; then
-		for c in $defaultcols
+		for c in $doGutsCol
 		do
 			local cid=$(echo $collist | grep -o -w "[0-9]*=$c" | cut -d'=' -f1)
 			[ -n "$cid" ] && colids="$colids $cid"
@@ -1194,7 +1194,7 @@ while [ "$2" != "" ]; do
 				doGutsStats="$VALUE"
 			fi
 		;;
-		-gutscol)
+		-gc)
 			if [ -n "$VALUE" ]; then
 				doGutsCol="$VALUE"
 			fi
