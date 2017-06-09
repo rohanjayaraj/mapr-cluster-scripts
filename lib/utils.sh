@@ -790,8 +790,8 @@ function util_getNumaInfo(){
     command -v lstopo >/dev/null 2>&1 || util_installprereq > /dev/null 2>&1
     local lstopo=$(lstopo --no-caches)
     local numnuma=$(echo "$lstopo" |  grep NUMANode | wc -l)
-    local fd=$(fdisk -l 2>/dev/null)
-    local disks=$(echo "$fd"| grep "Disk \/" | grep -v 'mapper\|docker' | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
+    #local fd=$(fdisk -l 2>/dev/null)
+    #local disks=$(echo "$fd"| grep "Disk \/" | grep -v 'mapper\|docker' | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
 
     log_msghead "Numa Info : [ #ofnuma: $numnuma ]"
     for ((i=0; i<$numnuma; i++))
@@ -813,7 +813,8 @@ function util_getNumaInfo(){
             [ "$prevline" = "pci" ] && [ -z "$isdisk" ] && continue
 
             if [ -z "$isdisk" ]; then
-                [ "$k" -ge "1" ] && numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}{PCI #$k: $pcidisk} "
+
+                [ "$k" -ge "1" ] && numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}{ PCI #$k: $pcidisk} "
                 pcidisk=
                 prevline=
                 let k=k+1
@@ -825,10 +826,10 @@ function util_getNumaInfo(){
             #diskname=$(echo "$disks" | grep $diskname)
             pcidisk="$pcidisk${diskname} "
         done <<<"$(echo "$lstopo" | grep 'NUMANode\|PCI\|Block' | grep -v PCIBridge | sed -n -e "/NUMANode L#${i}/,/NUMANode L#${nextnuma}/ p")"
-        [ -n "$pcidisk" ] && numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}PCI #$k: $pcidisk"
+        [ -n "$pcidisk" ] && numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}{ PCI #$k: $pcidisk}"
 
         numadisk=$(echo "$numadisk" | sed 's/[[:space:]]*$//g')
-        [ -n "$numadisk" ] && log_msg "\t   Disks  : #ofdisks: $numdisks [$numadisk]" 
+        [ -n "$numadisk" ] && log_msg "\t   Disks  : ${numdisks} [$numadisk]" 
     done
 }
 
