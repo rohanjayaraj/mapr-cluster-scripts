@@ -804,6 +804,7 @@ function util_getNumaInfo(){
         local k=0
         local prevline=
         local pcidisk=
+        local numdisks=0
         while read -r line
         do
             local ispci=$(echo "$line" | grep PCI)
@@ -812,7 +813,7 @@ function util_getNumaInfo(){
             [ "$prevline" = "pci" ] && [ -z "$isdisk" ] && continue
 
             if [ -z "$isdisk" ]; then
-                [ "$k" -ge "1" ] && numadisk="$numadisk PCI#$k: $pcidisk,"
+                [ "$k" -ge "1" ] && numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}{PCI #$k: $pcidisk}, "
                 pcidisk=
                 prevline=
                 let k=k+1
@@ -821,11 +822,13 @@ function util_getNumaInfo(){
                 prevline="disk"
             fi
             local diskname=$(echo "$isdisk" | awk '{print $3}' | tr -d '"')
-            diskname=$(echo "$disks" | grep $diskname)
+            #diskname=$(echo "$disks" | grep $diskname)
             pcidisk="$pcidisk${diskname} "
         done <<<"$(echo "$lstopo" | grep 'NUMANode\|PCI\|Block' | grep -v PCIBridge | sed -n -e "/NUMANode L#${i}/,/NUMANode L#${nextnuma}/ p")"
+        [ -n "$pcidisk" ] && numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}PCI #$k: $pcidisk"
+
         numadisk=$(echo "$numadisk" | sed 's/,$//g')
-        [ -n "$numadisk" ] && log_msg "\t   Disks  : $numadisk" 
+        [ -n "$numadisk" ] && log_msg "\t   Disks  : $numdisks [ $numadisk ]" 
     done
 }
 
