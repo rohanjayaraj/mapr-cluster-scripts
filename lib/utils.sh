@@ -795,7 +795,7 @@ function util_getNumaInfo(){
     for ((i=0; i<$numnuma; i++))
     do
         log_msg "\t NUMANode #${i} :"
-        log_msg "\t\t CPUs : $(lscpu | grep "Numa node$i" | awk '{print $4}'))" 
+        log_msg "\t\t CPUs : $(lscpu | grep "NUMA node$i" | awk '{print $4}')" 
         log_msg "\t\t Memory : $(echo "$lstopo"  | grep NUMA | grep "#${i}" | awk '{print $4}' | tr -d ')')" 
         local numadisk=
         local nextnuma=$(echo "$i+1" | bc)
@@ -807,13 +807,17 @@ function util_getNumaInfo(){
             local ispci=$(echo "$line" | grep PCI)
             [ -n "$ispci" ] && prevline="pci" && continue
             local isdisk=$(echo "$line" | grep Block)
-            if [ "$prevline" = "pci" ]; then
-                [ "$k" -ge "1" ] && numadisk="$numadisk PCI#$k: $pcidisk, "
+            [ "$prevline" = "pci" ] && [ -z "$isdisk" ] && continue
+
+            if [ -z "$isdisk" ]; then
+                [ "$k" -ge "1" ] && numadisk="$numadisk PCI#$k: $pcidisk,"
                 pcidisk=
-                prevline="disk"
+                prevline=
                 let k=k+1
+                continue
+            else
+                prevline="disk"
             fi
-            [ -z "$isdisk" ] && continue
             local diskname=$(echo "$isdisk" | awk '{print $3}' | tr -d '"')
             diskname=$(echo "$disks" | grep $diskname)
             pcidisk="$pcidisk${diskname} "
