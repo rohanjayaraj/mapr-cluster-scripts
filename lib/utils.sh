@@ -786,6 +786,7 @@ function util_getDiskInfo(){
 }
 
 function util_getNumaInfo(){
+    command -v lstopo >/dev/null 2>&1 || util_installprereq
     local lstopo=$(lstopo --no-caches)
     local numnuma=$(echo "$lstopo" |  grep NUMANode | wc -l)
     local fd=$(fdisk -l 2>/dev/null)
@@ -795,8 +796,8 @@ function util_getNumaInfo(){
     for ((i=0; i<$numnuma; i++))
     do
         log_msg "\t NUMANode #${i} :"
-        log_msg "\t\t CPUs : $(lscpu | grep "NUMA node$i" | awk '{print $4}')" 
-        log_msg "\t\t Memory : $(echo "$lstopo"  | grep NUMA | grep "#${i}" | awk '{print $4}' | tr -d ')')" 
+        log_msg "\t   CPUs   : $(lscpu | grep "NUMA node$i" | awk '{print $4}')" 
+        log_msg "\t   Memory : $(echo "$lstopo"  | grep NUMA | grep "#${i}" | awk '{print $4}' | tr -d ')')" 
         local numadisk=
         local nextnuma=$(echo "$i+1" | bc)
         local k=0
@@ -823,7 +824,7 @@ function util_getNumaInfo(){
             pcidisk="$pcidisk${diskname} "
         done <<<"$(echo "$lstopo" | grep 'NUMANode\|PCI\|Block' | grep -v PCIBridge | sed -n -e "/NUMANode L#${i}/,/NUMANode L#${nextnuma}/ p")"
         numadisk=$(echo "$numadisk" | sed 's/,$//g')
-        log_msg "\t\t Disks : $numadisk" 
+        [ -n "$numadisk" ] && log_msg "\t   Disks  : $numadisk" 
     done
 }
 
