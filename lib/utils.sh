@@ -808,13 +808,13 @@ function util_getNumaInfo(){
         while read -r line
         do
             local ispci=$(echo "$line" | grep PCI)
-            [ -n "$ispci" ] && prevline="pci" && continue
+            [ -n "$ispci" ] && [ -z "$prevline" ] && prevline="pci" && continue
             local isdisk=$(echo "$line" | grep Block)
             [ "$prevline" = "pci" ] && [ -z "$isdisk" ] && continue
+            [ -z "$prevline" ] && [ -z "$isdisk" ] && continue
 
             if [ -z "$isdisk" ]; then
-
-                [ "$k" -ge "1" ] && numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}{ PCI #$k: $pcidisk} "
+                numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}{ PCI #$k: $pcidisk} "
                 pcidisk=
                 prevline=
                 let k=k+1
