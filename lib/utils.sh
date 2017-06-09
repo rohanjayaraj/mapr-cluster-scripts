@@ -141,6 +141,7 @@ function util_installprereq(){
     util_checkAndInstall "pbzip2" "pbzip2"
     util_checkAndInstall "fio" "fio"
     util_checkAndInstall "pip" "python-pip"
+    util_checkAndInstall "lstopo" "hwloc"
     if [ "$(getOS)" = "centos" ]; then
         util_checkAndInstall "createrepo" "createrepo"
         util_checkAndInstall "host" "bind-utils"
@@ -781,6 +782,44 @@ function util_getDiskInfo(){
             used="[ USED ]"
         fi
         log_msg "\t $disk : Type: $dtype, Size: ${size} GB ${isos}${used}"
+    done
+}
+
+function util_getNumaInfo(){
+    local lstopo=$(lstopo --no-caches)
+    local numnuma=$(echo "$lstopo" |  grep NUMANode | wc -l)
+    local fd=$(fdisk -l 2>/dev/null)
+    local disks=$(echo "$fd"| grep "Disk \/" | grep -v 'mapper\|docker' | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
+
+    log_msghead "Numa Info : [ #ofnuma: $numnuma ]"
+    for ((i=0; i<$numnuma; i++))
+    do
+        log_msg "\t NUMANode #${i} :"
+        log_msg "\t\t CPUs : $(lscpu | grep "Numa node$i" | awk '{print $4}'))" 
+        log_msg "\t\t Memory : $(echo "$lstopo"  | grep NUMA | grep "#${i}" | awk '{print $4}' | tr -d ')')" 
+        local numadisk=
+        local nextnuma=$(echo "$i+1" | bc)
+        local k=0
+        local prevline=
+        local pcidisk=
+        while read -r line
+        do
+            local ispci=$(echo "$line" | grep PCI)
+            [ -n "$ispci" ] && prevline="pci" && continue
+            local isdisk=$(echo "$line" | grep Block)
+            if [ "$prevline" = "pci" ]; then
+                [ "$k" -ge "1" ] && numadisk="$numadisk PCI#$k: $pcidisk, "
+                pcidisk=
+                prevline="disk"
+                let k=k+1
+            fi
+            [ -z "$isdisk" ] && continue
+            local diskname=$(echo "$isdisk" | awk '{print $3}' | tr -d '"')
+            diskname=$(echo "$disks" | grep $diskname)
+            pcidisk="$pcidisk${diskname} "
+        done <<<"$(echo "$lstopo" | grep 'NUMANode\|PCI\|Block' | grep -v PCIBridge | sed -n -e "/NUMANode L#${i}/,/NUMANode L#${nextnuma}/ p")"
+        numadisk=$(echo "$numadisk" | sed 's/,$//g')
+        log_msg "\t\t Disks : $numadisk" 
     done
 }
 

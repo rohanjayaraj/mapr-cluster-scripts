@@ -691,9 +691,13 @@ function main_getgutsstats(){
 
 	local collist=$(marutil_getGutsSample "$node" "$doGutsType")
 	local defaultcols="date time rpc rputR rgetR rscR ior_ops iow_ops"
+	[ "$doGutsType" = "gw" ] && doGutsDef=
+	[ -n "$doGutsCol" ] && doGutsCol="$(echo "$doGutsCol" | sed 's/,/ /g')"
+	[ -n "$doGutsDef" ] && doGutsCol="$defaultcols"
+
 	local colids=
 
-	if [ -n "$doGutsDefault" ]; then
+	if [ -n "$doGutsCol" ]; then
 		for c in $defaultcols
 		do
 			local cid=$(echo $collist | grep -o -w "[0-9]*=$c" | cut -d'=' -f1)
@@ -705,6 +709,7 @@ function main_getgutsstats(){
 		log_inline "Enter column numbers(space separated) to collect :"
 		read colids
 		[ -n "$colids" ] && log_info "Column list selected : $colids"
+		[ -n "$colids" ] && colids=$(echo "$colids" | sed 's/,/ /g')
 	fi
 
 	[ -z "$colids" ] && log_error "No columns specified!" && return
@@ -998,7 +1003,8 @@ doNumIter=10
 doMFSCPUUse=
 doPublish=
 doGutsStats=
-doGutsDefault=
+doGutsDef=
+doGutsCol=
 doGutsType=
 startstr=
 endstr=
@@ -1096,7 +1102,7 @@ while [ "$2" != "" ]; do
 	    		elif [[ "$i" = "gwguts" ]]; then
 	    			doGutsType="gw"
 	    		elif [[ "$i" = "defaultguts" ]]; then
-	    			doGutsDefault=1
+	    			doGutsDef=1
 	    		fi
 	    	done
 		;;
@@ -1186,6 +1192,11 @@ while [ "$2" != "" ]; do
 		-guts)
 			if [ -n "$VALUE" ]; then
 				doGutsStats="$VALUE"
+			fi
+		;;
+		-gutscol)
+			if [ -n "$VALUE" ]; then
+				doGutsCol="$VALUE"
 			fi
 		;;
 		-it)

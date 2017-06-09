@@ -26,6 +26,7 @@ mfstracedir=
 numiter=
 mfscpuusedir=
 gutsdir=
+gutscols=
 publishdesc=
 startstr=
 endstr=
@@ -95,7 +96,7 @@ function usage () {
     echo -e "\t\t - When passed with -td option, check INDEXNAME table's tablet distribution across nodes"
 
     echo -e "\t -si=<OPTIONS> | --systeminfo=<OPTIONS>" 
-    echo -e "\t\t - Print system info of each node. OPTIONS : mapr,machine,cpu,disk,nw,mem or all (comma separated)"
+    echo -e "\t\t - Print system info of each node. OPTIONS : mapr,machine,cpu,disk,nw,mem,numa or all (comma separated)"
 
     echo -e "\t -cs | --clusterspec" 
     echo -e "\t\t - Print overall cluster specifications"
@@ -130,6 +131,9 @@ function usage () {
     echo -e "\t -guts=<COPYTODIR>" 
     echo -e "\t\t - Build & copy consolidated guts stats from all MFS nodes to COPYTODIR"
 
+    echo -e "\t -gc=<COLUMNLIST> | --gutscol=<COLUMNLIST>" 
+    echo -e "\t\t - When passed with -guts option, use the comma separated COLUMNLIST of guts column names to build"
+    
     echo -e "\t -st=<STRING> | --starttime=<STRING>" 
     echo -e "\t\t - Specify start time STRING for -mcu or -guts option "
 
@@ -256,8 +260,12 @@ while [ "$1" != "" ]; do
         -gwguts)
             args=$args"gwguts "
         ;;
-        -defguts)
-            args=$args"defaultguts "
+        -gc | --gutscol)
+            if [ -n "$VALUE" ]; then
+                gutscols="$VALUE"
+            else
+                args=$args"defaultguts "
+            fi
         ;;
         -si | --systeminfo)
             sysinfo="$VALUE"
@@ -294,7 +302,7 @@ if [ -z "$rolefile" ]; then
 else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
     \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-mt=$mfstracedir\" \"-it=$numiter\" \
-    \"-mcu=$mfscpuusedir\" \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-guts=$gutsdir\""
+    \"-mcu=$mfscpuusedir\" \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-guts=$gutsdir\" \"-gutscol=$gutscols\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else

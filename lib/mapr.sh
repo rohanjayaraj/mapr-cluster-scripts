@@ -2003,6 +2003,9 @@ function maprutil_sysinfo(){
             mapr)
                 maprutil_getMapRInfo
             ;;
+            numa)
+                util_getNumaInfo
+            ;;
             all)
                 maprutil_getMapRInfo
                 util_getMachineInfo
@@ -2010,6 +2013,7 @@ function maprutil_sysinfo(){
                 util_getMemInfo
                 util_getNetInfo
                 util_getDiskInfo
+                util_getNumaInfo
             ;;
         esac
     done
