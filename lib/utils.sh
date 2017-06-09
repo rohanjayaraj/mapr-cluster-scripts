@@ -813,7 +813,7 @@ function util_getNumaInfo(){
             [ "$prevline" = "pci" ] && [ -z "$isdisk" ] && continue
 
             if [ -z "$isdisk" ]; then
-                [ "$k" -ge "1" ] && numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}{PCI #$k: $pcidisk}, "
+                [ "$k" -ge "1" ] && numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}{PCI #$k: $pcidisk} "
                 pcidisk=
                 prevline=
                 let k=k+1
@@ -827,8 +827,8 @@ function util_getNumaInfo(){
         done <<<"$(echo "$lstopo" | grep 'NUMANode\|PCI\|Block' | grep -v PCIBridge | sed -n -e "/NUMANode L#${i}/,/NUMANode L#${nextnuma}/ p")"
         [ -n "$pcidisk" ] && numdisks=$(echo "$numdisks + $(echo $pcidisk | wc -w)" | bc) && numadisk="${numadisk}PCI #$k: $pcidisk"
 
-        numadisk=$(echo "$numadisk" | sed 's/,$//g')
-        [ -n "$numadisk" ] && log_msg "\t   Disks  : $numdisks [ $numadisk ]" 
+        numadisk=$(echo "$numadisk" | sed 's/[[:space:]]*$//g')
+        [ -n "$numadisk" ] && log_msg "\t   Disks  : #ofdisks: $numdisks [$numadisk]" 
     done
 }
 
