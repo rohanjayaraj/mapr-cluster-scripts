@@ -143,6 +143,7 @@ function util_installprereq(){
     util_checkAndInstall "pip" "python-pip"
     util_checkAndInstall "lstopo" "hwloc"
     if [ "$(getOS)" = "centos" ]; then
+        util_checkAndInstall "lstopo" "hwloc-gui"
         util_checkAndInstall "createrepo" "createrepo"
         util_checkAndInstall "host" "bind-utils"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
