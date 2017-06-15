@@ -323,6 +323,17 @@ function main_reconfigure(){
 	done
 	maprutil_wait
 
+	# Install & configure DRILL
+	local drillnodes=$(maprutil_getDrillNodes $rolefile)
+	if [ -n "$drillnodes" ]; then
+		for node in ${drillnodes[@]}
+		do
+			maprutil_postConfigureOnNode "$node" "junk" "bg"
+		done
+		maprutil_wait
+		[ -n "$GLB_ENABLE_QS" ] && main_runCommandExec "queryservice"
+	fi
+
 	# Configure ES & OpenTSDB nodes
 	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then 
 		log_info "****** Installing and configuring Spyglass ****** " 
