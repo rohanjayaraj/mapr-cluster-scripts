@@ -128,6 +128,7 @@ GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
 GLB_INDEX_NAME=
 GLB_SECURE_CLUSTER=
+GLB_ENABLE_QS=
 GLB_FS_THREADS=
 GLB_GW_THREADS=
 GLB_PERF_URL=
@@ -219,6 +220,7 @@ function main_install(){
 			maprutil_postConfigureOnNode "$node" "junk" "bg"
 		done
 		maprutil_wait
+		[ -n "$GLB_ENABLE_QS" ] && main_runCommandExec "queryservice"
 	fi
 
 	# Configure ES & OpenTSDB nodes
@@ -1070,6 +1072,8 @@ while [ "$2" != "" ]; do
     				GLB_MAPR_PATCH=1
     			elif [[ "$i" = "spy" ]]; then
     				main_addSpyglass
+    			elif [[ "$i" = "queryservice" ]]; then
+    				GLB_ENABLE_QS=1
     			fi
     		done
     	;;

@@ -132,6 +132,8 @@ function usage () {
     echo -e "\t\t - Disable trace processes on all nodes"
     echo -e "\t -p | --pontis" 
     echo -e "\t\t - Configure MFS lrus sizes for Pontis usecase, limit disks to 6 and SPs to 2"
+     echo -e "\t -qs | --queryservice" 
+    echo -e "\t\t - Enabled query service if Drill is installed"
     
     echo 
 	echo " Post install Options : "
@@ -226,6 +228,9 @@ while [ "$1" != "" ]; do
         ;;
         -spy | --spyglass)
             extraarg=$extraarg"spy "
+        ;;
+        -qs | --queryservice)
+            extraarg=$extraarg"queryservice "
         ;;
         -sp | --storagepool)
             numsps=$VALUE

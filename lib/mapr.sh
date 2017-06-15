@@ -430,6 +430,33 @@ function maprutil_getMapRVersionOnNode(){
     fi
 }
 
+# @param version to check "x.y.z"
+function maprutil_isMapRVersionSameOrNewer(){
+    if [ -z "$1" ] ; then
+        return
+    fi
+
+    local curver=$(cat /opt/mapr/MapRBuildVersion)
+    local ismaprv=($(echo $1 | tr '.' ' ' | awk '{print $1,$2,$3}'))
+
+    if [ -n "$curver" ]; then
+        local maprv=($(echo $curver | tr '.' ' ' | awk '{print $1,$2,$3}'))
+        local oldver=
+        if [ "${maprv[0]}" -lt "${ismaprv[0]}" ]; then
+            oldver=1
+        elif [ "${maprv[0]}" -eq "${ismaprv[0]}" ] && [ "${maprv[1]}" -lt "${ismaprv[1]}" ]; then
+            oldver=1
+        elif [ "${maprv[0]}" -eq "${ismaprv[0]}" ] && [ "${maprv[1]}" -eq "${ismaprv[1]}" ] && [ "${maprv[2]}" -lt "${ismaprv[2]}" ]; then
+            oldver=1
+        fi
+        
+        if [ -z "$oldver" ]; then
+            echo "newer"
+        fi
+    fi
+    
+}
+
 function maprutil_unmountNFS(){
     local nfslist=$(mount | grep nfs | grep mapr | grep -v '10.10.10.20' | cut -d' ' -f3)
     for i in $nfslist
@@ -1225,12 +1252,22 @@ function maprutil_postConfigure(){
     if [ -n "$otnodes" ]; then
         cmd=$cmd" -OT "$otnodes
     fi
+    local hostip=$(util_getHostIP)
+    local queryservice=$(echo $(maprutil_getNodesForService "drill") | grep "$hostip")
+    if [ -n "$queryservice" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
+        cmd=$cmd" -QS"
+    fi
     cmd=$cmd" -R"
 
     log_info "$cmd"
     bash -c "$cmd"
 
     #maprutil_restartWarden
+}
+
+function maprutil_queryservice(){
+    local drillname="${GLB_CLUSTER_NAME}-drillbits"
+    maprcli cluster queryservice setconfig -enabled true -clusterid ${drillname} -storageplugin dfs -znode /drill > /dev/null 2>&1
 }
 
 # @param cldbnode ip
@@ -1770,6 +1807,9 @@ function maprutil_runCommands(){
             ;;
             mfsthreads)
                 maprutil_mfsthreads
+            ;;
+            queryservice)
+                maprutil_queryservice
             ;;
             *)
             echo "Nothing to do!!"
