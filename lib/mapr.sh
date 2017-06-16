@@ -1515,7 +1515,7 @@ function maprutil_buildRepoFile(){
     if [ "$nodeos" = "centos" ]; then
         meprepo="http://yum.qa.lab/opensource"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
-        [ -z "$GLB_PATCH_REPOFILE" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-rpm/"
+        [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-rpm/"
 
         echo "[QA-CustomOpensource]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
@@ -1533,6 +1533,7 @@ function maprutil_buildRepoFile(){
 
         # Add patch if specified
         if [ -n "$GLB_PATCH_REPOFILE" ]; then
+            echo >> $repofile
             echo "[QA-CustomPatchRepo]" >> $repofile
             echo "name=MapR Custom Repository" >> $repofile
             echo "baseurl=${GLB_PATCH_REPOFILE}" >> $repofile
@@ -1544,7 +1545,7 @@ function maprutil_buildRepoFile(){
     elif [ "$nodeos" = "ubuntu" ]; then
         meprepo="http://apt.qa.lab/opensource"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
-        [ -z "$GLB_PATCH_REPOFILE" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-deb/"
+        [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-deb/"
 
         echo "deb $meprepo binary/" > $repofile
         echo "deb ${repourl} mapr optional" >> $repofile
