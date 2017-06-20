@@ -3097,7 +3097,7 @@ function marutil_getGutsSample(){
     [ -n "$2" ] && [ "$2" = "gw" ] && gutsfile="/opt/mapr/logs/gatewayguts.log"
 
     local gutsline="$(ssh_executeCommandasRoot "$node" "grep '[a-z]' $gutsfile | grep -v PID | grep -v Printing | head -1 | sed 's/ \+/ /g'")"
-    local twocols="time bucketWr write lwrite bwrite read lread inode small large meta dir ior iow icache dcache"
+    local twocols="time bucketWr write lwrite bwrite read lread inode regular small large meta dir ior iow iorI iowI iorB iowB iowD iowD icache dcache"
     local collist=
     local i=1
     for gline in $gutsline
