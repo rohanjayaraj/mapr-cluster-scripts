@@ -1239,9 +1239,6 @@ function maprutil_configureNode(){
 }
 
 function maprutil_postConfigure(){
-    if [ -z "$1" ] && [ -z "$2" ]; then
-        return
-    fi
     local esnodes=$(util_getCommaSeparated "$1")
     local otnodes=$(util_getCommaSeparated "$2")
     
@@ -2323,13 +2320,13 @@ function maprutil_applyLicense(){
     local i=0
     local jobs=1
     while [ "${jobs}" -ne "0" ]; do
-        log_info "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 30s"
+        log_info "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 10s"
         if [ "$jobs" -ne 0 ]; then
             local licenseExists=`/opt/mapr/bin/maprcli license list | grep M7 | wc -l`
             if [ "$licenseExists" -ne 0 ]; then
                 jobs=0
             else
-                sleep 30
+                sleep 10
             fi
         fi
         ### Attempt using Downloaded License
@@ -2337,7 +2334,7 @@ function maprutil_applyLicense(){
             jobs=$(/opt/mapr/bin/maprcli license add -license /tmp/LatestDemoLicense-M7.txt -is_file true > /dev/null;echo $?);
         fi
         let i=i+1
-        if [ "$i" -gt 10 ]; then
+        if [ "$i" -gt 30 ]; then
             log_error "Failed to apply license. Node may not be configured correctly"
             exit 1
         fi
