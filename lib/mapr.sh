@@ -1239,23 +1239,35 @@ function maprutil_configureNode(){
 }
 
 function maprutil_postConfigure(){
-    local esnodes=$(util_getCommaSeparated "$1")
-    local otnodes=$(util_getCommaSeparated "$2")
-    
-    local cmd="/opt/mapr/server/configure.sh "
+    [ -z "$1" ] && return
+    local runtype="$1"
+
+    local hostip=$(util_getHostIP)
+    local esnodes=
+    local otnodes=
+    local queryservice=
+
+    if [ "$runtype" = "spy" ]; then
+        esnodes="$(maprutil_getNodesForService "elastic")"
+        otnodes="$(maprutil_getNodesForService "opentsdb")"
+        [ -n "$esnodes" ] && esnodes="$(util_getCommaSeparated "$esnodes")"
+        [ -n "$otnodes" ] && otnodes="$(util_getCommaSeparated "$otnodes")"
+    elif [[ "$runtype" = "drill" ]]; then
+        queryservice=$(echo $(maprutil_getNodesForService "drill") | grep "$hostip")
+    fi
+
+    local cmd="/opt/mapr/server/configure.sh -R"
     if [ -n "$esnodes" ]; then
         cmd=$cmd" -ES "$esnodes
     fi
     if [ -n "$otnodes" ]; then
         cmd=$cmd" -OT "$otnodes
     fi
-    local hostip=$(util_getHostIP)
-    local queryservice=$(echo $(maprutil_getNodesForService "drill") | grep "$hostip")
-    if [ -n "$GLB_ENABLE_QS" ] && [ -n "$queryservice" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
+
+    if [ -n "$queryservice" ] && [ -n "$GLB_ENABLE_QS" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
         cmd=$cmd" -QS"
     fi
-    cmd=$cmd" -R"
-
+    
     log_info "$cmd"
     bash -c "$cmd"
 
@@ -1384,10 +1396,7 @@ function maprutil_postConfigureOnNode(){
         return
     fi
 
-    local esnodes=$(maprutil_getESNodes "$2")
-    local otnodes=$(maprutil_getOTSDBNodes "$2")
-    
-    echo "maprutil_postConfigure \""$esnodes"\" \""$otnodes"\" || exit 1" >> $scriptpath
+    echo "maprutil_postConfigure \"$2\" || exit 1" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"

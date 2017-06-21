@@ -217,7 +217,7 @@ function main_install(){
 		maprutil_wait
 		for node in ${drillnodes[@]}
 		do
-			maprutil_postConfigureOnNode "$node" "junk" "bg"
+			maprutil_postConfigureOnNode "$node" "drill" "bg"
 		done
 		maprutil_wait
 		[ -n "$GLB_ENABLE_QS" ] && main_runCommandExec "queryservice"
@@ -240,7 +240,7 @@ function main_install(){
 		for node in ${nodes[@]}
 		do
 			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
-			maprutil_postConfigureOnNode "$node" "$rolefile" "bg"
+			maprutil_postConfigureOnNode "$node" "spy" "bg"
 		done
 		maprutil_wait
 
