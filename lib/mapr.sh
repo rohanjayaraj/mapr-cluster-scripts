@@ -1254,7 +1254,7 @@ function maprutil_postConfigure(){
     fi
     local hostip=$(util_getHostIP)
     local queryservice=$(echo $(maprutil_getNodesForService "drill") | grep "$hostip")
-    if [ -n "$queryservice" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
+    if [ -n "$GLB_ENABLE_QS" ] && [ -n "$queryservice" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
         cmd=$cmd" -QS"
     fi
     cmd=$cmd" -R"
@@ -2771,6 +2771,7 @@ function maprutil_copyZippedLogsFromNode(){
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
     
+    [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
     ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto" > /dev/null 2>&1
     ssh_executeCommandasRoot "rm -rf $filetocopy" > /dev/null 2>&1
 }
@@ -2783,6 +2784,7 @@ function maprutil_copymfstrace(){
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     local dirtocopy="/tmp/mfstrace/$timestamp/$host"
 
+    [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
     ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
     ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
 }
@@ -2930,6 +2932,7 @@ function maprutil_mfsCPUUseOnCluster(){
     [ -z "$(ls $tmpdir/* 2>/dev/null)" ] && return
     
     local logdir="$tmpdir/cluster"
+    rm -rf $logdir > /dev/null 2>&1
     mkdir -p $logdir > /dev/null 2>&1
 
     local files="fs.log db.log dbh.log dbf.log comp.log"
@@ -2972,6 +2975,7 @@ function maprutil_copymfscpuuse(){
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     local dirtocopy="/tmp/mfscpuuse/$timestamp/$host"
 
+    [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
     ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
     ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
 }
@@ -3135,6 +3139,7 @@ function maprutil_copygutsstats(){
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     local dirtocopy="/tmp/gutsstats/$timestamp/$host"
 
+    [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
     ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
     ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
 }
@@ -3235,6 +3240,7 @@ function maprutil_gutstatsOnCluster(){
     [ -z "$(ls $tmpdir/* 2>/dev/null)" ] && return
     
     local logdir="$tmpdir/cluster"
+    rm -rf $logdir > /dev/null 2>&1
     mkdir -p $logdir > /dev/null 2>&1
 
     local filelist=$(find $dirlist -name guts.log 2>/dev/null)
