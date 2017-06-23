@@ -1962,23 +1962,40 @@ function maprutil_checkIndexTabletDistribution(){
     fi
 
     local storagePools=$(/opt/mapr/server/mrconfig sp list 2>/dev/null | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort -n -k1.3)
-        
+    local tempdir=$(mktemp -d)
+
     for index in $indexlist
     do
-        local tabletContainers=$(maprcli table region list -path $tablepath -index $index -json 2>/dev/null | grep -v 'secondary' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
+        local nodeindextablets=$(maprcli table region list -path $tablepath -index $index -json 2>/dev/null | grep -v 'secondary' | grep -A11 $hostnode | tr -d '"' | tr -d ',')
+        local tabletContainers=$(echo "$nodeindextablets" | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
         [ -z "$tabletContainers" ] && continue
         local numTablets=$(echo "$tabletContainers" | wc -l)
         local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
-
-        log_msg "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
-
+        [ "$numTablets" -gt "0" ] && log_msg "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
+        
         for sp in $storagePools; do
+            local indexlog="$tempdir/$indexname_$sp.log"
             local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
             local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
             local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
-            log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
+            local sptabletfids=$(echo "$nodeindextablets" | grep -Fw "${spcntrs}.[0-9]*.[0-9]*" | cut -d':' -f2)
+            [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts container(s))"
+            for tabletfid in $sptabletfids
+            do
+                local tabletinfo=$(echo "$nodeindextablets" | grep -B4 -A7 $tabletfid | grep 'logicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
+                
+                local tabletsize=$(echo "$tabletinfo" |  grep logicalsize | cut -d':' -f2 | awk '{$1/1073741824}')
+                tabletsize=$(printf "%.3f\n" $tabletsize)
+                local numrows=$(echo "$tabletinfo" | grep numberofrows | cut -d':' -f2)
+                local numdelrows=$(echo "$tabletinfo" | grep numberofrowswithdelete | cut -d':' -f2)
+                local numspills=$(echo "$tabletinfo" | grep numberofspills | cut -d':' -f2)
+                local numsegs=$(echo "$tabletinfo" | grep numberofsegments | cut -d':' -f2)
+                
+                log_msg "\t\t Tablet [$tabletfid] Size: $tabletsize GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills"
+            done
         done
     done
+    rm -rf $tempdir > /dev/null 2>&1
 }
 
 function maprutil_checkIndexTabletDistribution2(){
@@ -2021,7 +2038,7 @@ function maprutil_checkIndexTabletDistribution2(){
         local indexlog="$tempdir/$indexname.log"
         for tabletfid in $idxtabletfids
         do
-            maprutil_printTabletStats "$i" "$tabletfid" >> $indexlog &
+            maprutil_printTabletStats2 "$i" "$tabletfid" >> $indexlog &
             let i=i+1
             local curnumcli=$(jps | grep CLIMainDriver | wc -l)
             while [ "$curnumcli" -gt "$maxnumcli" ]
@@ -2037,14 +2054,14 @@ function maprutil_checkIndexTabletDistribution2(){
             local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
             local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
             log_msg "\n\t$(util_getHostIP) : Index '$indexname' [ #ofTablets: ${totaltablets}, Size: ${indexSize} GB, #ofRows: ${numrows} ]"
-            cat "$indexlog" | sort -nk2.3 2>/dev/null
+            cat "$indexlog" | sort -nk2.3 | sort -nk3.3 2>/dev/null
         fi
     done
     
     rm -rf $tempdir > /dev/null 2>&1
 }
 
-function maprutil_printTabletStats(){
+function maprutil_printTabletStats2(){
     if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
