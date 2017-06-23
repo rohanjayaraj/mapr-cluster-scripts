@@ -949,21 +949,27 @@ function maprutil_customConfigure(){
 
 # @param force move CLDB topology
 function maprutil_configureCLDBTopology(){
-    
+    log_info "[$(util_getHostIP)] Moving all $GLB_CLUSTER_SIZE nodes to /data topology"
     local datatopo=$(maprcli node list -json | grep racktopo | grep "/data/" | wc -l)
     local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
     local j=0
+    local downnodes=
     while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ]; do
-        sleep 15
         numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
         let j=j+1
-        if [ "$j" -gt 20 ]; then
+        if [ "$j" -gt 12 ]; then
+            log_warn "[$(util_getHostIP)] Timeout reached waiting for nodes to be online"
             break
+        elif [[ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ]]
+            downnodes=$(echo "$GLB_CLUSTER_SIZE-$numdnodes" | bc) 
+            log_info "[$(util_getHostIP)] Waiting for $downnodes nodes to come online. Sleeping for 10s"
+            sleep 10
         fi
     done
     let numdnodes=numdnodes-1
 
     if [ "$datatopo" -eq "$numdnodes" ]; then
+        log_info "[$(util_getHostIP)] All nodes are already on /data topology"
         return
     fi
     ## Move all nodes under /data topology
@@ -974,6 +980,7 @@ function maprutil_configureCLDBTopology(){
     if [ "$GLB_CLUSTER_SIZE" -gt 5 ] || [ -n "$1" ]; then
         ### Moving CLDB Nodes to CLDB topology
         #local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
+        log_info "[$(util_getHostIP)] Moving CLDB nodes to /cldb topology"
         local cldbnodes=$(maprcli node list -json | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')
         maprcli node move -serverids "$cldbnodes" -topology /cldb 2>/dev/null
         ### Moving CLDB Volume as well
@@ -1940,8 +1947,12 @@ function maprutil_checkIndexTabletDistribution(){
     if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
         return
     fi
-    local hostip=$(util_getHostIP)
-    local tablepath=$GLB_TABLET_DIST
+    
+    local filepath=$GLB_TABLET_DIST
+    local hostnode=$(hostname -f)
+
+    local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null |  grep cid: | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
+    [ -z "$cntrlist" ] && return
 
     local indexlist=
     if [ -z "$GLB_INDEX_NAME" ] || [ "$GLB_INDEX_NAME" = "all" ]; then
@@ -1949,13 +1960,47 @@ function maprutil_checkIndexTabletDistribution(){
     else
         indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | grep -iB1 "$GLB_INDEX_NAME" | tr -d '"' | tr -d ',' | tr -d "'")
     fi
-    
-    [ -z "$indexlist" ] && return
+
+    local storagePools=$(/opt/mapr/server/mrconfig sp list 2>/dev/null | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort -n -k1.3)
+        
+    for index in $indexlist
+    do
+        local tabletContainers=$(maprcli table region list -path $filepath -index $index -json 2>/dev/null | grep -v 'secondary' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
+        [ -z "$tabletContainers" ] && continue
+        local numTablets=$(echo "$tabletContainers" | wc -l)
+        local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
+
+        log_msg "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
+
+        for sp in $storagePools; do
+            local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
+            local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
+            local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
+            log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
+        done
+    done
+}
+
+function maprutil_checkIndexTabletDistribution2(){
+    if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
+        return
+    fi
+    local hostip=$(util_getHostIP)
+    local tablepath=$GLB_TABLET_DIST
 
     local ciddump=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null)
     local cids=$(echo "$ciddump" |  grep cid: | awk '{print $1}' | cut -d':' -f2 | sort -n | uniq | sed ':a;N;$!ba;s/\n/,/g')
-    local localcids=$(maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep 'ContainerId\|Master' | grep -B1 $hostip | grep ContainerId | tr -d '"' | tr -d ',' | tr -d "'" | cut -d':' -f2 | sed 's/^/\^/')
+    [ -z "$cids" ] && return
 
+    local indexlist=
+    if [ -z "$GLB_INDEX_NAME" ] || [ "$GLB_INDEX_NAME" = "all" ]; then
+        indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | tr -d '"' | tr -d ',' | tr -d "'")
+    else
+        indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | grep -iB1 "$GLB_INDEX_NAME" | tr -d '"' | tr -d ',' | tr -d "'")
+    fi
+    [ -z "$indexlist" ] && return
+
+    local localcids=$(maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep 'ContainerId\|Master' | grep -B1 $hostip | grep ContainerId | tr -d '"' | tr -d ',' | tr -d "'" | cut -d':' -f2 | sed 's/^/\^/')
     local indexfids=$(echo "$indexlist" | grep indexFid | cut -d':' -f2)
     local tempdir=$(mktemp -d)
 
@@ -2361,6 +2406,7 @@ function maprutil_applyLicense(){
         curl --cookie /tmp/tmpckfile -X POST -F "license_type=additionalfeatures_posixclientplatinum" -F "cluster=${clusterid}" -F "customer_name=maprqa" -F "expiration_date=${expdate}" -F "number_of_nodes=${GLB_CLUSTER_SIZE}" -F "enforcement_type=HARD" https://apitest.mapr.com/license/licenses/createlicense/ -o ${licfile} 2>/dev/null
         [ -e "$licfile" ] && /opt/mapr/bin/maprcli license add -license ${licfile} -is_file true > /dev/null
     fi
+    [[ "${jobs}" -eq "0" ]] && log_info "[$(util_getHostIP)] License add completed."
 }
 
 function maprutil_waitForCLDBonNode(){
