@@ -960,7 +960,7 @@ function maprutil_configureCLDBTopology(){
         if [ "$j" -gt 12 ]; then
             log_warn "[$(util_getHostIP)] Timeout reached waiting for nodes to be online"
             break
-        elif [[ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ]]
+        elif [[ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ]]; then
             downnodes=$(echo "$GLB_CLUSTER_SIZE-$numdnodes" | bc) 
             log_info "[$(util_getHostIP)] Waiting for $downnodes nodes to come online. Sleeping for 10s"
             sleep 10
