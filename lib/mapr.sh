@@ -1927,7 +1927,7 @@ function maprutil_checkTabletDistribution(){
         [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
 
         [ -z "$GLB_LOG_VERBOSE" ] && continue
-        
+
         for tabletfid in $sptabletfids
         do
             local tabletinfo=$(echo "$nodetablets" | grep -B4 -A7 $tabletfid | grep -w 'physicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
@@ -1939,7 +1939,7 @@ function maprutil_checkTabletDistribution(){
             local numspills=$(echo "$tabletinfo" | grep -w numberofspills | cut -d':' -f2)
             local numsegs=$(echo "$tabletinfo" | grep -w numberofsegments | cut -d':' -f2)
             
-            log_msg "\t\t Tablet [$tabletfid] Size: ${tabletsize}GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills" >> $indexlog
+            log_msg "\t\t Tablet [$tabletfid] Size: ${tabletsize}GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills"
         done
 
     done
