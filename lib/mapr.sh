@@ -1971,29 +1971,33 @@ function maprutil_checkIndexTabletDistribution(){
         [ -z "$tabletContainers" ] && continue
         local numTablets=$(echo "$tabletContainers" | wc -l)
         local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
-        [ "$numTablets" -gt "0" ] && log_msg "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
-        
+        local indexlog="$tempdir/$indexname.log"
         for sp in $storagePools; do
-            local indexlog="$tempdir/$indexname_$sp.log"
             local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
             local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
             local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
             local sptabletfids=$(echo "$nodeindextablets" | grep -Fw "${spcntrs}.[0-9]*.[0-9]*" | cut -d':' -f2)
-            [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts container(s))"
+            [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)" >> $indexlog
             for tabletfid in $sptabletfids
             do
                 local tabletinfo=$(echo "$nodeindextablets" | grep -B4 -A7 $tabletfid | grep 'logicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
                 
-                local tabletsize=$(echo "$tabletinfo" |  grep logicalsize | cut -d':' -f2 | awk '{$1/1073741824}')
+                local tabletsize=$(echo "$tabletinfo" |  grep logicalsize | cut -d':' -f2 | awk '{print $1/1073741824}')
                 tabletsize=$(printf "%.3f\n" $tabletsize)
-                local numrows=$(echo "$tabletinfo" | grep numberofrows | cut -d':' -f2)
+                local numrows=$(echo "$tabletinfo" | grep -w numberofrows | cut -d':' -f2)
                 local numdelrows=$(echo "$tabletinfo" | grep numberofrowswithdelete | cut -d':' -f2)
                 local numspills=$(echo "$tabletinfo" | grep numberofspills | cut -d':' -f2)
                 local numsegs=$(echo "$tabletinfo" | grep numberofsegments | cut -d':' -f2)
                 
-                log_msg "\t\t Tablet [$tabletfid] Size: $tabletsize GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills"
+                log_msg "\t\t Tablet [$tabletfid] Size: $tabletsize GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills" >> $indexlog
             done
         done
+        if [ "$(cat $indexlog | wc -w)" -gt "0" ]; then
+            local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
+            local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
+            log_msg "\n\t$(util_getHostIP) : Index '$index' [ #ofTablets: ${numTablets}, Size: ${indexSize} GB, #ofRows: ${numrows} ]"
+            cat "$indexlog" 2>/dev/null
+        fi
     done
     rm -rf $tempdir > /dev/null 2>&1
 }
