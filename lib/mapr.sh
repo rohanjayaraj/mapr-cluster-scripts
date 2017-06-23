@@ -1948,7 +1948,7 @@ function maprutil_checkIndexTabletDistribution(){
         return
     fi
     
-    local filepath=$GLB_TABLET_DIST
+    local tablepath=$GLB_TABLET_DIST
     local hostnode=$(hostname -f)
 
     local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null |  grep cid: | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
@@ -1965,7 +1965,7 @@ function maprutil_checkIndexTabletDistribution(){
         
     for index in $indexlist
     do
-        local tabletContainers=$(maprcli table region list -path $filepath -index $index -json 2>/dev/null | grep -v 'secondary' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
+        local tabletContainers=$(maprcli table region list -path $tablepath -index $index -json 2>/dev/null | grep -v 'secondary' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
         [ -z "$tabletContainers" ] && continue
         local numTablets=$(echo "$tabletContainers" | wc -l)
         local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
