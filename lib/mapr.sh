@@ -1793,6 +1793,9 @@ function maprutil_runCommands(){
             indexdist)
                 maprutil_checkIndexTabletDistribution
             ;;
+            indexdist2)
+                maprutil_checkIndexTabletDistribution2
+            ;;
             cntrdist)
                 maprutil_checkContainerDistribution
             ;;
@@ -1980,9 +1983,9 @@ function maprutil_checkIndexTabletDistribution(){
             [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)" >> $indexlog
             for tabletfid in $sptabletfids
             do
-                local tabletinfo=$(echo "$nodeindextablets" | grep -B4 -A7 $tabletfid | grep 'logicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
+                local tabletinfo=$(echo "$nodeindextablets" | grep -B4 -A7 $tabletfid | grep 'physicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
                 
-                local tabletsize=$(echo "$tabletinfo" |  grep logicalsize | cut -d':' -f2 | awk '{print $1/1073741824}')
+                local tabletsize=$(echo "$tabletinfo" |  grep physicalsize | cut -d':' -f2 | awk '{print $1/1073741824}')
                 tabletsize=$(printf "%.3f\n" $tabletsize)
                 local numrows=$(echo "$tabletinfo" | grep -w numberofrows | cut -d':' -f2)
                 local numdelrows=$(echo "$tabletinfo" | grep numberofrowswithdelete | cut -d':' -f2)
@@ -1995,7 +1998,7 @@ function maprutil_checkIndexTabletDistribution(){
         if [ "$(cat $indexlog | wc -w)" -gt "0" ]; then
             local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
             local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
-            log_msg "\n\t$(util_getHostIP) : Index '$index' [ #ofTablets: ${numTablets}, Size: ${indexSize} GB, #ofRows: ${numrows} ]"
+            log_msg "\n$(util_getHostIP) : Index '$index' [ #ofTablets: ${numTablets}, Size: ${indexSize} GB, #ofRows: ${numrows} ]"
             cat "$indexlog" 2>/dev/null
         fi
     done

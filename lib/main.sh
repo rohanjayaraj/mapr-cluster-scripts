@@ -328,7 +328,7 @@ function main_reconfigure(){
 	if [ -n "$drillnodes" ]; then
 		for node in ${drillnodes[@]}
 		do
-			maprutil_postConfigureOnNode "$node" "junk" "bg"
+			maprutil_postConfigureOnNode "$node" "drill" "bg"
 		done
 		maprutil_wait
 		[ -n "$GLB_ENABLE_QS" ] && main_runCommandExec "queryservice"
@@ -351,7 +351,7 @@ function main_reconfigure(){
 		for node in ${nodes[@]}
 		do
 			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
-			maprutil_postConfigureOnNode "$node" "$rolefile" "bg"
+			maprutil_postConfigureOnNode "$node" "spy" "bg"
 		done
 		maprutil_wait
 
@@ -828,6 +828,9 @@ function main_runLogDoctor(){
 				if [ -z "$GLB_INDEX_NAME" ]; then
 					log_msghead "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
 					maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
+				elif [ -n "$GLB_LOG_VERBOSE" ]; then
+					log_msghead "[$(util_getCurDate)] Checking $GLB_INDEX_NAME index table(s) tablet distribution for table '$GLB_TABLET_DIST'"
+					maprutil_runCommandsOnNodesInParallel "$nodelist" "indexdist2"
 				else
 					log_msghead "[$(util_getCurDate)] Checking $GLB_INDEX_NAME index table(s) tablet distribution for table '$GLB_TABLET_DIST'"
 					maprutil_runCommandsOnNodesInParallel "$nodelist" "indexdist"
