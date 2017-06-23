@@ -1906,10 +1906,12 @@ function maprutil_checkTabletDistribution(){
     local hostnode=$(hostname -f)
 
     local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null |  grep cid: | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
-    local tabletContainers=$(maprcli table region list -path $filepath -json 2>/dev/null | grep -v 'secondary' | grep -A10 $hostnode | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
-    if [ -z "$tabletContainers" ]; then
-        return
-    fi
+    [ -z "$cntrlist" ] && return
+
+    local nodetablets=$(maprcli table region list -path $filepath -json 2>/dev/null | grep -v 'secondary' | grep -A11 $hostnode | tr -d '"' | tr -d ',')
+    local tabletContainers=$(echo "$nodetablets" | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
+    [ -z "$tabletContainers" ] && return
+    
     local storagePools=$(/opt/mapr/server/mrconfig sp list 2>/dev/null | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort -n -k1.3)
     local numTablets=$(echo "$tabletContainers" | wc -l)
     local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
@@ -1919,7 +1921,27 @@ function maprutil_checkTabletDistribution(){
         local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
         local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
         local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
-        log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
+        
+        local sptabletfids=$(echo "$nodetablets" | grep -Fw "${spcntrs}.[0-9]*.[0-9]*" | cut -d':' -f2)
+        [ -z "$sptabletfids" ] && continue
+        [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
+
+        [ -z "$GLB_LOG_VERBOSE" ] && continue
+        
+        for tabletfid in $sptabletfids
+        do
+            local tabletinfo=$(echo "$nodetablets" | grep -B4 -A7 $tabletfid | grep -w 'physicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
+            
+            local tabletsize=$(echo "$tabletinfo" |  grep -w physicalsize | cut -d':' -f2 | awk '{print $1/1073741824}')
+            tabletsize=$(printf "%.2f\n" $tabletsize)
+            local numrows=$(echo "$tabletinfo" | grep -w numberofrows | cut -d':' -f2)
+            local numdelrows=$(echo "$tabletinfo" | grep -w numberofrowswithdelete | cut -d':' -f2)
+            local numspills=$(echo "$tabletinfo" | grep -w numberofspills | cut -d':' -f2)
+            local numsegs=$(echo "$tabletinfo" | grep -w numberofsegments | cut -d':' -f2)
+            
+            log_msg "\t\t Tablet [$tabletfid] Size: ${tabletsize}GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills" >> $indexlog
+        done
+
     done
 }
 
@@ -1989,20 +2011,18 @@ function maprutil_checkIndexTabletDistribution(){
                 local tabletsize=$(echo "$tabletinfo" |  grep -w physicalsize | cut -d':' -f2 | awk '{print $1/1073741824}')
                 tabletsize=$(printf "%.2f\n" $tabletsize)
                 local numrows=$(echo "$tabletinfo" | grep -w numberofrows | cut -d':' -f2)
-                numrows=$(printf "%'d" $numrows)
                 local numdelrows=$(echo "$tabletinfo" | grep -w numberofrowswithdelete | cut -d':' -f2)
-                numdelrows=$(printf "%'d" $numdelrows)
                 local numspills=$(echo "$tabletinfo" | grep -w numberofspills | cut -d':' -f2)
                 local numsegs=$(echo "$tabletinfo" | grep -w numberofsegments | cut -d':' -f2)
                 
-                log_msg "\t\t Tablet [$tabletfid] Size: $tabletsize GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills" >> $indexlog
+                log_msg "\t\t Tablet [$tabletfid] Size: ${tabletsize}GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills" >> $indexlog
             done
         done
         if [ "$(cat $indexlog | wc -w)" -gt "0" ]; then
             local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
-            local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | sed 's/,//g' | awk '{sum+=$2}END{print sum}')
+            local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
             numrows=$(printf "%'d" $numrows)
-            log_msg "\n $(util_getHostIP) : Index '$index' [ #ofTablets: ${numTablets}, Size: ${indexSize} GB, #ofRows: ${numrows} ]"
+            log_msg "\n $(util_getHostIP) : Index '$index' [ #ofTablets: ${numTablets}, Size: ${indexSize}GB, #ofRows: ${numrows} ]"
             cat "$indexlog" 2>/dev/null
         fi
     done
@@ -2063,9 +2083,9 @@ function maprutil_checkIndexTabletDistribution2(){
         # Print the output
         if [ "$(cat $indexlog | wc -w)" -gt "0" ]; then
             local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
-            local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | sed 's/,//g' | awk '{sum+=$2}END{print sum}')
+            local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
             numrows=$(printf "%'d" $numrows)
-            log_msg "\n$(util_getHostIP) : Index '$indexname' [ #ofTablets: ${totaltablets}, Size: ${indexSize} GB, #ofRows: ${numrows} ]"
+            log_msg "\n$(util_getHostIP) : Index '$indexname' [ #ofTablets: ${totaltablets}, Size: ${indexSize}GB, #ofRows: ${numrows} ]"
             cat "$indexlog" | sort -nk2.3 | sort -nk3.3 2>/dev/null
         fi
     done
@@ -2084,12 +2104,10 @@ function maprutil_printTabletStats2(){
     local tabletsize=$(echo "$tabletinfo" |  grep -w numPhysicalBlocks | cut -d':' -f2 | awk '{sum+=$1}END{print sum*8192/1073741824}')
     tabletsize=$(printf "%.2f\n" $tabletsize)
     local numrows=$(echo "$tabletinfo" | grep -w numRows | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
-    numrows=$(printf "%'d" $numrows)
     local numdelrows=$(echo "$tabletinfo" | grep -w numRowsWithDelete | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
-    numdelrows=$(printf "%'d" $numdelrows)
     local numspills=$(echo "$tabletinfo" | grep -w numSpills | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
     local numsegs=$(echo "$tabletinfo" | grep -w numSegments | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
-    log_msg "\t Tablet #${tabletindex} [$tabletfid] Size: $tabletsize GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills"
+    log_msg "\t Tablet #${tabletindex} [$tabletfid] Size: ${tabletsize}GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills"
 }
 
 function maprutil_sysinfo(){
