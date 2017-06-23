@@ -1985,7 +1985,7 @@ function maprutil_checkIndexTabletDistribution(){
             do
                 local tabletinfo=$(echo "$nodeindextablets" | grep -B4 -A7 $tabletfid | grep -w 'physicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
                 
-                local tabletsize=$(echo "$tabletinfo" |  grep physicalsize | cut -d':' -f2 | awk '{print $1/1073741824}')
+                local tabletsize=$(echo "$tabletinfo" |  grep -w physicalsize | cut -d':' -f2 | awk '{print $1/1073741824}')
                 tabletsize=$(printf "%.3f\n" $tabletsize)
                 local numrows=$(echo "$tabletinfo" | grep -w numberofrows | cut -d':' -f2)
                 local numdelrows=$(echo "$tabletinfo" | grep -w numberofrowswithdelete | cut -d':' -f2)
@@ -2075,8 +2075,8 @@ function maprutil_printTabletStats2(){
     local tabletindex=$1
     local tabletfid=$2
 
-    local tabletinfo=$(maprcli debugdb dump -fid $tabletfid -json | grep -w 'numLogicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
-    local tabletsize=$(echo "$tabletinfo" |  grep numLogicalBlocks | cut -d':' -f2 | awk '{sum+=$1}END{print sum*8192/1073741824}')
+    local tabletinfo=$(maprcli debugdb dump -fid $tabletfid -json | grep -w 'numPhysicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
+    local tabletsize=$(echo "$tabletinfo" |  grep -w numPhysicalBlocks | cut -d':' -f2 | awk '{sum+=$1}END{print sum*8192/1073741824}')
     tabletsize=$(printf "%.2f\n" $tabletsize)
     local numrows=$(echo "$tabletinfo" | grep -w numRows | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
     local numdelrows=$(echo "$tabletinfo" | grep -w numRowsWithDelete | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
