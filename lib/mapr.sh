@@ -1983,14 +1983,14 @@ function maprutil_checkIndexTabletDistribution(){
             [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)" >> $indexlog
             for tabletfid in $sptabletfids
             do
-                local tabletinfo=$(echo "$nodeindextablets" | grep -B4 -A7 $tabletfid | grep 'physicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
+                local tabletinfo=$(echo "$nodeindextablets" | grep -B4 -A7 $tabletfid | grep -w 'physicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
                 
                 local tabletsize=$(echo "$tabletinfo" |  grep physicalsize | cut -d':' -f2 | awk '{print $1/1073741824}')
                 tabletsize=$(printf "%.3f\n" $tabletsize)
                 local numrows=$(echo "$tabletinfo" | grep -w numberofrows | cut -d':' -f2)
-                local numdelrows=$(echo "$tabletinfo" | grep numberofrowswithdelete | cut -d':' -f2)
-                local numspills=$(echo "$tabletinfo" | grep numberofspills | cut -d':' -f2)
-                local numsegs=$(echo "$tabletinfo" | grep numberofsegments | cut -d':' -f2)
+                local numdelrows=$(echo "$tabletinfo" | grep -w numberofrowswithdelete | cut -d':' -f2)
+                local numspills=$(echo "$tabletinfo" | grep -w numberofspills | cut -d':' -f2)
+                local numsegs=$(echo "$tabletinfo" | grep -w numberofsegments | cut -d':' -f2)
                 
                 log_msg "\t\t Tablet [$tabletfid] Size: $tabletsize GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills" >> $indexlog
             done
@@ -2075,13 +2075,13 @@ function maprutil_printTabletStats2(){
     local tabletindex=$1
     local tabletfid=$2
 
-    local tabletinfo=$(maprcli debugdb dump -fid $tabletfid -json | grep 'numLogicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
+    local tabletinfo=$(maprcli debugdb dump -fid $tabletfid -json | grep -w 'numLogicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
     local tabletsize=$(echo "$tabletinfo" |  grep numLogicalBlocks | cut -d':' -f2 | awk '{sum+=$1}END{print sum*8192/1073741824}')
     tabletsize=$(printf "%.2f\n" $tabletsize)
-    local numrows=$(echo "$tabletinfo" | grep numRows | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
-    local numdelrows=$(echo "$tabletinfo" | grep numRowsWithDelete | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
-    local numspills=$(echo "$tabletinfo" | grep numSpills | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
-    local numsegs=$(echo "$tabletinfo" | grep numSegments | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+    local numrows=$(echo "$tabletinfo" | grep -w numRows | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+    local numdelrows=$(echo "$tabletinfo" | grep -w numRowsWithDelete | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+    local numspills=$(echo "$tabletinfo" | grep -w numSpills | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+    local numsegs=$(echo "$tabletinfo" | grep -w numSegments | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
     log_msg "\t\t Tablet #${tabletindex} [$tabletfid] Size: $tabletsize GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills"
 }
 
