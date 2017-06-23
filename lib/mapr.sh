@@ -1912,7 +1912,7 @@ function maprutil_checkTabletDistribution(){
     local tabletContainers=$(echo "$nodetablets" | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
     [ -z "$tabletContainers" ] && return
     
-    local storagePools=$(/opt/mapr/server/mrconfig sp list 2>/dev/null | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort -n -k1.3)
+    local storagePools=$(/opt/mapr/server/mrconfig sp list 2>/dev/null | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort -n -k1.3)e
     local numTablets=$(echo "$tabletContainers" | wc -l)
     local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
     log_msg "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numContainers]"
@@ -1922,7 +1922,7 @@ function maprutil_checkTabletDistribution(){
         local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
         local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
         
-        local sptabletfids=$(echo "$nodetablets" | grep -Fw "${spcntrs}\.[0-9]*\.[0-9]*" | cut -d':' -f2)
+        local sptabletfids=$(echo "$nodetablets" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2)
         [ -z "$sptabletfids" ] && continue
         [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
 
@@ -2001,7 +2001,7 @@ function maprutil_checkIndexTabletDistribution(){
             local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
             local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
             local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
-            local sptabletfids=$(echo "$nodeindextablets" | grep -Fw "${spcntrs}\.[0-9]*\.[0-9]*" | cut -d':' -f2)
+            local sptabletfids=$(echo "$nodeindextablets" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2)
             [ -z "$sptabletfids" ] && continue
             [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)" >> $indexlog
             for tabletfid in $sptabletfids
@@ -2019,7 +2019,7 @@ function maprutil_checkIndexTabletDistribution(){
             done
         done
         if [ "$(cat $indexlog | wc -w)" -gt "0" ]; then
-            local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*\.[0-9]*" | awk '{sum+=$2}END{print sum}')
+            local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
             local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
             numrows=$(printf "%'d" $numrows)
             log_msg "\n $(util_getHostIP) : Index '$index' [ #ofTablets: ${numTablets}, Size: ${indexSize}GB, #ofRows: ${numrows} ]"
