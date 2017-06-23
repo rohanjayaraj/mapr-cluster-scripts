@@ -1956,9 +1956,9 @@ function maprutil_checkIndexTabletDistribution(){
 
     local indexlist=
     if [ -z "$GLB_INDEX_NAME" ] || [ "$GLB_INDEX_NAME" = "all" ]; then
-        indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | tr -d '"' | tr -d ',' | tr -d "'")
+        indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexName" | tr -d '"' | tr -d ',' | cut -d':' -f2 | sed 's/\n/ /g')
     else
-        indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | grep -iB1 "$GLB_INDEX_NAME" | tr -d '"' | tr -d ',' | tr -d "'")
+        indexlist="$GLB_INDEX_NAME"
     fi
 
     local storagePools=$(/opt/mapr/server/mrconfig sp list 2>/dev/null | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort -n -k1.3)
