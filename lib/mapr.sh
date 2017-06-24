@@ -949,7 +949,7 @@ function maprutil_customConfigure(){
 
 # @param force move CLDB topology
 function maprutil_configureCLDBTopology(){
-    log_info "[$(util_getHostIP)] Moving all $GLB_CLUSTER_SIZE nodes to /data topology"
+    log_info "[$(util_getHostIP)] Moving $GLB_CLUSTER_SIZE nodes to /data topology"
     local datatopo=$(maprcli node list -json | grep racktopo | grep "/data/" | wc -l)
     local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
     local j=0
@@ -980,7 +980,7 @@ function maprutil_configureCLDBTopology(){
     if [ "$GLB_CLUSTER_SIZE" -gt 5 ] || [ -n "$1" ]; then
         ### Moving CLDB Nodes to CLDB topology
         #local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
-        log_info "[$(util_getHostIP)] Moving CLDB nodes to /cldb topology"
+        log_info "[$(util_getHostIP)] Moving CLDB node(s) & volume to /cldb topology"
         local cldbnodes=$(maprcli node list -json | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')
         maprcli node move -serverids "$cldbnodes" -topology /cldb 2>/dev/null
         ### Moving CLDB Volume as well
@@ -2455,7 +2455,7 @@ function maprutil_applyLicense(){
         curl --cookie /tmp/tmpckfile -X POST -F "license_type=additionalfeatures_posixclientplatinum" -F "cluster=${clusterid}" -F "customer_name=maprqa" -F "expiration_date=${expdate}" -F "number_of_nodes=${GLB_CLUSTER_SIZE}" -F "enforcement_type=HARD" https://apitest.mapr.com/license/licenses/createlicense/ -o ${licfile} 2>/dev/null
         [ -e "$licfile" ] && /opt/mapr/bin/maprcli license add -license ${licfile} -is_file true > /dev/null
     fi
-    [[ "${jobs}" -eq "0" ]] && log_info "[$(util_getHostIP)] License add completed."
+    [[ "${jobs}" -eq "0" ]] && log_info "[$(util_getHostIP)] License has been applied."
 }
 
 function maprutil_waitForCLDBonNode(){
