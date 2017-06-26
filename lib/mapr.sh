@@ -185,7 +185,7 @@ function maprutil_getPostInstallNodes(){
     while read -r line
     do
         local node=$(echo $line | awk -F, '{print $1}')
-        local binlist=$(echo $line | cut -d',' -f2 | sed 's/,/ /g')
+        local binlist=$(echo $line | cut -d',' -f2- | sed 's/,/ /g')
         for bin in ${binlist[@]}
         do
             if [[ "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2 ]]; then
