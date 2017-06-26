@@ -192,7 +192,7 @@ function maprutil_getPostInstallNodes(){
                 nodelist="$nodelist $node"
                 break
             fi
-        fi
+        done
     done <<<"$(cat $1 2>/dev/null | grep '^[^#;]')"
     if [ -n "$nodelist" ]; then
         echo $nodelist
