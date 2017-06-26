@@ -205,45 +205,21 @@ function main_install(){
 	done
 	maprutil_wait
 
-	# Install & configure DRILL
-	local drillnodes=$(maprutil_getDrillNodes $rolefile)
-	if [ -n "$drillnodes" ]; then
-		for node in ${drillnodes[@]}
+	# Check and install any binaries(ex: drill) post core binary installation
+	local postinstnodes=$(maprutil_getPostInstallNodes $rolefile)
+	if [ -n "$postinstnodes" ]; then
+		for node in ${postinstnodes[@]}
 		do
 			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
-			local drillbin=$(echo "$nodebins" | tr ' ' '\n' | grep drill | tr '\n' ' ')
-			maprutil_installBinariesOnNode "$node" "$drillbin" "bg"
+			maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
 		done
 		maprutil_wait
-		for node in ${drillnodes[@]}
+		for node in ${postinstnodes[@]}
 		do
-			maprutil_postConfigureOnNode "$node" "drill" "bg"
+			maprutil_postConfigureOnNode "$node" "bg"
 		done
 		maprutil_wait
 		[ -n "$GLB_ENABLE_QS" ] && main_runCommandExec "queryservice"
-	fi
-
-	# Configure ES & OpenTSDB nodes
-	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then 
-		log_info "****** Installing and configuring Spyglass ****** " 
-		for node in ${nodes[@]}
-		do
-			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
-			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
-			local nodecorebins=$(maprutil_getCoreNodeBinaries "$rolefile" "$node")
-			if [ "$(echo $nodebins | wc -w)" -gt "$(echo $nodecorebins | wc -w)" ]; then
-				maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
-			fi
-		done
-		maprutil_wait
-
-		for node in ${nodes[@]}
-		do
-			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
-			maprutil_postConfigureOnNode "$node" "spy" "bg"
-		done
-		maprutil_wait
-
 		[ -n "$GLB_TSDB_TOPO" ] && main_runCommandExec "tsdbtopo"
 	fi
 
@@ -323,38 +299,15 @@ function main_reconfigure(){
 	done
 	maprutil_wait
 
-	# Install & configure DRILL
-	local drillnodes=$(maprutil_getDrillNodes $rolefile)
-	if [ -n "$drillnodes" ]; then
-		for node in ${drillnodes[@]}
+	# Check and install any binaries(ex: drill) post core binary installation
+	local postinstnodes=$(maprutil_getPostInstallNodes $rolefile)
+	if [ -n "$postinstnodes" ]; then
+		for node in ${postinstnodes[@]}
 		do
-			maprutil_postConfigureOnNode "$node" "drill" "bg"
+			maprutil_postConfigureOnNode "$node" "bg"
 		done
 		maprutil_wait
 		[ -n "$GLB_ENABLE_QS" ] && main_runCommandExec "queryservice"
-	fi
-
-	# Configure ES & OpenTSDB nodes
-	if [ -n "$(maprutil_getESNodes $rolefile)" ] || [ -n "$(maprutil_getOTSDBNodes $rolefile)" ]; then 
-		log_info "****** Installing and configuring Spyglass ****** " 
-		for node in ${nodes[@]}
-		do
-			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
-			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
-			local nodecorebins=$(maprutil_getCoreNodeBinaries "$rolefile" "$node")
-			if [ "$(echo $nodebins | wc -w)" -gt "$(echo $nodecorebins | wc -w)" ]; then
-				maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
-			fi
-		done
-		maprutil_wait
-
-		for node in ${nodes[@]}
-		do
-			[ -z "$(maprutil_hasSpyglass $rolefile $node)" ] && continue
-			maprutil_postConfigureOnNode "$node" "spy" "bg"
-		done
-		maprutil_wait
-
 		[ -n "$GLB_TSDB_TOPO" ] && main_runCommandExec "tsdbtopo" 
 	fi
 

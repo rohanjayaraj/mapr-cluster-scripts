@@ -167,7 +167,7 @@ function maprutil_getCoreNodeBinaries() {
         local newbinlist=
         for bin in ${binlist[@]}
         do
-            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill ]]; then
+            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2 ]]; then
                 newbinlist=$newbinlist"$bin "
             fi
         done
@@ -175,6 +175,27 @@ function maprutil_getCoreNodeBinaries() {
             [ -n "$GLB_MAPR_PATCH" ] && [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
         fi
         echo $newbinlist
+    fi
+}
+
+# @param rolefile
+function maprutil_getPostInstallNodes(){
+    [ -z "$1" ] && return
+    local nodelist=
+    while read -r line
+    do
+        local node=$(echo $line | awk -F, '{print $1}')
+        local binlist=$(echo $line | cut -d',' -f2 | sed 's/,/ /g')
+        for bin in ${binlist[@]}
+        do
+            if [[ "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2 ]]; then
+                nodelist="$nodelist $node"
+                break
+            fi
+        fi
+    done <<<"$(cat $1 2>/dev/null | grep '^[^#;]')"
+    if [ -n "$nodelist" ]; then
+        echo $nodelist
     fi
 }
 
@@ -1246,22 +1267,13 @@ function maprutil_configureNode(){
 }
 
 function maprutil_postConfigure(){
-    [ -z "$1" ] && return
-    local runtype="$1"
-
     local hostip=$(util_getHostIP)
-    local esnodes=
-    local otnodes=
-    local queryservice=
 
-    if [ "$runtype" = "spy" ]; then
-        esnodes="$(maprutil_getNodesForService "elastic")"
-        otnodes="$(maprutil_getNodesForService "opentsdb")"
-        [ -n "$esnodes" ] && esnodes="$(util_getCommaSeparated "$esnodes")"
-        [ -n "$otnodes" ] && otnodes="$(util_getCommaSeparated "$otnodes")"
-    elif [[ "$runtype" = "drill" ]]; then
-        queryservice=$(echo $(maprutil_getNodesForService "drill") | grep "$hostip")
-    fi
+    local esnodes="$(maprutil_getNodesForService "elastic")"
+    local otnodes="$(maprutil_getNodesForService "opentsdb")"
+    [ -n "$esnodes" ] && esnodes="$(util_getCommaSeparated "$esnodes")"
+    [ -n "$otnodes" ] && otnodes="$(util_getCommaSeparated "$otnodes")"
+    local queryservice=$(echo $(maprutil_getNodesForService "drill") | grep "$hostip")
 
     local cmd="/opt/mapr/server/configure.sh -R"
     if [ -n "$esnodes" ]; then
@@ -1270,11 +1282,9 @@ function maprutil_postConfigure(){
     if [ -n "$otnodes" ]; then
         cmd=$cmd" -OT "$otnodes
     fi
-
     if [ -n "$queryservice" ] && [ -n "$GLB_ENABLE_QS" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
         cmd=$cmd" -QS"
     fi
-    
     log_info "$cmd"
     bash -c "$cmd"
 
@@ -1391,7 +1401,7 @@ function maprutil_copySecureFilesFromCLDB(){
 # @param cluster name
 # @param don't wait
 function maprutil_postConfigureOnNode(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
      # build full script for node
@@ -1403,11 +1413,11 @@ function maprutil_postConfigureOnNode(){
         return
     fi
 
-    echo "maprutil_postConfigure \"$2\" || exit 1" >> $scriptpath
+    echo "maprutil_postConfigure || exit 1" >> $scriptpath
    
-    ssh_executeScriptasRootInBG "$1" "$scriptpath"
+    ssh_executeScriptasRootInBG "$hostnode" "$scriptpath"
     maprutil_addToPIDList "$!"
-    if [ -z "$3" ]; then
+    if [ -z "$2" ]; then
         maprutil_wait
     fi
 }
