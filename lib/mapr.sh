@@ -3016,6 +3016,8 @@ function maprutil_publishMFSCPUUse(){
     #echo $json > cpuuse.json
     local tmpfile=$(mktemp)
     echo "$json" > $tmpfile
+    local fsize=$(echo "$(stat -c %s $tmpfile)/(1024*1024)" | bc )
+    [[ "$fsize" -ge "20" ]] && log_warn "Aggregated log file size (${fsize}MB) is >20MB. Publish may fail. Reduce the size by limiting the time range"
     curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
     # TODO : Print URL
     rm -f $tmpfile > /dev/null 2>&1
@@ -3321,6 +3323,8 @@ function maprutil_publishGutsStats(){
     echo $json > guts.json
     local tmpfile=$(mktemp)
     echo "$json" > $tmpfile
+    local fsize=$(echo "$(stat -c %s $tmpfile)/(1024*1024)" | bc )
+    [[ "$fsize" -ge "20" ]] && log_warn "Aggregated log file size (${fsize}MB) is >20MB. Publish may fail. Reduce the size by limiting the time range"
     curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
     # TODO : Print URL
     rm -f $tmpfile > /dev/null 2>&1
