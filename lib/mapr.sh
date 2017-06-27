@@ -1152,6 +1152,7 @@ function maprutil_configure(){
 
     # Return if configuring client node after this
     if [ "$ISCLIENT" -eq 1 ]; then
+        [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
         log_info "[$hostip] Done configuring client node"
         return 
     fi
@@ -1349,7 +1350,7 @@ function maprutil_copyMapRTicketsFromCLDB(){
         fi
     done
     
-    if [ "$cldbisup" = "true" ] && [ "$ISCLIENT" -eq 0 ]; then
+    if [ "$cldbisup" = "true" ]; then
         ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_*" "/tmp" 2>/dev/null
     fi
 }
@@ -3017,7 +3018,7 @@ function maprutil_publishMFSCPUUse(){
     local tmpfile=$(mktemp)
     echo "$json" > $tmpfile
     local fsize=$(echo "$(stat -c %s $tmpfile)/(1024*1024)" | bc )
-    [[ "$fsize" -ge "20" ]] && log_warn "Aggregated log file size (${fsize}MB) is >20MB. Publish may fail. Reduce the size by limiting the time range"
+    [[ "$fsize" -ge "20" ]] && log_warn "Publish may fail as aggregated log file size (${fsize}MB) is >20MB. Reduce the size by limiting the time range"
     curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
     # TODO : Print URL
     rm -f $tmpfile > /dev/null 2>&1
@@ -3324,7 +3325,7 @@ function maprutil_publishGutsStats(){
     local tmpfile=$(mktemp)
     echo "$json" > $tmpfile
     local fsize=$(echo "$(stat -c %s $tmpfile)/(1024*1024)" | bc )
-    [[ "$fsize" -ge "20" ]] && log_warn "Aggregated log file size (${fsize}MB) is >20MB. Publish may fail. Reduce the size by limiting the time range"
+    [[ "$fsize" -ge "20" ]] && log_warn "Publish may fail as aggregated log file size (${fsize}MB) is >20MB. Reduce the size by limiting the time range"
     curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
     # TODO : Print URL
     rm -f $tmpfile > /dev/null 2>&1
