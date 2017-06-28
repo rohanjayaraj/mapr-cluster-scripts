@@ -1934,7 +1934,8 @@ function maprutil_checkTabletDistribution(){
         local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
         local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
         local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
-        
+        [ "$cnt" -eq "0" ] && continue
+
         local sptabletfids=$(echo "$nodetablets" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2)
         [ -z "$sptabletfids" ] && continue
         [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
@@ -2013,6 +2014,8 @@ function maprutil_checkIndexTabletDistribution(){
         for sp in $storagePools; do
             local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
             local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
+            [ "$cnt" -eq "0" ] && continue
+            
             local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
             local sptabletfids=$(echo "$nodeindextablets" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2)
             [ -z "$sptabletfids" ] && continue
