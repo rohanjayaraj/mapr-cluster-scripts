@@ -559,11 +559,13 @@ function maprutil_cleanPrevClusterConfig(){
     maprutil_removedirs "temp" > /dev/null 2>&1
 
     if [ -e "/opt/mapr/roles/zookeeper" ]; then
-        for i in datacenter services services_config servers ; do 
+        for i in datacenter services services_config servers queryservice drill ; do 
             /opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 rmr /$i > /dev/null 2>&1
+            #su mapr -c '/opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 rmr /$i' > /dev/null 2>&1
         done
          # Stop zookeeper
         service mapr-zookeeper stop  2>/dev/null
+        rm -rf /opt/mapr/zkdata/* > /dev/null 2>&1
         util_kill "java" "jenkins" 
     fi
 }
