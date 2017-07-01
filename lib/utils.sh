@@ -856,6 +856,13 @@ function util_restartSSHD(){
     fi
 }
 
+function util_createExtractFile(){
+    local scriptfile="extract.sh"
+    echo "for i in \$(ls *.bz2);do bzip2 -dk \$i;done " >> $scriptfile
+    echo "for i in \$(ls *.tar);do tar -xf \$i && rm -f \${i}; done" >> $scriptfile
+    chmod +x $scriptfile
+}
+
 function util_getResourceUseHeader(){
     echo -e "TIME\tMEMORY\t%CPU\t%MEM"
 }

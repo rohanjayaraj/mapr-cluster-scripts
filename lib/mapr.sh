@@ -1044,6 +1044,7 @@ function maprutil_buildDiskList() {
 
 function maprutil_startTraces() {
     if [[ "$ISCLIENT" -eq "0" ]] && [[ -e "/opt/mapr/roles" ]]; then
+        maprutil_killTraces
         nohup sh -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/dstat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 dstat -tcdnim >> $log; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/iostat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
@@ -2015,7 +2016,7 @@ function maprutil_checkIndexTabletDistribution(){
             local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
             local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
             [ "$cnt" -eq "0" ] && continue
-            
+
             local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
             local sptabletfids=$(echo "$nodeindextablets" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2)
             [ -z "$sptabletfids" ] && continue
@@ -3006,7 +3007,7 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$tjson" ] && json="$json\"threads\":$tjson"
 
     # add MFS & GW cpu
-    files="mfs.log gw.log"
+    files="mfs.log gw.log disks.log"
     tjson=
     for fname in $files
     do
@@ -3060,12 +3061,12 @@ function maprutil_mfsCPUUseOnCluster(){
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname
     done
-    files="mfs.log gw.log"
+    files="mfs.log gw.log disks.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         local numfiles=$(echo "$filelist" | wc -l)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) sum+=$i; printf("%s %s %.0f\n",$1,$2,sum/NF); sum=0}' > $logdir/$fname
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) {sum+=$i; j++} printf("%s %s %.0f\n",$1,$2,sum/j); sum=0; j=0}' > $logdir/$fname
     done
 
     [ -n "$GLB_PERF_URL" ] && maprutil_publishMFSCPUUse "$logdir" "$timestamp" "$hostlist" "$buildid" "$publish"
@@ -3077,10 +3078,7 @@ function maprutil_mfsCPUUseOnCluster(){
     fi        
     tar -cf maprcpuuse_$timestamp.tar.bz2 --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
 
-    local scriptfile="extract.sh"
-    echo "for i in \$(ls *.bz2);do bzip2 -dk \$i;done " >> $scriptfile
-    echo "for i in \$(ls *.tar);do tar -xf \$i && rm -f \${i}; done" >> $scriptfile
-    chmod +x $scriptfile
+    util_createExtractFile
 
     [ "$dirstotar" != "$dirlist" ] && rm -rf $dirstotar > /dev/null 2>&1 
     popd > /dev/null 2>&1
@@ -3209,6 +3207,9 @@ function maprutil_buildMFSCpuUse(){
             sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$4}' > $tempdir/gw.log
         fi
     fi
+
+    local diskuse="/opt/mapr/logs/iostat.log"
+    [ -s "$gwresuse" ] && maprutil_buildDiskUsage "$tempdir" "$stime" "$etime"
 }
 
 function marutil_getGutsSample(){
@@ -3396,10 +3397,7 @@ function maprutil_gutstatsOnCluster(){
     fi        
     tar -cf maprgutsstats_$timestamp.tar.bz2 --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
 
-    local scriptfile="extract.sh"
-    echo "for i in \$(ls *.bz2);do bzip2 -dk \$i;done " >> $scriptfile
-    echo "for i in \$(ls *.tar);do tar -xf \$i && rm -f \${i}; done" >> $scriptfile
-    chmod +x $scriptfile
+    util_createExtractFile
 
     [ "$dirstotar" != "$dirlist" ] && rm -rf $dirstotar > /dev/null 2>&1 
     popd > /dev/null 2>&1
@@ -3434,6 +3432,46 @@ function maprutil_buildGutsStats(){
 
     local gutsfile="$tempdir/guts.log"
     sed -n ${sl},${el}p $gutslog | grep "^2" |  awk -v var="$colids" 'BEGIN{split(var,cids," ")} {for (i=1;i<=length(cids);i++) printf("%s ", $cids[i]); printf("\n");}' > ${gutsfile}
+}
+
+function maprutil_buildDiskUsage(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+    
+    local tmpdir="$1"
+    local stime="$2"
+    local etime="$3"
+
+
+    local disklog="/opt/mapr/logs/iostat.log"
+    [ ! -s "$disklog" ] && return
+
+    local sl=1
+    local el=$(cat $disklog | wc -l)
+
+    [ -n "$stime" ] && stime="$(date -d '$stime' '+%m/%d/%Y %r')"
+    [ -n "$etime" ] && etime="$(date -d '$etime' '+%m/%d/%Y %r')"
+    [ -n "$stime" ] && sl=$(cat $disklog | grep -n "$stime" | cut -d':' -f1 | tail -1)
+    [ -n "$etime" ] && el=$(cat $disklog | grep -n "$etime" | cut -d':' -f1 | tail -1)
+    [ -z "$el" ] || [ -z "$sl" ] && return
+    [ "$sl" -gt "$el" ] && el=$(cat $disklog | wc -l)
+
+    local disksfile="$tmpdir/disks.log"
+
+    local mdisks=$(cat /opt/mapr/conf/disktab | grep '/' | awk '{print $1}' | sed 's/\/dev\///g' | tr '\n' ' ')
+    local numdisks=$(echo $mdisks | wc -w)
+    mdisks="$mdisks AM PM"
+    mdisks=$(echo $mdisks | tr ' ' '\n')
+    local colid=$(grep "%util" $disklog | head -1 | awk '{for (i = 1; i <= NF; ++i) {if($i ~ /%util/) print i}}')
+    while read -r line
+    do
+        local dt="$(echo "$line" | awk '{print $1,$2,$3}')"
+        local duse="$(echo "$line" | awk '{print $4}')"
+        echo "$(date -d '$dt' '+%Y-%m-%d %H:%M:%S') $duse" >> ${disksfile}
+    done <<<"$(sed -n ${sl},${el}p $disklog | grep -Fw "${mdisks}" | awk -v cid="$colid" -v nd="$numdisks" '{if($0 ~ /AM/ || $0 ~ /PM/) { if(time!="") print time,sum/nd; time=$0; sum=0 } else {sum+=$cid}} END{print time,sum/nd}')"
+    
+    #sed -n ${sl},${el}p $disklog | grep -Fw "${mdisks}" | awk -v cid="$colid" -v nd="$numdisks" '{if($0 ~ /AM/ || $0 ~ /PM/) { if(time!="") print time,sum/nd; time=$0; sum=0 } else {sum+=$cid}} END{print time,sum/nd}' > ${disksfile}
 }
 
 function maprutil_analyzeCores(){
