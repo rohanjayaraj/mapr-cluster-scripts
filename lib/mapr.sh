@@ -2951,8 +2951,8 @@ function maprutil_mfstrace(){
 function maprutil_mfsthreads(){
     [ ! -e "/opt/mapr/roles/fileserver" ] && return
     local mfspid=$(pidof mfs)
-    [ -z "$mfspid" ] && log_warn "[$util_getHostIP] No MFS running to list it's threads" && return
-    [ -n "$(ls /opt/mapr/logs/*$mfs*.gdbtrace 2>/dev/null)" ] && log_warn "[$util_getHostIP] MFS has previously crashed. Thread IDs may not match"
+    [ -z "$mfspid" ] && log_warn "[$(util_getHostIP)] No MFS running to list it's threads" && return
+    [ -n "$(ls /opt/mapr/logs/*$mfs*.gdbtrace 2>/dev/null)" ] && log_warn "[$(util_getHostIP)] MFS has previously crashed. Thread IDs may not match"
 
     local types="CpuQ_FS CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_Compress CpuQ_SysCalls CpuQ_Rpc"
     local mfsgstack="/opt/mapr/logs/$mfspid.gstack"
@@ -3211,7 +3211,7 @@ function maprutil_buildMFSCpuUse(){
     if [ -s "/opt/mapr/logs/iostat.log" ]; then 
         maprutil_buildDiskUsage "$tempdir" "$stime" "$etime"
     else
-        log_warn "[$util_getHostIP] No disk stats available. Skipping disk usage stats"
+        log_warn "[$(util_getHostIP)] No disk stats available. Skipping disk usage stats"
     fi
 }
 
@@ -3438,9 +3438,7 @@ function maprutil_buildGutsStats(){
 }
 
 function maprutil_buildDiskUsage(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
-        return
-    fi
+    [ -z "$1" ] && return
     
     local tmpdir="$1"
     local stime="$2"
