@@ -2951,8 +2951,8 @@ function maprutil_mfstrace(){
 function maprutil_mfsthreads(){
     [ ! -e "/opt/mapr/roles/fileserver" ] && return
     local mfspid=$(pidof mfs)
-    [ -z "$mfspid" ] && return
-    [ -n "$(ls /opt/mapr/logs/*$mfs*.gdbtrace 2>/dev/null)" ] && return
+    [ -z "$mfspid" ] && log_warn "[$util_getHostIP] No MFS running to list it's threads" && return
+    [ -n "$(ls /opt/mapr/logs/*$mfs*.gdbtrace 2>/dev/null)" ] && log_warn "[$util_getHostIP] MFS has previously crashed. Thread IDs may not match"
 
     local types="CpuQ_FS CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_Compress CpuQ_SysCalls CpuQ_Rpc"
     local mfsgstack="/opt/mapr/logs/$mfspid.gstack"
@@ -3127,8 +3127,8 @@ function maprutil_buildMFSCpuUse(){
     local mfstop="/opt/mapr/logs/mfstop.log"
     [ ! -s "$mfstop" ] && return
     local mfsthreads=$(maprutil_mfsthreads | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')
-    [ -z "$mfsthreads" ] && return
-    [ -z "$(echo "$mfsthreads" | grep CpuQ)" ] && return 
+    [ -z "$mfsthreads" ] && log_warn "[$(util_getHostIP)] Unable to identify MFS threads"
+    [ -z "$(echo "$mfsthreads" | grep CpuQ)" ] && log_warn "[$(util_getHostIP)] MFS threadwise CPU will not be captured"
 
     local timestamp="$1"
     local stime="$2"
@@ -3208,8 +3208,11 @@ function maprutil_buildMFSCpuUse(){
         fi
     fi
 
-    local diskuse="/opt/mapr/logs/iostat.log"
-    [ -s "$gwresuse" ] && maprutil_buildDiskUsage "$tempdir" "$stime" "$etime"
+    if [ -s "/opt/mapr/logs/iostat.log" ]; then 
+        maprutil_buildDiskUsage "$tempdir" "$stime" "$etime"
+    else
+        log_warn "[$util_getHostIP] No disk stats available. Skipping disk usage stats"
+    fi
 }
 
 function marutil_getGutsSample(){
