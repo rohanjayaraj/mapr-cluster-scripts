@@ -632,7 +632,7 @@ function main_getmfscpuuse(){
 	
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start and End time not specified. Using entire time range available"
 	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=
-	log_info "Building resource usage logs for nodes $(util_getCommaSeparated "$nodes")"
+	log_info "Building resource usage logs on nodes [$nodes])"
 
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}
@@ -648,7 +648,7 @@ function main_getmfscpuuse(){
 	done
 	wait
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
-	log_info "Aggregating stats on MFS Nodes $(util_getCommaSeparated "$mfsnodes")"
+	log_info "Aggregating stats from MFS Nodes [$mfsnodes])"
 	maprutil_mfsCPUUseOnCluster "$mfsnodes" "$doMFSCPUUse" "$timestamp" "$doPublish"
 }
 
@@ -697,7 +697,7 @@ function main_getgutsstats(){
 	done
 
 	[ -z "$doGutsType" ] && doGutsType="mfs"
-	log_info "Aggregating guts stats from MFS Nodes $(util_getCommaSeparated "$mfsnodes")"
+	log_info "Aggregating guts stats from MFS Nodes [$mfsnodes])"
 
 	local timestamp=$(date +%s)
 	for node in ${mfsnodes[@]}
