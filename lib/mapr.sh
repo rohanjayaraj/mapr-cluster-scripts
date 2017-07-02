@@ -3137,6 +3137,8 @@ function maprutil_buildMFSCpuUse(){
     local sl=1
     local el=$(cat $mfstop | wc -l)
 
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
     [ -n "$stime" ] && sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1 | tail -1)
     [ -n "$etime" ] && el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1 | tail -1)
     [ -z "$el" ] || [ -z "$sl" ] && return
@@ -3188,7 +3190,11 @@ function maprutil_buildMFSCpuUse(){
     local mfsresuse="/opt/mapr/logs/mfsresusage.log"
     sl=1
     el=$(cat $mfsresuse | wc -l)
+    stime="$2"
+    etime="$3"
 
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M:%S")
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M:%S")
     [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
     [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
     if [ -n "$el" ] && [ -n "$sl" ]; then
@@ -3432,7 +3438,8 @@ function maprutil_buildGutsStats(){
 
     local sl=1
     local el=$(cat $gutslog | wc -l)
-
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M:%S")
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M:%S")
     [ -n "$stime" ] && sl=$(cat $gutslog | grep -n "$stime" | cut -d':' -f1 | tail -1)
     [ -n "$etime" ] && el=$(cat $gutslog | grep -n "$etime" | cut -d':' -f1 | tail -1)
     [ -z "$el" ] || [ -z "$sl" ] && return
