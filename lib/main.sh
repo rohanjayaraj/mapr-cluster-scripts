@@ -697,20 +697,22 @@ function main_getgutsstats(){
 	done
 
 	[ -z "$doGutsType" ] && doGutsType="mfs"
-	log_info "Building guts stats from MFS Nodes [$mfsnodes ]"
-
+	
 	local timestamp=$(date +%s)
-	for node in ${mfsnodes[@]}
+	for node in ${nodes[@]}
 	do	
+		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
+		log_info "Building guts stats on node $node"
 		maprutil_gutsStatsOnNode "$node" "$timestamp" "$doGutsType" "$colids" "$startstr" "$endstr"
 	done
 	maprutil_wait
-	for node in ${mfsnodes[@]}
+	for node in ${nodes[@]}
 	do	
+		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
 		maprutil_copygutsstats "$node" "$timestamp" "$doGutsStats"
 	done
 	wait
-	log_info "Aggregating guts stats from all MFS Nodes"
+	log_info "Aggregating guts stats from MFS Nodes [$mfsnodes ]"
 	maprutil_gutstatsOnCluster "$mfsnodes" "$doGutsStats" "$timestamp" "$colids" "$colnames" "$doPublish"
 }
 
