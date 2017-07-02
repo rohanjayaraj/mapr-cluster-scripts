@@ -126,7 +126,7 @@ function usage () {
     echo -e "\t\t - List MFS thread id details from all MFS nodes (works on new GLIBC versions only)"
 
     echo -e "\t -mcu | -mcu=<COPYTODIR> |--mfscpuuse=<COPYTODIR>" 
-    echo -e "\t\t - Build consolidated MFS thread-wise CPU Use log (default COPYTODIR : /tmp/)"
+    echo -e "\t\t - Build consolidated MFS CPU, Disk & Memory usage logs (default COPYTODIR : /tmp/)"
 
     echo -e "\t -guts=<COPYTODIR>" 
     echo -e "\t\t - Build & copy consolidated guts stats from all MFS nodes to COPYTODIR"
@@ -135,10 +135,10 @@ function usage () {
     echo -e "\t\t - When passed with -guts option, use the comma separated COLUMNLIST of guts column names to build"
     
     echo -e "\t -st=<STRING> | --starttime=<STRING>" 
-    echo -e "\t\t - Specify start time STRING for -mcu or -guts option "
+    echo -e "\t\t - Specify start time STRING(YYYY-MM-DD HH:MM) for -mcu or -guts option "
 
     echo -e "\t -et=<STRING> | --endtime=<STRING>" 
-    echo -e "\t\t - Specify end time STRING for -mcu or -guts option "
+    echo -e "\t\t - Specify end time STRING(YYYY-MM-DD HH:MM) for -mcu or -guts option "
 
     echo -e "\t -pub | -pub=<DESCRIPTION> | --publish=<DESCRIPTION>" 
     echo -e "\t\t - When used with -mcu or -guts option, publish stats to Dashboard (dash.perf.lab)"

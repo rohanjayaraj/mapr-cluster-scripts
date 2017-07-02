@@ -628,7 +628,7 @@ function main_getmfstrace(){
 }
 
 function main_getmfscpuuse(){
-	log_msghead "[$(util_getCurDate)] Building & collecting MFS threads CPU usage & disk usage logs to $doMFSCPUUse"
+	log_msghead "[$(util_getCurDate)] Building & collecting MFS & GW CPU, disk & memory usage logs to $doMFSCPUUse"
 	
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start and End time not specified. Using entire time range available"
 	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=

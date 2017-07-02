@@ -295,6 +295,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/mfs*")
     dirlist+=("/opt/cores/java.core.*")
     dirlist+=("/opt/cores/*mrconfig*")
+    dirlist+=("/opt/cores/*.log")
     echo ${dirlist[*]}
 }
 
@@ -3064,9 +3065,11 @@ function maprutil_mfsCPUUseOnCluster(){
     files="mfs.log gw.log mfsmem.log gwmem.log disks.log"
     for fname in $files
     do
+        local decimals=0
+        [[ "${fname}" =~ mem ]] && decimals=3
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         local numfiles=$(echo "$filelist" | wc -l)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) {sum+=$i; j++} printf("%s %s %.0f\n",$1,$2,sum/j); sum=0; j=0}' > $logdir/$fname
+        [ -n "$filelist" ] && paste $filelist | awk -v dp="$decimals" '{for(i=3;i<=NF;i+=3) {sum+=$i; j++} printf("%s %s %.*f\n",$1,$2,dp,sum/j); sum=0; j=0}' > $logdir/$fname
     done
 
     [ -n "$GLB_PERF_URL" ] && maprutil_publishMFSCPUUse "$logdir" "$timestamp" "$hostlist" "$buildid" "$publish"
@@ -3203,7 +3206,7 @@ function maprutil_buildMFSCpuUse(){
     fi
 
     if [ -n "$el" ] && [ -n "$sl" ]; then
-        sed -n ${sl},${el}p $mfsresuse | awk '{print $1,$2,$3}' | awk '{if ($3 ~ /g/) {print $1,$2,$3*1} else if($0 ~ /t/){ print $1,$2,$3*1024} else if($0 ~ /m/) {print $1,$2,$3/1024} else { printf("%s %s %.0f\n",$1,$2, $3/1024/1024)}}' > $tempdir/mfsmem.log
+        sed -n ${sl},${el}p $mfsresuse | awk '{print $1,$2,$3}' | awk '{if ($3 ~ /g/) {print $1,$2,$3*1} else if($0 ~ /t/){ print $1,$2,$3*1024} else if($0 ~ /m/) {print $1,$2,$3/1024} else { printf("%s %s %.3f\n",$1,$2, $3/1024/1024)}}' > $tempdir/mfsmem.log
     fi
 
     local gwresuse="/opt/mapr/logs/gwresusage.log"
@@ -3218,7 +3221,7 @@ function maprutil_buildMFSCpuUse(){
             sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$4}' > $tempdir/gw.log
         fi
         if [ -n "$el" ] && [ -n "$sl" ]; then
-            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$3}' | awk '{if ($3 ~ /g/) {print $1,$2,$3*1} else if($0 ~ /t/){ print $1,$2,$3*1024} else if($0 ~ /m/) {print $1,$2,$3/1024} else { printf("%s %s %.0f\n",$1,$2, $3/1024/1024)}}' > $tempdir/gwmem.log
+            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$3}' | awk '{if ($3 ~ /g/) {print $1,$2,$3*1} else if($0 ~ /t/){ print $1,$2,$3*1024} else if($0 ~ /m/) {print $1,$2,$3/1024} else { printf("%s %s %.3f\n",$1,$2, $3/1024/1024)}}' > $tempdir/gwmem.log
         fi
     fi
 
