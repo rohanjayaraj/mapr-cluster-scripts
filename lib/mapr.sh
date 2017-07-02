@@ -3141,7 +3141,7 @@ function maprutil_buildMFSCpuUse(){
     [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
     [ -n "$stime" ] && sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1 | tail -1)
     [ -n "$etime" ] && el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1 | tail -1)
-    [ -z "$el" ] || [ -z "$sl" ] && return
+    [ -z "$el" ] || [ -z "$sl" ] && log_error "[$(util_getHostIP)] Start or End time not found in the mfstop.log. Specify newer time range" && return
     [ "$sl" -gt "$el" ] && el=$(cat $mfstop | wc -l)
 
     local tempdir="/tmp/mfscpuuse/$timestamp/$(hostname -f)"
