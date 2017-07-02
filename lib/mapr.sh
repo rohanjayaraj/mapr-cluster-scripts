@@ -3126,8 +3126,9 @@ function maprutil_buildMFSCpuUse(){
     fi
     local mfstop="/opt/mapr/logs/mfstop.log"
     [ ! -s "$mfstop" ] && return
+    [ -n "$(ls /opt/mapr/logs/*$mfs*.gdbtrace 2>/dev/null)" ] && log_warn "[$(util_getHostIP)] MFS has previously crashed. Thread IDs may not match"
+    
     local mfsthreads=$(maprutil_mfsthreads | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')
-    [ -z "$mfsthreads" ] && log_warn "[$(util_getHostIP)] Unable to identify MFS threads"
     [ -z "$(echo "$mfsthreads" | grep CpuQ)" ] && log_warn "[$(util_getHostIP)] MFS threadwise CPU will not be captured"
 
     local timestamp="$1"
@@ -3451,8 +3452,8 @@ function maprutil_buildDiskUsage(){
     local sl=1
     local el=$(cat $disklog | wc -l)
 
-    [ -n "$stime" ] && stime="$(date -d '$stime' '+%m/%d/%Y %r')"
-    [ -n "$etime" ] && etime="$(date -d '$etime' '+%m/%d/%Y %r')"
+    [ -n "$stime" ] && stime="$(date -d "$stime" '+%m/%d/%Y %r')"
+    [ -n "$etime" ] && etime="$(date -d "$etime" '+%m/%d/%Y %r')"
     [ -n "$stime" ] && sl=$(cat $disklog | grep -n "$stime" | cut -d':' -f1 | tail -1)
     [ -n "$etime" ] && el=$(cat $disklog | grep -n "$etime" | cut -d':' -f1 | tail -1)
     [ -z "$el" ] || [ -z "$sl" ] && return
@@ -3465,14 +3466,7 @@ function maprutil_buildDiskUsage(){
     mdisks="$mdisks AM PM"
     mdisks=$(echo $mdisks | tr ' ' '\n')
     local colid=$(grep "%util" $disklog | head -1 | awk '{for (i = 1; i <= NF; ++i) {if($i ~ /%util/) print i}}')
-    while read -r line
-    do
-        local dt="$(echo "$line" | awk '{print $1,$2,$3}')"
-        local duse="$(echo "$line" | awk '{print $4}')"
-        echo "$(date -d '$dt' '+%Y-%m-%d %H:%M:%S') $duse" >> ${disksfile}
-    done <<<"$(sed -n ${sl},${el}p $disklog | grep -Fw "${mdisks}" | awk -v cid="$colid" -v nd="$numdisks" '{if($0 ~ /AM/ || $0 ~ /PM/) { if(time!="") print time,sum/nd; time=$0; sum=0 } else {sum+=$cid}} END{print time,sum/nd}')"
-    
-    #sed -n ${sl},${el}p $disklog | grep -Fw "${mdisks}" | awk -v cid="$colid" -v nd="$numdisks" '{if($0 ~ /AM/ || $0 ~ /PM/) { if(time!="") print time,sum/nd; time=$0; sum=0 } else {sum+=$cid}} END{print time,sum/nd}' > ${disksfile}
+    sed -n ${sl},${el}p $disklog | grep -Fw "${mdisks}" | awk -v cid="$colid" -v nd="$numdisks" '{if($0 ~ /AM/ || $0 ~ /PM/) { if(time!="") print time,sum/nd; time=sprintf("%s %s%s",$1,$2,$3); sum=0 } else {sum+=$cid}} END{print time,sum/nd}' > ${disksfile}
 }
 
 function maprutil_analyzeCores(){
