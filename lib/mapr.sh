@@ -295,7 +295,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/mfs*")
     dirlist+=("/opt/cores/java.core.*")
     dirlist+=("/opt/cores/*mrconfig*")
-    dirlist+=("/opt/cores/*.log")
+    dirlist+=("/opt/cores/g*.log")
     echo ${dirlist[*]}
 }
 
@@ -935,25 +935,19 @@ function maprutil_addRootUserToCntrExec(){
 
 function maprutil_customConfigure(){
 
-    local tablens=$GLB_TABLE_NS
-    if [ -n "$tablens" ]; then
-        maprutil_addTableNS "core-site.xml" "$tablens"
-        maprutil_addTableNS "hbase-site.xml" "$tablens"
+    if [ -n "$GLB_TABLE_NS" ]; then
+        maprutil_addTableNS "core-site.xml" "$GLB_TABLE_NS"
+        maprutil_addTableNS "hbase-site.xml" "$GLB_TABLE_NS"
     fi
 
-    local pontis=$GLB_PONTIS
-    if [ -n "$pontis" ]; then
-        maprutil_configurePontis
-    fi 
+    [ -n "$GLB_PONTIS" ] && maprutil_configurePontis
+    
 
     maprutil_addFSThreads "core-site.xml"
     maprutil_addTabletLRU "core-site.xml"
-    maprutil_updateGWThreads
+    [ -n "$GLB_GW_THREADS" ] && maprutil_updateGWThreads
     
-    local putbuffer=$GLB_PUT_BUFFER
-    if [ -n "$putbuffer" ]; then
-        maprutil_addPutBufferThreshold "core-site.xml" "$putbuffer"
-    fi
+    [ -n "$GLB_PUT_BUFFER" ] && maprutil_addPutBufferThreshold "core-site.xml" "$GLB_PUT_BUFFER"
 
     if [ -e "/opt/mapr/roles/webserver" ]; then
         local maprv=($(cat /opt/mapr/MapRBuildVersion | tr '.' ' ' | awk '{print $1,$2,$3}'))
@@ -2564,7 +2558,7 @@ function maprutil_checkClusterSetup(){
     for binary in ${bins[@]}
     do
         [ -z "$(util_getInstalledBinaries $binary)" ] && log_errormsg "Package '$binary' NOT installed"
-        [[ "${binary}" =~ mapr-hbase|mapr-client|mapr-patch|mapr-asynchbase|mapr-posix|mapr-loopbacknfs ]] && continue
+        [[ "${binary}" =~ mapr-hbase|mapr-client|mapr-patch|mapr-asynchbase|mapr-posix|mapr-loopbacknfs|mapr-kafka ]] && continue
         [ -z "$(echo $roles | grep $(echo $binary | cut -d'-' -f2))" ] && log_errormsg "Role '$(echo $binary | cut -d'-' -f2)' not configured"
     done
 
@@ -2601,8 +2595,8 @@ function maprutil_checkClusterSetup(){
     fi
 
     # Remove client roles from 
-    if [ -n "$(echo $roles | grep 'hbinternal\|asynchbase\|loopbacknfs')" ]; then
-        roles=$(echo $roles | sed 's/hbinternal//g;s/asynchbase//g;s/loopbacknfs//g')
+    if [ -n "$(echo $roles | grep 'hbinternal\|asynchbase\|loopbacknfs\|kafka')" ]; then
+        roles=$(echo $roles | sed 's/hbinternal//g;s/asynchbase//g;s/loopbacknfs//g;s/kafka//g')
     fi
     roles=$(echo $roles | xargs)
 
@@ -3019,6 +3013,19 @@ function maprutil_publishMFSCPUUse(){
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
     done
     [ -n "$tjson" ] && json="$json,$tjson"
+
+    files="net.log"
+    tjson=
+    for fname in $files
+    do
+        [ ! -s "$fname" ] && continue
+        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i!=0 || i!=NR-1) printf(","); printf("{\"ts\":\"%s %s\",\"rx\":%s,\"tx\":%s}",$1,$2,$3,$4); i++} END{printf("]")}')
+        [ -n "$tjson" ] && tjson="$tjson,"
+        mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
+    done
+    [ -n "$tjson" ] && json="$json,$tjson"
+
     json="$json}"
     json="cpuuse=$json"
     #echo $json > cpuuse.json
@@ -3051,7 +3058,6 @@ function maprutil_mfsCPUUseOnCluster(){
     done
     [ -z "$(echo $dirlist | grep "$tmpdir")" ] && return
     [ -z "$(ls $tmpdir/* 2>/dev/null)" ] && return
-    
     local logdir="$tmpdir/cluster"
     rm -rf $logdir > /dev/null 2>&1
     mkdir -p $logdir > /dev/null 2>&1
@@ -3068,8 +3074,13 @@ function maprutil_mfsCPUUseOnCluster(){
         local decimals=0
         [[ "${fname}" =~ mem ]] && decimals=3
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
-        local numfiles=$(echo "$filelist" | wc -l)
         [ -n "$filelist" ] && paste $filelist | awk -v dp="$decimals" '{for(i=3;i<=NF;i+=3) {sum+=$i; j++} printf("%s %s %.*f\n",$1,$2,dp,sum/j); sum=0; j=0}' > $logdir/$fname
+    done
+    files="net.log"
+    for fname in $files
+    do
+        local filelist=$(find $dirlist -name $fname 2>/dev/null)
+        [ -n "$filelist" ] && paste $filelist | awk -v '{for(i=3;i<=NF;i+=2) {rsum+=$i; k=i+1; ssum=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,rsum/j,ssum/j); rsum=0; ssum=0; j=0}' > $logdir/$fname
     done
 
     [ -n "$GLB_PERF_URL" ] && maprutil_publishMFSCPUUse "$logdir" "$timestamp" "$hostlist" "$buildid" "$publish"
@@ -3229,6 +3240,24 @@ function maprutil_buildMFSCpuUse(){
         maprutil_buildDiskUsage "$tempdir" "$stime" "$etime"
     else
         log_warn "[$(util_getHostIP)] No disk stats available. Skipping disk usage stats"
+    fi
+
+    local netuse="/opt/mapr/logs/dstat.log"
+    if [ -s "$netuse" ]; then
+        sl=1
+        el=$(cat $netuse | wc -l)
+        stime="$2"
+        etime="$3"
+        local year=
+
+        [ -n "$stime" ] && year=$(date -d "$stime" "+%Y") && stime=$(date -d "$stime" "+%d-%m %H:%M:%S") 
+        [ -n "$etime" ] && etime=$(date -d "$etime" "+%d-%m %H:%M:%S")
+        [ -n "$stime" ] && sl=$(cat $netuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
+        [ -n "$etime" ] && el=$(cat $netuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
+        if [ -n "$el" ] && [ -n "$sl" ]; then
+            [ -z "$year" ] && year=$(date +%Y)
+            sed -n ${sl},${el}p $netuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{ r=$11; s=$12; if(r ~ /M/) {r=r*1;} else if(r ~ /k/) {r=r*1/1024} else if(r ~ /B/) {r=r*1/(1024*1024)} if(r ~ /M/) {s=s*1;} else if(s ~ /k/) {s=s*1/1024} else if(s ~ /B/) {s=s*1/(1024*1024)} printf("%s-%s %s %.0f %.0f\n",y,$1,$2,r,s)}' > $tempdir/net.log
+        fi
     fi
 }
 
