@@ -648,7 +648,7 @@ function main_getmfscpuuse(){
 	done
 	wait
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
-	log_info "Aggregating stats from all nodes [$nodes ]"
+	log_info "Aggregating stats from all nodes [ $nodes ]"
 	maprutil_mfsCPUUseOnCluster "$nodes" "$mfsnodes" "$doMFSCPUUse" "$timestamp" "$doPublish"
 }
 
