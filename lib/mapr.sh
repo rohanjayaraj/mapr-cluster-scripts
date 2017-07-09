@@ -3106,9 +3106,8 @@ function maprutil_mfsCPUUseOnCluster(){
     do
         local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
         [ ! -d "$tmpdir/$host/" ] && log_error "Incomplete logs; '$host' logs are missing. Exiting!" && return
-        [ -n "$(echo $nodes | grep -w $node)" ] && dirlist="$dirlist $tmpdir/$host/"
+        [ -n "$(echo $nodes | grep -w $node)" ] && dirlist="$dirlist $tmpdir/$host/" && hostlist="$hostlist $node"
         alldirlist="$alldirlist $tmpdir/$host/"
-        hostlist="$hostlist $node"
         [ -z "$buildid" ] && buildid=$(ssh_executeCommandasRoot "$node" "cat /opt/mapr/MapRBuildVersion")
     done
     [ -z "$(echo $dirlist | grep "$tmpdir")" ] && return
