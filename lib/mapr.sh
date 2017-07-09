@@ -3198,7 +3198,7 @@ function maprutil_buildMFSCpuUse(){
     local tempdir="/tmp/mfscpuuse/$timestamp/$(hostname -f)"
     mkdir -p $tempdir > /dev/null 2>&1
 
-    if ls /opt/mapr/logs/clientresusuage_* 1> /dev/null 2>&1; then
+    if ls /opt/mapr/logs/clientresusage_* 1> /dev/null 2>&1; then
         maprutil_buildClientUsage "$tempdir" "$stime" "$etime"
     fi
 
@@ -3598,7 +3598,7 @@ function maprutil_buildClientUsage(){
         [ -n "$etime" ] && el=$(cat $clog | grep -n "$etime" | cut -d':' -f1 | tail -1)
         [ -z "$el" ] || [ -z "$sl" ] && continue
         [ "$sl" -gt "$el" ] && el=$(cat $clog | wc -l)
-        sed -n ${sl},${el}p $disklog >> $tmpclog
+        sed -n ${sl},${el}p $clog >> $tmpclog
     done
     [ -s "$tmpclog" ] && cat $tmpclog | sort -n | awk '{ts=$1" "$2; cnt[ts]+=1; cmem[ts]+=$3; ccpu[ts]+=$4} END {for (i in cnt) printf("%s %.3f %.0f\n",i,cmem[i]/cnt[i],ccpu[i]/cnt[i])}' > ${clientsfile}
     rm -f $tmpclog > /dev/null 2>&1
