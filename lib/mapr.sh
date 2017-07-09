@@ -3246,7 +3246,7 @@ function maprutil_buildMFSCpuUse(){
         [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | head -1)
         if [ -n "$el" ] && [ -n "$sl" ]; then
             [ "$sl" -gt "$el" ] && el=$(cat $gwresuse | wc -l)
-            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$3}' | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s",$1,$2,r,$4)' > $tempdir/gw.log
+            sed -n ${sl},${el}p $gwresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/gw.log
         fi
     fi
 
@@ -3320,7 +3320,7 @@ function maprutil_buildMFSCpuUse(){
     [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | head -1)
     if [ -n "$el" ] && [ -n "$sl" ]; then
         [ "$sl" -gt "$el" ] && el=$(cat $mfsresuse | wc -l)
-        sed -n ${sl},${el}p $mfsresuse | awk '{print $1,$2,$3}' | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s",$1,$2,r,$4)' > $tempdir/mfs.log
+        sed -n ${sl},${el}p $mfsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/mfs.log
     fi
 
     if [ -s "/opt/mapr/logs/iostat.log" ]; then 
