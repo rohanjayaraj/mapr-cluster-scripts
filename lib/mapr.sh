@@ -3042,7 +3042,19 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$tjson" ] && json="$json\"threads\":$tjson"
 
     # add MFS & GW cpu
-    files="mfs.log gw.log mfsmem.log gwmem.log disks.log"
+    files="mfs.log gw.log client.log"
+    tjson=
+    for fname in $files
+    do
+        [ ! -s "$fname" ] && continue
+        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i!=0 || i!=NR-1) printf(","); printf("{\"ts\":\"%s %s\",\"mem\":%s,\"cpu\":%s}",$1,$2,$3,$4); i++} END{printf("]")}')
+        [ -n "$tjson" ] && tjson="$tjson,"
+        mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
+    done
+    [ -n "$tjson" ] && json="$json,$tjson"
+
+    files="disks.log"
     tjson=
     for fname in $files
     do
@@ -3060,18 +3072,6 @@ function maprutil_publishMFSCPUUse(){
     do
         [ ! -s "$fname" ] && continue
         local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i!=0 || i!=NR-1) printf(","); printf("{\"ts\":\"%s %s\",\"rx\":%s,\"tx\":%s}",$1,$2,$3,$4); i++} END{printf("]")}')
-        [ -n "$tjson" ] && tjson="$tjson,"
-        mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
-        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
-    done
-    [ -n "$tjson" ] && json="$json,$tjson"
-
-    files="client.log"
-    tjson=
-    for fname in $files
-    do
-        [ ! -s "$fname" ] && continue
-        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i!=0 || i!=NR-1) printf(","); printf("{\"ts\":\"%s %s\",\"mem\":%s,\"cpu\":%s}",$1,$2,$3,$4); i++} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
         mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
@@ -3124,13 +3124,17 @@ function maprutil_mfsCPUUseOnCluster(){
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname
     done
-    files="mfs.log gw.log mfsmem.log gwmem.log disks.log"
+    files="mfs.log gw.log"
     for fname in $files
     do
-        local decimals=0
-        [[ "${fname}" =~ mem ]] && decimals=3
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
-        [ -n "$filelist" ] && paste $filelist | awk -v dp="$decimals" '{for(i=3;i<=NF;i+=3) {sum+=$i; j++} printf("%s %s %.*f\n",$1,$2,dp,sum/j); sum=0; j=0}' > $logdir/$fname
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {msum+=$i; k=i+1; csum=$k; j++} printf("%s %s %.3f %.0f\n",$1,$2,msum/j,csum/j); msum=0; csum=0; j=0}' > $logdir/$fname
+    done
+    files="disks.log"
+    for fname in $files
+    do
+        local filelist=$(find $dirlist -name $fname 2>/dev/null)
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) {sum+=$i; j++} printf("%s %s %.0f\n",$1,$2,sum/j); sum=0; j=0}' > $logdir/$fname
     done
     files="net.log"
     for fname in $files
@@ -3238,14 +3242,11 @@ function maprutil_buildMFSCpuUse(){
         [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
         [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
 
-        [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
-        [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
+        [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
+        [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | head -1)
         if [ -n "$el" ] && [ -n "$sl" ]; then
             [ "$sl" -gt "$el" ] && el=$(cat $gwresuse | wc -l)
-            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$4}' > $tempdir/gw.log
-        fi
-        if [ -n "$el" ] && [ -n "$sl" ]; then
-            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$3}' | awk '{if ($3 ~ /g/) {print $1,$2,$3*1} else if($0 ~ /t/){ print $1,$2,$3*1024} else if($0 ~ /m/) {print $1,$2,$3/1024} else { printf("%s %s %.3f\n",$1,$2, $3/1024/1024)}}' > $tempdir/gwmem.log
+            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$3}' | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s",$1,$2,r,$4)' > $tempdir/gw.log
         fi
     fi
 
@@ -3262,8 +3263,8 @@ function maprutil_buildMFSCpuUse(){
     etime="$3"
     [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
     [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
-    [ -n "$stime" ] && sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1 | tail -1)
-    [ -n "$etime" ] && el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1 | tail -1)
+    [ -n "$stime" ] && sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1 | head -1)
+    [ -n "$etime" ] && el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1 | head -1)
     [ -z "$el" ] || [ -z "$sl" ] && log_error "[$(util_getHostIP)] Start or End time not found in the mfstop.log. Specify newer time range" && return
     [ "$sl" -gt "$el" ] && el=$(cat $mfstop | wc -l)
 
@@ -3313,17 +3314,13 @@ function maprutil_buildMFSCpuUse(){
     stime="$2"
     etime="$3"
 
-    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M:%S")
-    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M:%S")
-    [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
-    [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
+    [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
+    [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | head -1)
     if [ -n "$el" ] && [ -n "$sl" ]; then
         [ "$sl" -gt "$el" ] && el=$(cat $mfsresuse | wc -l)
-        sed -n ${sl},${el}p $mfsresuse | awk '{print $1,$2,$4}' > $tempdir/mfs.log
-    fi
-
-    if [ -n "$el" ] && [ -n "$sl" ]; then
-        sed -n ${sl},${el}p $mfsresuse | awk '{print $1,$2,$3}' | awk '{if ($3 ~ /g/) {print $1,$2,$3*1} else if($0 ~ /t/){ print $1,$2,$3*1024} else if($0 ~ /m/) {print $1,$2,$3/1024} else { printf("%s %s %.3f\n",$1,$2, $3/1024/1024)}}' > $tempdir/mfsmem.log
+        sed -n ${sl},${el}p $mfsresuse | awk '{print $1,$2,$3}' | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s",$1,$2,r,$4)' > $tempdir/mfs.log
     fi
 
     if [ -s "/opt/mapr/logs/iostat.log" ]; then 
