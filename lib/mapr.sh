@@ -3601,7 +3601,7 @@ function maprutil_buildClientUsage(){
         [ "$sl" -gt "$el" ] && el=$(cat $clog | wc -l)
         sed -n ${sl},${el}p $clog >> $tmpclog
     done
-    [ -s "$tmpclog" ] && cat $tmpclog | awk '{ts=$1" "$2; cnt[ts]+=1; r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024)} cmem[ts]+=r; ccpu[ts]+=$4} END {for (i in cnt) printf("%s %.3f %.0f\n",i,cmem[i]/cnt[i],ccpu[i]/cnt[i])}' | sort -n > ${clientsfile}
+    [ -s "$tmpclog" ] && cat $tmpclog | awk '{ts=$1" "$2; cnt[ts]+=1; r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} cmem[ts]+=r; ccpu[ts]+=$4} END {for (i in cnt) printf("%s %.3f %.0f\n",i,cmem[i]/cnt[i],ccpu[i]/cnt[i])}' | sort -n > ${clientsfile}
     rm -f $tmpclog > /dev/null 2>&1
 }
 
