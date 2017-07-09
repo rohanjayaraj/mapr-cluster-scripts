@@ -628,7 +628,7 @@ function main_getmfstrace(){
 }
 
 function main_getmfscpuuse(){
-	log_msghead "[$(util_getCurDate)] Building & collecting MFS & GW CPU, disk and memory usage logs to '$doMFSCPUUse'"
+	log_msghead "[$(util_getCurDate)] Building & collecting MFS & GW CPU, disk, network and memory usage logs to '$doMFSCPUUse'"
 	
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start and End time not specified. Using entire time range available"
 	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=
@@ -636,20 +636,20 @@ function main_getmfscpuuse(){
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}
 	do	
-		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
+		#[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
 		log_info "Building resource usage logs on node $node"
 		maprutil_mfsCpuUseOnNode "$node" "$timestamp" "$startstr" "$endstr"
 	done
 	maprutil_wait
 	for node in ${nodes[@]}
 	do	
-		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
+		#[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
     	maprutil_copymfscpuuse "$node" "$timestamp" "$doMFSCPUUse"
 	done
 	wait
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
-	log_info "Aggregating stats from MFS Nodes [$mfsnodes ]"
-	maprutil_mfsCPUUseOnCluster "$mfsnodes" "$doMFSCPUUse" "$timestamp" "$doPublish"
+	log_info "Aggregating stats from all nodes [$nodes ]"
+	maprutil_mfsCPUUseOnCluster "$nodes" "$mfsnodes" "$doMFSCPUUse" "$timestamp" "$doPublish"
 }
 
 function main_getgutsstats(){

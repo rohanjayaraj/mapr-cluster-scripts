@@ -329,6 +329,7 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/restartonnode_*")
     dirlist+=("/tmp/maprsetup_*")
     dirlist+=("/tmp/ycsb*.sh")
+    dirlist+=("/tmp/clienttrace*.sh")
 
     echo  ${dirlist[*]}
 }  
@@ -1038,8 +1039,8 @@ function maprutil_buildDiskList() {
 }
 
 function maprutil_startTraces() {
+    maprutil_killTraces
     if [[ "$ISCLIENT" -eq "0" ]] && [[ -e "/opt/mapr/roles" ]]; then
-        maprutil_killTraces
         nohup sh -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all db:all rpc:all log:all dbrepl:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/dstat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 dstat -tcdnim >> $log; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/iostat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
@@ -1048,6 +1049,7 @@ function maprutil_startTraces() {
         nohup sh -c 'log="/opt/mapr/logs/gatewaytop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $gwpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
     maprutil_startResourceTraces
+    maprutil_startClientResourceTraces
 }
 
 function maprutil_startResourceTraces() {
@@ -1055,6 +1057,40 @@ function maprutil_startResourceTraces() {
         nohup sh -c 'log="/opt/mapr/logs/mfsresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $mfspid | grep -v "^$" | tail -1 | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/gwresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $gwpid | grep -v "^$" | tail -1 | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
+}
+
+function maprutil_startClientResourceTraces(){
+    local tracescript="/tmp/clienttrace.sh"
+    rm -rf $tracescript > /dev/null 2>&1
+    cat >> $tracescript << EOL
+#!/bin/sh
+function startClientTrace(){
+    local cpids="\$1"
+    for cpid in \$cpids
+    do
+        nohup sh -c 'cpid=\$0; log="/opt/mapr/logs/clientresusage_\$cpid.log"; sleep 2; [ -s "/proc/\$cpid/cmdline" ] && cat /proc/\$cpid/cmdline > \$log && echo >> \$log; while kill -0 \${cpid}; do st=\$(date +%s%N | cut -b1-13); curtime=\$(date "+%Y-%m-%d %H:%M:%S"); topline=\$(top -bn 1 -p \$cpid | grep -v "^$" | tail -1 | awk '"'"'{ printf("%s\t%s\t%s\n",\$6,\$9,\$10); }'"'"'); [ -n "\$topline" ] && echo -e "\$curtime\t\$topline" >> \$log; et=\$(date +%s%N | cut -b1-13); td=\$(echo "scale=2;1-((\$et-\$st)/1000)"| bc); sleep \$td; sz=\$(stat -c %s \$log); [ "\$sz" -gt "209715200" ] && tail -c 1048576 \$log > \$log.bkp && rm -rf \$log && mv \$log.bkp \$log; done' \$cpid > /dev/null 2>&1 &
+    done
+}
+
+sleeptime=2
+while [[ -d "/opt/mapr/" ]];
+do
+        shmids="\$(ipcs -m | grep '^0x'  | grep 1234 | awk '{print \$2}')"
+        [ -z "\$shmids" ] && sleep \$sleeptime && continue
+        clientpids=\$(echo "\$(ipcs -mp)" | grep -Fw "\$shmids" | awk '{print \$3}' | tr '\n' ' ')
+        actualcpids=
+        for cpid in \$clientpids
+        do
+                [ -n "\$(ps -ef | grep "[c]lientresusage" | grep -w "\$cpid")" ] && continue
+                ppid=\$(ps -ef | grep -w \$cpid | awk -v p="\$cpid" '{if(\$2==p) print \$3}')
+                [[ "\$ppid" -ne "1" ]] && actualcpids="\${actualcpids}\${cpid} "
+        done
+        [ -n "\$actualcpids" ] && startClientTrace "\$actualcpids"
+        sleep \$sleeptime
+done
+EOL
+    chmod +x $tracescript > /dev/null 2>&1
+    nohup sh -c '/tmp/clienttrace.sh' > /dev/null 2>&1 &
 }
 
 function maprutil_killTraces() {
@@ -1065,6 +1101,8 @@ function maprutil_killTraces() {
     util_kill "top -b"
     util_kill "sh -c log"
     util_kill "runTraces"
+    util_kill "clientresusage_"
+    util_kill "clienttrace.sh"
 }
 
 function maprutil_killYCSB() {
@@ -1161,13 +1199,15 @@ function maprutil_configure(){
     local multimfs=$GLB_MULTI_MFS
     local numsps=$GLB_NUM_SP
     local numdisks=`wc -l $diskfile | cut -f1 -d' '`
-    if [ -n "$multimfs" ] && [ "$multimfs" -gt 0 ]; then
+    if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
         if [ "$multimfs" -gt "$numdisks" ]; then
             log_info "Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
             multimfs=$numdisks
         fi
+        
         local numstripe=$(echo $numdisks/$multimfs|bc)
         if [ -n "$numsps" ] && [ "$numsps" -le "$numdisks" ]; then
+            [ $((numdisks%2)) -eq 1 ] && [ $((numsps%2)) -eq 0 ] && numdisks=$(echo "$numdisks+1" | bc)
             numstripe=$(echo "$numdisks/$numsps"|bc)
         else
             numsps=
@@ -3040,19 +3080,22 @@ function maprutil_publishMFSCPUUse(){
 }
 
 function maprutil_mfsCPUUseOnCluster(){
-    local nodes="$1"
-    local tmpdir="$2"
-    local timestamp="$3"
-    local publish="$4"
+    local allnodes="$1"
+    local nodes="$2"
+    local tmpdir="$3"
+    local timestamp="$4"
+    local publish="$5"
 
     local hostlist=
     local buildid=
     local dirlist=
-    for node in ${nodes[@]}
+    local alldirlist=
+    for node in ${allnodes[@]}
     do
         local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
         [ ! -d "$tmpdir/$host/" ] && log_error "Incomplete logs; '$host' logs are missing. Exiting!" && return
-        dirlist="$dirlist $tmpdir/$host/"
+        [ -n "$(echo $nodes | grep -w $node)" ] && dirlist="$dirlist $tmpdir/$host/"
+        alldirlist="$alldirlist $tmpdir/$host/"
         hostlist="$hostlist $node"
         [ -z "$buildid" ] && buildid=$(ssh_executeCommandasRoot "$node" "cat /opt/mapr/MapRBuildVersion")
     done
@@ -3061,6 +3104,7 @@ function maprutil_mfsCPUUseOnCluster(){
     local logdir="$tmpdir/cluster"
     rm -rf $logdir > /dev/null 2>&1
     mkdir -p $logdir > /dev/null 2>&1
+    log_info "Aggregating MFS stats from nodes [$nodes ]"
 
     local files="fs.log db.log dbh.log dbf.log comp.log"
     for fname in $files
@@ -3081,6 +3125,12 @@ function maprutil_mfsCPUUseOnCluster(){
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {rsum+=$i; k=i+1; ssum+=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,rsum/j,ssum/j); rsum=0; ssum=0; j=0}' > $logdir/$fname
+    done
+    files="client.log"
+    for fname in $files
+    do
+        local loglines=$(find $alldirlist -name $fname -exec cat {} \; 2>/dev/null | sort -n)
+        [ -n "$loglines" ] && echo "$loglines" | sort -n | | awk '{ts=$1" "$2; cnt[ts]+=1; cmem[ts]+=$3; ccpu[ts]+=$4} END {for (i in cnt) printf("%s %.3f %.0f\n",i,cmem[i]/cnt[i],ccpu[i]/cnt[i])}' > > $logdir/$fname
     done
 
     [ -n "$GLB_PERF_URL" ] && maprutil_publishMFSCPUUse "$logdir" "$timestamp" "$hostlist" "$buildid" "$publish"
@@ -3234,6 +3284,10 @@ function maprutil_buildMFSCpuUse(){
         if [ -n "$el" ] && [ -n "$sl" ]; then
             sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$3}' | awk '{if ($3 ~ /g/) {print $1,$2,$3*1} else if($0 ~ /t/){ print $1,$2,$3*1024} else if($0 ~ /m/) {print $1,$2,$3/1024} else { printf("%s %s %.3f\n",$1,$2, $3/1024/1024)}}' > $tempdir/gwmem.log
         fi
+    fi
+
+    if ls /opt/mapr/logs/clientresusuage_* 1> /dev/null 2>&1; then
+        maprutil_buildClientUsage "$tempdir" "$stime" "$etime"
     fi
 
     if [ -s "/opt/mapr/logs/iostat.log" ]; then 
@@ -3513,6 +3567,37 @@ function maprutil_buildDiskUsage(){
     mdisks=$(echo $mdisks | tr ' ' '\n')
     local colid=$(grep "%util" $disklog | head -1 | awk '{for (i = 1; i <= NF; ++i) {if($i ~ /%util/) print i}}')
     sed -n ${sl},${el}p $disklog | grep -Fw "${mdisks}" | awk -v cid="$colid" -v nd="$numdisks" '{if($0 ~ /AM/ || $0 ~ /PM/) { if(time!="") print time,sum/nd; time=sprintf("%s %s%s",$1,$2,$3); sum=0 } else {sum+=$cid}} END{print time,sum/nd}' > ${disksfile}
+}
+
+function maprutil_buildClientUsage(){
+    [ -z "$1" ] && return
+    
+    local tmpdir="$1"
+    local stime="$2"
+    local etime="$3"
+
+    local clientreslogs=$(ls /opt/mapr/logs/clientresusage_* 2>/dev/null)
+    [ -z "$clientreslogs" ] && return
+
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M:%S")
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M:%S")
+
+    # Build CPU & Memory average for each second in the time range
+    local clientsfile="$tmpdir/client.log"
+    local tmpclog=$(mktemp)
+    for clog in $clientreslogs
+    do
+        local sl=2
+        local el=$(cat $clog | wc -l)
+
+        [ -n "$stime" ] && sl=$(cat $clog | grep -n "$stime" | cut -d':' -f1 | tail -1)
+        [ -n "$etime" ] && el=$(cat $clog | grep -n "$etime" | cut -d':' -f1 | tail -1)
+        [ -z "$el" ] || [ -z "$sl" ] && continue
+        [ "$sl" -gt "$el" ] && el=$(cat $clog | wc -l)
+        sed -n ${sl},${el}p $disklog >> $tmpclog
+    done
+    [ -s "$tmpclog" ] && cat $tmpclog | sort -n | awk '{ts=$1" "$2; cnt[ts]+=1; cmem[ts]+=$3; ccpu[ts]+=$4} END {for (i in cnt) printf("%s %.3f %.0f\n",i,cmem[i]/cnt[i],ccpu[i]/cnt[i])}' > ${clientsfile}
+    rm -f $tmpclog > /dev/null 2>&1
 }
 
 function maprutil_analyzeCores(){

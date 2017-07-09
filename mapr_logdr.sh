@@ -126,7 +126,7 @@ function usage () {
     echo -e "\t\t - List MFS thread id details from all MFS nodes (works on new GLIBC versions only)"
 
     echo -e "\t -mcu | -mcu=<COPYTODIR> |--mfscpuuse=<COPYTODIR>" 
-    echo -e "\t\t - Build consolidated MFS CPU, Disk & Memory usage logs (default COPYTODIR : /tmp/)"
+    echo -e "\t\t - Build consolidated MFS CPU, Disk, Network & Memory usage logs (default COPYTODIR : /tmp/)"
 
     echo -e "\t -guts=<COPYTODIR>" 
     echo -e "\t\t - Build & copy consolidated guts stats from all MFS nodes to COPYTODIR"
