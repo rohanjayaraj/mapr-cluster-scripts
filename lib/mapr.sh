@@ -3188,6 +3188,36 @@ function maprutil_buildMFSCpuUse(){
     if [ -z "$1" ]; then
         return
     fi
+    
+    local timestamp="$1"
+    local stime="$2"
+    local etime="$3"
+    local sl=
+    local el=
+
+    local tempdir="/tmp/mfscpuuse/$timestamp/$(hostname -f)"
+    mkdir -p $tempdir > /dev/null 2>&1
+
+    if ls /opt/mapr/logs/clientresusuage_* 1> /dev/null 2>&1; then
+        maprutil_buildClientUsage "$tempdir" "$stime" "$etime"
+    fi
+
+    local gwresuse="/opt/mapr/logs/gwresusage.log"
+    if [ -s "$gwresuse" ]; then
+        sl=1
+        el=$(cat $gwresuse | wc -l)
+
+        [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
+        [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
+        if [ -n "$el" ] && [ -n "$sl" ]; then
+            [ "$sl" -gt "$el" ] && el=$(cat $gwresuse | wc -l)
+            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$4}' > $tempdir/gw.log
+        fi
+        if [ -n "$el" ] && [ -n "$sl" ]; then
+            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$3}' | awk '{if ($3 ~ /g/) {print $1,$2,$3*1} else if($0 ~ /t/){ print $1,$2,$3*1024} else if($0 ~ /m/) {print $1,$2,$3/1024} else { printf("%s %s %.3f\n",$1,$2, $3/1024/1024)}}' > $tempdir/gwmem.log
+        fi
+    fi
+
     local mfstop="/opt/mapr/logs/mfstop.log"
     [ ! -s "$mfstop" ] && return
     [ -n "$(ls /opt/mapr/logs/*$mfs*.gdbtrace 2>/dev/null)" ] && log_warn "[$(util_getHostIP)] MFS has previously crashed. Thread IDs may not match"
@@ -3195,11 +3225,8 @@ function maprutil_buildMFSCpuUse(){
     local mfsthreads=$(maprutil_mfsthreads | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')
     [ -z "$(echo "$mfsthreads" | grep CpuQ)" ] && log_warn "[$(util_getHostIP)] MFS threadwise CPU will not be captured"
 
-    local timestamp="$1"
-    local stime="$2"
-    local etime="$3"
-    local sl=1
-    local el=$(cat $mfstop | wc -l)
+    sl=1
+    el=$(cat $mfstop | wc -l)
 
     [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
     [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
@@ -3207,9 +3234,6 @@ function maprutil_buildMFSCpuUse(){
     [ -n "$etime" ] && el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1 | tail -1)
     [ -z "$el" ] || [ -z "$sl" ] && log_error "[$(util_getHostIP)] Start or End time not found in the mfstop.log. Specify newer time range" && return
     [ "$sl" -gt "$el" ] && el=$(cat $mfstop | wc -l)
-
-    local tempdir="/tmp/mfscpuuse/$timestamp/$(hostname -f)"
-    mkdir -p $tempdir > /dev/null 2>&1
 
     local fsthreads="$(echo "$mfsthreads" | grep CpuQ_FS | awk '{print $2}' | sed 's/,/ /g')"
     for fsthread in $fsthreads
@@ -3268,26 +3292,6 @@ function maprutil_buildMFSCpuUse(){
 
     if [ -n "$el" ] && [ -n "$sl" ]; then
         sed -n ${sl},${el}p $mfsresuse | awk '{print $1,$2,$3}' | awk '{if ($3 ~ /g/) {print $1,$2,$3*1} else if($0 ~ /t/){ print $1,$2,$3*1024} else if($0 ~ /m/) {print $1,$2,$3/1024} else { printf("%s %s %.3f\n",$1,$2, $3/1024/1024)}}' > $tempdir/mfsmem.log
-    fi
-
-    local gwresuse="/opt/mapr/logs/gwresusage.log"
-    if [ -s "$gwresuse" ]; then
-        sl=1
-        el=$(cat $gwresuse | wc -l)
-
-        [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
-        [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
-        if [ -n "$el" ] && [ -n "$sl" ]; then
-            [ "$sl" -gt "$el" ] && el=$(cat $gwresuse | wc -l)
-            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$4}' > $tempdir/gw.log
-        fi
-        if [ -n "$el" ] && [ -n "$sl" ]; then
-            sed -n ${sl},${el}p $gwresuse | awk '{print $1,$2,$3}' | awk '{if ($3 ~ /g/) {print $1,$2,$3*1} else if($0 ~ /t/){ print $1,$2,$3*1024} else if($0 ~ /m/) {print $1,$2,$3/1024} else { printf("%s %s %.3f\n",$1,$2, $3/1024/1024)}}' > $tempdir/gwmem.log
-        fi
-    fi
-
-    if ls /opt/mapr/logs/clientresusuage_* 1> /dev/null 2>&1; then
-        maprutil_buildClientUsage "$tempdir" "$stime" "$etime"
     fi
 
     if [ -s "/opt/mapr/logs/iostat.log" ]; then 
