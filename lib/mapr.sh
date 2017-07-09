@@ -3127,11 +3127,23 @@ function maprutil_mfsCPUUseOnCluster(){
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {rsum+=$i; k=i+1; ssum+=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,rsum/j,ssum/j); rsum=0; ssum=0; j=0}' > $logdir/$fname
     done
     log_info "Aggregating client stats from nodes [ $allnodes ]"
+    local clientst=$(head -1 $logdir/mfs.log | awk '{print $1,$2}')
+    clientst=$(date +%s -d "$clientst")
+    local clientet=$(tail -1 $logdir/mfs.log | awk '{print $1,$2}')
+    clientet=$(date +%s -d "$clientet")
     files="client.log"
     for fname in $files
     do
+        local tmpclog=$(mktemp)
         local loglines=$(find $alldirlist -name $fname -exec cat {} \; 2>/dev/null | sort -n)
-        [ -n "$loglines" ] && echo "$loglines" | sort -n | awk '{ts=$1" "$2; cnt[ts]+=1; cmem[ts]+=$3; ccpu[ts]+=$4} END {for (i in cnt) printf("%s %.3f %.0f\n",i,cmem[i]/cnt[i],ccpu[i]/cnt[i])}' | sort -n > $logdir/$fname
+        [ -n "$loglines" ] && echo "$loglines" | sort -n | awk '{ts=$1" "$2; cnt[ts]+=1; cmem[ts]+=$3; ccpu[ts]+=$4} END {for (i in cnt) printf("%s %.3f %.0f\n",i,cmem[i]/cnt[i],ccpu[i]/cnt[i])}' | sort -n > $tmpclog
+        while [ -s "$tmpclog" ] && [ "$clientst" -le "$clientet" ];
+        do
+            echo "$(date -d "@$clientst" "+%Y-%m-%d %H:%M:%S") 0 0" >> $tmpclog
+            clientst=$(date -d "@$(($clientst+1))")
+        done
+        [ -s "$tmpclog" ] && cat $tmpclog | sort -n | awk '{ts=$1" "$2; cmem[ts]+=$3; ccpu[ts]+=$4} END {for (i in cmem) printf("%s %.3f %.0f\n",i,cmem[i],ccpu[i])}' | sort -n > $logdir/$fname
+        rm -f $tmpclog > /dev/null 2>&1
     done
 
     [ -n "$GLB_PERF_URL" ] && maprutil_publishMFSCPUUse "$logdir" "$timestamp" "$hostlist" "$buildid" "$publish"
