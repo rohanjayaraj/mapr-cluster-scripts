@@ -630,7 +630,7 @@ function main_getmfstrace(){
 function main_getmfscpuuse(){
 	log_msghead "[$(util_getCurDate)] Building & collecting MFS & GW CPU, disk, network and memory usage logs to '$doMFSCPUUse'"
 	
-	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start and End time not specified. Using entire time range available"
+	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start/End time not specified. Using entire time range available"
 	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=
 	
 	local timestamp=$(date +%s)
@@ -655,7 +655,7 @@ function main_getmfscpuuse(){
 function main_getgutsstats(){
 	log_msghead "[$(util_getCurDate)] Building & collecting 'guts' trends to $doGutsStats"
 	
-	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start and End time not specified. Using entire time range available"
+	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start/End time not specified. Using entire time range available"
 	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
 	local node=$(util_getFirstElement "$mfsnodes")

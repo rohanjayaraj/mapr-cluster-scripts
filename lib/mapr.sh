@@ -3231,6 +3231,8 @@ function maprutil_buildMFSCpuUse(){
     if [ -s "$gwresuse" ]; then
         sl=1
         el=$(cat $gwresuse | wc -l)
+        [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
+        [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
 
         [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
         [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
@@ -3252,7 +3254,8 @@ function maprutil_buildMFSCpuUse(){
 
     sl=1
     el=$(cat $mfstop | wc -l)
-
+    stime="$2"
+    etime="$3"
     [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
     [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
     [ -n "$stime" ] && sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1 | tail -1)
@@ -3608,8 +3611,10 @@ function maprutil_buildClientUsage(){
     local clientreslogs=$(ls /opt/mapr/logs/clientresusage_* 2>/dev/null)
     [ -z "$clientreslogs" ] && return
 
-    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M:%S")
-    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M:%S")
+    local stts=
+    local etts=
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M:%S") && stts=$(date -d "$stime" +%s)
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M:%S") && etts=$(date -d "$etime" +%s)
 
     # Build CPU & Memory average for each second in the time range
     local clientsfile="$tmpdir/client.log"
@@ -3618,10 +3623,19 @@ function maprutil_buildClientUsage(){
     do
         local sl=2
         local el=$(cat $clog | wc -l)
+        local cst=$(sed -n 2p $clog | awk '{print $1,$2}')
+        local cet=$(tail -1 $clog | awk '{print $1,$2}')
+        cst=$(date -d "$cst" +%s)
+        cet=$(date -d "$cet" +%s)
 
         [ -n "$stime" ] && sl=$(cat $clog | grep -n "$stime" | cut -d':' -f1 | tail -1)
         [ -n "$etime" ] && el=$(cat $clog | grep -n "$etime" | cut -d':' -f1 | tail -1)
-        [ -z "$el" ] || [ -z "$sl" ] && continue
+        if [ -z "$el" ] || [ -z "$sl" ]; then
+            [[ -n "$etts" ]] && [[ "$etts" -gt "$cst" ]] && continue
+            [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && continue
+            [ -z "$sl" ] && sl=2
+            [ -z "$el" ] && el=$(cat $clog | wc -l)
+        fi 
         [ "$sl" -gt "$el" ] && el=$(cat $clog | wc -l)
         sed -n ${sl},${el}p $clog >> $tmpclog
     done
