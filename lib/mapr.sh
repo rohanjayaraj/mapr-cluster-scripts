@@ -3130,7 +3130,7 @@ function maprutil_mfsCPUUseOnCluster(){
     for fname in $files
     do
         local loglines=$(find $alldirlist -name $fname -exec cat {} \; 2>/dev/null | sort -n)
-        [ -n "$loglines" ] && echo "$loglines" | sort -n | | awk '{ts=$1" "$2; cnt[ts]+=1; cmem[ts]+=$3; ccpu[ts]+=$4} END {for (i in cnt) printf("%s %.3f %.0f\n",i,cmem[i]/cnt[i],ccpu[i]/cnt[i])}' > > $logdir/$fname
+        [ -n "$loglines" ] && echo "$loglines" | sort -n | awk '{ts=$1" "$2; cnt[ts]+=1; cmem[ts]+=$3; ccpu[ts]+=$4} END {for (i in cnt) printf("%s %.3f %.0f\n",i,cmem[i]/cnt[i],ccpu[i]/cnt[i])}' > $logdir/$fname
     done
 
     [ -n "$GLB_PERF_URL" ] && maprutil_publishMFSCPUUse "$logdir" "$timestamp" "$hostlist" "$buildid" "$publish"
