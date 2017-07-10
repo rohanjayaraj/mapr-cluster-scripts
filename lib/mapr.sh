@@ -3023,7 +3023,7 @@ function maprutil_publishMFSCPUUse(){
 
     local json="{"
     json="$json\"timestamp\":$timestamp,\"nodes\":\"$hostlist\""
-    json="$json,\"build\":\"$buildid\",\"description\":\"$desc\","
+    json="$json,\"build\":\"$buildid\",\"description\":\"$desc\""
 
 
     local tjson=
@@ -3039,7 +3039,7 @@ function maprutil_publishMFSCPUUse(){
         [ "$ttime" -lt "$(cat $fname | wc -l)" ] && ttime=$(cat $fname | wc -l)
     done
     [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
-    [ -n "$tjson" ] && json="$json\"threads\":$tjson"
+    [ -n "$tjson" ] && json="$json,\"threads\":$tjson"
 
     # add MFS & GW cpu
     files="mfs.log gw.log client.log"
