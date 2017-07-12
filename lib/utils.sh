@@ -218,9 +218,9 @@ function util_appendVersionToPackage(){
     if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
-    local bins=$1
-    local version=$2
-    local prefix=$3
+    local bins="$1"
+    local version="$2"
+    local prefix="$3"
     
     local newbins=
     for bin in $bins
@@ -256,7 +256,7 @@ function util_installBinaries(){
     if [ -z "$1" ]; then
         return
     fi
-    local bins=$1
+    local bins="$1"
     local prefix=$3
     if [ -n "$2" ]; then
         bins=$(util_appendVersionToPackage "$1" "$2" "$3")
@@ -276,7 +276,7 @@ function util_upgradeBinaries(){
     if [ -z "$1" ]; then
         return
     fi
-    local bins=$1
+    local bins="$1"
     log_info "[$(util_getHostIP)] Upgrading packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
         if [ -n "$2" ]; then
@@ -489,7 +489,7 @@ function util_getStartEndSeq(){
     if [ -z "$1" ]; then
         return
     fi
-    str=$1
+    str="$1"
     strlen=${#str}
     if [[ "$str" = *[* ]] && [[ "$str" = *] ]]; then
         local bidx=`expr index "$str" "["`
@@ -509,7 +509,7 @@ function util_getFirstElement(){
     if [ -z "$1" ]; then
         return
     fi
-    local vals=$1
+    local vals="$1"
     for val in ${vals[@]}
     do
         echo "$val"
@@ -524,7 +524,7 @@ function util_getCommaSeparated(){
         return
     fi
     local retval=
-    local vals=$1
+    local vals="$1"
     for val in ${vals[@]}
     do
         if [ -z "$retval" ]; then
@@ -669,7 +669,7 @@ function util_isSSDDrive(){
         return
     fi
 
-    local disk=$1
+    local disk="$1"
     disk=$(echo "$disk"| grep -v -e '^$' | cut -d' ' -f1 | cut -d'/' -f3)
     [ "$(cat /sys/block/$disk/queue/rotational)" -eq 0 ] && echo "yes" || echo "no"
 }
@@ -869,7 +869,7 @@ function util_getResourceUseHeader(){
 
 function util_getResourceUse(){
     [ -z "$1" ] && return
-    local ppid=$1
+    local ppid="$1"
     if kill -0 ${ppid}; then
         local curtime=$(date '+%Y-%m-%d-%H-%M-%S')
         local topline=$(top -bn 1 -p $ppid | tail -1 | awk '{ printf("%s\t%s\t%s\n", $6, $9, $10); }')
