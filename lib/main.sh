@@ -360,7 +360,7 @@ function main_upgrade(){
 		log_error "MapR not installed on the node(s) [ $notlist]. Trying install on the nodes first. Scooting!"
 		exit 1
 	else
-		log_info "No MapR installed on any node. Continuing upgrade..."
+		log_info "MapR installed on all nodes. Continuing upgrade..."
 	fi
 
 	local cldbnode=
