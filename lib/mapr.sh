@@ -662,7 +662,7 @@ function maprutil_uninstallNode(){
 
 function maprutil_upgrade(){
     #local upbins="mapr-cldb mapr-core mapr-core-internal mapr-fileserver mapr-hadoop-core mapr-historyserver mapr-jobtracker mapr-mapreduce1 mapr-mapreduce2 mapr-metrics mapr-nfs mapr-nodemanager mapr-resourcemanager mapr-tasktracker mapr-webserver mapr-zookeeper mapr-zk-internal mapr-drill"
-    local upbins=$(util_getInstalledBinaries "mapr-" | sed 's/ /\n/g' | grep -v internal | grep -v "-patch-" |  sed 's/\n/ /g')
+    local upbins=$(util_getInstalledBinaries "mapr-" | sed 's/ /\n/g' | grep -v internal | grep -v "patch" |  sed 's/\n/ /g')
     local buildversion=$1
     
     local removebins="mapr-patch"
