@@ -661,7 +661,8 @@ function maprutil_uninstallNode(){
 }
 
 function maprutil_upgrade(){
-    local upbins="mapr-cldb mapr-core mapr-core-internal mapr-fileserver mapr-hadoop-core mapr-historyserver mapr-jobtracker mapr-mapreduce1 mapr-mapreduce2 mapr-metrics mapr-nfs mapr-nodemanager mapr-resourcemanager mapr-tasktracker mapr-webserver mapr-zookeeper mapr-zk-internal"
+    #local upbins="mapr-cldb mapr-core mapr-core-internal mapr-fileserver mapr-hadoop-core mapr-historyserver mapr-jobtracker mapr-mapreduce1 mapr-mapreduce2 mapr-metrics mapr-nfs mapr-nodemanager mapr-resourcemanager mapr-tasktracker mapr-webserver mapr-zookeeper mapr-zk-internal mapr-drill"
+    local upbins=$(util_getInstalledBinaries "mapr-" | sed 's/ /\n/g' | grep -v internal | grep -v "-patch-" |  grep -v maprsed 's/\n/ /g')
     local buildversion=$1
     
     local removebins="mapr-patch"
@@ -2989,7 +2990,7 @@ function maprutil_mfsthreads(){
     [ -z "$mfspid" ] && log_warn "[$(util_getHostIP)] No MFS running to list it's threads" && return
     [ -n "$(ls /opt/mapr/logs/*$mfs*.gdbtrace 2>/dev/null)" ] && log_warn "[$(util_getHostIP)] MFS has previously crashed. Thread IDs may not match"
 
-    local types="CpuQ_FS CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_Compress CpuQ_SysCalls CpuQ_Rpc"
+    local types="CpuQ_IOMgr CpuQ_FS CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_Compress CpuQ_SysCalls CpuQ_Rpc CpuQ_ExtInstance"
     local mfsgstack="/opt/mapr/logs/$mfspid.gstack"
     local mfstrace=
 
