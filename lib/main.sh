@@ -330,7 +330,7 @@ function main_upgrade(){
 	local i=1
 	for node in ${nodes[@]}
 	do
-		log_info "Node$i : $node"
+		log_msg "Node$i : $node"
 		let i=i+1
 	done
 
