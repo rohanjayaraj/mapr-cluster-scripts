@@ -3636,7 +3636,7 @@ function maprutil_buildClientUsage(){
         [ -n "$stime" ] && sl=$(cat $clog | grep -n "$stime" | cut -d':' -f1 | tail -1)
         [ -n "$etime" ] && el=$(cat $clog | grep -n "$etime" | cut -d':' -f1 | tail -1)
         if [ -z "$el" ] || [ -z "$sl" ]; then
-            [[ -n "$etts" ]] && [[ "$etts" -gt "$cst" ]] && continue
+            [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && continue
             [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && continue
             [ -z "$sl" ] && sl=2
             [ -z "$el" ] && el=$(cat $clog | wc -l)
