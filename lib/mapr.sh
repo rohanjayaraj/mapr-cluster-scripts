@@ -39,7 +39,7 @@ function maprutil_getCLDBNodes() {
     fi
     local cldbnodes=$(grep cldb $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$cldbnodes" ]; then
-            echo $cldbnodes
+            echo $cldbnodes | sed 's/[[:space:]]*$//'
     fi
 }
 
@@ -50,7 +50,7 @@ function maprutil_getGatewayNodes() {
     fi
     local gwnodes=$(grep mapr-gateway $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$gwnodes" ]; then
-        echo $gwnodes
+        echo $gwnodes | sed 's/[[:space:]]*$//'
     fi
 }
 
@@ -61,7 +61,7 @@ function maprutil_getESNodes() {
     fi
     local esnodes=$(grep elastic $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$esnodes" ]; then
-            echo $esnodes
+            echo $esnodes | sed 's/[[:space:]]*$//'
     fi
 }
 
@@ -72,7 +72,7 @@ function maprutil_getOTSDBNodes() {
     fi
     local otnodes=$(grep opentsdb $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$otnodes" ]; then
-            echo $otnodes
+            echo $otnodes | sed 's/[[:space:]]*$//'
     fi
 }
 
@@ -83,7 +83,7 @@ function maprutil_getDrillNodes() {
     fi
     local drillnodes=$(grep drill $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$drillnodes" ]; then
-        echo $drillnodes
+        echo $drillnodes | sed 's/[[:space:]]*$//'
     fi
 }
 
@@ -95,7 +95,7 @@ function maprutil_getNodesForService() {
     local rolelist="$(maprutil_getRolesList)"
     local servicenodes=$(echo "$rolelist" | grep "$1" | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     if [ ! -z "$servicenodes" ]; then
-        echo $servicenodes
+        echo $servicenodes | sed 's/[[:space:]]*$//'
     fi
 }
 
@@ -138,7 +138,7 @@ function maprutil_getMFSDataNodes() {
         mfsnodes=$(cat $rolefile | grep '^[^#;]' | awk -F, '{print $1}')
     fi
     
-    [ -n "$mfsnodes" ] && echo "$mfsnodes" | sed ':a;N;$!ba;s/\n/ /g'
+    [ -n "$mfsnodes" ] && echo "$mfsnodes" | sed ':a;N;$!ba;s/\n/ /g' | sed 's/[[:space:]]*$//'
 }
 
 ## @param path to config
@@ -277,7 +277,7 @@ function maprutil_getNodesFromRole() {
             exit 1
         fi
     done
-    echo $nodes | tr ' ' '\n' | sort -t . -k 3,3n -k 4,4n | tr '\n' ' '
+    echo $nodes | tr ' ' '\n' | sort -t . -k 3,3n -k 4,4n | tr '\n' ' ' | sed 's/[[:space:]]*$//'
 }
 
 function maprutil_ycsbdirs(){
