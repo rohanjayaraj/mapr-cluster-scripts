@@ -148,7 +148,7 @@ function maprutil_getNodeBinaries() {
         return 1
     fi
     
-    local binlist=$(grep $2 $1 | cut -d, -f 2- | sed 's/,/ /g')
+    local binlist=$(grep $2 $1 | grep '^[^#;]' | cut -d, -f 2- | sed 's/,/ /g')
     if [ ! -z "$binlist" ]; then
         echo $binlist
     fi
@@ -161,7 +161,7 @@ function maprutil_getCoreNodeBinaries() {
         return 1
     fi
     
-    local binlist=$(grep $2 $1 | cut -d, -f 2- | sed 's/,/ /g')
+    local binlist=$(grep $2 $1 | grep '^[^#;]' | cut -d, -f 2- | sed 's/,/ /g')
     if [ -n "$binlist" ]; then
         # Remove collectd,fluentd,opentsdb,kibana,grafana
         local newbinlist=
