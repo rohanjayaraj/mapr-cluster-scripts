@@ -1086,9 +1086,12 @@ do
         actualcpids=
         for cpid in \$clientpids
         do
-                [ -n "\$(ps -ef | grep "[c]lientresusage" | grep -w "\$cpid")" ] && continue
                 ppid=\$(ps -ef | grep -w \$cpid | awk -v p="\$cpid" '{if(\$2==p) print \$3}')
-                [[ "\$ppid" -ne "1" ]] && actualcpids="\${actualcpids}\${cpid} "
+                crpid=\$(ps -ef | grep "[c]lientresusage" | grep -w "\$cpid")
+                [[ "\$ppid" -eq "1" ]] && [ -n "\$crpid" ] && kill -9 \$crpid > /dev/null 2>&1
+                [[ "\$ppid" -eq "1" ]] && continue
+                [ -n "\$crpid" ] && continue
+                actualcpids="\${actualcpids}\${cpid} "
         done
         [ -n "\$actualcpids" ] && startClientTrace "\$actualcpids"
         sleep \$sleeptime
