@@ -3064,7 +3064,7 @@ function maprutil_publishMFSCPUUse(){
     for fname in $files
     do
         [ ! -s "$fname" ] && continue
-        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0 || i==NR-1) { cmd="date \"+%Y-%m-%d %H:%M:%S\" -d \""$1" "$2"\""; cmd | getline var; close(cmd) printf("{\"ts\":\"%s\",\"pcpu\":%s}",var,$3); } else printf(",{\"pcpu\":%s}",$3); i++} END{printf("]")}')
+        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0 || i==NR-1) { cmd="date \"+%Y-%m-%d %H:%M:%S\" -d \""$1" "$2"\""; cmd | getline var; close(cmd); printf("{\"ts\":\"%s\",\"pcpu\":%s}",var,$3); } else printf(",{\"pcpu\":%s}",$3); i++} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
         mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
