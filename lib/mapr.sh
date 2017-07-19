@@ -3030,6 +3030,7 @@ function maprutil_publishMFSCPUUse(){
     json="$json\"timestamp\":$timestamp,\"nodes\":\"$hostlist\""
     json="$json,\"build\":\"$buildid\",\"description\":\"$desc\""
 
+    log_info "Publishing resource usage statistics to \"$GLB_PERF_URL\""
 
     local tjson=
     local ttime=0
@@ -3444,6 +3445,8 @@ function maprutil_publishGutsStats(){
     pushd $logdir > /dev/null 2>&1
     local fname="guts.log"
     [ ! -s "$fname" ] && return
+
+    log_info "Publishing guts statistics to \"$GLB_PERF_URL\""
 
     local json="{"
     json="$json\"timestamp\":$timestamp,\"nodes\":\"$hostlist\""
