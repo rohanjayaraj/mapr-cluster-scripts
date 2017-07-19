@@ -3053,7 +3053,7 @@ function maprutil_publishMFSCPUUse(){
     for fname in $files
     do
         [ ! -s "$fname" ] && continue
-        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0 || i==NR-1) printf("{\"ts\":\"%s %s\",\"mem\":%s,\"cpu\":%s}",$1,$2,$3,$4) else printf(",{\"mem\":%s,\"cpu\":%s}",$3,$4); i++; } END{printf("]")}')
+        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0 || i==NR-1) printf("{\"ts\":\"%s %s\",\"mem\":%s,\"cpu\":%s}",$1,$2,$3,$4); else printf(",{\"mem\":%s,\"cpu\":%s}",$3,$4); i++; } END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
         mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
@@ -3077,7 +3077,7 @@ function maprutil_publishMFSCPUUse(){
     for fname in $files
     do
         [ ! -s "$fname" ] && continue
-        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0 || i==NR-1) printf("{\"ts\":\"%s %s\",\"rx\":%s,\"tx\":%s}",$1,$2,$3,$4) else printf(",{\"rx\":%s,\"tx\":%s}",$3,$4);  i++; } END{printf("]")}')
+        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0 || i==NR-1) printf("{\"ts\":\"%s %s\",\"rx\":%s,\"tx\":%s}",$1,$2,$3,$4); else { printf(",{\"rx\":%s,\"tx\":%s}",$3,$4); }  i++; } END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
         mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
