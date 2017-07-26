@@ -3352,7 +3352,7 @@ function maprutil_buildMFSCpuUse(){
         [ -n "$etime" ] && el=$(cat $netuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
         if [ -n "$el" ] && [ -n "$sl" ]; then
             [ -z "$year" ] && year=$(date +%Y)
-            sed -n ${sl},${el}p $netuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{ r=$11; s=$12; if(r ~ /M/) {r=r*1;} else if(r ~ /k/) {r=r*1/1024} else if(r ~ /B/) {r=r*1/(1024*1024)} if(r ~ /M/) {s=s*1;} else if(s ~ /k/) {s=s*1/1024} else if(s ~ /B/) {s=s*1/(1024*1024)} split($1,d,"-"); printf("%s-%s-%s %s %.0f %.0f\n",y,d[1],d[0],$2,r,s)}' > $tempdir/net.log
+            sed -n ${sl},${el}p $netuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{ r=$11; s=$12; if(r ~ /M/) {r=r*1;} else if(r ~ /k/) {r=r*1/1024} else if(r ~ /B/) {r=r*1/(1024*1024)} if(r ~ /M/) {s=s*1;} else if(s ~ /k/) {s=s*1/1024} else if(s ~ /B/) {s=s*1/(1024*1024)} split($1,d,"-"); printf("%s-%s-%s %s %.0f %.0f\n",y,d[2],d[1],$2,r,s)}' > $tempdir/net.log
         fi
     fi
 }
