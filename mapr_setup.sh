@@ -174,6 +174,7 @@ while [ "$1" != "" ]; do
 
     	-i | --install)
     		setupop="install"
+            [[ "$rolefile" = "rolefile" ]] && rolefile="install"
     	;;
     	-u | --uninstall)
     		setupop="uninstall"
@@ -183,6 +184,7 @@ while [ "$1" != "" ]; do
         ;;
         -r | --reconfigure | --reset)
             setupop="reconfigure"
+            [[ "$rolefile" = "rolefile" ]] && rolefile="reconfigure"
         ;;
     	-c | --clusterconfig)
     		rolefile=$VALUE

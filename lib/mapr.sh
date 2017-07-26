@@ -3761,9 +3761,19 @@ function maprutil_buildSingleScript(){
 # @param file path
 function maprutil_readClusterRoles(){
   local rfile="$1"
+  local setupop="$2"
   local cldbnodes=
   local mfsnodes=
+
   log_msg "Enter Cluster Node IPs ( ex: 10.10.103.[39-40,43-49] ) : "
+  echo
+  if [ -n "$setupop" ] && [ "$setupop" != "install" ] && [ "$setupop" != "reconfigure" ]; then
+      log_inline "Enter Node IP(s)  : "
+      read mfsnodes
+      echo "$mfsnodes,dummy" > $rfile && util_expandNodeList "$rfile" > /dev/null 2>&1
+      return
+  fi
+
   log_inline "Enter CLDB Node IP(s) : "
   read cldbnodes
   echo "$cldbnodes,dummy" > $rfile && util_expandNodeList "$rfile" > /dev/null 2>&1

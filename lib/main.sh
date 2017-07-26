@@ -48,7 +48,7 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 				rolefile=$dummyrole
 			else
 				rolefile="/tmp/$1"
-				maprutil_readClusterRoles "$rolefile"
+				maprutil_readClusterRoles "$rolefile" "$1"
 			fi
 		fi
 	fi
