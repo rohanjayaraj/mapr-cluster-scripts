@@ -1073,7 +1073,7 @@ function startClientTrace(){
     local cpids="\$1"
     for cpid in \$cpids
     do
-        nohup sh -c 'cpid=\$0; log="/opt/mapr/logs/clientresusage_\$cpid.log"; sleep 2; [ -s "/proc/\$cpid/cmdline" ] && cat /proc/\$cpid/cmdline > \$log && echo >> \$log; while kill -0 \${cpid}; do st=\$(date +%s%N | cut -b1-13); curtime=\$(date "+%Y-%m-%d %H:%M:%S"); topline=\$(top -bn 1 -p \$cpid | grep -v "^$" | tail -1 | awk '"'"'{ printf("%s\t%s\t%s\n",\$6,\$9,\$10); }'"'"'); [ -n "\$topline" ] && echo -e "\$curtime\t\$topline" >> \$log; et=\$(date +%s%N | cut -b1-13); td=\$(echo "scale=2;1-((\$et-\$st)/1000)"| bc); sleep \$td; sz=\$(stat -c %s \$log); [ "\$sz" -gt "209715200" ] && tail -c 1048576 \$log > \$log.bkp && rm -rf \$log && mv \$log.bkp \$log; done' \$cpid > /dev/null 2>&1 &
+        nohup sh -c 'cpid=\$0; log="/opt/mapr/logs/clientresusage_\$cpid.log"; sleep 2; [ -e "/proc/\$cpid/cmdline" ] && cat /proc/\$cpid/cmdline > \$log && echo >> \$log; while kill -0 \${cpid}; do st=\$(date +%s%N | cut -b1-13); curtime=\$(date "+%Y-%m-%d %H:%M:%S"); topline=\$(top -bn 1 -p \$cpid | grep -v "^$" | tail -1 | awk '"'"'{ printf("%s\t%s\t%s\n",\$6,\$9,\$10); }'"'"'); [ -n "\$topline" ] && echo -e "\$curtime\t\$topline" >> \$log; et=\$(date +%s%N | cut -b1-13); td=\$(echo "scale=2;1-((\$et-\$st)/1000)"| bc); sleep \$td; sz=\$(stat -c %s \$log); [ "\$sz" -gt "209715200" ] && tail -c 1048576 \$log > \$log.bkp && rm -rf \$log && mv \$log.bkp \$log; done' \$cpid > /dev/null 2>&1 &
     done
 }
 
@@ -3633,7 +3633,7 @@ function maprutil_buildClientUsage(){
     local tmpclog=$(mktemp)
     for clog in $clientreslogs
     do
-        local sl=2
+        local sl=3
         local el=$(cat $clog | wc -l)
         local cst=$(sed -n 2p $clog | awk '{print $1,$2}')
         local cet=$(tail -1 $clog | awk '{print $1,$2}')
@@ -3645,7 +3645,7 @@ function maprutil_buildClientUsage(){
         if [ -z "$el" ] || [ -z "$sl" ]; then
             [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && continue
             [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && continue
-            [ -z "$sl" ] && sl=2
+            [ -z "$sl" ] && sl=3
             [ -z "$el" ] && el=$(cat $clog | wc -l)
         fi 
         [ "$sl" -gt "$el" ] && el=$(cat $clog | wc -l)
