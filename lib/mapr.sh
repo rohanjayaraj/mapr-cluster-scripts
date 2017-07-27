@@ -2082,8 +2082,9 @@ function maprutil_checkIndexTabletDistribution(){
         if [ "$(cat $indexlog | wc -w)" -gt "0" ]; then
             local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
             local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
+            local numtablets=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | wc -l)
             numrows=$(printf "%'d" $numrows)
-            log_msg "\n $(util_getHostIP) : Index '$index' [ #ofTablets: ${numTablets}, Size: ${indexSize}GB, #ofRows: ${numrows} ]"
+            log_msg "\n $(util_getHostIP) : Index '$index' [ #ofTablets: ${numtablets}, Size: ${indexSize}GB, #ofRows: ${numrows} ]"
             cat "$indexlog" 2>/dev/null
         fi
     done
@@ -2145,8 +2146,9 @@ function maprutil_checkIndexTabletDistribution2(){
         if [ "$(cat $indexlog | wc -w)" -gt "0" ]; then
             local indexSize=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | awk '{sum+=$2}END{print sum}')
             local numrows=$(cat "$indexlog" | grep -o "#ofRows: [0-9]*" | awk '{sum+=$2}END{print sum}')
+            local numtablets=$(cat "$indexlog" | grep -o "Size: [0-9]*.[0-9]*" | wc -l)
             numrows=$(printf "%'d" $numrows)
-            log_msg "\n$(util_getHostIP) : Index '$indexname' [ #ofTablets: ${totaltablets}, Size: ${indexSize}GB, #ofRows: ${numrows} ]"
+            log_msg "\n$(util_getHostIP) : Index '$indexname' [ #ofTablets: ${numtablets}, Size: ${indexSize}GB, #ofRows: ${numrows} ]"
             cat "$indexlog" | sort -nk2.3 | sort -nk3.3 2>/dev/null
         fi
     done
