@@ -1966,7 +1966,7 @@ function maprutil_checkTabletDistribution(){
     local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null |  grep cid: | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
     [ -z "$cntrlist" ] && return
 
-    local nodetablets=$(maprcli table region list -path $filepath -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/,"/,\n"/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 $hostnode | tr -d '"' | tr -d ',')
+    local nodetablets=$(maprcli table region list -path $filepath -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/},/\n},/g' | sed 's/,"/,\n"/g' | sed 's/}]/\n}]/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 $hostnode | tr -d '"' | tr -d ',')
     local tabletContainers=$(echo "$nodetablets" | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
     [ -z "$tabletContainers" ] && return
     
@@ -2050,7 +2050,7 @@ function maprutil_checkIndexTabletDistribution(){
 
     for index in $indexlist
     do
-        local nodeindextablets=$(maprcli table region list -path $tablepath -index $index -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/,"/,\n"/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 $hostnode | tr -d '"' | tr -d ',')
+        local nodeindextablets=$(maprcli table region list -path $tablepath -index $index -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/,"/,\n"/g' | sed 's/},/\n},/g' | sed 's/}]/\n}]/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 $hostnode | tr -d '"' | tr -d ',')
         local tabletContainers=$(echo "$nodeindextablets" | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
         [ -z "$tabletContainers" ] && continue
         local numTablets=$(echo "$tabletContainers" | wc -l)
