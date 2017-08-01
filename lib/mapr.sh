@@ -3380,7 +3380,7 @@ function maprutil_getGutsDefCols(){
     local defcaccols="inode_lkps,inode_miss,small_lkps,small_miss,large_lkps,large_miss,meta_lkps,meta_miss,dir_lkps,dir_miss"
     
     if [ -z "$runtype" ]; then
-        echo "$defcols"
+        echo "$defcols" | sed 's/,/ /g'
         return
     fi
 
@@ -3391,7 +3391,7 @@ function maprutil_getGutsDefCols(){
     [ -n "$(echo $runtype | grep -w "fs")" ] && finalcols="${finalcols}${deffscols},"
     [ -n "$(echo $runtype | grep -w "cache")" ] && finalcols="${finalcols}${defcaccols},"
             
-    [ -n "$finalcols" ] && echo "$finalcols" | sed 's/,$//' |  sed 's/,/ /g'
+    [ -n "$finalcols" ] && echo "$finalcols" | sed 's/,$//' | sed 's/,/ /g'
 }
 
 function marutil_getGutsSample(){
