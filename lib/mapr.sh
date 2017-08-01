@@ -3391,7 +3391,7 @@ function maprutil_getGutsDefCols(){
     [ -n "$(echo $runtype | grep -w "fs")" ] && finalcols="${finalcols}${deffscols},"
     [ -n "$(echo $runtype | grep -w "cache")" ] && finalcols="${finalcols}${defcaccols},"
             
-    [ -n "$finalcols" ] && echo "$finalcols" | sed 's/,$//'
+    [ -n "$finalcols" ] && echo "$finalcols" | sed 's/,$//' |  sed 's/,/ /g'
 }
 
 function marutil_getGutsSample(){
