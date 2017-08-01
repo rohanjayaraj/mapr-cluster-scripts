@@ -664,10 +664,9 @@ function main_getgutsstats(){
 		doGutsDef=
 	elif [ -n "$doGutsCol" ] && [ -n "$(echo $doGutsCol | sed 's/,/ /g' | tr ' ' '\n' | grep 'stream\|cache\|fs\|db')" ]; then
 		doGutsCol= 
-		doGutsDef=1
 	fi
 	[ -n "$doGutsCol" ] && doGutsCol="$(echo "$doGutsCol" | sed 's/,/ /g')"
-	[ -n "$doGutsDef" ] && doGutsCol="$defaultcols"
+	[ -z "$doGutsCol" ] || [ -n "$doGutsDef" ] && doGutsCol="$defaultcols"
 
 	local colids=
 
