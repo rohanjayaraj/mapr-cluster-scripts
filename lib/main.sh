@@ -659,8 +659,13 @@ function main_getgutsstats(){
 	local node=$(util_getFirstElement "$mfsnodes")
 
 	local collist=$(marutil_getGutsSample "$node" "$doGutsType")
-	local defaultcols="date time rpc rputR rgetR rscR ior_ops iow_ops"
-	[ "$doGutsType" = "gw" ] && doGutsDef=
+	local defaultcols="$(maprutil_getGutsDefCols "$doGutsCol")"
+	if [ "$doGutsType" = "gw" ]; then
+		doGutsDef=
+	elif [ -n "$doGutsCol" ] && [ -n "$(echo $doGutsCol | sed 's/,/ /g' | tr ' ' '\n' | grep 'stream\|cache\|fs\|db')" ]; then
+		doGutsCol= 
+		doGutsDef=1
+	fi
 	[ -n "$doGutsCol" ] && doGutsCol="$(echo "$doGutsCol" | sed 's/,/ /g')"
 	[ -n "$doGutsDef" ] && doGutsCol="$defaultcols"
 

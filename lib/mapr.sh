@@ -3370,6 +3370,30 @@ function maprutil_buildMFSCpuUse(){
     fi
 }
 
+function maprutil_getGutsDefCols(){
+    local runtype="$1"
+
+    local defcols="date,time,rpc,ior_ops,ior_mb,iow_ops,iow_mb"
+    local defdbcols="rget,rgetR,tgetR,vcM,vcL,vcH,bget,sg,spg,riIO,rput,rputR,tputR,bucketWr_ops,fl,ffl,sfl,mcom,rsc,rscR,bsc,ssc,spsc,spscR,rtlk,rim,rip,rop,rob"
+    local defstrcols="mpr,mpm,mpMB,mlr,mlm,mlMB"
+    local deffscols="write_ops,write_mb,lwrite_ops,lwrite_mb,read_ops,read_mb,lread_ops,lread_mb"
+    local defcaccols="inode_lkps,inode_miss,small_lkps,small_miss,large_lkps,large_miss,meta_lkps,meta_miss,dir_lkps,dir_miss"
+    
+    if [ -z "$runtype" ]; then
+        echo "$defcols"
+        return
+    fi
+
+    runtype="$(echo "$runtype" | tr ',' ' ')"
+    local finalcols="$defcols"
+    [ -n "$(echo $runtype | grep -w "db")" ] && finalcols="${finalcols}${defdbcols},"
+    [ -n "$(echo $runtype | grep -w "stream")" ] && finalcols="${finalcols}${defstrcols},"
+    [ -n "$(echo $runtype | grep -w "fs")" ] && finalcols="${finalcols}${deffscols},"
+    [ -n "$(echo $runtype | grep -w "cache")" ] && finalcols="${finalcols}${defcaccols},"
+            
+    [ -n "$finalcols" ] && echo "$finalcols" | sed 's/,$//'
+}
+
 function marutil_getGutsSample(){
     if [ -z "$1" ]; then
         return
@@ -3380,6 +3404,7 @@ function marutil_getGutsSample(){
 
     local gutsline="$(ssh_executeCommandasRoot "$node" "grep '[a-z]' $gutsfile | grep -v PID | grep -v Printing | head -1 | sed 's/ \+/ /g'")"
     local twocols="time bucketWr write lwrite bwrite read lread inode regular small large meta dir ior iow iorI iowI iorB iowB iowD iowD icache dcache"
+    local lkpmiss="icache dcache inode regular small large meta dir"
     local collist=
     local i=1
     for gline in $gutsline
@@ -3390,11 +3415,17 @@ function marutil_getGutsSample(){
             if [ "$gline" = "time" ]; then
                 collist="$collist $i=date"
                 let i=i+1
+                [ "$(($i % 10))" -eq "0" ] && collist="$collist\n"
                 collist="$collist $i=$gline"
             else
-                collist="$collist $i=${gline}_ops"
+                if [ -z "$(echo $lkpmiss | grep -w $gline)" ]; then
+                    collist="$collist $i=${gline}_ops"
+                else
+                    collist="$collist $i=${gline}_lkps"
+                fi
                 let i=i+1
-                if [ "$gline" != "icache" ] || [ "$gline" != "dcache" ]; then
+                [ "$(($i % 10))" -eq "0" ] && collist="$collist\n"
+                if [ -z "$(echo $lkpmiss | grep -w $gline)" ]; then
                     collist="$collist $i=${gline}_mb"
                 else
                     collist="$collist $i=${gline}_miss"
