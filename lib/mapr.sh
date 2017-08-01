@@ -3580,6 +3580,8 @@ function maprutil_gutstatsOnCluster(){
     paste $filelist | awk -v var="$colarr" -v fcnt="$filecnt" 'BEGIN{split(var,cids," ")} {j=0; for (i=1;i<=length(cids);i++) { if(cids[i] < 3) printf("%s ", $cids[i]); else { sum+=$cids[i]; j++;  if(j==fcnt) { printf("%s ", sum); sum=0; j=0}}}  printf("\n");}' > $logdir/guts.log
 
     [ -n "$GLB_PERF_URL" ] && maprutil_publishGutsStats "$logdir" "$timestamp" "$hostlist" "$buildid" "$colnames" "$publish"
+
+    colnames="$(echo "$colnames" | sed 's/,/ /g')" && sed -i "1s/^/${colnames}\n/" $logdir/guts.log > /dev/null 2>&1
     
     pushd $tmpdir > /dev/null 2>&1
     local dirstotar=$dirlist
