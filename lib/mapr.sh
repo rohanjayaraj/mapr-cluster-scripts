@@ -1562,7 +1562,8 @@ function maprutil_copyRepoFile(){
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
         ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled=0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1" > /dev/null 2>&1
-        ssh_executeCommandasRoot "$1" "yum repolist | grep -i mapr | awk '{print $1}' | tr '\n' ',' | sed 's/,$//g' > /dev/null 2>&1" > /dev/null 2>&1
+        ssh_executeCommandasRoot "$1" "yum-config-manager --disable \\*" > /dev/null 2>&1
+        #ssh_executeCommandasRoot "$1" "yum repolist | grep -i mapr | awk '{print \$1}' | tr '\n' ',' | sed 's/,$//g' > /dev/null 2>&1" > /dev/null 2>&1
         ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/" > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
         ssh_executeCommandasRoot "$1" "rm -rf /etc/apt/sources.list.d/*mapr*.list > /dev/null 2>&1" > /dev/null 2>&1
@@ -3681,7 +3682,7 @@ function maprutil_buildClientUsage(){
     do
         local sl=3
         local el=$(cat $clog | wc -l)
-        local cst=$(sed -n 2p $clog | awk '{print $1,$2}')
+        local cst=$(sed -n 3p $clog | awk '{print $1,$2}')
         local cet=$(tail -1 $clog | awk '{print $1,$2}')
         cst=$(date -d "$cst" +%s)
         cet=$(date -d "$cet" +%s)

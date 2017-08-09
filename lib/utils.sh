@@ -86,8 +86,8 @@ function util_checkAndInstall2(){
 
 function util_maprprereq(){
     local DEPENDENCY_BASE_DEB="apt-utils curl dnsutils file iputils-ping libssl1.0.0 \
-    net-tools nfs-common openssl sudo syslinux sysv-rc-conf tzdata wget"
-    local DEPENDENCY_BASE_RPM="curl file net-tools openssl sudo syslinux wget which"
+    net-tools nfs-common openssl sudo syslinux sysv-rc-conf tzdata wget clustershell"
+    local DEPENDENCY_BASE_RPM="curl file net-tools openssl sudo syslinux wget which clustershell"
     local DEPENDENCY_DEB="$DEPENDENCY_BASE_DEB debianutils libnss3 libsysfs2 netcat ntp \
     ntpdate openssh-client openssh-server python-dev python-pycurl sdparm sshpass \
     syslinux sysstat"
@@ -146,6 +146,7 @@ function util_installprereq(){
         util_checkAndInstall "lstopo" "hwloc-gui"
         util_checkAndInstall "createrepo" "createrepo"
         util_checkAndInstall "host" "bind-utils"
+        util_checkAndInstall "yum-config-manager" "yum-utils"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         util_checkAndInstall "add-apt-repository" "python-software-properties"
         util_checkAndInstall "add-apt-repository" "software-properties-common"
