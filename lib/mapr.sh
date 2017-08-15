@@ -1082,7 +1082,7 @@ while [[ -d "/opt/mapr/" ]];
 do
         shmids="\$(ipcs -m | grep '^0x'  | grep 1234 | awk '{print \$2}')"
         [ -z "\$shmids" ] && sleep \$sleeptime && continue
-        clientpids=\$(echo "\$(ipcs -mp)" | grep -Fw "\$shmids" | awk '{print \$3}' | tr '\n' ' ')
+        clientpids=\$(echo "\$(ipcs -mp)" | grep -Fw "\$shmids" | awk '{print \$3}' | sort | uniq | tr '\n' ' ')
         actualcpids=
         for cpid in \$clientpids
         do

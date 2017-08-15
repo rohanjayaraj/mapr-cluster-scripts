@@ -405,26 +405,37 @@ function main_upgrade(){
     local buildexists=
     local maprrepo=$(main_getRepoFile)
 
-    # First stop warden on all nodes
+    # First copy repo on all nodes
+    local idx=
 	for node in ${nodes[@]}
 	do
-		# Copy mapr.repo if it doen't exist
-		maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
-		if [ -z "$buildexists" ] && [ -z "$(maprutil_checkNewBuildExists $node)" ]; then
-			log_error "No newer build exists. Please check the repo file [$maprrepo] for configured repositories"
-			exit 1
-		fi
-		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
-			main_isValidBuildVersion
-			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
-			if [ -z "$buildexists" ]; then
-				log_error "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
+		if [ -z "$idx" ]; then
+			# Copy mapr.repo if it doen't exist
+			maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
+			if [ -z "$buildexists" ] && [ -z "$(maprutil_checkNewBuildExists $node)" ]; then
+				log_error "No newer build exists. Please check the repo file [$maprrepo] for configured repositories"
 				exit 1
-			else
-				log_info "Stopping warden on all nodes..."
 			fi
+			if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
+				main_isValidBuildVersion
+				buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
+				if [ -z "$buildexists" ]; then
+					log_error "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
+					exit 1
+				else
+					idx=1
+					log_info "Stopping warden on all nodes..."
+				fi
+			fi
+		else
+			maprutil_copyRepoFile "$node" "$maprrepo" &
 		fi
-		# Stop warden on all nodes
+	done
+	wait
+
+	# First stop warden on all nodes
+	for node in ${nodes[@]}
+	do
 		maprutil_restartWardenOnNode "$node" "$rolefile" "stop" 
 	done
 

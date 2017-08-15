@@ -147,6 +147,7 @@ function util_installprereq(){
         util_checkAndInstall "createrepo" "createrepo"
         util_checkAndInstall "host" "bind-utils"
         util_checkAndInstall "yum-config-manager" "yum-utils"
+        util_checkAndInstall "perf" "perf"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         util_checkAndInstall "add-apt-repository" "python-software-properties"
         util_checkAndInstall "add-apt-repository" "software-properties-common"
