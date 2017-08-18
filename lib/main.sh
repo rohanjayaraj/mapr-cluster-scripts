@@ -117,6 +117,7 @@ GLB_CLDB_TOPO=
 GLB_TSDB_TOPO=
 GLB_PONTIS=
 GLB_BG_PIDS=
+GLB_SSD_ONLY=
 GLB_MAX_DISKS=
 GLB_MAPR_VERSION=
 GLB_BUILD_VERSION=
@@ -1063,6 +1064,8 @@ while [ "$2" != "" ]; do
     				main_addSpyglass
     			elif [[ "$i" = "queryservice" ]]; then
     				GLB_ENABLE_QS=1
+    			elif [[ "$i" = "ssdonly" ]]; then
+    				GLB_SSD_ONLY=1
     			fi
     		done
     	;;

@@ -1033,7 +1033,7 @@ function maprutil_buildDiskList() {
         return
     fi
     local diskfile=$1
-    echo "$(util_getRawDisks)" > $diskfile
+    echo "$(util_getRawDisks $GLB_SSD_ONLY)" > $diskfile
 
     local limit=$GLB_MAX_DISKS
     local numdisks=$(wc -l $diskfile | cut -f1 -d' ')
@@ -3680,9 +3680,11 @@ function maprutil_buildClientUsage(){
     local tmpclog=$(mktemp)
     for clog in $clientreslogs
     do
-        local sl=3
+        local sl=2
         local el=$(cat $clog | wc -l)
-        local cst=$(sed -n 3p $clog | awk '{print $1,$2}')
+        local cst=$(sed -n 2p $clog | awk '{print $1,$2}')
+        [ -z "$(echo "$cst" | grep '^[0-9]')" ] && continue
+
         local cet=$(tail -1 $clog | awk '{print $1,$2}')
         cst=$(date -d "$cst" +%s)
         cet=$(date -d "$cet" +%s)
@@ -3692,7 +3694,7 @@ function maprutil_buildClientUsage(){
         if [ -z "$el" ] || [ -z "$sl" ]; then
             [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && continue
             [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && continue
-            [ -z "$sl" ] && sl=3
+            [ -z "$sl" ] && sl=2
             [ -z "$el" ] && el=$(cat $clog | wc -l)
         fi 
         [ "$sl" -gt "$el" ] && el=$(cat $clog | wc -l)

@@ -331,6 +331,7 @@ function util_getDefaultDisks(){
 
 # returns space separated list of raw disks
 function util_getRawDisks(){
+    local onlyssd="$1"
     local defdisks=$(util_getDefaultDisks)
     local cmd="sfdisk -l 2> /dev/null| grep Disk | tr -d ':' | cut -d' ' -f2"
     for disk in $defdisks
@@ -349,6 +350,15 @@ function util_getRawDisks(){
         [ "$rep" = "GB" ] && [ "$size" -lt "100" ] &&  cmd="$cmd | grep -v \"$disk\""
     done
     local disks=$(bash -c  "$cmd | sort")
+    if [ -n "$onlyssd" ]; then
+        local ssddisks=
+        for disk in $disks
+        do
+            local blk=$(echo $disk | cut -d'/' -f3)
+            [ "$(cat /sys/block/$blk/queue/rotational)" -eq 0 ] && ssddisks="${ssddisks}${disk} "
+        done
+        [ -n "$ssddisks" ] && ssddisks=$(echo $ssddisks| sed 's/ $//') && disks=$(echo $ssddisks | tr ' ' '\n')
+    fi
     echo "$disks"
 }
 
