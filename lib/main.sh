@@ -855,7 +855,7 @@ function main_isValidBuildVersion(){
     local vlen=${#GLB_BUILD_VERSION}
     if [ "$(util_isNumber $GLB_BUILD_VERSION)" = "true" ]; then
     	 if [ "$vlen" -eq 12 ]; then
-    	 	local buildts="${GLB_BUILD_VERSION:0:4}-${GLB_BUILD_VERSION:4:2}-${GLB_BUILD_VERSION:6:2 ${GLB_BUILD_VERSION:8:2}:${GLB_BUILD_VERSION:10:2}"
+    	 	local buildts="${GLB_BUILD_VERSION:0:4}-${GLB_BUILD_VERSION:4:2}-${GLB_BUILD_VERSION:6:2} ${GLB_BUILD_VERSION:8:2}:${GLB_BUILD_VERSION:10:2}"
     	 	local validts="$(date -d "$buildts" +%s 2>/dev/null)"
     	 	if [ -z "$validts" ]; then
     	 		log_error "Invalid build timestamp specified. (ex: 201708181434)"
