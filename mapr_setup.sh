@@ -116,6 +116,8 @@ function usage () {
     echo -e "\t\t - Specify number of MFS instances (enables MULTI MFS) "
     echo -e "\t -ssd | --ssdonly" 
     echo -e "\t\t - Use only SSD disks if the node(s) have mix of HDD & SSD"
+    echo -e "\t -hdd | --hddonly" 
+    echo -e "\t\t - Use only HDD disks if the node(s) have mix of HDD & SSD"
     echo -e "\t -s | --secure" 
     echo -e "\t\t - Enable wire-level security on the cluster nodes"
     echo -e "\t -f | --force" 
@@ -199,6 +201,9 @@ while [ "$1" != "" ]; do
     	;;
         -ssd | --ssdonly)
             extraarg=$extraarg"ssdonly "
+        ;;
+        -hdd | --hddonly)
+            extraarg=$extraarg"hddonly "
         ;;
         -d | --maxdisks)
             maxdisks=$VALUE

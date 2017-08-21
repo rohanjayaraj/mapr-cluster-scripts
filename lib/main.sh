@@ -117,7 +117,7 @@ GLB_CLDB_TOPO=
 GLB_TSDB_TOPO=
 GLB_PONTIS=
 GLB_BG_PIDS=
-GLB_SSD_ONLY=
+GLB_DISK_TYPE=
 GLB_MAX_DISKS=
 GLB_MAPR_VERSION=
 GLB_BUILD_VERSION=
@@ -854,7 +854,14 @@ function main_isValidBuildVersion(){
     fi
     local vlen=${#GLB_BUILD_VERSION}
     if [ "$(util_isNumber $GLB_BUILD_VERSION)" = "true" ]; then
-    	 if [ "$vlen" -lt 5 ]; then
+    	 if [ "$vlen" -eq 12 ]; then
+    	 	local buildts="${GLB_BUILD_VERSION:0:4}-${GLB_BUILD_VERSION:4:2}-${GLB_BUILD_VERSION:6:2 ${GLB_BUILD_VERSION:8:2}:${GLB_BUILD_VERSION:10:2}"
+    	 	local validts="$(date -d "$buildts" +%s 2>/dev/null)"
+    	 	if [ -z "$validts" ]; then
+    	 		log_error "Invalid build timestamp specified. (ex: 201708181434)"
+    	 		exit 1
+    	 	fi
+    	 elif [ "$vlen" -lt 5 ]; then
     	 	log_error "Specify a longer build/changelist id (ex: 38395)"
             exit 1
     	 fi
@@ -1065,7 +1072,9 @@ while [ "$2" != "" ]; do
     			elif [[ "$i" = "queryservice" ]]; then
     				GLB_ENABLE_QS=1
     			elif [[ "$i" = "ssdonly" ]]; then
-    				GLB_SSD_ONLY=1
+    				GLB_DISK_TYPE="ssd"
+    			elif [[ "$i" = "hddonly" ]]; then
+    				GLB_DISK_TYPE="hdd"
     			fi
     		done
     	;;

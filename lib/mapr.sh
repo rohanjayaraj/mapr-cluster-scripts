@@ -1033,7 +1033,7 @@ function maprutil_buildDiskList() {
         return
     fi
     local diskfile=$1
-    echo "$(util_getRawDisks $GLB_SSD_ONLY)" > $diskfile
+    echo "$(util_getRawDisks $GLB_DISK_TYPE)" > $diskfile
 
     local limit=$GLB_MAX_DISKS
     local numdisks=$(wc -l $diskfile | cut -f1 -d' ')
