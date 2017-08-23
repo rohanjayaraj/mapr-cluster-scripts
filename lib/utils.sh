@@ -60,7 +60,7 @@ function util_checkAndInstall(){
         return
     fi
     if [ "$(getOS)" = "centos" ]; then
-        command -v $1 >/dev/null 2>&1 || yum install $2 -y -q 2>/dev/null
+        command -v $1 >/dev/null 2>&1 || yum --enablerepo=C6*,C7*,epel,epel-release install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         command -v $1 >/dev/null 2>&1 || apt-get install $2 -y 2>/dev/null
     fi

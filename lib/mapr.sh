@@ -662,6 +662,7 @@ function maprutil_uninstallNode(){
 
 function maprutil_upgrade(){
     #local upbins="mapr-cldb mapr-core mapr-core-internal mapr-fileserver mapr-hadoop-core mapr-historyserver mapr-jobtracker mapr-mapreduce1 mapr-mapreduce2 mapr-metrics mapr-nfs mapr-nodemanager mapr-resourcemanager mapr-tasktracker mapr-webserver mapr-zookeeper mapr-zk-internal mapr-drill"
+    local hostip=$(util_getHostIP)
     local upbins=$(util_getInstalledBinaries "mapr-")
     upbins=$(echo "$upbins"| sed 's/ /\n/g' | grep -v "patch")
     upbins=$(echo "$upbins" | tr '-' ' ' | tr '_' ' ' | awk '{for(i=1;i<=NF;i++) {if($i ~ /^[[:digit:]]/) break; printf("%s ",$i)} printf("\n")}' | sed 's/ /-/g' | sed 's/-$//g')
@@ -686,7 +687,15 @@ function maprutil_upgrade(){
         fi
     fi
 
-    /opt/mapr/server/configure.sh -R
+    local queryservice=$(echo $(maprutil_getNodesForService "drill") | grep "$hostip")
+
+    local cmd="/opt/mapr/server/configure.sh -R"
+    if [ -n "$queryservice" ] && [ -n "$GLB_ENABLE_QS" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
+        cmd=$cmd" -QS"
+    fi
+    log_info "$cmd"
+    bash -c "$cmd"
+    
 
     # Start zookeeper if if exists
     service mapr-zookeeper start 2>/dev/null
@@ -2274,7 +2283,7 @@ function maprutil_getMapRInfo(){
     local numsps=
     local sppermfs=
     local nodetopo=
-    if [ -e "/opt/mapr/conf/mapr-clusters.conf" ]; then
+    if [ -e "/opt/mapr/roles/fileserver" ]; then
         nummfs=$(timeout 10 /opt/mapr/server/mrconfig info instances 2>/dev/null| head -1)
         numsps=$(timeout 10 /opt/mapr/server/mrconfig sp list 2>/dev/null| grep SP[0-9] | wc -l)
         #command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json 2>/dev/null| grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
