@@ -461,8 +461,6 @@ function main_upgrade(){
 
 		# Kill all mapred jos & yarn applications
 
-		sleep $sleeptime && maprutil_postUpgrade "$cldbnode"
-	
 		for node in ${nodes[@]}
 		do
 			maprutil_restartWardenOnNode "$node" "$rolefile"
@@ -471,7 +469,6 @@ function main_upgrade(){
 	else
 		for node in ${zknodes[@]}
 		do
-			[ -z "$cldbmaster" ] && cldbmaster=$(maprutil_getCLDBMasterNode "$node" "maprcli")
 			[ -n "$(echo $cldbnodes | grep $node)" ] && continue
 			maprutil_rollingUpgradeOnNode "$node" "$rolefile"
 			sleep $sleeptime
@@ -480,6 +477,7 @@ function main_upgrade(){
 		do
 			[ -n "$(echo $zknodes | grep $node)" ] && continue
 			[ -n "$(echo $cldbnodes | grep $node)" ] && continue
+			[ -z "$cldbmaster" ] && cldbmaster=$(maprutil_getCLDBMasterNode "$node" "maprcli")
 			maprutil_rollingUpgradeOnNode "$node" "$rolefile"
 			sleep $sleeptime
 		done
@@ -491,6 +489,9 @@ function main_upgrade(){
 		done
 		maprutil_rollingUpgradeOnNode "$cldbmaster" "$rolefile"
 	fi
+
+	# update upgraded mapr version
+	sleep $sleeptime && maprutil_postUpgrade "$cldbnode"
 	
 	# Print URLs
 	main_printURLs

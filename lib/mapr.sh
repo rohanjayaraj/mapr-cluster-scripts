@@ -750,6 +750,8 @@ function maprutil_postUpgrade(){
     fi
 }
 
+# @param host ip
+# @param rolefile
 function maprutil_rollingUpgradeOnNode(){
     local node="$1"
     local rolefile="$2"
