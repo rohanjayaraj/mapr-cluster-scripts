@@ -18,7 +18,11 @@ source "$lib_dir/logger.sh"
 function maprutil_getCLDBMasterNode() {
     local master=
     local hostip=$(util_getHostIP)
-    if [ -n "$1" ] && [ "$hostip" != "$1" ]; then
+    local usemaprcli=$2
+    if [ -n "$2" ] && [ -n "$1" ]; then
+        master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
+        master=$(util_getIPfromHostName $master)
+    elif [ -n "$1" ] && [ "$hostip" != "$1" ]; then
         #master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
         master=$(ssh_executeCommandasRoot "$1" "[ -e '/opt/mapr/conf/mapr-clusters.conf' ] && cat /opt/mapr/conf/mapr-clusters.conf | cut -d' ' -f3 | cut -d':' -f1")
     else
@@ -26,9 +30,9 @@ function maprutil_getCLDBMasterNode() {
         master=$([ -e '/opt/mapr/conf/mapr-clusters.conf' ] && cat /opt/mapr/conf/mapr-clusters.conf | cut -d' ' -f3 | cut -d':' -f1)
     fi
     if [ ! -z "$master" ]; then
-            if [[ ! "$master" =~ ^Killed.* ]] || [[ ! "$master" =~ ^Terminate.* ]]; then
-                echo $master
-            fi
+        if [[ ! "$master" =~ ^Killed.* ]] || [[ ! "$master" =~ ^Terminate.* ]]; then
+            echo $master
+        fi
     fi
 }
 
@@ -129,7 +133,7 @@ function maprutil_getMFSDataNodes() {
             local mfshosts="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -json | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep hostname | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
             for mfshost in $mfshosts
             do
-                mfsnodes="$mfsnodes $(host $mfshost | awk '{print $4}')"
+                mfsnodes="$mfsnodes $(util_getIPfromHostName $mfshost)"
             done
         else
             mfsnodes=$(grep mapr-fileserver $1 | grep '^[^#;]' | grep -v cldb | awk -F, '{print $1}')
@@ -695,7 +699,6 @@ function maprutil_upgrade(){
     fi
     log_info "$cmd"
     bash -c "$cmd"
-    
 
     # Start zookeeper if if exists
     service mapr-zookeeper start 2>/dev/null
@@ -745,6 +748,24 @@ function maprutil_postUpgrade(){
     else
         log_warn "Timed out waiting for CLDB to come up. Please update 'mapr.targetversion' manually"
     fi
+}
+
+function maprutil_rollingUpgradeOnNode(){
+    local node="$1"
+    local rolefile="$2"
+    ## http://doc.mapr.com/display/MapR/Rolling+MapR+Core+Upgrade+Using+Manual+Steps
+    
+    local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+    ssh_executeCommandasRoot "$node"  "maprcli node maintenance -nodes $host -timeoutminutes 30"
+    ssh_executeCommandasRoot "$node"  "maprcli notifyupgrade start -node $host"
+
+    maprutil_restartWardenOnNode "$node" "$rolefile" "stop" 
+    maprutil_restartZKOnNode "$node" "$rolefile" "stop"
+
+    maprutil_upgradeNode "$node"
+
+    ssh_executeCommandasRoot "$node"  "maprcli node maintenance -nodes $host -timeoutminutes 0"
+    ssh_executeCommandasRoot "$node"  "maprcli notifyupgrade finish –node $host"
 }
 
 # @param host ip

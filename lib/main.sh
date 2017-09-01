@@ -387,7 +387,7 @@ function main_upgrade(){
 				fi
 			done
 			if [ "$isone" = "false" ]; then
-				log_error " Node [$node] is not part of the same cluster. Scooting"
+				log_warn " Node [$node] may not be part of the same cluster."
 			else
 				cldbnode="$cldbip"
 			fi
@@ -402,9 +402,11 @@ function main_upgrade(){
 	fi
 
 	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	local cldbmaster=
     local zknodes=$(maprutil_getZKNodes "$rolefile")
     local buildexists=
     local maprrepo=$(main_getRepoFile)
+    local sleeptime=60
 
     # First copy repo on all nodes
     local idx=
@@ -434,39 +436,62 @@ function main_upgrade(){
 	done
 	wait
 
-	# First stop warden on all nodes
-	for node in ${nodes[@]}
-	do
-		maprutil_restartWardenOnNode "$node" "$rolefile" "stop" 
-	done
+	if [ -z "$doRolling" ]; then
+		# First stop warden on all nodes
+		for node in ${nodes[@]}
+		do
+			maprutil_restartWardenOnNode "$node" "$rolefile" "stop" 
+		done
 
-	log_info "Stopping zookeeper..."
-	# Stop ZK on ZK nodes
-	for node in ${zknodes[@]}
-	do
-		maprutil_restartZKOnNode "$node" "$rolefile" "stop"
-	done
-	maprutil_wait
+		log_info "Stopping zookeeper..."
+		# Stop ZK on ZK nodes
+		for node in ${zknodes[@]}
+		do
+			maprutil_restartZKOnNode "$node" "$rolefile" "stop"
+		done
+		maprutil_wait
+
+		# Upgrade rest of the nodes
+		log_info "Upgrading MapR on all nodes..."
+		for node in ${nodes[@]}
+		do	
+			maprutil_upgradeNode "$node" "bg"
+		done
+		maprutil_wait
+
+		# Kill all mapred jos & yarn applications
+
+		sleep $sleeptime && maprutil_postUpgrade "$cldbnode"
 	
-	# Kill all mapred jos & yarn applications
-
+		for node in ${nodes[@]}
+		do
+			maprutil_restartWardenOnNode "$node" "$rolefile"
+		done
+		maprutil_wait
+	else
+		for node in ${zknodes[@]}
+		do
+			[ -z "$cldbmaster" ] && cldbmaster=$(maprutil_getCLDBMasterNode "$node" "maprcli")
+			[ -n "$(echo $cldbnodes | grep $node)" ] && continue
+			maprutil_rollingUpgradeOnNode "$node" "$rolefile"
+			sleep $sleeptime
+		done
+		for node in ${nodes[@]}
+		do
+			[ -n "$(echo $zknodes | grep $node)" ] && continue
+			[ -n "$(echo $cldbnodes | grep $node)" ] && continue
+			maprutil_rollingUpgradeOnNode "$node" "$rolefile"
+			sleep $sleeptime
+		done
+		for node in ${cldbnodes[@]}
+		do
+			[ -n "$(echo $cldbmaster | grep $node)" ] && continue 
+			maprutil_rollingUpgradeOnNode "$node" "$rolefile"
+			sleep $sleeptime
+		done
+		maprutil_rollingUpgradeOnNode "$cldbmaster" "$rolefile"
+	fi
 	
-	# Upgrade rest of the nodes
-	log_info "Upgrading MaPR on all nodes..."
-	for node in ${nodes[@]}
-	do	
-		maprutil_upgradeNode "$node" "bg"
-	done
-	maprutil_wait
-
-	sleep 60 && maprutil_postUpgrade "$cldbnode"
-	
-	for node in ${nodes[@]}
-	do
-		maprutil_restartWardenOnNode "$node" "$rolefile"
-	done
-	maprutil_wait
-
 	# Print URLs
 	main_printURLs
 
@@ -990,6 +1015,7 @@ mkdir -p $RUNTEMPDIR 2>/dev/null
 doInstall=0
 doUninstall=0
 doUpgrade=0
+doRolling=
 doConfigure=0
 doCmdExec=
 doLogAnalyze=
@@ -1057,6 +1083,8 @@ while [ "$2" != "" ]; do
     				fi
     			elif [[ "$i" = "force" ]]; then
     				doForce=1
+    			elif [[ "$i" = "rolling" ]]; then
+    				doRolling=1
     			elif [[ "$i" = "pontis" ]]; then
     				GLB_PONTIS=1
     			elif [[ "$i" = "confirm" ]]; then
