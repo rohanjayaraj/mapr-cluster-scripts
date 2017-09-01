@@ -189,6 +189,7 @@ while [ "$1" != "" ]; do
             setupop="upgrade"
         ;;
         -rup | --rollingupgrade)
+            setupop="upgrade"
             extraarg=$extraarg"rolling "
         ;;
         -r | --reconfigure | --reset)
