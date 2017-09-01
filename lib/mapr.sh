@@ -1093,6 +1093,7 @@ function maprutil_startResourceTraces() {
     if [[ "$ISCLIENT" -eq "0" ]] && [[ -e "/opt/mapr/roles" ]]; then
         nohup sh -c 'log="/opt/mapr/logs/mfsresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $mfspid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/gwresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $gwpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        nohup sh -c 'log="/opt/mapr/logs/drillresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/drill" ]]; do qspid=$(cat /opt/mapr/pid/drillbit.pid 2>/dev/null); if kill -0 ${qspid}; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $qspid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
 }
 
@@ -3087,7 +3088,7 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$tjson" ] && json="$json,\"threads\":$tjson"
 
     # add MFS & GW cpu
-    files="mfs.log gw.log client.log"
+    files="mfs.log gw.log client.log qs.log"
     tjson=
     for fname in $files
     do
@@ -3174,7 +3175,7 @@ function maprutil_mfsCPUUseOnCluster(){
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/$fname
     done
-    files="mfs.log gw.log"
+    files="mfs.log gw.log qs.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
@@ -3297,6 +3298,21 @@ function maprutil_buildMFSCpuUse(){
         if [ -n "$el" ] && [ -n "$sl" ]; then
             [ "$sl" -gt "$el" ] && el=$(cat $gwresuse | wc -l)
             sed -n ${sl},${el}p $gwresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/gw.log
+        fi
+    fi
+
+    local qsresuse="/opt/mapr/logs/drillresusage.log"
+    if [ -s "$qsresuse" ]; then
+        sl=1
+        el=$(cat $qsresuse | wc -l)
+        [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
+        [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
+
+        [ -n "$stime" ] && sl=$(cat $qsresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
+        [ -n "$etime" ] && el=$(cat $qsresuse | grep -n "$etime" | cut -d':' -f1 | head -1)
+        if [ -n "$el" ] && [ -n "$sl" ]; then
+            [ "$sl" -gt "$el" ] && el=$(cat $qsresuse | wc -l)
+            sed -n ${sl},${el}p $qsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/qs.log
         fi
     fi
 
