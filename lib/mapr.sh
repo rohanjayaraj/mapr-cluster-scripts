@@ -240,8 +240,8 @@ function maprutil_isClientNode() {
         return 1
     fi
     [ -n "$(grep $2 $1 | grep mapr-fileserver)" ] && return
-    local isclient=$(grep $2 $1 | grep 'mapr-client\|mapr-loopbacknfs' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
-    [ -z "$isclient" ] && isclient=$(grep $2 $1 | cut -d',' -f2 | grep mapr-core)
+    local isclient=$(grep $2 $1 | grep -v 'mapr-fileserver' | grep 'mapr-client\|mapr-loopbacknfs' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    [ -z "$isclient" ] && isclient=$(grep $2 $1 | cut -d',' -f2 | grep -v 'mapr-fileserver' | grep mapr-core)
     if [ -n "$isclient" ]; then
         echo $isclient
     fi
@@ -971,6 +971,16 @@ function maprutil_addRootUserToCntrExec(){
     done
 }
 
+function maprutil_configureSSD(){
+    local mfsconf="/opt/mapr/conf/mfs.conf"
+    [ ! -e "$mfsconf" ] && return
+
+    sed -i '/mfs.disk.is.ssd.*/d' $mfsconf
+    sed -i '/mfs.ssd.trim.enabled.*/d' $mfsconf
+    echo "mfs.disk.is.ssd=true" >> $mfsconf
+    echo "mfs.ssd.trim.enabled=true" >> $mfsconf
+}
+
 function maprutil_customConfigure(){
 
     if [ -n "$GLB_TABLE_NS" ]; then
@@ -1073,6 +1083,22 @@ function maprutil_buildDiskList() {
          local newlist=$(head -n $limit $diskfile)
          echo "$newlist" > $diskfile
     fi
+}
+
+function maprutil_isSSDOnlyInstall(){
+    [ -z "$1" ] && return
+
+    local disks="$1"
+    local hasHDD=
+    for disk in $disks
+    do
+        local isSSD=$(util_isSSDDrive "$disk")
+        if [ -z "$isSSD" ] || [ "$isSSD" = "no" ]; then
+            hasHDD=1
+            break
+        fi
+    done
+    [ -z "$hasHDD" ] && echo "yes"
 }
 
 function maprutil_startTraces() {
@@ -1192,6 +1218,9 @@ function maprutil_configure(){
     local hsnodes=$(maprutil_getNodesForService "historyserver")
     local rmnodes=$(maprutil_getNodesForService "resourcemanager")
     maprutil_buildDiskList "$diskfile"
+
+    local disklist="$(cat $diskfile)"
+    [ -n "$(maprutil_isSSDOnlyInstall "$disklist")" ] && maprutil_configureSSD
 
     if [ "$hostip" != "$cldbnode" ] && [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
         ssh_copyPublicKey "root" "$cldbnode"
