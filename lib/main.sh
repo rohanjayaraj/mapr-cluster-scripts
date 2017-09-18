@@ -345,7 +345,7 @@ function main_upgrade(){
     echo
     log_info "Checking if MapR is installed on the nodes..."
 	# Check if MapR is installed on all nodes
-	local islist=$(maprutil_isMapRInstalledOnNodes "$nodes" "version")
+	local islist="$(maprutil_isMapRInstalledOnNodes "$nodes" "version")"
 	local notlist=
 	for node in ${nodes[@]}
 	do

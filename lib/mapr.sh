@@ -3452,7 +3452,7 @@ function maprutil_getGutsDefCols(){
     local runtype="$1"
 
     local defcols="date,time,rpc,ior_ops,ior_mb,iow_ops,iow_mb"
-    local defdbcols="rget,rgetR,tgetR,vcM,vcL,vcH,bget,sg,spg,riIO,rput,rputR,tputR,bucketWr_ops,fl,ffl,sfl,mcom,rsc,rscR,bsc,ssc,spsc,spscR,rtlk,rim,rip,rop,rob"
+    local defdbcols="rget,rgetR,tgetR,rmtg,cmtg,vcM,vcL,vcH,bget,sg,spg,riIO,rput,rputR,tputR,bucketWr_ops,fl,ffl,sfl,mcom,rsc,rscR,bsc,ssc,spsc,spscR,rtlk,rim,rip,rop,rob"
     local defstrcols="mpr,mpm,mpMB,mlr,mlm,mlMB"
     local deffscols="write_ops,write_mb,lwrite_ops,lwrite_mb,read_ops,read_mb,lread_ops,lread_mb"
     local defcaccols="inode_lkps,inode_miss,small_lkps,small_miss,large_lkps,large_miss,meta_lkps,meta_miss,dir_lkps,dir_miss"
@@ -3480,7 +3480,7 @@ function marutil_getGutsSample(){
     local gutsfile="/opt/mapr/logs/guts.log"
     [ -n "$2" ] && [ "$2" = "gw" ] && gutsfile="/opt/mapr/logs/gatewayguts.log"
 
-    local gutsline="$(ssh_executeCommandasRoot "$node" "grep '[a-z]' $gutsfile | grep -v PID | grep -v Printing | head -1 | sed 's/ \+/ /g'")"
+    local gutsline="$(ssh_executeCommandasRoot "$node" "grep '^[a-z]' $gutsfile | grep time | head -1 | sed 's/ \+/ /g'")"
     local twocols="time bucketWr write lwrite bwrite read lread inode regular small large meta dir ior iow iorI iowI iorB iowB iowD iowD icache dcache"
     local lkpmiss="icache dcache inode regular small large meta dir"
     local collist=
