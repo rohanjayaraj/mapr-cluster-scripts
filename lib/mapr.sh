@@ -2913,6 +2913,7 @@ function maprutil_zipDirectory(){
 
     local tmpdir="/tmp/maprlogs/$(hostname -f)/"
     local logdir="/opt/mapr/logs"
+    local drilllogdir="$(find  /opt/mapr/drill -name logs -type d  2>/dev/null)"
     local buildid=$(cat /opt/mapr/MapRBuildVersion)
     local tarfile="maprlogs_$(hostname -f)_$buildid_$timestamp.tar.bz2"
 
@@ -2923,10 +2924,15 @@ function maprutil_zipDirectory(){
     cd $tmpdir
     if [ -z "$fileregex" ]; then
         cp -r $logdir logs  > /dev/null 2>&1
+        cp -r 
     else
         [ -z "$(ls $logdir/$fileregex 2> /dev/null)" ] && return
         mkdir -p logs  > /dev/null 2>&1
         cp -r $logdir/$fileregex logs > /dev/null 2>&1
+    fi
+    if [ -n "$drilllogdir" ]; then 
+        mkdir -p drilllogs > /dev/null 2>&1
+        cp -r $drilllogdir/drillbit.* drilllogs > /dev/null 2>&1
     fi
     local dirstotar=$(echo $(ls -d */))
     #tar -cjf $tarfile $dirstotar > /dev/null 2>&1
