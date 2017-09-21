@@ -2924,7 +2924,6 @@ function maprutil_zipDirectory(){
     cd $tmpdir
     if [ -z "$fileregex" ]; then
         cp -r $logdir logs  > /dev/null 2>&1
-        cp -r 
     else
         [ -z "$(ls $logdir/$fileregex 2> /dev/null)" ] && return
         mkdir -p logs  > /dev/null 2>&1
