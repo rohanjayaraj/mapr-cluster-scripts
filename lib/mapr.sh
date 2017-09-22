@@ -1459,7 +1459,7 @@ function maprutil_copyMapRTicketsFromCLDB(){
     done
     
     if [ "$cldbisup" = "true" ]; then
-        ssh_copyFromCommandinBG "root" "$cldbhost" "/tmp/maprticket_*" "/tmp" 2>/dev/null
+        ssh_copyFromCommand "root" "$cldbhost" "/tmp/maprticket_*" "/tmp" 2>/dev/null
     fi
 }
 
@@ -1489,16 +1489,14 @@ function maprutil_copySecureFilesFromCLDB(){
     sleep 10
 
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
-        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/"; maprutil_addToPIDList "$!" 
+        ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/"; 
     fi
     if [ "$ISCLIENT" -eq 0 ]; then
-        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"; maprutil_addToPIDList "$!" 
-        ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"; maprutil_addToPIDList "$!" 
+        ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"; 
+        ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"; 
     fi
-    ssh_copyFromCommandinBG "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"; maprutil_addToPIDList "$!" 
+    ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"; 
     
-    maprutil_wait
-
     if [ "$ISCLIENT" -eq 0 ]; then
         chown mapr:mapr /opt/mapr/conf/maprserverticket > /dev/null 2>&1
         chmod +600 /opt/mapr/conf/maprserverticket /opt/mapr/conf/ssl_keystore > /dev/null 2>&1

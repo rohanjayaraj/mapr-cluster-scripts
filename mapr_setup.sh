@@ -105,7 +105,9 @@ function usage () {
     echo -e "\t\t - Specify a PATCHID for the mapr-patch (not client)"
 
     echo -e "\t -spy | --spyglass"
-    echo -e "\t\t - Install SpyGlass"
+    echo -e "\t\t - Install SpyGlass (only opentsdb,collectd,grafana)"
+    echo -e "\t -spy2 | --spyglass2"
+    echo -e "\t\t - Install SpyGlass (only opentsdb,collectd,grafana,kibana,elasticsearch,fluentd)"
     echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
     echo -e "\t -n=CLUSTER_NAME | --name=CLUSTER_NAME (default : archerx)" 
@@ -246,6 +248,9 @@ while [ "$1" != "" ]; do
         ;;
         -spy | --spyglass)
             extraarg=$extraarg"spy "
+        ;;
+        -spy2 | --spyglass2)
+            extraarg=$extraarg"spy2 "
         ;;
         -qs | --queryservice)
             extraarg=$extraarg"queryservice "

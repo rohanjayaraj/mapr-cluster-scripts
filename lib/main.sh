@@ -957,6 +957,7 @@ function main_timetaken(){
 }
 
 function main_addSpyglass(){
+	local addkibana="$1"
 	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
 	local newrolefile=$(mktemp -p $RUNTEMPDIR)
@@ -966,9 +967,11 @@ function main_addSpyglass(){
     	if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
 			continue
 		elif [ "$node" = "$cldbnode" ]; then
-    		sed -i "/$node/ s/$/,mapr-opentsdb,mapr-grafana,mapr-elasticsearch,mapr-kibana,mapr-collectd,mapr-fluentd/" $newrolefile
+    		sed -i "/$node/ s/$/,mapr-opentsdb,mapr-grafana,mapr-collectd/" $newrolefile
+    		[ -n "$addkibana" ] && sed -i "/$node/ s/$/,mapr-elasticsearch,mapr-kibana,mapr-fluentd/" $newrolefile
     	else
-    		sed -i "/$node/ s/$/,mapr-collectd,mapr-fluentd/" $newrolefile
+    		sed -i "/$node/ s/$/,mapr-collectd/" $newrolefile
+    		[ -n "$addkibana" ] && sed -i "/$node/ s/$/,mapr-fluentd/" $newrolefile
     	fi
 	done
 	rolefile=$newrolefile
@@ -1098,6 +1101,8 @@ while [ "$2" != "" ]; do
     				GLB_MAPR_PATCH=1
     			elif [[ "$i" = "spy" ]]; then
     				main_addSpyglass
+    			elif [[ "$i" = "spy2" ]]; then
+    				main_addSpyglass "addkibana"
     			elif [[ "$i" = "queryservice" ]]; then
     				GLB_ENABLE_QS=1
     			elif [[ "$i" = "ssdonly" ]]; then
