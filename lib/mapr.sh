@@ -1123,7 +1123,7 @@ function maprutil_getSSDvsHDDRatio(){
     [[ "$numhdd" -eq 0 ]] && [[ "$numssd" -eq 0 ]] && return -1
     [[ "$numhdd" -eq 0 ]] && return 1
     [[ "$numssd" -eq 0 ]] && return 0
-    [[ "$(echo "$numssd/$numhdd" | bc)" -ge "2" ] && return 1
+    [[ "$(echo "$numssd/$numhdd" | bc)" -ge "2" ]] && return 1
     
     return 0
 } 
