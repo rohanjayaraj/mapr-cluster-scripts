@@ -1076,6 +1076,9 @@ function maprutil_buildDiskList() {
     fi
     local diskfile=$1
     echo "$(util_getRawDisks $GLB_DISK_TYPE)" > $diskfile
+    local diskratio=$(maprutil_getSSDvsHDDRatio "$diskfile")
+    [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "1" ]] && echo "$(util_getRawDisks "ssd")" > $diskfile
+    [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "0" ]] && echo "$(util_getRawDisks "hdd")" > $diskfile
 
     local limit=$GLB_MAX_DISKS
     local numdisks=$(wc -l $diskfile | cut -f1 -d' ')
@@ -1100,6 +1103,31 @@ function maprutil_isSSDOnlyInstall(){
     done
     [ -z "$hasHDD" ] && echo "yes"
 }
+
+function maprutil_getSSDvsHDDRatio(){
+    [ -z "$1" ] && return
+
+    local disks="$1"
+    local hasHDD=
+    local numssd=0
+    local numhdd=0
+    for disk in $disks
+    do
+        local isSSD=$(util_isSSDDrive "$disk")
+        if [ -z "$isSSD" ] || [ "$isSSD" = "no" ]; then
+            let numhdd=numhdd+1
+        else
+            let numssd=numssd=1
+        fi
+    done
+    [[ "$numhdd" -eq 0 ]] && [[ "$numssd" -eq 0 ]] && return -1
+    [[ "$numhdd" -eq 0 ]] && return 1
+    [[ "$numssd" -eq 0 ]] && return 0
+    [[ "$(echo "$numssd/$numhdd" | bc)" -ge "2" ] && return 1
+    
+    return 0
+} 
+
 
 function maprutil_startTraces() {
     maprutil_killTraces
@@ -3752,8 +3780,8 @@ function maprutil_buildClientUsage(){
 
     local stts=
     local etts=
-    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M:%S") && stts=$(date -d "$stime" +%s)
-    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M:%S") && etts=$(date -d "$etime" +%s)
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M") && stts=$(date -d "$stime" +%s)
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M") && etts=$(date -d "$etime" +%s)
 
     # Build CPU & Memory average for each second in the time range
     local clientsfile="$tmpdir/client.log"
