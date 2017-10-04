@@ -47,7 +47,7 @@ function ssh_checkSSHonNodes(){
 
 # Install sshpass
 function ssh_installsshpass(){
-	command -v sshpass >/dev/null 2>&1 || yum install sshpass -y -q 2>/dev/null || apt-get install sshpass -y 2>/dev/null
+	command -v sshpass >/dev/null 2>&1 || yum install sshpass -y -q --enablerepo=C6*,C7*,epel,epel-release 2>/dev/null || apt-get install sshpass -y 2>/dev/null
 }
 
 # @param user

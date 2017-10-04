@@ -75,7 +75,7 @@ function util_checkAndInstall2(){
     fi
     if [ "$(getOS)" = "centos" ]; then
         if [ ! -e "$1" ]; then
-            yum install $2 -y -q 2>/dev/null
+            yum install $2 -y -q --enablerepo=C6*,C7*,epel,epel-release 2>/dev/null
         fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         if [ ! -e "$1" ]; then
@@ -96,8 +96,8 @@ function util_maprprereq(){
     python-devel python-pycurl rpcbind sdparm sshpass sysstat"
     if [ "$(getOS)" = "centos" ]; then
         yum --disablerepo=epel -q -y update ca-certificates 
-        yum -q -y install $DEPENDENCY_RPM
-        yum -q -y install java-1.8.0-openjdk-devel
+        yum -q -y install $DEPENDENCY_RPM --enablerepo=C6*,C7*,epel,epel-release 
+        yum -q -y install java-1.8.0-openjdk-devel --enablerepo=C6*,C7*,epel,epel-release 
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get update -qq 
         apt-get install -qq -y ca-certificates
@@ -121,7 +121,7 @@ EOM
 
 function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
-         yum repolist all 2>&1 | grep "epel/" || yum install epel-release -y > /dev/null 2>&1
+         yum repolist all 2>&1 | grep "epel/" || yum install epel-release -y --enablerepo=C6*,C7* > /dev/null 2>&1
          yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
     fi
 
