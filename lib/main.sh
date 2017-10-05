@@ -776,10 +776,14 @@ function main_runCommandExec(){
 	    	maprutil_runCommandsOnNode "$node" "traceoff" "silent"
 		done
 		cmds=$(echo $cmds | sed 's/traceoff//')
-	elif [[ -n "$(echo $cmds | grep traceon)" ]]; then
+	elif [[ -n "$(echo $cmds | grep 'traceon\|insttrace')" ]]; then
+		local nodecmds=$(echo $cmds | tr ' ' '\n' |  grep -w 'traceon\|insttrace' | sed ':a;N;$!ba;s/\n/ /g')
 		for node in ${nodes[@]}
 		do	
-	    	maprutil_runCommandsOnNode "$node" "traceon" "silent"
+			for nodecmd in $nodecmds
+			do
+	    		maprutil_runCommandsOnNode "$node" "$nodecmd" "silent"
+	    	done
 		done
 		cmds=$(echo $cmds | sed 's/traceon//')
 	fi
