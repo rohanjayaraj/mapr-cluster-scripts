@@ -1143,6 +1143,18 @@ function maprutil_startTraces() {
     maprutil_startClientResourceTraces
 }
 
+function maprutil_startInstanceGuts(){
+    local numinst="$1"
+    [ -z "$numinst" ] && numinst="$(/opt/mapr/server/mrconfig info instances 2>/dev/null | head -1 )"
+    [ -z "$numinst" ] && return
+    [[ -n "$numinst" ]] && [[ "$numinst" -le "1" ]] && return
+    for (( i=0; i<$numinst; i++ ))
+    do
+        [ -n "$(ps -ef | grep "[g]uts_inst$i.log")" ] && continue
+        var=$i nohup sh -c 'id=$var; log="/opt/mapr/logs/guts_inst$id.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 14 /opt/mapr/bin/guts instance:$id time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all io:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+    done
+}
+
 function maprutil_startResourceTraces() {
     if [[ "$ISCLIENT" -eq "0" ]] && [[ -e "/opt/mapr/roles" ]]; then
         nohup sh -c 'log="/opt/mapr/logs/mfsresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $mfspid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
@@ -1965,6 +1977,9 @@ function maprutil_runCommands(){
             traceon)
                 maprutil_killTraces
                 maprutil_startTraces
+            ;;
+            insttrace)
+                maprutil_startInstanceGuts
             ;;
             traceoff)
                 maprutil_killTraces

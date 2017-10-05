@@ -142,6 +142,8 @@ function usage () {
     echo -e "\t\t - Enable guts,dstat & iostat on each node after INSTALL. (Can be run post install as well)"
     echo -e "\t -dt | --disabletrace" 
     echo -e "\t\t - Disable trace processes on all nodes (Can be run post install as well)"
+    echo -e "\t -ig | --instanceguts"
+    echo -e "\t\t - Enable instance level guts trace on all nodes"
     
     echo 
 	echo " Post install Options : "
@@ -239,6 +241,9 @@ while [ "$1" != "" ]; do
         ;;
         -et | --enabletrace)
             extraarg=$extraarg"traceon "
+        ;;
+        -ig | --instanceguts)
+            extraarg=$extraarg"insttrace "
         ;;
         -dt | --disabletrace)
             extraarg=$extraarg"traceoff "
