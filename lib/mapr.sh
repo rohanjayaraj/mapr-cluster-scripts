@@ -1438,6 +1438,9 @@ function maprutil_postConfigure(){
     log_info "$cmd"
     bash -c "$cmd"
 
+    [ -n "$otnodes" ] && /opt/mapr/collectd/collectd-*/etc/init.d/collectd restart > /dev/null 2>&1
+    [ -n "$esnodes" ] && /opt/mapr/fluentd/fluentd-*/etc/init.d/fluentd restart > /dev/null 2>&1
+
     #maprutil_restartWarden
 }
 
