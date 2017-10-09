@@ -696,15 +696,21 @@ function main_getgutsstats(){
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
 	local node=$(util_getFirstElement "$mfsnodes")
 
-	local collist=$(marutil_getGutsSample "$node" "$doGutsType")
-	local defaultcols="$(maprutil_getGutsDefCols "$doGutsCol")"
+	local collist=$(marutil_getGutsSample "$node" "$doGutsType" )
+	local defaultcols="$(maprutil_getGutsDefCols "$collist" "$doGutsCol")"
+	local usedefcols=
+
 	if [ "$doGutsType" = "gw" ]; then
 		doGutsDef=
-	elif [ -n "$doGutsCol" ] && [ -n "$(echo $doGutsCol | sed 's/,/ /g' | tr ' ' '\n' | grep 'stream\|cache\|fs\|db')" ]; then
-		doGutsCol= 
+	elif [ -n "$doGutsCol" ] && [ -n "$(echo $doGutsCol | sed 's/,/ /g' | tr ' ' '\n' | grep 'stream\|cache\|fs\|db\|all')" ]; then
+		doGutsCol=
+		usedefcols=1
 	fi
-	[ -n "$doGutsCol" ] && doGutsCol="$(echo "$doGutsCol" | sed 's/,/ /g')"
-	[ -z "$doGutsCol" ] || [ -n "$doGutsDef" ] && doGutsCol="$defaultcols"
+	if [ -n "$doGutsCol" ]; then
+		doGutsCol="$(echo "$doGutsCol" | sed 's/,/ /g')"
+	elif [ -n "$usedefcols" ] || [ -n "$doGutsDef" ]; then
+		doGutsCol="$defaultcols"
+	fi
 
 	local colids=
 
@@ -715,8 +721,15 @@ function main_getgutsstats(){
 			[ -n "$cid" ] && colids="$colids $cid"
 		done
 	else
+		local tmpfile=$(mktemp)
+		local ncollist=$(echo "$collist" | sed 's/\([0-9]*=\)/\\033\[95m\1/g' | sed 's/\(=[a-z]*\)/\\033\[0m\1/g')
+		ncollist=$(echo "$ncollist" | sed '1~2 s/\(=[a-Z0-9_]*\)/\\033\[36m\1/g' | sed '1~2 s/\(=[a-Z0-9_]*\)/\1\\033\[0m/g')
+		ncollist=$(echo "$ncollist" | sed '2~2 s/\(=[a-Z0-9_]*\)/\\033\[32m\1/g' | sed '2~2 s/\(=[a-Z0-9_]*\)/\1\\033\[0m/g')
+		echo "$ncollist" > $tmpfile
 		log_msghead "Guts column list : "
-		log_msg "$collist"
+		log_msghead "------------------ "
+		log_msg "$(column -t < $tmpfile | tr '=' ' ')"
+		rm -rf $tmpfile > /dev/null 2>&1
 		log_inline "Enter column numbers(space separated) to collect :"
 		read colids
 		[ -n "$colids" ] && log_info "Column list selected : $colids"
@@ -732,8 +745,8 @@ function main_getgutsstats(){
 	for colid in $colids
 	do
 		[ "$(util_isNumber "$colid")" = "false" ] && log_error "Invalid column id specified" && return
-		[ -z "$(echo $collist | grep -o -w "$colid=[a-Z_]*")" ] && log_error "Column id '$colid' doesn't exist" && return
-		colnames="$colnames $(echo $collist | grep -o -w "$colid=[a-Z_]*" | cut -d'=' -f2)"
+		[ -z "$(echo $collist | grep -o -w "$colid=[a-Z0-9_]*")" ] && log_error "Column id '$colid' doesn't exist" && return
+		colnames="$colnames $(echo $collist | grep -o -w "$colid=[a-Z0-9_]*" | cut -d'=' -f2)"
 	done
 
 	[ -z "$doGutsType" ] && doGutsType="mfs"
