@@ -2971,8 +2971,7 @@ function maprutil_zipDirectory(){
     cd $tmpdir
     if [ -z "$fileregex" ]; then
         cp -r $logdir logs  > /dev/null 2>&1
-    else
-        [ -z "$(ls $logdir/$fileregex 2> /dev/null)" ] && return
+    elif [ -n "$(ls $logdir/$fileregex 2> /dev/null)" ]; then
         mkdir -p logs  > /dev/null 2>&1
         cp -r $logdir/$fileregex logs > /dev/null 2>&1
     fi
@@ -3390,7 +3389,7 @@ function maprutil_buildMFSCpuUse(){
         [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
         [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
         if [ -z "$el" ] || [ -z "$sl" ]; then
-            if [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
+            [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
             [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
             [ -z "$sl" ] && sl=1
             [ -z "$el" ] && el=$(cat $gwresuse | wc -l)
@@ -3414,7 +3413,7 @@ function maprutil_buildMFSCpuUse(){
         [ -n "$etime" ] && el=$(cat $qsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
         
         if [ -z "$el" ] || [ -z "$sl" ]; then
-            if [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
+            [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
             [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
             [ -z "$sl" ] && sl=1
             [ -z "$el" ] && el=$(cat $qsresuse | wc -l)
@@ -3535,7 +3534,7 @@ function maprutil_buildMFSCpuUse(){
         [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
         
         if [ -z "$el" ] || [ -z "$sl" ]; then
-            if [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
+            [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
             [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
             [ -z "$sl" ] && sl=1
             [ -z "$el" ] && el=$(cat $mfsresuse | wc -l)
