@@ -20,7 +20,7 @@ function maprutil_getCLDBMasterNode() {
     local hostip=$(util_getHostIP)
     local usemaprcli=$2
     if [ -n "$2" ] && [ -n "$1" ]; then
-        master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
+        master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster 2>/dev/null | grep HostName | cut -d' ' -f4" "10")
         master=$(util_getIPfromHostName $master)
     elif [ -n "$1" ] && [ "$hostip" != "$1" ]; then
         #master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
@@ -130,7 +130,7 @@ function maprutil_getMFSDataNodes() {
         local cldbnode=$(util_getFirstElement "$cldbnodes")
         local isCLDBUp=$(maprutil_waitForCLDBonNode "$cldbnode")
         if [ -n "$isCLDBUp" ]; then
-            local mfshosts="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -json | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep hostname | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
+            local mfshosts="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -json 2>/dev/null | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep hostname | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
             for mfshost in $mfshosts
             do
                 mfsnodes="$mfsnodes $(util_getIPfromHostName $mfshost)"
@@ -1016,12 +1016,12 @@ function maprutil_customConfigure(){
 # @param force move CLDB topology
 function maprutil_configureCLDBTopology(){
     log_info "[$(util_getHostIP)] Moving $GLB_CLUSTER_SIZE nodes to /data topology"
-    local datatopo=$(maprcli node list -json | grep racktopo | grep "/data/" | wc -l)
-    local numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
+    local datatopo=$(maprcli node list -json 2>/dev/null | grep racktopo | grep "/data/" | wc -l)
+    local numdnodes=$(maprcli node list  -json 2>/dev/null | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
     local j=0
     local downnodes=
     while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ]; do
-        numdnodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
+        numdnodes=$(maprcli node list  -json 2>/dev/null | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
         let j=j+1
         if [ "$j" -gt 12 ]; then
             log_warn "[$(util_getHostIP)] Timeout reached waiting for nodes to be online"
@@ -1039,7 +1039,7 @@ function maprutil_configureCLDBTopology(){
         return
     fi
     ## Move all nodes under /data topology
-    local datanodes=$(maprcli node list  -json | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ",")
+    local datanodes=$(maprcli node list  -json 2>/dev/null | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ",")
     maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
     
     ## Move CLDB if only forced or # of nodes > 5
@@ -1047,7 +1047,7 @@ function maprutil_configureCLDBTopology(){
         ### Moving CLDB Nodes to CLDB topology
         #local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
         log_info "[$(util_getHostIP)] Moving CLDB node(s) & volume to /cldb topology"
-        local cldbnodes=$(maprcli node list -json | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')
+        local cldbnodes=$(maprcli node list -json 2>/dev/null | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')
         maprcli node move -serverids "$cldbnodes" -topology /cldb 2>/dev/null
         ### Moving CLDB Volume as well
         maprcli volume move -name mapr.cldb.internal -topology /cldb 2>/dev/null
@@ -2273,7 +2273,7 @@ function maprutil_printTabletStats2(){
     local tabletindex=$1
     local tabletfid=$2
 
-    local tabletinfo=$(maprcli debugdb dump -fid $tabletfid -json | grep -w 'numPhysicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
+    local tabletinfo=$(maprcli debugdb dump -fid $tabletfid -json 2>/dev/null | grep -w 'numPhysicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
     local tabletsize=$(echo "$tabletinfo" |  grep -w numPhysicalBlocks | cut -d':' -f2 | awk '{sum+=$1}END{print sum*8192/1073741824}')
     tabletsize=$(printf "%.2f\n" $tabletsize)
     local numrows=$(echo "$tabletinfo" | grep -w numRows | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
@@ -2390,7 +2390,7 @@ function maprutil_getMapRInfo(){
         sppermfs=$(timeout 10 /opt/mapr/server/mrconfig sp list -v 2>/dev/null| grep SP[0-9] | awk '{print $18}' | tr -d ',' | uniq -c | awk '{print $1}' | sort -nr | head -1)
         #[[ "$nummfs" -gt "1" ]] && [[ "$sppermfs" -eq "0" ]] && sppermfs=$(/opt/mapr/server/mrconfig sp list -v 2>/dev/null| grep SP[0-9] | awk '{print $18}' | tr -d ',' | uniq -c | awk '{print $1}' | sort -nr | head -1)
         [[ "$sppermfs" -eq 0 ]] && sppermfs=$numsps
-        command -v maprcli >/dev/null 2>&1 && nodetopo=$(timeout 10 maprcli node list -json | grep "$(hostname -f)" | grep racktopo | sed "s/$(hostname -f)//g" | cut -d ':' -f2 | tr -d '"' | tr -d ',')
+        command -v maprcli >/dev/null 2>&1 && nodetopo=$(timeout 10 maprcli node list -json 2>/dev/null | grep "$(hostname -f)" | grep racktopo | sed "s/$(hostname -f)//g" | cut -d ':' -f2 | tr -d '"' | tr -d ',')
     fi
     
     log_msghead "MapR Info : "
@@ -2598,7 +2598,7 @@ function maprutil_applyLicense(){
     while [ "${jobs}" -ne "0" ]; do
         log_info "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 10s"
         if [ "$jobs" -ne 0 ]; then
-            local licenseExists=`/opt/mapr/bin/maprcli license list | grep M7 | wc -l`
+            local licenseExists=`/opt/mapr/bin/maprcli license list 2>/dev/null | grep M7 | wc -l`
             if [ "$licenseExists" -ne 0 ]; then
                 jobs=0
             else
@@ -2621,7 +2621,7 @@ function maprutil_applyLicense(){
     done
 
     if [[ "${jobs}" -eq "0" ]] && [[ -n "$GLB_HAS_FUSE" ]]; then
-        local clusterid=$(maprcli dashboard info -json | grep -A5 cluster | grep id | tr -d '"' | tr -d ',' | cut -d':' -f2)
+        local clusterid=$(maprcli dashboard info -json 2>/dev/null | grep -A5 cluster | grep id | tr -d '"' | tr -d ',' | cut -d':' -f2)
         local expdate=$(date -d "+30 days" +%Y-%m-%d)
         local licfile="/tmp/LatestFuseLicensePlatinum.txt"
         curl -F 'username=maprmanager' -F 'password=maprmapr' -X POST --cookie-jar /tmp/tmpckfile https://apitest.mapr.com/license/authenticate/ 2>/dev/null
@@ -3363,6 +3363,14 @@ function maprutil_buildMFSCpuUse(){
     local etime="$3"
     local sl=
     local el=
+    local stts=
+    local etts=
+    local cst=
+    local cet=
+    local invalidts=
+
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M") && stts=$(date -d "$stime" +%s)
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M") && etts=$(date -d "$etime" +%s)
 
     local tempdir="/tmp/mfscpuuse/$timestamp/$(hostname -f)"
     mkdir -p $tempdir > /dev/null 2>&1
@@ -3375,13 +3383,20 @@ function maprutil_buildMFSCpuUse(){
     if [ -s "$gwresuse" ]; then
         sl=1
         el=$(cat $gwresuse | wc -l)
-        [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
-        [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
+        
+        cst=$(sed -n 1p $gwresuse | awk '{print $1,$2}') && cst=$(date -d "$cst" +%s)
+        cet=$(tail -1 $gwresuse | awk '{print $1,$2}') && cet=$(date -d "$cet" +%s)
 
         [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
-        [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | head -1)
-        if [ -n "$el" ] && [ -n "$sl" ]; then
-            [ "$sl" -gt "$el" ] && el=$(cat $gwresuse | wc -l)
+        [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
+        if [ -z "$el" ] || [ -z "$sl" ]; then
+            if [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
+            [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
+            [ -z "$sl" ] && sl=1
+            [ -z "$el" ] && el=$(cat $gwresuse | wc -l)
+        fi 
+        [ "$sl" -gt "$el" ] && el=$(cat $gwresuse | wc -l)
+        if [ -z "$invalidts" ]; then
             sed -n ${sl},${el}p $gwresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/gw.log &
         fi
     fi
@@ -3390,15 +3405,25 @@ function maprutil_buildMFSCpuUse(){
     if [ -s "$qsresuse" ]; then
         sl=1
         el=$(cat $qsresuse | wc -l)
-        [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
-        [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
+        invalidts=
+        
+        cst=$(sed -n 1p $qsresuse | awk '{print $1,$2}') && cst=$(date -d "$cst" +%s)
+        cet=$(tail -1 $qsresuse | awk '{print $1,$2}') && cet=$(date -d "$cet" +%s)
 
         [ -n "$stime" ] && sl=$(cat $qsresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
-        [ -n "$etime" ] && el=$(cat $qsresuse | grep -n "$etime" | cut -d':' -f1 | head -1)
-        if [ -n "$el" ] && [ -n "$sl" ]; then
-            [ "$sl" -gt "$el" ] && el=$(cat $qsresuse | wc -l)
+        [ -n "$etime" ] && el=$(cat $qsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
+        
+        if [ -z "$el" ] || [ -z "$sl" ]; then
+            if [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
+            [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
+            [ -z "$sl" ] && sl=1
+            [ -z "$el" ] && el=$(cat $qsresuse | wc -l)
+        fi 
+        [ "$sl" -gt "$el" ] && el=$(cat $qsresuse | wc -l)
+        if [ -z "$invalidts" ]; then
             sed -n ${sl},${el}p $qsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/qs.log &
         fi
+        
     fi
 
     local netuse="/opt/mapr/logs/dstat.log"
@@ -3409,8 +3434,8 @@ function maprutil_buildMFSCpuUse(){
         etime="$3"
         local year=
 
-        [ -n "$stime" ] && year=$(date -d "$stime" "+%Y") && stime=$(date -d "$stime" "+%d-%m %H:%M:%S") 
-        [ -n "$etime" ] && etime=$(date -d "$etime" "+%d-%m %H:%M:%S")
+        [ -n "$stime" ] && year=$(date -d "$stime" "+%Y") && stime=$(date -d "$stime" "+%d-%m %H:%M") 
+        [ -n "$etime" ] && etime=$(date -d "$etime" "+%d-%m %H:%M")
         [ -n "$stime" ] && sl=$(cat $netuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
         [ -n "$etime" ] && el=$(cat $netuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
         if [ -n "$el" ] && [ -n "$sl" ]; then
@@ -3435,6 +3460,7 @@ function maprutil_buildMFSCpuUse(){
     [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
     [ -n "$stime" ] && sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1 | head -1)
     [ -n "$etime" ] && el=$(cat $mfstop | grep -n "$etime" | cut -d':' -f1 | head -1)
+
     [ -z "$el" ] || [ -z "$sl" ] && log_error "[$(util_getHostIP)] Start or End time not found in the mfstop.log. Specify newer time range" && return
     [ "$sl" -gt "$el" ] && el=$(cat $mfstop | wc -l)
 
@@ -3491,18 +3517,33 @@ function maprutil_buildMFSCpuUse(){
     wait
     
     local mfsresuse="/opt/mapr/logs/mfsresusage.log"
-    sl=1
-    el=$(cat $mfsresuse | wc -l)
-    stime="$2"
-    etime="$3"
+    
+    if [ -s "$mfsresuse" ]; then
+        sl=1
+        el=$(cat $mfsresuse | wc -l)
+        stime="$2"
+        etime="$3"
+        invalidts=
 
-    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
-    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
-    [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
-    [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | head -1)
-    if [ -n "$el" ] && [ -n "$sl" ]; then
+        [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
+        [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
+
+        cst=$(sed -n 1p $mfsresuse | awk '{print $1,$2}') && cst=$(date -d "$cst" +%s)
+        cet=$(tail -1 $mfsresuse | awk '{print $1,$2}') && cet=$(date -d "$cet" +%s)
+
+        [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
+        [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
+        
+        if [ -z "$el" ] || [ -z "$sl" ]; then
+            if [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
+            [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
+            [ -z "$sl" ] && sl=1
+            [ -z "$el" ] && el=$(cat $mfsresuse | wc -l)
+        fi 
         [ "$sl" -gt "$el" ] && el=$(cat $mfsresuse | wc -l)
-        sed -n ${sl},${el}p $mfsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/mfs.log &
+        if [ -z "$invalidts" ]; then
+            sed -n ${sl},${el}p $mfsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/mfs.log &
+        fi
     fi
 
     if [ -s "/opt/mapr/logs/iostat.log" ]; then 
