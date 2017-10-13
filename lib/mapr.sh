@@ -3180,7 +3180,7 @@ function maprutil_publishMFSCPUUse(){
     done
     [ -n "$tjson" ] && json="$json,$tjson"
 
-    files="disks.log"
+    files="disks.log cpu.log"
     tjson=
     for fname in $files
     do
@@ -3262,6 +3262,12 @@ function maprutil_mfsCPUUseOnCluster(){
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {msum+=$i; k=i+1; csum=$k; j++} printf("%s %s %.3f %.0f\n",$1,$2,msum/j,csum/j); msum=0; csum=0; j=0}' > $logdir/$fname &
+    done
+    files="cpu.log"
+    for fname in $files
+    do
+        local filelist=$(find $dirlist -name $fname 2>/dev/null)
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) {csum+=$i; j++} printf("%s %s %.0f\n",$1,$2,csum/j); csum=0; j=0}' > $logdir/$fname &
     done
     files="disks.log"
     for fname in $files
@@ -3425,21 +3431,22 @@ function maprutil_buildMFSCpuUse(){
         
     fi
 
-    local netuse="/opt/mapr/logs/dstat.log"
-    if [ -s "$netuse" ]; then
+    local sysuse="/opt/mapr/logs/dstat.log"
+    if [ -s "$sysuse" ]; then
         sl=1
-        el=$(cat $netuse | wc -l)
+        el=$(cat $sysuse | wc -l)
         stime="$2"
         etime="$3"
         local year=
 
         [ -n "$stime" ] && year=$(date -d "$stime" "+%Y") && stime=$(date -d "$stime" "+%d-%m %H:%M") 
         [ -n "$etime" ] && etime=$(date -d "$etime" "+%d-%m %H:%M")
-        [ -n "$stime" ] && sl=$(cat $netuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
-        [ -n "$etime" ] && el=$(cat $netuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
+        [ -n "$stime" ] && sl=$(cat $sysuse | grep -n "$stime" | cut -d':' -f1 | tail -1)
+        [ -n "$etime" ] && el=$(cat $sysuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
         if [ -n "$el" ] && [ -n "$sl" ]; then
             [ -z "$year" ] && year=$(date +%Y)
-            sed -n ${sl},${el}p $netuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{ r=$11; s=$12; if(r ~ /M/) {r=r*1;} else if(r ~ /k/) {r=r*1/1024} else if(r ~ /B/) {r=r*1/(1024*1024)} if(r ~ /M/) {s=s*1;} else if(s ~ /k/) {s=s*1/1024} else if(s ~ /B/) {s=s*1/(1024*1024)} split($1,d,"-"); printf("%s-%s-%s %s %.0f %.0f\n",y,d[2],d[1],$2,r,s)}' > $tempdir/net.log &
+            sed -n ${sl},${el}p $sysuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{ r=$11; s=$12; if(r ~ /M/) {r=r*1;} else if(r ~ /k/) {r=r*1/1024} else if(r ~ /B/) {r=r*1/(1024*1024)} if(r ~ /M/) {s=s*1;} else if(s ~ /k/) {s=s*1/1024} else if(s ~ /B/) {s=s*1/(1024*1024)} split($1,d,"-"); printf("%s-%s-%s %s %.0f %.0f\n",y,d[2],d[1],$2,r,s)}' > $tempdir/net.log &
+            sed -n ${sl},${el}p $sysuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{c=100-$5; split($1,d,"-"); printf("%s-%s-%s %s %.0f\n",y,d[2],d[1],$2,c)}' > $tempdir/cpu.log &
         fi
     fi
     wait
