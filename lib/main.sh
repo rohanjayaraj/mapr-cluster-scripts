@@ -136,6 +136,7 @@ GLB_PERF_URL=
 GLB_SYSINFO_OPTION=
 GLB_GREP_MAPRLOGS=
 GLB_LOG_VERBOSE=
+GLB_COPY_DIR=
 GLB_EXIT_ERRCODE=
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
@@ -651,7 +652,7 @@ function main_backuplogs(){
 }
 
 function main_getmfstrace(){
-	log_msghead "[$(util_getCurDate)] Running 'gstack' on mfs process on all nodes and copying the trace files to $doMFSTrace"
+	log_msghead "[$(util_getCurDate)] Running 'gstack' on mfs process on all nodes and copying the trace files to $copydir"
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}
 	do	
@@ -660,13 +661,13 @@ function main_getmfstrace(){
 	maprutil_wait
 	for node in ${nodes[@]}
 	do	
-    	maprutil_copymfstrace "$node" "$timestamp" "$doMFSTrace"
+    	maprutil_copymfstrace "$node" "$timestamp" "$copydir"
 	done
 	wait
 }
 
 function main_getmfscpuuse(){
-	log_msghead "[$(util_getCurDate)] Building & collecting MFS/GW/Client CPU & Memory and MFS disk & network usage logs to '$doMFSCPUUse'"
+	log_msghead "[$(util_getCurDate)] Building & collecting MFS/GW/Client CPU & Memory and MFS disk & network usage logs to '$copydir'"
 	
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start/End time not specified. Using entire time range available"
 	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=
@@ -680,16 +681,16 @@ function main_getmfscpuuse(){
 	maprutil_wait
 	for node in ${nodes[@]}
 	do	
-		maprutil_copymfscpuuse "$node" "$timestamp" "$doMFSCPUUse"
+		maprutil_copymfscpuuse "$node" "$timestamp" "$copydir"
 	done
 	wait
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
 	log_info "Aggregating stats from all nodes [ $nodes ]"
-	maprutil_mfsCPUUseOnCluster "$nodes" "$mfsnodes" "$doMFSCPUUse" "$timestamp" "$doPublish"
+	maprutil_mfsCPUUseOnCluster "$nodes" "$mfsnodes" "$copydir" "$timestamp" "$doPublish"
 }
 
 function main_getgutsstats(){
-	log_msghead "[$(util_getCurDate)] Building & collecting 'guts' trends to $doGutsStats"
+	log_msghead "[$(util_getCurDate)] Building & collecting 'guts' trends to $copydir"
 	
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start/End time not specified. Using entire time range available"
 	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=
@@ -762,11 +763,11 @@ function main_getgutsstats(){
 	for node in ${nodes[@]}
 	do	
 		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
-		maprutil_copygutsstats "$node" "$timestamp" "$doGutsStats"
+		maprutil_copygutsstats "$node" "$timestamp" "$copydir"
 	done
 	wait
 	log_info "Aggregating guts stats from MFS Nodes [$mfsnodes ]"
-	maprutil_gutstatsOnCluster "$mfsnodes" "$doGutsStats" "$timestamp" "$colids" "$colnames" "$doPublish"
+	maprutil_gutstatsOnCluster "$mfsnodes" "$copydir" "$timestamp" "$colids" "$colnames" "$doPublish"
 }
 
 function main_runCommandExec(){
@@ -1015,6 +1016,7 @@ function main_printURLs(){
 function main_preSetup(){
 	[ -z "$GLB_HAS_FUSE" ] && [ -n "$(cat $rolefile | grep mapr-posix)" ] && GLB_HAS_FUSE=1
 	[ -z "$GLB_ROLE_LIST" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
+	[ -n "$copydir" ] && GLB_COPY_DIR="$copydir"
 }
 
 function main_extractMapRVersion(){
@@ -1044,16 +1046,14 @@ doPontis=0
 doForce=0
 doSilent=0
 doBackup=
-doMFSTrace=
 doNumIter=10
-doMFSCPUUse=
 doPublish=
-doGutsStats=
 doGutsDef=
 doGutsCol=
 doGutsType=
 startstr=
 endstr=
+copydir=
 bkpRegex=
 useBuildID=
 useRepoURL=
@@ -1162,6 +1162,9 @@ while [ "$2" != "" ]; do
 	    		fi
 	    	done
 		;;
+		-dir)
+			[ -n "$VALUE" ] && copydir="$VALUE"
+		;;
 		-si)
 			if [ -n "$VALUE" ]; then
 				doLogAnalyze="$doLogAnalyze sysinfo"
@@ -1218,19 +1221,10 @@ while [ "$2" != "" ]; do
     	-b)
 			if [ -n "$VALUE" ]; then
 				doBackup=$VALUE
+				copydir=$VALUE
 			fi
     	;;
-    	-mt)
-			if [ -n "$VALUE" ]; then
-				doMFSTrace=$VALUE
-			fi
-		;;
-		-mcu)
-			if [ -n "$VALUE" ]; then
-				doMFSCPUUse=$VALUE
-			fi
-		;;
-		-st)
+    	-st)
 			if [ -n "$VALUE" ]; then
 				startstr="$VALUE"
 			fi
@@ -1243,11 +1237,6 @@ while [ "$2" != "" ]; do
 		-pub)
 			if [ -n "$VALUE" ]; then
 				doPublish="$VALUE"
-			fi
-		;;
-		-guts)
-			if [ -n "$VALUE" ]; then
-				doGutsStats="$VALUE"
 			fi
 		;;
 		-gc)

@@ -17,15 +17,12 @@ meid=$$
 returncode=0
 rolefile=
 args=
+copydir=
 tbltdist=
 indexname=
 sysinfo=
 grepkey=
-backupdir=
-mfstracedir=
 numiter=
-mfscpuusedir=
-gutsdir=
 gutscols=
 publishdesc=
 startstr=
@@ -145,6 +142,9 @@ function usage () {
 
     echo -e "\t -gwguts" 
     echo -e "\t\t - When passed with -guts option, build gateway guts instead of mfs"
+
+    echo -e "\t -dir=<COPYTODIR> | -copydir=<COPYTODIR>" 
+    echo -e "\t\t - Specify a COPYTODIR to copy logs,coredump analysis, w/ mcu,mt,guts options"
     
     echo 
     echo " Examples : "
@@ -157,7 +157,8 @@ function usage () {
     echo -e "\t ./mapr_logdr.sh -c=maprdb -g=\"error 5\""
     echo -e "\t ./mapr_logdr.sh -c=10.10.103.[165,171-175] -mt=/tmp/mfstrace -it=20"
     echo -e "\t ./mapr_logdr.sh -c=maprdb -mti"
-    echo -e "\t ./mapr_logdr.sh -c=10.10.103.171 -mcu=/tmp/mfscpuuse -st=\"13:00:00\" -et=\"15:00:00\" -pub=\"YCSB-LOAD\""
+    echo -e "\t ./mapr_logdr.sh -c=maprdb -ac -dir=/path/to/dir"
+    echo -e "\t ./mapr_logdr.sh -c=10.10.103.171 -mcu=/tmp/mfscpuuse -st=\"2017-01-08 13:00\" -et=\"2017-01-08 15:00\" -pub=\"YCSB-LOAD\""
     echo -e "\t ./mapr_logdr.sh -c=10.10.103.[171-175] -guts=/tmp/gutsstats -pub=\"PONTIS-6.0\""
     echo -e "\t ./mapr_logdr.sh -c=10.10.103.[171-175] -mcu=/tmp/cdcmfs -guts=/tmp/cdcguts -pub=\"CDC JSON\" -st=\"2017-06-01 11:00\" -et=\"2017-06-06 13:00\""
     echo
@@ -180,12 +181,16 @@ while [ "$1" != "" ]; do
     	;;
         -ac | --analyzecores)
             args=$args"analyzecores "
+            [ -n "$VALUE" ] && copydir="$VALUE"
         ;;
         -dt | --disktest)
             args=$args"disktest "
         ;;
         -cs | --clusterspec)
             args=$args"clsspec "
+        ;;
+        -dir | --copydir)
+            [ -n "$VALUE" ] && copydir="$VALUE"
         ;;
         -sc | --setupcheck)
             args=$args"setupcheck "
@@ -210,7 +215,7 @@ while [ "$1" != "" ]; do
             if [ -z "$VALUE" ]; then
                 VALUE="/tmp"
             fi
-            backupdir=$VALUE
+            copydir="$VALUE"
         ;;
         -bf | --backupregex)
             [ -n "$VALUE" ] && backupregex=$VALUE
@@ -219,7 +224,7 @@ while [ "$1" != "" ]; do
             if [ -z "$VALUE" ]; then
                 VALUE="/tmp"
             fi
-            mfstracedir=$VALUE
+            copydir="$VALUE"
             args=$args"mfstrace "
         ;;
         -mti | --mfsthreadinfo)
@@ -232,7 +237,7 @@ while [ "$1" != "" ]; do
             if [ -z "$VALUE" ]; then
                 VALUE="/tmp"
             fi
-            mfscpuusedir=$VALUE
+            copydir="$VALUE"
             args=$args"mfscpuuse "
         ;;
         -st | --starttime)
@@ -253,7 +258,7 @@ while [ "$1" != "" ]; do
         ;;
         -guts)
             if [ -n "$VALUE" ]; then
-                gutsdir=$VALUE
+                copydir="$VALUE"
                 args=$args"gutsstats "
             fi
         ;;
@@ -301,8 +306,8 @@ if [ -z "$rolefile" ]; then
 	returncode=1
 else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
-    \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-mt=$mfstracedir\" \"-it=$numiter\" \
-    \"-mcu=$mfscpuusedir\" \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-guts=$gutsdir\" \"-gc=$gutscols\""
+    \"-dir=$copydir\" \"-g=$grepkey\" \"-b=$copydir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
+    \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else

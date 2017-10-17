@@ -298,8 +298,12 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/guts*")
     dirlist+=("/opt/cores/mfs*")
     dirlist+=("/opt/cores/java.core.*")
+    dirlist+=("/opt/cores/collectd.core.*")
+    dirlist+=("/opt/cores/reader*core*")
+    dirlist+=("/opt/cores/writer*core*")
     dirlist+=("/opt/cores/*mrconfig*")
     dirlist+=("/opt/cores/g*.log")
+    dirlist+=("/opt/cores/h*.log")
     echo ${dirlist[*]}
 }
 
@@ -3902,7 +3906,7 @@ function maprutil_buildClientUsage(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java.core' | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java.core\|writer\|collectd' | awk '{print $9}')
     [ -z "$cores" ] && return
 
     echo
@@ -3910,6 +3914,7 @@ function maprutil_analyzeCores(){
     for core in $cores
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
+        [ -n "$GLB_COPY_DIR" ] && tracefile="$GLB_COPY_DIR/$core.gdbtrace"
         maprutil_debugCore "/opt/cores/$core" $tracefile > /dev/null 2>&1 &
         while [ "$(ps -ef | grep "[g]db -ex" | wc -l)" -gt "5" ]; do
             sleep 1
@@ -3921,6 +3926,7 @@ function maprutil_analyzeCores(){
     for core in $cores
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
+        [ -n "$GLB_COPY_DIR" ] && tracefile="$GLB_COPY_DIR/$core.gdbtrace"
         local ftime=$(date -r /opt/cores/$core +'%Y-%m-%d %H:%M:%S')
         log_msg "\n\t Core #${i} : [$ftime] $core ( $tracefile )"
         local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile)
@@ -3952,21 +3958,28 @@ function maprutil_debugCore(){
     local tracefile=$2
     local newcore=
     local isjava=$(echo $corefile | grep "java.core")
+    local iscollectd=$(echo $corefile | grep "writer\|collectd")
+    local ismfs=$(echo $corefile | grep "mfs.core")
 
     if [ -z "$(find $tracefile -type f -size +15k 2> /dev/null)" ]; then
-        if [ -z "$isjava" ]; then
-            gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
-        else
+        if [ -n "$isjava" ]; then
             gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
+            newcore=1
+        elif [ -n "$iscollectd" ]; then
+            local colbin=$(find /opt/mapr/collectd -type f -name collectd  -exec file -i '{}' \; 2> /dev/null | tr -d ':' | grep 'x-executable' | awk {'print $1'})
+            gdb -ex "thread apply all bt" --batch -c ${corefile} $colbin > $tracefile 2>&1    
+            newcore=1
+        elif [ -n "$ismfs" ]; then
+            gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
+            newcore=1
         fi
-        newcore=1
     fi
     local btline=$(cat $tracefile | grep -B10 -n "mapr::fs::FileServer::CoreHandler" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
     [ -z "$btline" ] && btline=$(cat $tracefile | grep -B10 -n  "abort ()" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
     [ -z "$btline" ] && btline=$(cat $tracefile | grep -n "Thread 1 " | cut -f1 -d:)
     local backtrace=$(cat $tracefile | sed -n "${btline},/^\s*$/p")
     [ -n "$backtrace" ] && btthread=$(echo "$backtrace" | head -1 | awk '{print $2}')
-    if [ -z "$isjava" ] && [ -n "$newcore" ] && [ -n "$btthread" ]; then
+    if [ -n "$ismfs" ] && [ -n "$newcore" ] && [ -n "$btthread" ]; then
         local tmpfile=$(mktemp)
         echo "info threads" > $tmpfile
         echo "info registers" >> $tmpfile
