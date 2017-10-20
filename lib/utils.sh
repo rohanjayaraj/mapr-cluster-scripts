@@ -635,7 +635,7 @@ function util_grepFiles(){
         if [ "$i" -gt 0 ]; then
             runcmd=$runcmd" | grep \"$key\""
         else
-            runcmd=$runcmd" grep \"$key\" \$i"
+            runcmd=$runcmd" grep -Hn \"$key\" \$i"
         fi
         let i=i+1
     done
