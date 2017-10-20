@@ -17,6 +17,7 @@ meid=$$
 returncode=0
 rolefile=
 args=
+backupdir=
 copydir=
 tbltdist=
 indexname=
@@ -215,7 +216,7 @@ while [ "$1" != "" ]; do
             if [ -z "$VALUE" ]; then
                 VALUE="/tmp"
             fi
-            copydir="$VALUE"
+            backupdir="$VALUE"
         ;;
         -bf | --backupregex)
             [ -n "$VALUE" ] && backupregex=$VALUE
@@ -306,7 +307,7 @@ if [ -z "$rolefile" ]; then
 	returncode=1
 else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
-    \"-dir=$copydir\" \"-g=$grepkey\" \"-b=$copydir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
+    \"-dir=$copydir\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
     \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
