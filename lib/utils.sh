@@ -642,6 +642,7 @@ function util_grepFiles(){
     runcmd=$runcmd"; done"
 
     local retstat=$(bash -c "$runcmd")
+    retstat="$(echo "$retstat" | sort -k3 -k4 -t:)"
     local cnt=$(echo "$retstat" | wc -l)
     if [ -n "$retstat" ] && [ -n "$cnt" ]; then
         echo -e "  Searchkey(s) found $cnt times in directory [ $dirpath ] in file(s) [ $filereg ]"

@@ -1447,6 +1447,10 @@ function maprutil_postConfigure(){
     [ -n "$esnodes" ] && /opt/mapr/fluentd/fluentd-*/etc/init.d/fluentd restart > /dev/null 2>&1
     [ -n "$otnodes" ] || [ -n "$esnodes" ] && sleep 30
 
+    #if [ -n "$otnodes" ] || [ -n "$esnodes" ]; then
+    #    sed -i '/service.command.mfs.heapsize.percent.*/d' /opt/mapr/conf/warden.conf
+    #    echo "service.command.mfs.heapsize.percent=85" >> /opt/mapr/conf/warden.conf
+    #fi
     #maprutil_restartWarden
 }
 
