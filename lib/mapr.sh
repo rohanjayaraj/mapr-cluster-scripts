@@ -3188,12 +3188,24 @@ function maprutil_publishMFSCPUUse(){
     done
     [ -n "$tjson" ] && json="$json,$tjson"
 
-    files="disks.log cpu.log"
+    files="cpu.log"
     tjson=
     for fname in $files
     do
         [ ! -s "$fname" ] && continue
         local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0) { cmd="date \"+%Y-%m-%d %H:%M:%S\" -d \""$1" "$2"\""; cmd | getline var; close(cmd); printf("{\"ts\":\"%s\",\"pcpu\":%s}",var,$3) } else printf(",{\"pcpu\":%s}",$3);  i++;} END{printf("]")}')
+        [ -n "$tjson" ] && tjson="$tjson,"
+        mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
+    done
+    [ -n "$tjson" ] && json="$json,$tjson"
+
+    files="disks.log"
+    tjson=
+    for fname in $files
+    do
+        [ ! -s "$fname" ] && continue
+        local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0) { cmd="date \"+%Y-%m-%d %H:%M:%S\" -d \""$1" "$2"\""; cmd | getline var; close(cmd); printf("{\"ts\":\"%s\",\"pcpu\":%s,\"max\":%s}",var,$3,$4) } else printf(",{\"pcpu\":%s,\"max\":%s}",$3,$4);  i++;} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
         mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
@@ -3281,7 +3293,7 @@ function maprutil_mfsCPUUseOnCluster(){
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) {sum+=$i; j++} printf("%s %s %.0f\n",$1,$2,sum/j); sum=0; j=0}' > $logdir/$fname &
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {sum+=$i; k=i+1; if($k>max) max=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,sum/j,max); sum=0; max=0; j=0}' > $logdir/$fname &
     done
     files="net.log"
     for fname in $files
@@ -3862,7 +3874,7 @@ function maprutil_buildDiskUsage(){
     mdisks="$mdisks AM PM"
     mdisks=$(echo $mdisks | tr ' ' '\n')
     local colid=$(grep "%util" $disklog | head -1 | awk '{for (i = 1; i <= NF; ++i) {if($i ~ /%util/) print i}}')
-    sed -n ${sl},${el}p $disklog | grep -Fw "${mdisks}" | awk -v cid="$colid" -v nd="$numdisks" '{if($0 ~ /AM/ || $0 ~ /PM/) { if(time!="") print time,sum/nd; time=sprintf("%s %s%s",$1,$2,$3); sum=0 } else {sum+=$cid}} END{print time,sum/nd}' > ${disksfile}
+    sed -n ${sl},${el}p $disklog | grep -Fw "${mdisks}" | awk -v cid="$colid" -v nd="$numdisks" '{if($0 ~ /AM/ || $0 ~ /PM/) { if(time!="") print time,sum/nd,max; time=sprintf("%s %s%s",$1,$2,$3); sum=0; max=0 } else {sum+=$cid; if($cid>max) max=$cid}} END{print time,sum/nd,max}' > ${disksfile}
 }
 
 function maprutil_buildClientUsage(){

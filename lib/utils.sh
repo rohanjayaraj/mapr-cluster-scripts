@@ -641,7 +641,7 @@ function util_grepFiles(){
     done
     runcmd=$runcmd"; done"
 
-    local retstat=$(bash -c "$runcmd")
+    local retstat=$(bash -c "$runcmd" | sed "s~${dirpath}~~" | sed "s~^/~~")
     retstat="$(echo "$retstat" | awk '{gsub(/:/," ",$1); print}' | sort -k3 -k4 | sed 's/ /:/')"
     local cnt=$(echo "$retstat" | wc -l)
     if [ -n "$retstat" ] && [ -n "$cnt" ]; then
