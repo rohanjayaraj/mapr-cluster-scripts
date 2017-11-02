@@ -1882,18 +1882,10 @@ function maprutil_runCommandsOnNodesInParallel(){
         [ "$(cat $nodefile | wc -w)" -gt "0" ] && cat "$nodefile" 2>/dev/null && util_removeXterm "$(cat "$nodefile")" >> $mailfile && echo >> $mailfile
     done
     if [ -s "$mailfile" ] && [ -n "$GLB_MAIL_LIST" ]; then
-        local json="{"
-        json="$json\"to\":\"$GLB_MAIL_LIST\",\"from\":\"no-reply@mapr.com\""
-        json="$json\"subject\":\"Command: '$cmd' Output\""
-        sed -i "1s/^/${cmd}\n\n/" $mailfile
         sed -i "1s/^/Nodelist : ${nodes}\n/" $mailfile
-        local body=$(echo "{$(cat  $mailfile | a2h_convert)}" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
-        json="$json,\"body\":$body"
-        json="$json}"
-        json="mail=$json"
         local tmpfile=$(mktemp)
-        echo "$json" > $tmpfile
-        util_sendJSONMail "$tmpfile" "$GLB_PERF_URL"
+        cat  $mailfile | a2h_convert > $tmpfile
+        util_sendMail "$GLB_MAIL_LIST" "Command: '$cmd' Output" "$tmpfile"
         rm -f $tmpfile > /dev/null 2>&1
     fi
     rm -rf $tempdir > /dev/null 2>&1
