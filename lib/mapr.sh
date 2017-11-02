@@ -1864,6 +1864,10 @@ function maprutil_runCommandsOnNodesInParallel(){
 
     local tempdir="$RUNTEMPDIR/cmdrun"
     mkdir -p $tempdir > /dev/null 2>&1
+
+    local mailfile="$tempdir/mail.log"
+    echo "Nodelist : \"$nodes\"" > $mailfile
+
     for node in ${nodes[@]}
     do
         local nodefile="$tempdir/$node.log"
@@ -1875,8 +1879,9 @@ function maprutil_runCommandsOnNodesInParallel(){
     for node in ${nodes[@]}
     do
         local nodefile="$tempdir/$node.log"
-        [ "$(cat $nodefile | wc -w)" -gt "0" ] && cat "$nodefile" 2>/dev/null
+        [ "$(cat $nodefile | wc -w)" -gt "0" ] && cat "$nodefile" 2>/dev/null | tee $mailfile
     done
+    [ -n "$GLB_MAIL_LIST" ] && util_sendMail "$GLB_MAIL_LIST" "$cmd output" "$mailfile"
     rm -rf $tempdir > /dev/null 2>&1
 }
 

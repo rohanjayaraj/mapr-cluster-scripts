@@ -137,6 +137,7 @@ GLB_SYSINFO_OPTION=
 GLB_GREP_MAPRLOGS=
 GLB_LOG_VERBOSE=
 GLB_COPY_DIR=
+GLB_MAIL_LIST=
 GLB_EXIT_ERRCODE=
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
@@ -1291,6 +1292,10 @@ while [ "$2" != "" ]; do
 				GLB_MEP_REPOURL="$VALUE"
 			fi
 		;;
+		-mail)
+			if [ -n "$VALUE" ]; then
+				GLB_MAIL_LIST="$VALUE"
+			fi
 		-pid)
  			if [ -n "$VALUE" ]; then
  				GLB_PATCH_VERSION=$VALUE

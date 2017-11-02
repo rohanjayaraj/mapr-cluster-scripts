@@ -891,6 +891,38 @@ function util_getResourceUse(){
     fi
 }
 
+function util_isValidEmail(){
+    [ -z "$1" ] && return
+    local maillist="$1"
+    maillist=$(echo "$maillist" | tr ',' ' ')
+    local valid=
+    for i in $maillist
+    do
+        [ -z "$(echo "${i}" | grep '^[a-zA-Z0-9]*@[a-zA-Z0-9]*\.[a-zA-Z0-9]*$' > /dev/null)" ] && return
+    done
+    echo "true"
+}
+
+function util_sendMail(){
+    [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] && echo "Missing arguments" && return
+
+    local tolist="$1"
+    local subject="$2"
+    local content="$3"
+
+    [ -z "$(util_isValidEmail "$tolist")" ] && echo "Incorrect mail id(s)" && return
+    [ -n "$(util_fileExists $content)" ] && content="$(cat $content)"
+
+    (
+      echo To: ${tolist}
+      echo From: no-reply@mapr.com
+      echo "Content-Type: text/html; "
+      echo Subject: ${subject}
+      echo
+      echo ${content}
+    ) | sendmail -t
+}
+
 # @param host name with domin
 function util_getIPfromHostName(){
     if [ -z "$1" ]; then
