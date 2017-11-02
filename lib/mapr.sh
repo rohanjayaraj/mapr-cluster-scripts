@@ -1878,20 +1878,22 @@ function maprutil_runCommandsOnNodesInParallel(){
     for node in ${nodes[@]}
     do
         local nodefile="$tempdir/$node.log"
-        [ "$(cat $nodefile | wc -w)" -gt "0" ] && cat "$nodefile" 2>/dev/null && util_removeXterm "$(cat "$nodefile")" >> $mailfile
+        [ "$(cat $nodefile | wc -w)" -gt "0" ] && cat "$nodefile" 2>/dev/null && util_removeXterm "$(cat "$nodefile")" >> $mailfile && echo >> $mailfile
     done
     if [ -s "$mailfile" ] && [ -n "$GLB_MAIL_LIST" ]; then
         local json="{"
         json="$json\"to\":\"$GLB_MAIL_LIST\",\"from\":\"no-reply@mapr.com\""
         json="$json\"subject\":\"Command: '$cmd' Output\""
         sed -i "1s/^/${cmd}\n\n/" $mailfile
-        sed -i "1s/^/Nodelist : ${nodes}/" $mailfile
-        json="$json\"body\":\"$(cat $mailfile)\""
+        sed -i "1s/^/Nodelist : ${nodes}\n/" $mailfile
+        sed -i 's/^/<br>/' $mailfile
+        local body=$(echo "{$(cat  $mailfile)}" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        json="$json,\"body\":$body"
         json="$json}"
         json="mail=$json"
         local tmpfile=$(mktemp)
         echo "$json" > $tmpfile
-        util_sendJSONMail "$json" "$GLB_PERF_URL"
+        util_sendJSONMail "$tmpfile" "$GLB_PERF_URL"
         rm -f $tmpfile > /dev/null 2>&1
     fi
     rm -rf $tempdir > /dev/null 2>&1

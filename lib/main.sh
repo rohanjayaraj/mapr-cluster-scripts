@@ -1294,6 +1294,7 @@ while [ "$2" != "" ]; do
 		;;
 		-mail)
 			if [ -n "$VALUE" ]; then
+				GLB_PERF_URL="http://dash.perf.lab/puffd/"
 				GLB_MAIL_LIST="$VALUE"
 			fi
 		;;
