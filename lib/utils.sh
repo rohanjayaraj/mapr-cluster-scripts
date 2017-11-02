@@ -898,7 +898,7 @@ function util_isValidEmail(){
     local valid=
     for i in $maillist
     do
-        [ -z "$(echo "${i}" | grep '^[a-zA-Z0-9]*@[a-zA-Z0-9]*\.[a-zA-Z0-9]*$' > /dev/null)" ] && return
+        [ -z "$(echo "${i}" | grep '^[a-zA-Z0-9]*@[a-zA-Z0-9]*\.[a-zA-Z0-9]*$')" ] && return
     done
     echo "true"
 }
@@ -921,6 +921,15 @@ function util_sendMail(){
       echo
       cat $content
     ) | sendmail -t
+}
+
+function util_sendJSONMail(){
+    [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
+
+    local json="$1"
+    local useurl="$2"
+
+    curl -L -X POST --data @- ${useurl} < $json > /dev/null 2>&1
 }
 
 function util_removeXterm(){
