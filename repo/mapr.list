@@ -1,12 +1,15 @@
 # Opensource Repo
-deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-3.0.0/ubuntu/ binary trusty
+deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.0.0/ubuntu/ binary trusty
+
+# QA Master Binaries
+deb http://artifactory.devops.lab/artifactory/core-deb/master/ binary trusty
 
 # QA All Binaries (has 5.2 onwards)
 #deb http://artifactory.devops.lab/artifactory/list/core-deb/ binary trusty
 #deb http://artifactory.devops.lab/artifactory/list/ebf-deb/ binary trusty
 
 # 6.0 Binaries
-deb http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.0.0/ubuntu/ mapr optional/
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.0.0/ubuntu/ mapr optional/
 
 # 5.2.1 Binaries
 #deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.2.1/ubuntu/ mapr optional/

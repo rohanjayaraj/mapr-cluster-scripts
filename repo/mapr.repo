@@ -1,11 +1,11 @@
 
-###################### Latest Builds #####################################
+###################### Latest Builds ##############################################
 
 ###### Performance builds ######
 
-[QA-6.0.0-Artifactory-Default-Prod]
-name=MapR Default Prod Mode Artifactory Repository
-baseurl=http://artifactory.devops.lab/artifactory/core-rpm/v6.0.0-prodmode/
+[QA-Master-Artifactory-ProdMode]
+name=MapR Master Prod Mode Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/core-rpm/master-prodmode/
 enabled=1
 gpgcheck=0
 protect=1
@@ -13,9 +13,9 @@ protect=1
 
 ######### QA builds ##########
 
-[QA-6.0.0-Artifactory]
-name=MapR v6.0.0 Artifactory Repository
-baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.0.0/redhat/
+[QA-MASTER-Artifactory]
+name=MapR Master Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/core-rpm/master/
 enabled=0
 gpgcheck=0
 protect=1
@@ -60,6 +60,14 @@ enabled=0
 gpgcheck=0
 protect=1
 
+###################### 6.0.0 #####################################
+
+[QA-6.0.0-Artifactory]
+name=MapR v6.0.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.0.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
 
 ###################### 5.2.2 #####################################
 
