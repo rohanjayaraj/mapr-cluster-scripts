@@ -11,7 +11,6 @@ lib_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$lib_dir/utils.sh"
 source "$lib_dir/ssh.sh"
 source "$lib_dir/logger.sh"
-source "$lib_dir/ansi2html.sh"
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
@@ -1862,12 +1861,11 @@ function maprutil_runCommandsOnNodesInParallel(){
 
     local nodes=$1
     local cmd=$2
+    local mailfile=$3
 
     local tempdir="$RUNTEMPDIR/cmdrun"
     mkdir -p $tempdir > /dev/null 2>&1
 
-    local mailfile="$tempdir/mail.log"
-    
     for node in ${nodes[@]}
     do
         local nodefile="$tempdir/$node.log"
@@ -1879,16 +1877,14 @@ function maprutil_runCommandsOnNodesInParallel(){
     for node in ${nodes[@]}
     do
         local nodefile="$tempdir/$node.log"
-        [ "$(cat $nodefile | wc -w)" -gt "0" ] && cat "$nodefile" 2>/dev/null && util_removeXterm "$(cat "$nodefile")" >> $mailfile && echo >> $mailfile
+        if [ "$(cat $nodefile | wc -w)" -gt "0" ]; then
+            cat "$nodefile" 2>/dev/null
+            if [ -n "$mailfile" ]; then
+                echo "Command '$cmd' Output : " >> $mailfile
+                util_removeXterm "$(cat "$nodefile")" >> $mailfile
+                echo >> $mailfile
+        fi
     done
-    if [ -s "$mailfile" ] && [ -n "$GLB_MAIL_LIST" ]; then
-        sed -i "1s/^/Nodelist : ${nodes}\n\n/" $mailfile
-        echo >> $mailfile
-        local tmpfile=$(mktemp)
-        cat  $mailfile | a2h_convert "--bg=dark" "--palette=solarized" > $tmpfile
-        util_sendMail "$GLB_MAIL_LIST" "Command: '$cmd' Output" "$tmpfile"
-        rm -f $tmpfile > /dev/null 2>&1
-    fi
     rm -rf $tempdir > /dev/null 2>&1
 }
 

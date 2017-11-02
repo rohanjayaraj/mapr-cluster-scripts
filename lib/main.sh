@@ -138,6 +138,7 @@ GLB_GREP_MAPRLOGS=
 GLB_LOG_VERBOSE=
 GLB_COPY_DIR=
 GLB_MAIL_LIST=
+GLB_MAIL_SUB=
 GLB_EXIT_ERRCODE=
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
@@ -810,6 +811,8 @@ function main_runLogDoctor(){
 	[ -z "$doLogAnalyze" ] && return
 	local nodelist=
 	local rc=0
+	local mailfile=$(mktemp)
+
 	for node in ${nodes[@]}
 	do	
 		if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
@@ -823,15 +826,15 @@ function main_runLogDoctor(){
 		echo
 	    case $i in
 	    	diskerror)
-				maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck"
+				maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck" "$mailfile"
         	;;
         	disktest)
 				log_msghead "[$(util_getCurDate)] Running disk tests on all nodes"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "disktest"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "disktest" "$mailfile"
         	;;
         	mfsgrep)
 				log_msghead "[$(util_getCurDate)] Grepping MFS logs on all nodes"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "mfsgrep"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "mfsgrep" "$mailfile"
         	;;
         	clsspec)
 				log_msghead "[$(util_getCurDate)] Printing cluster specifications"
@@ -839,7 +842,7 @@ function main_runLogDoctor(){
         	;;
         	sysinfo)
 				log_msghead "[$(util_getCurDate)] Running system info on all nodes"
-				maprutil_runCommandsOnNodesInParallel "$nodes" "sysinfo"
+				maprutil_runCommandsOnNodesInParallel "$nodes" "sysinfo" "$mailfile"
         	;;
         	greplogs)
 				log_msghead "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ \"$GLB_GREP_MAPRLOGS\" ]"
@@ -848,18 +851,18 @@ function main_runLogDoctor(){
         	tabletdist)
 				if [ -z "$GLB_INDEX_NAME" ]; then
 					log_msghead "[$(util_getCurDate)] Checking tablet distribution for table '$GLB_TABLET_DIST'"
-					maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist"
+					maprutil_runCommandsOnNodesInParallel "$nodelist" "tabletdist" "$mailfile"
 				elif [ -n "$GLB_LOG_VERBOSE" ]; then
 					log_msghead "[$(util_getCurDate)] Checking $GLB_INDEX_NAME index table(s) tablet distribution for table '$GLB_TABLET_DIST'"
-					maprutil_runCommandsOnNodesInParallel "$nodelist" "indexdist2"
+					maprutil_runCommandsOnNodesInParallel "$nodelist" "indexdist2" "$mailfile"
 				else
 					log_msghead "[$(util_getCurDate)] Checking $GLB_INDEX_NAME index table(s) tablet distribution for table '$GLB_TABLET_DIST'"
-					maprutil_runCommandsOnNodesInParallel "$nodelist" "indexdist"
+					maprutil_runCommandsOnNodesInParallel "$nodelist" "indexdist" "$mailfile"
 				fi
         	;;
         	cntrdist)
 				log_msghead "[$(util_getCurDate)] Checking container distribution"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "cntrdist"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "cntrdist" "$mailfile"
         	;;
         	setupcheck)
 				log_msghead "[$(util_getCurDate)] Checking cluster services"
@@ -867,7 +870,7 @@ function main_runLogDoctor(){
         	;;
         	analyzecores)
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzecores"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzecores" "$mailfile"
         	;;
         	mfstrace)
 				main_getmfstrace
@@ -890,6 +893,17 @@ function main_runLogDoctor(){
         local ec=$?
         [ -n "$ec" ] && [ "$rc" -eq "0" ] && rc=$ec
 	done
+	if [ -s "$mailfile" ] && [ -n "$GLB_MAIL_LIST" ]; then
+        sed -i "1s/^/\nNodelist : ${nodelist}\n\n/" $mailfile
+        echo >> $mailfile
+        local mailsub="$GLB_MAIL_SUB"
+        [ -z "$mailsub" ] && mailsub="[ MapR LogDr Output ]"
+        local tmpfile=$(mktemp)
+        cat  $mailfile | a2h_convert "--bg=dark" "--palette=solarized" > $tmpfile
+        util_sendMail "$GLB_MAIL_LIST" "$mailsub" "$tmpfile"
+        rm -f $tmpfile > /dev/null 2>&1
+    fi
+    rm -f $mailfile > /dev/null 2>&1
 	return $rc
 }
 
@@ -1294,8 +1308,12 @@ while [ "$2" != "" ]; do
 		;;
 		-mail)
 			if [ -n "$VALUE" ]; then
-				GLB_PERF_URL="http://dash.perf.lab/puffd/"
 				GLB_MAIL_LIST="$VALUE"
+			fi
+		;;
+		-sub)
+			if [ -n "$VALUE" ]; then
+				GLB_MAIL_SUB="$VALUE"
 			fi
 		;;
 		-pid)

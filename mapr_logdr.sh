@@ -28,6 +28,8 @@ gutscols=
 publishdesc=
 startstr=
 endstr=
+maillist=
+mailsub=
 backupregex=
 verbose=
 doNoFormat=
@@ -144,11 +146,14 @@ function usage () {
     echo -e "\t -gwguts" 
     echo -e "\t\t - When passed with -guts option, build gateway guts instead of mfs"
 
-    echo -e "\t -dir=<COPYTODIR> | -copydir=<COPYTODIR>" 
+    echo -e "\t -dir=<COPYTODIR> | --copydir=<COPYTODIR>" 
     echo -e "\t\t - Specify a COPYTODIR to copy logs,coredump analysis, w/ mcu,mt,guts options"
 
-    echo -e "\t -mail=<MAILIDLIST> | -maillist=<MAILIDLIST>" 
+    echo -e "\t -mail=<MAILIDLIST> | --maillist=<MAILIDLIST>" 
     echo -e "\t\t - Send mail to MAILIDLIST(comma separated) containing the output (used w/ ac,si options)"
+
+    echo -e "\t -sub=<MAILSUBJECT> | --subject=<MAILSUBJECT>" 
+    echo -e "\t\t - Use MAILSUBJECT for the mail"
     
     echo 
     echo " Examples : "
@@ -260,9 +265,14 @@ while [ "$1" != "" ]; do
                 args=$args"publish "
             fi
         ;;
-        -mail | -maillist)
+        -mail | --maillist)
             if [ -n "$VALUE" ]; then
                 maillist="$VALUE"
+            fi
+        ;;
+        -sub | --subject)
+            if [ -n "$VALUE" ]; then
+                mailsub="$VALUE"
             fi
         ;;
         -guts)
@@ -316,7 +326,7 @@ if [ -z "$rolefile" ]; then
 else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
     \"-dir=$copydir\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
-    \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\" \"-mail=$maillist\""
+    \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\" \"-mail=$maillist\" \"-sub=$mailsub\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else
