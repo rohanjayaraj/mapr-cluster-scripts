@@ -1296,6 +1296,7 @@ while [ "$2" != "" ]; do
 			if [ -n "$VALUE" ]; then
 				GLB_MAIL_LIST="$VALUE"
 			fi
+		;;
 		-pid)
  			if [ -n "$VALUE" ]; then
  				GLB_PATCH_VERSION=$VALUE

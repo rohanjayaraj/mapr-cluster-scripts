@@ -264,6 +264,7 @@ while [ "$1" != "" ]; do
             if [ -n "$VALUE" ]; then
                 maillist="$VALUE"
             fi
+        ;;
         -guts)
             if [ -n "$VALUE" ]; then
                 copydir="$VALUE"
