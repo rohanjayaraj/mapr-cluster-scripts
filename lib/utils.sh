@@ -911,7 +911,7 @@ function util_sendMail(){
     local content="$3"
 
     [ -z "$(util_isValidEmail "$tolist")" ] && echo "Incorrect mail id(s)" && return
-    [ -n "$(util_fileExists $content)" ] && content="$(cat $content)"
+    [ -z "$(util_fileExists $content)" ] && echo "Content file doesn't exist" && return
 
     (
       echo To: ${tolist}
@@ -919,8 +919,13 @@ function util_sendMail(){
       echo "Content-Type: text/html; "
       echo Subject: ${subject}
       echo
-      echo ${content}
+      cat $content
     ) | sendmail -t
+}
+
+function util_removeXterm(){
+    [ -z "$1" ] && return
+    echo "$1" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g'
 }
 
 # @param host name with domin
