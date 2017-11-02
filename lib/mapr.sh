@@ -1882,9 +1882,10 @@ function maprutil_runCommandsOnNodesInParallel(){
         [ "$(cat $nodefile | wc -w)" -gt "0" ] && cat "$nodefile" 2>/dev/null && util_removeXterm "$(cat "$nodefile")" >> $mailfile && echo >> $mailfile
     done
     if [ -s "$mailfile" ] && [ -n "$GLB_MAIL_LIST" ]; then
-        sed -i "1s/^/Nodelist : ${nodes}\n/" $mailfile
+        sed -i "1s/^/Nodelist : ${nodes}\n\n/" $mailfile
+        echo >> $mailfile
         local tmpfile=$(mktemp)
-        cat  $mailfile | a2h_convert > $tmpfile
+        cat  $mailfile | a2h_convert "--bg=dark" "--palette=solarized" > $tmpfile
         util_sendMail "$GLB_MAIL_LIST" "Command: '$cmd' Output" "$tmpfile"
         rm -f $tmpfile > /dev/null 2>&1
     fi
