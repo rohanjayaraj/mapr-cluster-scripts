@@ -1883,6 +1883,7 @@ function maprutil_runCommandsOnNodesInParallel(){
                 echo "Command '$cmd' Output : " >> $mailfile
                 util_removeXterm "$(cat "$nodefile")" >> $mailfile
                 echo >> $mailfile
+            fi
         fi
     done
     rm -rf $tempdir > /dev/null 2>&1
