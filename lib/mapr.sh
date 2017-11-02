@@ -11,6 +11,7 @@ lib_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$lib_dir/utils.sh"
 source "$lib_dir/ssh.sh"
 source "$lib_dir/logger.sh"
+source "$lib_dir/ansi2html.sh"
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
@@ -1886,8 +1887,7 @@ function maprutil_runCommandsOnNodesInParallel(){
         json="$json\"subject\":\"Command: '$cmd' Output\""
         sed -i "1s/^/${cmd}\n\n/" $mailfile
         sed -i "1s/^/Nodelist : ${nodes}\n/" $mailfile
-        sed -i 's/^/<br>/' $mailfile
-        local body=$(echo "{$(cat  $mailfile)}" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        local body=$(echo "{$(cat  $mailfile | a2h_convert)}" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         json="$json,\"body\":$body"
         json="$json}"
         json="mail=$json"
