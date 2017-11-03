@@ -271,8 +271,8 @@ function maprutil_getNodesFromRole() {
         return
     fi
     local nodes=
-    for i in $(cat $1 | grep '^[^#;]'); do
-        local node=$(echo $i | cut -f1 -d",")
+    while read -r i; do
+        local node=$(echo $i | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | cut -f1 -d",")
         local isvalid=$(util_validip2 $node)
         if [ "$isvalid" = "valid" ]; then
             nodes=$nodes$node" "
@@ -280,7 +280,7 @@ function maprutil_getNodesFromRole() {
             echo "Invalid IP [$node]. Scooting"
             exit 1
         fi
-    done
+    done <<< "$(cat $1 | grep '^[^#;]')"
     echo $nodes | tr ' ' '\n' | sort -t . -k 3,3n -k 4,4n | tr '\n' ' ' | sed 's/[[:space:]]*$//'
 }
 

@@ -574,8 +574,8 @@ function util_expandNodeList(){
     local newrolefile="$rolefile.tmp"
     [ -e "$newrolefile" ] && rm -f $newrolefile > /dev/null 2>&1
     local nodes=
-    for i in $(cat $rolefile | grep '^[^#;]'); do
-        i=$(echo $i | tr -d ' ')
+    while read -r i; do
+        i=$(echo $i | sed 's/,[[:space:]]*/,/g' | tr ' ' ',')
         local node=$(echo $i | awk 'BEGIN {FS="],"} {print $1}')
         if [ -n "$(echo $node | grep '\[')" ]; then
             # Get the start and end index from the string in b/w '[' & ']' 
@@ -610,7 +610,7 @@ function util_expandNodeList(){
                 exit 1
             fi
         fi
-    done
+    done <<< "$(cat $rolefile | grep '^[^#;]')"
     echo $newrolefile
 }
 
