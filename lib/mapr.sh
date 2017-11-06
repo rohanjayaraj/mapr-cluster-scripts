@@ -272,7 +272,7 @@ function maprutil_getNodesFromRole() {
     fi
     local nodes=
     while read -r i; do
-        local node=$(echo $i | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | cut -f1 -d",")
+    vim    local node=$(echo $i | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | cut -f1 -d",")
         local isvalid=$(util_validip2 $node)
         if [ "$isvalid" = "valid" ]; then
             nodes=$nodes$node" "
@@ -1288,9 +1288,9 @@ function maprutil_configure(){
 
     if [ "$ISCLIENT" -eq 1 ]; then
         configurecmd="$configurecmd -c"
-    else
-        [ -n "$rmnodes" ] && configurecmd="$configurecmd -RM $(util_getCommaSeparated "$rmnodes")"
-        [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS $(util_getFirstElement "$hsnodes")"
+    #else
+    #    [ -n "$rmnodes" ] && configurecmd="$configurecmd -RM $(util_getCommaSeparated "$rmnodes")"
+    #   [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS $(util_getFirstElement "$hsnodes")"
     fi
 
     # Run configure.sh on the node
