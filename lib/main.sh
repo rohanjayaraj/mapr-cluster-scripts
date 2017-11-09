@@ -697,14 +697,17 @@ function main_getgutsstats(){
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start/End time not specified. Using entire time range available"
 	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
+	[ "$doGutsType" = "gw" ] && mfsnodes=$(maprutil_getGatewayNodes "$rolefile")
 	local node=$(util_getFirstElement "$mfsnodes")
 
 	local collist=$(marutil_getGutsSample "$node" "$doGutsType" )
+	[ -z "$collist" ] && log_error "Guts column list is empty!" && return
 	local defaultcols="$(maprutil_getGutsDefCols "$collist" "$doGutsCol")"
 	local usedefcols=
 
 	if [ "$doGutsType" = "gw" ]; then
 		doGutsDef=
+		[ -n "$(echo $doGutsCol | sed 's/,/ /g' | tr ' ' '\n' | grep 'all')" ] && usedefcols=1 && doGutsCol=
 	elif [ -n "$doGutsCol" ] && [ -n "$(echo $doGutsCol | sed 's/,/ /g' | tr ' ' '\n' | grep 'stream\|cache\|fs\|db\|all')" ]; then
 		doGutsCol=
 		usedefcols=1
@@ -768,7 +771,7 @@ function main_getgutsstats(){
 		maprutil_copygutsstats "$node" "$timestamp" "$copydir"
 	done
 	wait
-	log_info "Aggregating guts stats from MFS Nodes [$mfsnodes ]"
+	log_info "Aggregating guts stats from Nodes [$mfsnodes]"
 	maprutil_gutstatsOnCluster "$mfsnodes" "$copydir" "$timestamp" "$colids" "$colnames" "$doPublish"
 }
 
