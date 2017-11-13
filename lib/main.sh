@@ -1041,7 +1041,7 @@ function main_extractMapRVersion(){
 	[ -z "$1" ] && return
 	local url=$1
 	url=$(echo $url | sed 's/\/$//g')
-	local ver=$(echo $url | rev | cut -d'/' -f1 | rev)
+	local ver=$(echo $url | tr '/' '\n' | grep "^v[0-9]*.[0-9]*.[0-9]*")
 	[ -z "$(echo $ver | grep 'v[0-9]*.[0-9]*.[0-9]*')" ] && return
 	GLB_MAPR_VERSION=$(echo $ver | cut -d'_' -f1 | cut -d 'v' -f2)
 	#echo $GLB_MAPR_VERSION
