@@ -80,6 +80,9 @@ function usage () {
     echo -e "\t -ac | --analyzecores" 
     echo -e "\t\t - Analyze cores present"
 
+    echo -e "\t -cc=<COPYTODIR>  | --copycores=<COPYTODIR> " 
+    echo -e "\t\t - Copy core files to <COPYTODIR> directory. To be run with -ac/--analyzecores option"
+ 
     echo -e "\t -v | --verbose" 
     echo -e "\t\t - Print verbose of messages"
 
@@ -190,6 +193,10 @@ while [ "$1" != "" ]; do
     	;;
         -ac | --analyzecores)
             args=$args"analyzecores "
+            [ -n "$VALUE" ] && copydir="$VALUE"
+        ;;
+        -cc | --copycores)
+            args=$args"copycores "
             [ -n "$VALUE" ] && copydir="$VALUE"
         ;;
         -dt | --disktest)

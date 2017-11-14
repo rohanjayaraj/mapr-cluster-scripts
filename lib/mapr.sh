@@ -3936,11 +3936,15 @@ function maprutil_analyzeCores(){
     [ -z "$cores" ] && return
 
     echo
-    log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -w) core file(s)"
+    if [ -z "$GLB_COPY_CORES" ] || [ -z "$GLB_COPY_DIR" ]; then
+        log_msghead "[$(util_getHostIP)] Analyzing $(echo $cores | wc -w) core file(s)"
+    else
+        log_msghead "[$(util_getHostIP)] Analyzing and copying $(echo $cores | wc -w) core file(s). This may take a while"
+    fi
+
     for core in $cores
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
-        [ -n "$GLB_COPY_DIR" ] && tracefile="$GLB_COPY_DIR/$core.gdbtrace"
         maprutil_debugCore "/opt/cores/$core" $tracefile > /dev/null 2>&1 &
         while [ "$(ps -ef | grep "[g]db -ex" | wc -l)" -gt "5" ]; do
             sleep 1
@@ -3952,9 +3956,11 @@ function maprutil_analyzeCores(){
     for core in $cores
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
-        [ -n "$GLB_COPY_DIR" ] && tracefile="$GLB_COPY_DIR/$core.gdbtrace"
+        local cpfile=
+        [ -n "$GLB_COPY_DIR" ] && mkdir -p $GLB_COPY_DIR > /dev/null 2>&1 && cpfile="$GLB_COPY_DIR/$core.gdbtrace"
+        [ -z "$cpfile" ] && cpfile="$tracefile"
         local ftime=$(date -r /opt/cores/$core +'%Y-%m-%d %H:%M:%S')
-        log_msg "\n\t Core #${i} : [$ftime] $core ( $tracefile )"
+        log_msg "\n\t Core #${i} : [$ftime] $core ( $cpfile )"
         local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile)
 
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
@@ -3965,6 +3971,7 @@ function maprutil_analyzeCores(){
             else
                 cat $tracefile | sed -e '1,/Thread debugging using/d' | sed 's/^/\t\t/'
             fi
+            [ -n "$GLB_COPY_DIR" ] && cp $tracefile $cpfile > /dev/null 2>&1
         else
             log_msg "\t\t Unable to fetch the backtrace"
         fi
@@ -3986,13 +3993,14 @@ function maprutil_debugCore(){
     local isjava=$(echo $corefile | grep "java.core")
     local iscollectd=$(echo $corefile | grep "writer\|collectd")
     local ismfs=$(echo $corefile | grep "mfs.core")
+    local colbin=
 
     if [ -z "$(find $tracefile -type f -size +15k 2> /dev/null)" ]; then
         if [ -n "$isjava" ]; then
             gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
             newcore=1
         elif [ -n "$iscollectd" ]; then
-            local colbin=$(find /opt/mapr/collectd -type f -name collectd  -exec file -i '{}' \; 2> /dev/null | tr -d ':' | grep 'x-executable' | awk {'print $1'})
+            colbin=$(find /opt/mapr/collectd -type f -name collectd  -exec file -i '{}' \; 2> /dev/null | tr -d ':' | grep 'x-executable' | awk {'print $1'})
             gdb -ex "thread apply all bt" --batch -c ${corefile} $colbin > $tracefile 2>&1    
             newcore=1
         elif [ -n "$ismfs" ]; then
@@ -4020,6 +4028,15 @@ function maprutil_debugCore(){
         done
         gdb -x $tmpfile -f -batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1
         rm -f $tmpfile >/dev/null 2>&1
+        if [ -n "$GLB_COPY_CORES" ] && [ -n "$GLB_COPY_DIR" ]; then
+            local sz=$(stat -c %s $corefile);
+            log_info "[$(util_getHostIP)] Copying $corefile ($(echo $sz/1024/1024/1024|bc) GB) to $GLB_COPY_DIR directory"
+            cp $corefile $GLB_COPY_DIR/ > /dev/null 2>&1
+            [ -n "$ismfs" ] && [ ! -f "$GLB_COPY_DIR/mfs" ] && cp /opt/mapr/server/mfs $GLB_COPY_DIR/ > /dev/null 2>&1
+            [ ! -f "$GLB_COPY_DIR/libMapRClient.so" ] && cp /opt/mapr/lib/libMapRClient.so $GLB_COPY_DIR/ > /dev/null 2>&1
+            [ -n "$colbin" ] && [ ! -f "$GLB_COPY_DIR/collectd" ] && cp $colbin $GLB_COPY_DIR/ > /dev/null 2>&1
+            [ "$sz" -gt "10737418240" ] && log_warn "[$(util_getHostIP)] Disk may get full with large(>10GB) core file(s)"
+        fi
     fi
     [ -n "$backtrace" ] && echo "$backtrace" | sed  -n '/Switching to thread/q;p'
 }

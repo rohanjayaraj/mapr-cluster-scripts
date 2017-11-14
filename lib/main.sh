@@ -137,6 +137,7 @@ GLB_SYSINFO_OPTION=
 GLB_GREP_MAPRLOGS=
 GLB_LOG_VERBOSE=
 GLB_COPY_DIR=
+GLB_COPY_CORES=
 GLB_MAIL_LIST=
 GLB_MAIL_SUB=
 GLB_EXIT_ERRCODE=
@@ -1177,6 +1178,8 @@ while [ "$2" != "" ]; do
 	    			doGutsType="gw"
 	    		elif [[ "$i" = "defaultguts" ]]; then
 	    			doGutsDef=1
+	    		elif [[ "$i" = "copycores" ]]; then
+    				GLB_COPY_CORES=1
 	    		fi
 	    	done
 		;;
