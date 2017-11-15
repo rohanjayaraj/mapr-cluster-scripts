@@ -81,7 +81,7 @@ function usage () {
     echo -e "\t\t - Analyze cores present"
 
     echo -e "\t -cc=<COPYTODIR>  | --copycores=<COPYTODIR> " 
-    echo -e "\t\t - Copy core files to <COPYTODIR> directory. To be run with -ac/--analyzecores option"
+    echo -e "\t\t - Copy core files to <COPYTODIR> directory on respective node when run with -ac option"
  
     echo -e "\t -v | --verbose" 
     echo -e "\t\t - Print verbose of messages"
