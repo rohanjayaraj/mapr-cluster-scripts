@@ -1081,7 +1081,8 @@ function maprutil_buildDiskList() {
     fi
     local diskfile=$1
     echo "$(util_getRawDisks $GLB_DISK_TYPE)" > $diskfile
-    local diskratio=$(maprutil_getSSDvsHDDRatio "$(cat $diskfile)")
+    maprutil_getSSDvsHDDRatio "$(cat $diskfile)"
+    local diskratio=$?
     [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "1" ]] && echo "$(util_getRawDisks "ssd")" > $diskfile
     [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "0" ]] && echo "$(util_getRawDisks "hdd")" > $diskfile
 
@@ -1122,7 +1123,7 @@ function maprutil_getSSDvsHDDRatio(){
         if [ -z "$isSSD" ] || [ "$isSSD" = "no" ]; then
             let numhdd=numhdd+1
         else
-            let numssd=numssd=1
+            let numssd=numssd+1
         fi
     done
     [[ "$numhdd" -eq 0 ]] && [[ "$numssd" -eq 0 ]] && return -1
