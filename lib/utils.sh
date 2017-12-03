@@ -60,7 +60,7 @@ function util_checkAndInstall(){
         return
     fi
     if [ "$(getOS)" = "centos" ]; then
-        command -v $1 >/dev/null 2>&1 || yum --enablerepo=C6*,C7*,epel,epel-release install $2 -y -q 2>/dev/null
+        command -v $1 >/dev/null 2>&1 || yum --enablerepo=C6*,C7*,base,epel,epel-release install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         command -v $1 >/dev/null 2>&1 || apt-get install $2 -y 2>/dev/null
     fi
@@ -75,7 +75,7 @@ function util_checkAndInstall2(){
     fi
     if [ "$(getOS)" = "centos" ]; then
         if [ ! -e "$1" ]; then
-            yum install $2 -y -q --enablerepo=C6*,C7*,epel,epel-release 2>/dev/null
+            yum install $2 -y -q --enablerepo=C6*,C7*,base,epel,epel-release 2>/dev/null
         fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         if [ ! -e "$1" ]; then
@@ -142,6 +142,7 @@ function util_installprereq(){
     util_checkAndInstall "fio" "fio"
     util_checkAndInstall "pip" "python-pip"
     util_checkAndInstall "lstopo" "hwloc"
+    util_checkAndInstall "iperf3" "iperf3"
     if [ "$(getOS)" = "centos" ]; then
         util_checkAndInstall "lstopo" "hwloc-gui"
         util_checkAndInstall "createrepo" "createrepo"

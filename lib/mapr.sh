@@ -313,6 +313,9 @@ function maprutil_knowndirs(){
     dirlist+=("/maprdev/")
     dirlist+=("/opt/mapr")
     dirlist+=("/var/mapr-zookeeper-data")
+    dirlist+=("/etc/drill")
+    dirlist+=("/var/log/drill")
+    dirlist+=("/mapr/perf")
     echo ${dirlist[*]}
 }
 
@@ -1139,6 +1142,7 @@ function maprutil_startTraces() {
     maprutil_killTraces
     if [[ "$ISCLIENT" -eq "0" ]] && [[ -e "/opt/mapr/roles" ]]; then
         nohup sh -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if kill -0 ${mfspid}; then timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all io:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+        nohup sh -c 'log="/opt/mapr/logs/tguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if kill -0 ${mfspid}; then timeout 14 /opt/mapr/bin/guts time:all cpu:none db:none fs:none rpc:none cache:none threadcpu:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/dstat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 dstat -tcdnim >> $log; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/iostat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/mfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if [ -n "$mfspid" ]; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
@@ -3282,6 +3286,16 @@ function maprutil_mfsCPUUseOnCluster(){
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname &
     done
+
+    files="Rpc IOMgr FS DBMain DBHelper DBFlush Compress SysCalls ExtInstance"
+    for fname in $files
+    do
+        local filelist=$(find $dirlist -name "${fname}.log" 2>/dev/null)
+        local maxfilelist=$(find $dirlist -name "${fname}_max.log" 2>/dev/null)
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname.log &
+        [ -n "$maxfilelist" ] && paste $maxfilelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/$fname_max.log &
+    done
+
     files="fs_max.log db_max.log dbh_max.log dbf_max.log comp_max.log"
     for fname in $files
     do
@@ -3485,16 +3499,109 @@ function maprutil_buildMFSCpuUse(){
     wait
 
     local mfstop="/opt/mapr/logs/mfstop.log"
+    [ -s "$mfstop" ] && maprutil_getMFSThreadUse "$tempdir" "$stime" "$etime"
+
+    maprutil_getMFSThreadUseFromGuts "$tempdir" "$stime" "$etime" &
+    
+    local mfsresuse="/opt/mapr/logs/mfsresusage.log"
+    
+    if [ -s "$mfsresuse" ]; then
+        sl=1
+        el=$(cat $mfsresuse | wc -l)
+        stime="$2"
+        etime="$3"
+        invalidts=
+
+        [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
+        [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
+
+        cst=$(sed -n 1p $mfsresuse | awk '{print $1,$2}') && cst=$(date -d "$cst" +%s)
+        cet=$(tail -1 $mfsresuse | awk '{print $1,$2}') && cet=$(date -d "$cet" +%s)
+
+        [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
+        [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
+        
+        if [ -z "$el" ] || [ -z "$sl" ]; then
+            [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
+            [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
+            [ -z "$sl" ] && sl=1
+            [ -z "$el" ] && el=$(cat $mfsresuse | wc -l)
+        fi 
+        [ "$sl" -gt "$el" ] && el=$(cat $mfsresuse | wc -l)
+        if [ -z "$invalidts" ]; then
+            sed -n ${sl},${el}p $mfsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/mfs.log &
+        fi
+    fi
+
+    if [ -s "/opt/mapr/logs/iostat.log" ]; then 
+        maprutil_buildDiskUsage "$tempdir" "$stime" "$etime" &
+    else
+        log_warn "[$(util_getHostIP)] No disk stats available. Skipping disk usage stats"
+    fi
+    wait
+}
+
+maprutil_getMFSThreadUseFromGuts(){
+    local gutsfile="/opt/mapr/logs/tguts.log"
+    [ ! -s "$gutsfile" ] && return
+
+    local tempdir="$1"
+    local stime="$2"
+    local etime="$3"
+    
+    local sl=1
+    local el=$(cat $gutsfile | wc -l)
+
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
+    [ -n "$stime" ] && sl=$(cat $gutsfile | grep -n "$stime" | cut -d':' -f1 | head -1)
+    [ -n "$etime" ] && el=$(cat $gutsfile | grep -n "$etime" | cut -d':' -f1 | tail -1)
+
+    [ -z "$el" ] || [ -z "$sl" ] && log_error "[$(util_getHostIP)] Start or End time not found in the tguts.log. Specify newer time range" && return
+    [ "$sl" -gt "$el" ] && el=$(cat $gutsfile | wc -l)
+
+    local gheader=$(grep '^[a-z]' $gutsfile | grep time | head -1 | sed 's/ \+/ /g' | tr ' ' '\n' | awk 'BEGIN{i=3}{ print i,$0; i++}' | grep "\[")
+    local nummfsinst="$(echo $gheader | grep Rpc | awk '{print $2}' | cut -d ']' -f1 | sort | uniq | wc -l)"
+
+    local threadtypes="Rpc IOMgr FS DBMain DBHelper DBFlush Compress SysCalls ExtInstance"
+
+    for ((j=0; j < $nummfsinst ; j++))
+    do
+        local ji=$j
+        [[ "$j" -lt "10" ]] && ji="0$j"
+        for type in $threadtypes    
+        do
+            local logfile="$tempdir/mfs$i_$type.log"
+            local colids="$(echo $gheader | grep $type | grep -w "\[$ji]" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/ /g')"
+            sed -n ${sl},${el}p $gutsfile | awk -v var="$colids" 'BEGIN{split(var,cids," "); ncols=length(cids)} {for (i=1;i<=length(cids);i++) { sum+=$cids[i]; if($cids[i]>max) max=$cids[i] } printf("%d %d\n",sum/ncols, max); sum=0; max=0}' > $logfile &
+        done
+    done
+    wait
+
+    for type in $threadtypes    
+    do
+        paste $tempdir/mfs*_$type.log | awk '{for(i=1;i<=NF;i+=2) { sum+=$i; j++} printf("%d\n", sum/j); sum=0; j=0}' > $tempdir/$type.log &
+        paste $tempdir/mfs*_$type.log | awk '{for(i=2;i<=NF;i+=2) { if($i>max) max=$i} printf("%d\n", max); max=0}' > $tempdir/$type_max.log &
+    done
+    wait
+}
+
+maprutil_getMFSThreadUse()
+{
+    local mfstop="/opt/mapr/logs/mfstop.log"
     [ ! -s "$mfstop" ] && return
-    [ -n "$(ls /opt/mapr/logs/*$mfs*.gdbtrace 2>/dev/null)" ] && log_warn "[$(util_getHostIP)] MFS has previously crashed. Thread IDs may not match"
+    [ -n "$(ls /opt/mapr/logs/*mfs*.gdbtrace 2>/dev/null)" ] && log_warn "[$(util_getHostIP)] MFS has previously crashed. Thread IDs may not match"
     
     local mfsthreads=$(maprutil_mfsthreads | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')
     [ -z "$(echo "$mfsthreads" | grep CpuQ)" ] && log_warn "[$(util_getHostIP)] MFS threadwise CPU will not be captured"
 
-    sl=1
-    el=$(cat $mfstop | wc -l)
-    stime="$2"
-    etime="$3"
+    local tempdir="$1"
+    local stime="$2"
+    local etime="$3"
+    
+    local sl=1
+    local el=$(cat $mfstop | wc -l)
+
     [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
     [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
     [ -n "$stime" ] && sl=$(cat $mfstop | grep -n "$stime" | cut -d':' -f1 | head -1)
@@ -3553,43 +3660,6 @@ function maprutil_buildMFSCpuUse(){
 
     [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/comp.log &
     [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/comp_max.log &
-    wait
-    
-    local mfsresuse="/opt/mapr/logs/mfsresusage.log"
-    
-    if [ -s "$mfsresuse" ]; then
-        sl=1
-        el=$(cat $mfsresuse | wc -l)
-        stime="$2"
-        etime="$3"
-        invalidts=
-
-        [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
-        [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
-
-        cst=$(sed -n 1p $mfsresuse | awk '{print $1,$2}') && cst=$(date -d "$cst" +%s)
-        cet=$(tail -1 $mfsresuse | awk '{print $1,$2}') && cet=$(date -d "$cet" +%s)
-
-        [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
-        [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
-        
-        if [ -z "$el" ] || [ -z "$sl" ]; then
-            [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
-            [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
-            [ -z "$sl" ] && sl=1
-            [ -z "$el" ] && el=$(cat $mfsresuse | wc -l)
-        fi 
-        [ "$sl" -gt "$el" ] && el=$(cat $mfsresuse | wc -l)
-        if [ -z "$invalidts" ]; then
-            sed -n ${sl},${el}p $mfsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/mfs.log &
-        fi
-    fi
-
-    if [ -s "/opt/mapr/logs/iostat.log" ]; then 
-        maprutil_buildDiskUsage "$tempdir" "$stime" "$etime" &
-    else
-        log_warn "[$(util_getHostIP)] No disk stats available. Skipping disk usage stats"
-    fi
     wait
 }
 
