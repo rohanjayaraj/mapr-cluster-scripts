@@ -3284,7 +3284,7 @@ function maprutil_mfsCPUUseOnCluster(){
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname &
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname 2>&1 &
     done
 
     files="Rpc IOMgr FS DBMain DBHelper DBFlush Compress SysCalls ExtInstance"
@@ -3292,15 +3292,15 @@ function maprutil_mfsCPUUseOnCluster(){
     do
         local filelist=$(find $dirlist -name "${fname}.log" 2>/dev/null)
         local maxfilelist=$(find $dirlist -name "${fname}_max.log" 2>/dev/null)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname.log &
-        [ -n "$maxfilelist" ] && paste $maxfilelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/$fname_max.log &
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname.log 2>&1 &
+        [ -n "$maxfilelist" ] && paste $maxfilelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/$fname_max.log 2>&1 &
     done
 
     files="fs_max.log db_max.log dbh_max.log dbf_max.log comp_max.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/$fname &
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/$fname 2>&1 &
     done
     wait
 
@@ -3308,25 +3308,25 @@ function maprutil_mfsCPUUseOnCluster(){
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {msum+=$i; k=i+1; csum=$k; j++} printf("%s %s %.3f %.0f\n",$1,$2,msum/j,csum/j); msum=0; csum=0; j=0}' > $logdir/$fname &
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {msum+=$i; k=i+1; csum=$k; j++} printf("%s %s %.3f %.0f\n",$1,$2,msum/j,csum/j); msum=0; csum=0; j=0}' > $logdir/$fname 2>&1 &
     done
     files="cpu.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) {csum+=$i; j++} printf("%s %s %.0f\n",$1,$2,csum/j); csum=0; j=0}' > $logdir/$fname &
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=3) {csum+=$i; j++} printf("%s %s %.0f\n",$1,$2,csum/j); csum=0; j=0}' > $logdir/$fname 2>&1 &
     done
     files="disks.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {sum+=$i; k=i+1; if($k>max) max=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,sum/j,max); sum=0; max=0; j=0}' > $logdir/$fname &
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {sum+=$i; k=i+1; if($k>max) max=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,sum/j,max); sum=0; max=0; j=0}' > $logdir/$fname 2>&1 &
     done
     files="net.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {rsum+=$i; k=i+1; ssum+=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,rsum/j,ssum/j); rsum=0; ssum=0; j=0}' > $logdir/$fname &
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {rsum+=$i; k=i+1; ssum+=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,rsum/j,ssum/j); rsum=0; ssum=0; j=0}' > $logdir/$fname 2>&1 &
     done
     wait
 
@@ -3449,7 +3449,7 @@ function maprutil_buildMFSCpuUse(){
         fi 
         [ "$sl" -gt "$el" ] && el=$(cat $gwresuse | wc -l)
         if [ -z "$invalidts" ]; then
-            sed -n ${sl},${el}p $gwresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/gw.log &
+            sed -n ${sl},${el}p $gwresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/gw.log 2>&1 &
         fi
     fi
 
@@ -3473,7 +3473,7 @@ function maprutil_buildMFSCpuUse(){
         fi 
         [ "$sl" -gt "$el" ] && el=$(cat $qsresuse | wc -l)
         if [ -z "$invalidts" ]; then
-            sed -n ${sl},${el}p $qsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/qs.log &
+            sed -n ${sl},${el}p $qsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/qs.log 2>&1 &
         fi
         
     fi
@@ -3492,16 +3492,16 @@ function maprutil_buildMFSCpuUse(){
         [ -n "$etime" ] && el=$(cat $sysuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
         if [ -n "$el" ] && [ -n "$sl" ]; then
             [ -z "$year" ] && year=$(date +%Y)
-            sed -n ${sl},${el}p $sysuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{ r=$11; s=$12; if(r ~ /M/) {r=r*1;} else if(r ~ /k/) {r=r*1/1024} else if(r ~ /B/) {r=r*1/(1024*1024)} if(r ~ /M/) {s=s*1;} else if(s ~ /k/) {s=s*1/1024} else if(s ~ /B/) {s=s*1/(1024*1024)} split($1,d,"-"); printf("%s-%s-%s %s %.0f %.0f\n",y,d[2],d[1],$2,r,s)}' > $tempdir/net.log &
-            sed -n ${sl},${el}p $sysuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{c=100-$5; split($1,d,"-"); printf("%s-%s-%s %s %.0f\n",y,d[2],d[1],$2,c)}' > $tempdir/cpu.log &
+            sed -n ${sl},${el}p $sysuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{ r=$11; s=$12; if(r ~ /M/) {r=r*1;} else if(r ~ /k/) {r=r*1/1024} else if(r ~ /B/) {r=r*1/(1024*1024)} if(r ~ /M/) {s=s*1;} else if(s ~ /k/) {s=s*1/1024} else if(s ~ /B/) {s=s*1/(1024*1024)} split($1,d,"-"); printf("%s-%s-%s %s %.0f %.0f\n",y,d[2],d[1],$2,r,s)}' > $tempdir/net.log 2>&1 &
+            sed -n ${sl},${el}p $sysuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{c=100-$5; split($1,d,"-"); printf("%s-%s-%s %s %.0f\n",y,d[2],d[1],$2,c)}' > $tempdir/cpu.log 2>&1 &
         fi
     fi
     wait
 
     local mfstop="/opt/mapr/logs/mfstop.log"
-    [ -s "$mfstop" ] && maprutil_getMFSThreadUse "$tempdir" "$stime" "$etime"
+    [ -s "$mfstop" ] && maprutil_getMFSThreadUse "$tempdir" "$2" "$3"
 
-    maprutil_getMFSThreadUseFromGuts "$tempdir" "$stime" "$etime" &
+    maprutil_getMFSThreadUseFromGuts "$tempdir" "$2" "$3" &
     
     local mfsresuse="/opt/mapr/logs/mfsresusage.log"
     
@@ -3529,7 +3529,7 @@ function maprutil_buildMFSCpuUse(){
         fi 
         [ "$sl" -gt "$el" ] && el=$(cat $mfsresuse | wc -l)
         if [ -z "$invalidts" ]; then
-            sed -n ${sl},${el}p $mfsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/mfs.log &
+            sed -n ${sl},${el}p $mfsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/mfs.log 2>&1 &
         fi
     fi
 
@@ -3560,8 +3560,8 @@ maprutil_getMFSThreadUseFromGuts(){
     [ -z "$el" ] || [ -z "$sl" ] && log_error "[$(util_getHostIP)] Start or End time not found in the tguts.log. Specify newer time range" && return
     [ "$sl" -gt "$el" ] && el=$(cat $gutsfile | wc -l)
 
-    local gheader=$(grep '^[a-z]' $gutsfile | grep time | head -1 | sed 's/ \+/ /g' | tr ' ' '\n' | awk 'BEGIN{i=3}{ print i,$0; i++}' | grep "\[")
-    local nummfsinst="$(echo $gheader | grep Rpc | awk '{print $2}' | cut -d ']' -f1 | sort | uniq | wc -l)"
+    local gheader=$(grep '^[a-z]' $gutsfile | grep time | head -1 | sed 's/ \+/ /g' | tr ' ' '\n' | awk 'BEGIN{i=2}{ print i,$0; i++}' | grep "\[")
+    local nummfsinst="$(echo "$gheader" | grep Rpc | awk '{print $2}' | cut -d ']' -f1 | sort | uniq | wc -l)"
 
     local threadtypes="Rpc IOMgr FS DBMain DBHelper DBFlush Compress SysCalls ExtInstance"
 
@@ -3571,17 +3571,19 @@ maprutil_getMFSThreadUseFromGuts(){
         [[ "$j" -lt "10" ]] && ji="0$j"
         for type in $threadtypes    
         do
-            local logfile="$tempdir/mfs$i_$type.log"
-            local colids="$(echo $gheader | grep $type | grep -w "\[$ji]" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/ /g')"
-            sed -n ${sl},${el}p $gutsfile | awk -v var="$colids" 'BEGIN{split(var,cids," "); ncols=length(cids)} {for (i=1;i<=length(cids);i++) { sum+=$cids[i]; if($cids[i]>max) max=$cids[i] } printf("%d %d\n",sum/ncols, max); sum=0; max=0}' > $logfile &
+            local logfile="$tempdir/mfs${j}_${type}.log"
+            local colids="$(echo "$gheader" | grep $type | grep "\[$ji]" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/ /g')"
+            sed -n ${sl},${el}p $gutsfile | awk -v var="$colids" 'BEGIN{split(var,cids," "); ncols=length(cids)} {for (i=1;i<=length(cids);i++) { sum+=$cids[i]; if($cids[i]>max) max=$cids[i] } printf("%d %d\n",sum/ncols, max); sum=0; max=0}' > $logfile 2>&1 &
         done
     done
     wait
 
     for type in $threadtypes    
     do
-        paste $tempdir/mfs*_$type.log | awk '{for(i=1;i<=NF;i+=2) { sum+=$i; j++} printf("%d\n", sum/j); sum=0; j=0}' > $tempdir/$type.log &
-        paste $tempdir/mfs*_$type.log | awk '{for(i=2;i<=NF;i+=2) { if($i>max) max=$i} printf("%d\n", max); max=0}' > $tempdir/$type_max.log &
+        local logfile="$tempdir/${type}.log"
+        paste $tempdir/mfs*_${type}.log | awk '{for(i=1;i<=NF;i+=2) { sum+=$i; j++} printf("%d\n", sum/j); sum=0; j=0}' > $logfile 2>&1 &
+        local maxlogfile="$tempdir/${type}_max.log"
+        paste $tempdir/mfs*_${type}.log | awk '{for(i=2;i<=NF;i+=2) { if($i>max) max=$i } printf("%d\n", max); max=0}' > $maxlogfile 2>&1 &
     done
     wait
 }
@@ -3614,52 +3616,52 @@ maprutil_getMFSThreadUse()
     for fsthread in $fsthreads
     do
         local fsfile="$tempdir/fs_$fsthread.log"
-        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$fsthread" | awk '{print $9}' > ${fsfile} &
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$fsthread" | awk '{print $9}' > ${fsfile} 2>&1 &
     done
     
     local dbthreads="$(echo "$mfsthreads" | grep CpuQ_DBMain | awk '{print $2}' | sed 's/,/ /g')"
     for dbthread in $dbthreads
     do
         local dbfile="$tempdir/db_$dbthread.log"
-        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$dbthread" | awk '{print $9}' > ${dbfile} &
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$dbthread" | awk '{print $9}' > ${dbfile} 2>&1 &
     done
     
     local dbhthreads="$(echo "$mfsthreads" | grep CpuQ_DBHelper | awk '{print $2}' | sed 's/,/ /g')"
     for dbhthread in $dbhthreads
     do
         local dbhfile="$tempdir/dbh_$dbhthread.log"
-        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$dbhthread" | awk '{print $9}' > ${dbhfile} &
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$dbhthread" | awk '{print $9}' > ${dbhfile} 2>&1 &
     done
     
     local dbfthreads="$(echo "$mfsthreads" | grep CpuQ_DBFlush | awk '{print $2}' | sed 's/,/ /g')"
     for dbfthread in $dbfthreads
     do
         local dbffile="$tempdir/dbf_$dbfthread.log"
-        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$dbfthread" | awk '{print $9}' > ${dbffile} &
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$dbfthread" | awk '{print $9}' > ${dbffile} 2>&1 &
     done
     
     local compthreads="$(echo "$mfsthreads" | grep CpuQ_Compress | awk '{print $2}' | sed 's/,/ /g')"
     for compthread in $compthreads
     do
         local compfile="$tempdir/comp_$compthread.log"
-        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$compthread" | awk '{print $9}' > ${compfile} &
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$compthread" | awk '{print $9}' > ${compfile} 2>&1 &
     done
     wait
 
-    [ -n "$fsthreads" ] && paste $tempdir/fs_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/fs.log &
-    [ -n "$fsthreads" ] && paste $tempdir/fs_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/fs_max.log &
+    [ -n "$fsthreads" ] && paste $tempdir/fs_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/fs.log 2>&1 &
+    [ -n "$fsthreads" ] && paste $tempdir/fs_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/fs_max.log 2>&1 &
     
-    [ -n "$dbthreads" ] && paste $tempdir/db_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/db.log &
-    [ -n "$dbthreads" ] && paste $tempdir/db_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/db_max.log &
+    [ -n "$dbthreads" ] && paste $tempdir/db_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/db.log 2>&1 &
+    [ -n "$dbthreads" ] && paste $tempdir/db_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/db_max.log 2>&1 &
     
-    [ -n "$dbhthreads" ] && paste $tempdir/dbh_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/dbh.log &
-    [ -n "$dbhthreads" ] && paste $tempdir/dbh_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/dbh_max.log &
+    [ -n "$dbhthreads" ] && paste $tempdir/dbh_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/dbh.log 2>&1 &
+    [ -n "$dbhthreads" ] && paste $tempdir/dbh_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/dbh_max.log 2>&1 &
     
-    [ -n "$dbfthreads" ] && paste $tempdir/dbf_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/dbf.log &
-    [ -n "$dbfthreads" ] && paste $tempdir/dbf_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/dbf_max.log &
+    [ -n "$dbfthreads" ] && paste $tempdir/dbf_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/dbf.log 2>&1 &
+    [ -n "$dbfthreads" ] && paste $tempdir/dbf_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/dbf_max.log 2>&1 &
 
-    [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/comp.log &
-    [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/comp_max.log &
+    [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/comp.log 2>&1 &
+    [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/comp_max.log 2>&1 &
     wait
 }
 
@@ -3926,7 +3928,7 @@ function maprutil_buildGutsStats(){
     mkdir -p $tempdir > /dev/null 2>&1
 
     local gutsfile="$tempdir/guts.log"
-    sed -n ${sl},${el}p $gutslog | grep "^2" |  awk -v var="$colids" 'BEGIN{split(var,cids," ")} {for (i=1;i<=length(cids);i++) printf("%s ", $cids[i]); printf("\n");}' > ${gutsfile}
+    sed -n ${sl},${el}p $gutslog | grep "^2" |  awk -v var="$colids" 'BEGIN{split(var,cids," ")} {for (i=1;i<=length(cids);i++) printf("%s ", $cids[i]); printf("\n");}' > ${gutsfile} 2>&1
 }
 
 function maprutil_buildDiskUsage(){
