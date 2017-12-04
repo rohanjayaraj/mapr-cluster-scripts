@@ -150,12 +150,14 @@ function util_installprereq(){
         util_checkAndInstall "host" "bind-utils"
         util_checkAndInstall "yum-config-manager" "yum-utils"
         util_checkAndInstall "perf" "perf"
+        util_checkAndInstall "sendmail" "sendmail sendmail-cf m4"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         util_checkAndInstall "add-apt-repository" "python-software-properties"
         util_checkAndInstall "add-apt-repository" "software-properties-common"
         util_checkAndInstall "dpkg-scanpackages" "dpkg-dev"
         util_checkAndInstall "gzip" "gzip"
         util_checkAndInstall "host" "dnsutils"
+        util_checkAndInstall "sendmail" "sendmail"
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
