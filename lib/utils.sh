@@ -271,7 +271,7 @@ function util_installBinaries(){
         yum install ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get update > /dev/null 2>&1
-        apt-get install ${bins} -y --force-yes
+        apt-get install -y ${bins} --force-yes
     fi
 }
 
@@ -290,7 +290,7 @@ function util_upgradeBinaries(){
         yum update ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get update
-        apt-get upgrade ${bins} -y --force-yes
+        apt-get upgrade -y -${bins} --force-yes
     fi
 }
 
