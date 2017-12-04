@@ -62,7 +62,7 @@ function util_checkAndInstall(){
     if [ "$(getOS)" = "centos" ]; then
         command -v $1 >/dev/null 2>&1 || yum --enablerepo=C6*,C7*,base,epel,epel-release install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        command -v $1 >/dev/null 2>&1 || apt-get install $2 -y 2>/dev/null
+        command -v $1 >/dev/null 2>&1 || apt-get install -y $2 2>/dev/null
     fi
 }
 
@@ -79,7 +79,7 @@ function util_checkAndInstall2(){
         fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         if [ ! -e "$1" ]; then
-            apt-get install $2 -y 2>/dev/null
+            apt-get install -y $2  2>/dev/null
         fi
     fi
 }
@@ -317,7 +317,7 @@ function util_removeBinaries(){
     if [ "$(getOS)" = "centos" ]; then
         rpm -ef $rembins > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get -y --purge $rembins
+        apt-get --purge -y  $rembins
         dpkg --purge $rembins > /dev/null 2>&1
     fi
 }
