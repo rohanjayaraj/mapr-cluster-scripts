@@ -290,7 +290,7 @@ function util_upgradeBinaries(){
         yum update ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get update
-        apt-get -y upgrade -${bins} --force-yes
+        apt-get -y upgrade ${bins} --force-yes
     fi
 }
 
