@@ -177,12 +177,12 @@ function main_install(){
 
 	# Read properties
 	local clustername=$GLB_CLUSTER_NAME
-	local maprrepo=$(main_getRepoFile)
-
+	
 	# Install required binaries on other nodes
 	local buildexists=
 	for node in ${nodes[@]}
 	do
+		local maprrepo=$(main_getRepoFile $node)
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
 		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
@@ -409,13 +409,13 @@ function main_upgrade(){
 	local cldbmaster=
     local zknodes=$(maprutil_getZKNodes "$rolefile")
     local buildexists=
-    local maprrepo=$(main_getRepoFile)
     local sleeptime=60
 
     # First copy repo on all nodes
     local idx=
 	for node in ${nodes[@]}
 	do
+		local maprrepo=$(main_getRepoFile $node)
 		if [ -z "$idx" ]; then
 			# Copy mapr.repo if it doen't exist
 			maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
@@ -945,12 +945,13 @@ function main_stopall() {
 }
 
 function main_getRepoFile(){
-	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
-	local cldbnode=$(util_getFirstElement "$cldbnodes")
+	#local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	#local cldbnode=$(util_getFirstElement "$cldbnodes")
+	local node="$1"
 	local maprrepo=
 	local repofile=
 
-	local nodeos=$(getOSFromNode $cldbnode)
+	local nodeos=$(getOSFromNode $node)
 	if [ "$nodeos" = "centos" ]; then
        maprrepo=$repodir"/mapr.repo"
 	   repofile="$repodir/mapr2.repo"
@@ -963,11 +964,11 @@ function main_getRepoFile(){
 		echo "$maprrepo"
 		return
 	fi
-	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
-	local cldbnode=$(util_getFirstElement "$cldbnodes")
+	#local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	#local cldbnode=$(util_getFirstElement "$cldbnodes")
 
 	#[ -z "$(echo $rolefile | grep mapr-patch)" ] && [ -z "$GLB_MAPR_PATCH" ] && GLB_PATCH_REPOFILE=
-	maprutil_buildRepoFile "$repofile" "$useRepoURL" "$cldbnode"
+	maprutil_buildRepoFile "$repofile" "$useRepoURL" "$node"
 	echo "$repofile"
 }
 

@@ -1712,6 +1712,10 @@ function maprutil_buildRepoFile(){
         [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-rpm/"
         
+        [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g')
+        [ -n "$(echo "$repourl" | grep ubuntu)" ] && repourl=$(echo $repourl | sed 's/ubuntu/redhat/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g')
+        
         echo "[QA-CustomOpensource]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
         echo "baseurl=$meprepo" >> $repofile
@@ -1743,9 +1747,13 @@ function maprutil_buildRepoFile(){
         [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/ubuntu/"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-deb/"
 
+        [ -n "$(echo "$GLB_MEP_REPOURL" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g')
+        [ -n "$(echo "$repourl" | grep redhat)" ] && repourl=$(echo $repourl | sed 's/redhat/ubuntu/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g')
+
         echo "deb $meprepo binary trusty" > $repofile
         echo "deb ${repourl} binary trusty" >> $repofile
-        [ -n "$GLB_PATCH_REPOURL" ] && echo "deb ${GLB_PATCH_REPOURL} binary trusty" >> $repofile
+        [ -n "$GLB_PATCH_REPOFILE" ] && echo "deb ${GLB_PATCH_REPOFILE} binary trusty" >> $repofile
     fi
 }
 
