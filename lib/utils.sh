@@ -62,7 +62,7 @@ function util_checkAndInstall(){
     if [ "$(getOS)" = "centos" ]; then
         command -v $1 >/dev/null 2>&1 || yum --enablerepo=C6*,C7*,base,epel,epel-release install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        command -v $1 >/dev/null 2>&1 || apt-get install -y $2 2>/dev/null
+        command -v $1 >/dev/null 2>&1 || apt-get -y install $2 2>/dev/null
     fi
 }
 
@@ -100,9 +100,9 @@ function util_maprprereq(){
         yum -q -y install java-1.8.0-openjdk-devel --enablerepo=C6*,C7*,epel,epel-release 
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get update -qq 
-        apt-get install -qq -y ca-certificates
-        apt-get install -qq -y $DEPENDENCY
-        apt-get install -qq -y --force-yes openjdk-8-jdk
+        apt-get -qq -y install  ca-certificates
+        apt-get -qq -y install $DEPENDENCY
+        apt-get -qq -y install --force-yes openjdk-8-jdk
     fi
 
     local MAPR_UID=${MAPR_UID:-5000}
@@ -271,7 +271,7 @@ function util_installBinaries(){
         yum install ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get update > /dev/null 2>&1
-        apt-get install -y ${bins} --force-yes
+        apt-get -y install ${bins} --force-yes
     fi
 }
 
@@ -290,7 +290,7 @@ function util_upgradeBinaries(){
         yum update ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get update
-        apt-get upgrade -y -${bins} --force-yes
+        apt-get -y upgrade -${bins} --force-yes
     fi
 }
 
@@ -317,7 +317,7 @@ function util_removeBinaries(){
     if [ "$(getOS)" = "centos" ]; then
         rpm -ef $rembins > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get --purge -y  $rembins
+        apt-get -y --purge $rembins
         dpkg --purge $rembins > /dev/null 2>&1
     fi
 }
