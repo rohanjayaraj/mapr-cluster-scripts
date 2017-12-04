@@ -37,7 +37,7 @@
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
-gawk --version >/dev/null || exit 1
+#gawk --version >/dev/null || exit 1
 
 if [ "$1" = "--version" ]; then
     printf '0.23\n' && exit

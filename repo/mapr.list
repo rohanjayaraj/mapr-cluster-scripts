@@ -2,7 +2,7 @@
 deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.0.0/ubuntu/ binary trusty
 
 # QA Master Binaries
-deb http://artifactory.devops.lab/artifactory/core-deb/master/ binary trusty
+deb http://artifactory.devops.lab/artifactory/core-deb/ binary master
 
 # QA All Binaries (has 5.2 onwards)
 #deb http://artifactory.devops.lab/artifactory/list/core-deb/ binary trusty

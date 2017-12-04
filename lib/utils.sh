@@ -39,7 +39,7 @@ function getOSWithVersion(){
 
 function util_getHostIP(){
     command -v ifconfig >/dev/null 2>&1 || util_installprereq > /dev/null 2>&1
-    local ipadd=$(/sbin/ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1\|0.0.0.0" | head -n 1 | awk '{print $2}' | cut -c6-)
+    local ipadd=$(ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1\|0.0.0.0" | head -n 1 | awk '{print $2}' | cut -c6-)
     if [ -z "$ipadd" ]; then
         ipadd=$(ip addr | grep 'state UP' -A2 | head -n 3 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
     fi
@@ -143,6 +143,7 @@ function util_installprereq(){
     util_checkAndInstall "pip" "python-pip"
     util_checkAndInstall "lstopo" "hwloc"
     util_checkAndInstall "iperf3" "iperf3"
+    util_checkAndInstall "gawk" "gawk"
     if [ "$(getOS)" = "centos" ]; then
         util_checkAndInstall "lstopo" "hwloc-gui"
         util_checkAndInstall "createrepo" "createrepo"
