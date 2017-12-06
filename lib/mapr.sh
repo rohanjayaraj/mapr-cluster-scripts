@@ -1141,12 +1141,12 @@ function maprutil_getSSDvsHDDRatio(){
 function maprutil_startTraces() {
     maprutil_killTraces
     if [[ "$ISCLIENT" -eq "0" ]] && [[ -e "/opt/mapr/roles" ]]; then
-        nohup sh -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if kill -0 ${mfspid}; then timeout 14 /opt/mapr/bin/guts time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all io:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
-        #nohup sh -c 'log="/opt/mapr/logs/tguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if kill -0 ${mfspid}; then timeout 14 /opt/mapr/bin/guts time:all cpu:none db:none fs:none rpc:none cache:none threadcpu:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+        nohup sh -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if kill -0 ${mfspid}; then timeout 60 /opt/mapr/bin/guts time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all io:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+        #nohup sh -c 'log="/opt/mapr/logs/tguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if kill -0 ${mfspid}; then timeout 60 /opt/mapr/bin/guts time:all cpu:none db:none fs:none rpc:none cache:none threadcpu:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/dstat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 dstat -tcdnim >> $log; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/iostat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/mfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if [ -n "$mfspid" ]; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
-        nohup sh -c 'log="/opt/mapr/logs/gatewayguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then timeout 14 stdbuf -o0 /opt/mapr/bin/guts clientpid:$gwpid time:all gateway:all >> $log; rc=$?; [ "$rc" -eq "1" ] && [ -z "$(grep Printing $log)" ] && truncate -s 0 $log && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+        nohup sh -c 'log="/opt/mapr/logs/gatewayguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then timeout 60 stdbuf -o0 /opt/mapr/bin/guts clientpid:$gwpid time:all gateway:all >> $log; rc=$?; [ "$rc" -eq "1" ] && [ -z "$(grep Printing $log)" ] && truncate -s 0 $log && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/gatewaytop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $gwpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
     maprutil_startResourceTraces
@@ -1161,7 +1161,7 @@ function maprutil_startInstanceGuts(){
     for (( i=0; i<$numinst; i++ ))
     do
         [ -n "$(ps -ef | grep "[g]uts_inst$i.log")" ] && continue
-        var=$i nohup sh -c 'id=$var; log="/opt/mapr/logs/guts_inst$id.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 14 /opt/mapr/bin/guts instance:$id time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all io:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+        var=$i nohup sh -c 'id=$var; log="/opt/mapr/logs/guts_inst$id.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=`pidof mfs`; if [ -n "$mfspid" ]; then timeout 60 /opt/mapr/bin/guts instance:$id time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all io:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
     done
 }
 
@@ -1715,7 +1715,7 @@ function maprutil_buildRepoFile(){
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g')
         [ -n "$(echo "$repourl" | grep ubuntu)" ] && repourl=$(echo $repourl | sed 's/ubuntu/redhat/g')
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g')
-        
+
         echo "[QA-CustomOpensource]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
         echo "baseurl=$meprepo" >> $repofile
