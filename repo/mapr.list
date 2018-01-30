@@ -1,12 +1,26 @@
-# Opensource Repo
-deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.0.0/ubuntu/ binary trusty
-
 # QA Master Binaries
 deb http://artifactory.devops.lab/artifactory/core-deb/ binary master
 
-# QA All Binaries (has 5.2 onwards)
+# MEP 5.0.0
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0.0/ubuntu/ binary trusty
+
+# MEP 4.1.0
+deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.1.0/ubuntu/ binary trusty
+
+# MEP 4.0
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.0.0/ubuntu/ binary trusty
+
+# QA All Binaries
 #deb http://artifactory.devops.lab/artifactory/list/core-deb/ binary trusty
+
+# EBF Patches
 #deb http://artifactory.devops.lab/artifactory/list/ebf-deb/ binary trusty
+
+# 6.1.0 Binaries
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.1.0/ubuntu/ mapr optional/
+
+# 6.0.1 Binaries
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.0.1/ubuntu/ mapr optional/
 
 # 6.0 Binaries
 #deb http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.0.0/ubuntu/ mapr optional/
@@ -22,25 +36,3 @@ deb http://artifactory.devops.lab/artifactory/core-deb/ binary master
 #deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.1.0/ubuntu/ mapr optional/
 #deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.1.0/ubuntu binary trusty
 
-#### OLDER REPOSITORIES  #####
-
-# Opensource Repo
-#deb http://apt.qa.lab/opensource binary/
-
-# Public Binaries
-#deb http://package.mapr.com/releases/v5.1.0/ubuntu/ mapr optional
-#deb http://package.mapr.com/releases/v5.2.0/ubuntu/ mapr optional
-
-# QA Binaries (has 5.2 onwards)
-#deb http://artifactory.devops.lab/artifactory/list/local-deb-core binary ubuntu
-
-# 6.0 Binaries
-#deb http://apt.qa.lab/ubuntu/ mapr optional
-
-# 5.2 Binaries
-#deb http://apt.qa.lab/v5.2.0/ mapr optional
-#deb http://apt.qa.lab/v5.2.0-patch-EBF/ mapr binary
-
-# 5.1 Binaries
-#deb http://apt.qa.lab/v5.1.0/ mapr optional
-#deb http://apt.qa.lab/v5.1.0-patch-EBF/ mapr binary

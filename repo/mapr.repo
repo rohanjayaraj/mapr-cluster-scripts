@@ -20,12 +20,33 @@ enabled=0
 gpgcheck=0
 protect=1
 
+[QA-6.0.1-CORE-Artifactory]
+name=MapR v6.0.1 CORE-RPM Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/core-rpm/v6.0.1/
+enabled=0
+gpgcheck=0
+protect=1
+
 ###################### MEP/Opensource Builds #####################################
+
+[QA-MEP-5.0-Artifactory]
+name=MapR MEP 5.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-MEP-4.1.0-Artifactory]
+name=MapR MEP 4.1.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.1.0/redhat/
+enabled=1
+gpgcheck=0
+protect=1
 
 [QA-MEP-4.0-Artifactory]
 name=MapR MEP 4.0 Repository
 baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.0/redhat/
-enabled=1
+enabled=0
 gpgcheck=0
 protect=1
 
@@ -56,6 +77,24 @@ protect=1
 [QA-ALL-EBF-Patches]
 name=MapR All EBF Patches Repository
 baseurl=http://artifactory.devops.lab/artifactory/list/ebf-rpm/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### 6.1.0 #####################################
+
+[QA-6.1.0-Artifactory]
+name=MapR v6.1.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.1.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### 6.0.1 #####################################
+
+[QA-6.0.1-Artifactory]
+name=MapR v6.0.1 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.0.1/redhat/
 enabled=0
 gpgcheck=0
 protect=1
