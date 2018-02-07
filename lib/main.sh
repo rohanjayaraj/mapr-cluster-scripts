@@ -119,6 +119,7 @@ GLB_PONTIS=
 GLB_BG_PIDS=
 GLB_DISK_TYPE=
 GLB_MAX_DISKS=
+GLB_MFS_MAXMEM=
 GLB_MAPR_VERSION=
 GLB_BUILD_VERSION=
 GLB_MAPR_PATCH=
@@ -1233,6 +1234,11 @@ while [ "$2" != "" ]; do
     	-ns)
 			if [ -n "$VALUE" ]; then
     			GLB_TABLE_NS=$VALUE
+    		fi
+    	;;
+    	-maxm)
+			if [ -n "$VALUE" ]; then
+    			GLB_MFS_MAXMEM=$VALUE
     		fi
     	;;
     	-d)

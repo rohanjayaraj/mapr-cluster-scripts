@@ -30,6 +30,7 @@ extraarg=
 backupdir=
 buildid=
 putbuffer=
+maxmfsmem=
 fsthreads=
 gwthreads=
 repourl=
@@ -132,6 +133,8 @@ function usage () {
     echo -e "\t\t - Update flusher threads config 'fs.mapr.threads' in core-site.xml (default: 64)"
     echo -e "\t -gt=<#ofThreads> | --gatewaythreads=<#ofThreads>" 
     echo -e "\t\t - Update gateway receive threads config 'gateway.receive.numthreads' in gateway.conf"
+    echo -e "\t -mm=<%NUM> | --maxmfsmemory=<%NUM>" 
+    echo -e "\t\t - Update the maximum MFS heap memory percentage"
     echo -e "\t -tr | --trim" 
     echo -e "\t\t - Trim SSD drives before configuring the node (WARNING: DO NOT TRIM OFTEN)"
     echo -e "\t -p | --pontis" 
@@ -311,6 +314,11 @@ while [ "$1" != "" ]; do
                 gwthreads=$VALUE
             fi
         ;;
+        -mm | --maxmfsmemory)
+            if [ -n "$VALUE" ]; then
+                maxmfsmem=$VALUE
+            fi
+        ;;
         -repo | --repository)
             if [ -n "$VALUE" ]; then
                 repourl=$VALUE
@@ -349,7 +357,7 @@ if [ -z "$rolefile" ]; then
 else
     $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
     "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-ft=$fsthreads" "-gt=$gwthreads" "-repo=$repourl" \
-    "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid"
+    "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid" "-maxm=$maxmfsmem"
     returncode=$?
     [ "$returncode" -ne "0" ] && exit $returncode
 fi
