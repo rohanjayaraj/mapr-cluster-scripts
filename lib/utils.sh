@@ -144,6 +144,7 @@ function util_installprereq(){
     util_checkAndInstall "lstopo" "hwloc"
     util_checkAndInstall "iperf3" "iperf3"
     util_checkAndInstall "gawk" "gawk"
+    util_checkAndInstall "gdb" "gdb"
     if [ "$(getOS)" = "centos" ]; then
         util_checkAndInstall "lstopo" "hwloc-gui"
         util_checkAndInstall "createrepo" "createrepo"

@@ -384,7 +384,7 @@ function maprutil_isMapRInstalledOnNode(){
     fi
     
     local hostnode=$1
-    local scriptpath="$RUNTEMPDIR/isinstalled_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/isinstalled_${hostnode}.sh"
 
     # build full script for node
     maprutil_buildSingleScript "$scriptpath" "$hostnode"
@@ -517,7 +517,7 @@ function maprutil_cleanPrevClusterConfigOnNode(){
     # build full script for node
     local hostnode=$1
     local client=$(maprutil_isClientNode "$2" "$hostnode")
-    local scriptpath="$RUNTEMPDIR/cleanupnode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/cleanupnode_${hostnode}.sh"
     maprutil_buildSingleScript "$scriptpath" "$hostnode"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -659,7 +659,7 @@ function maprutil_uninstallNode(){
     
     # build full script for node
     local hostnode=$1
-    local scriptpath="$RUNTEMPDIR/uninstallnode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/uninstallnode_${hostnode}.sh"
     maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -723,7 +723,7 @@ function maprutil_upgradeNode(){
     
     # build full script for node
     local hostnode=$1
-    local scriptpath="$RUNTEMPDIR/upgradenode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/upgradenode_${hostnode}.sh"
     maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -788,7 +788,7 @@ function maprutil_installBinariesOnNode(){
     
     # build full script for node
     local hostnode=$1
-    local scriptpath="$RUNTEMPDIR/installbinnode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/installbinnode_${hostnode}.sh"
     maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -1406,7 +1406,7 @@ function maprutil_configureNode(){
     fi
      # build full script for node
     local hostnode=$1
-    local scriptpath="$RUNTEMPDIR/configurenode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/configurenode_${hostnode}.sh"
     maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -1588,7 +1588,7 @@ function maprutil_postConfigureOnNode(){
     fi
      # build full script for node
     local hostnode=$1
-    local scriptpath="$RUNTEMPDIR/postconfigurenode_${hostnode: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/postconfigurenode_${hostnode}.sh"
     maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -1929,7 +1929,7 @@ function maprutil_runCommandsOnNode(){
     local silent=$3
     
      # build full script for node
-    local scriptpath="$RUNTEMPDIR/cmdonnode_${node: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/cmdonnode_${node}.sh"
     maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -2681,7 +2681,7 @@ function maprutil_applyLicense(){
 function maprutil_waitForCLDBonNode(){
     local node=$1
     
-    local scriptpath="$RUNTEMPDIR/waitforcldb_${node: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/waitforcldb_${node}.sh"
     maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -2839,7 +2839,7 @@ function maprutil_checkClusterSetupOnNode(){
     local cldbnode=$2
     local bins="$3"
 
-    local scriptpath="$RUNTEMPDIR/checksetuponnode_${node: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/checksetuponnode_${node}.sh"
     maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -2904,7 +2904,7 @@ function maprutil_restartWardenOnNode() {
     local stopstart=$3
 
      # build full script for node
-    local scriptpath="$RUNTEMPDIR/restartonnode_${node: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/restartonnode_${node}.sh"
     maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -3067,7 +3067,7 @@ function maprutil_zipLogsDirectoryOnNode(){
     local timestamp=$2
     local fileregex=$3
     
-    local scriptpath="$RUNTEMPDIR/zipdironnode_${node: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/zipdironnode_${node}.sh"
     maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -3123,7 +3123,7 @@ function maprutil_mfstraceonNode(){
     local timestamp=$2
     local iter=$3
     
-    local scriptpath="$RUNTEMPDIR/mfsrtace_${node: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/mfsrtace_${node}.sh"
     maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -3414,7 +3414,7 @@ function maprutil_mfsCpuUseOnNode(){
     local stime="$3"
     local etime="$4"
     
-    local scriptpath="$RUNTEMPDIR/mfscpuuse_${node: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/mfscpuuse_${node}.sh"
     maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -3790,7 +3790,7 @@ function maprutil_gutsStatsOnNode(){
     local stime="$5"
     local etime="$6"
     
-    local scriptpath="$RUNTEMPDIR/gutsstats_${node: -3}.sh"
+    local scriptpath="$RUNTEMPDIR/gutsstats_${node}.sh"
     maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
