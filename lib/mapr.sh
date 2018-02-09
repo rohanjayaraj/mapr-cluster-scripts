@@ -135,7 +135,7 @@ function maprutil_getMFSDataNodes() {
             do
                 mfsnodes="$mfsnodes $(util_getIPfromHostName $mfshost)"
             done
-            [ -z "$mfsnodes" ] && mfsnodes="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -json 2>/dev/null | grep 'ip\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
+            [ -z "$(echo $mfsnodes | grep [0-9])" ] && mfsnodes="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -json 2>/dev/null | grep 'ip\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
         else
             mfsnodes=$(grep mapr-fileserver $1 | grep '^[^#;]' | grep -v cldb | awk -F, '{print $1}')
         fi
@@ -1214,6 +1214,8 @@ do
                 [[ "\$ppid" -eq "1" ]] && [ -n "\$crpid" ] && kill -9 \$crpid > /dev/null 2>&1
                 [[ "\$ppid" -eq "1" ]] && continue
                 [ -n "\$crpid" ] && continue
+                fspid=\$(ps -ef | grep "[j]ava" | grep "[o]rg.apache.hadoop.fs.FsShell" | grep -w "\$cpid")
+                [ -n "\$fspid" ] && continue
                 actualcpids="\${actualcpids}\${cpid} "
         done
         [ -n "\$actualcpids" ] && startClientTrace "\$actualcpids"

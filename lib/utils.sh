@@ -152,6 +152,7 @@ function util_installprereq(){
         util_checkAndInstall "yum-config-manager" "yum-utils"
         util_checkAndInstall "perf" "perf"
         util_checkAndInstall "sendmail" "sendmail sendmail-cf m4"
+        util_checkAndInstall "ethtool" "ethtool.x86_64"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         util_checkAndInstall "add-apt-repository" "python-software-properties"
         util_checkAndInstall "add-apt-repository" "software-properties-common"
@@ -159,6 +160,7 @@ function util_installprereq(){
         util_checkAndInstall "gzip" "gzip"
         util_checkAndInstall "host" "dnsutils"
         util_checkAndInstall "sendmail" "sendmail"
+        util_checkAndInstall "ethtool" "ethtool"
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
