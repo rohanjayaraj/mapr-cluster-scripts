@@ -135,6 +135,7 @@ function maprutil_getMFSDataNodes() {
             do
                 mfsnodes="$mfsnodes $(util_getIPfromHostName $mfshost)"
             done
+            [ -z "$mfsnodes" ] && mfsnodes="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -json 2>/dev/null | grep 'ip\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
         else
             mfsnodes=$(grep mapr-fileserver $1 | grep '^[^#;]' | grep -v cldb | awk -F, '{print $1}')
         fi

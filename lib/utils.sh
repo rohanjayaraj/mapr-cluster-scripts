@@ -947,7 +947,7 @@ function util_getIPfromHostName(){
     if [ -z "$1" ]; then
         return
     fi
-    local ip=$(ping -c 1 $1 | awk -F'[()]' '/PING/{print $2}')
+    local ip=$(ping -c 1 $1 2>/dev/null | awk -F '[()]' '/PING/{print $2}')
     if [ "$(util_validip2 "$ip")" = "valid" ]; then
         echo $ip
     fi
