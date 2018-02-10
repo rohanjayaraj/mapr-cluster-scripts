@@ -129,6 +129,7 @@ GLB_PATCH_REPOFILE=
 GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
 GLB_INDEX_NAME=
+GLB_TRACE_PNAME=
 GLB_SECURE_CLUSTER=
 GLB_ENABLE_QS=
 GLB_FS_THREADS=
@@ -656,16 +657,16 @@ function main_backuplogs(){
 }
 
 function main_getmfstrace(){
-	log_msghead "[$(util_getCurDate)] Running 'gstack' on mfs process on all nodes and copying the trace files to $copydir"
+	log_msghead "[$(util_getCurDate)] Running 'gstack/jstacck' on mapr process on all nodes and copying the trace files to $copydir"
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}
 	do	
-    	maprutil_mfstraceonNode "$node" "$timestamp" "$doNumIter"
+    	maprutil_processtraceonNode "$node" "$timestamp" "$doNumIter"
 	done
 	maprutil_wait
 	for node in ${nodes[@]}
 	do	
-    	maprutil_copymfstrace "$node" "$timestamp" "$copydir"
+    	maprutil_copyprocesstrace "$node" "$timestamp" "$copydir"
 	done
 	wait
 }
@@ -1236,6 +1237,11 @@ while [ "$2" != "" ]; do
     			GLB_TABLE_NS=$VALUE
     		fi
     	;;
+    	-pn)
+			if [ -n "$VALUE" ]; then
+				GLB_TRACE_PNAME=$VALUE
+			fi
+		;;
     	-maxm)
 			if [ -n "$VALUE" ]; then
     			GLB_MFS_MAXMEM=$VALUE

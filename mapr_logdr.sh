@@ -23,6 +23,7 @@ tbltdist=
 indexname=
 sysinfo=
 grepkey=
+pname=
 numiter=
 gutscols=
 publishdesc=
@@ -121,6 +122,9 @@ function usage () {
 
     echo -e "\t -mt | -mt=<COPYTODIR> | --mfstrace=<COPYTODIR>" 
     echo -e "\t\t - Run gstack on MFS process on each node & copy trace files to COPYTODIR (default COPYTODIR : /tmp/)"
+
+    echo -e "\t -pn=<NAME> | --processname=<NAME>" 
+    echo -e "\t\t - When passed with -mt, capture stack trace of process with <NAME> on each node & copy trace files to directory specified with -dir option"
 
     echo -e "\t -it=<NUM> | --iterations=<NUM>" 
     echo -e "\t\t - When passed with -mt option, will run gstack for NUM iterations (default: 10)"
@@ -243,6 +247,9 @@ while [ "$1" != "" ]; do
             copydir="$VALUE"
             args=$args"mfstrace "
         ;;
+        -pn | --processname)
+            [ -n "$VALUE" ] && pname="$VALUE"
+        ;;
         -mti | --mfsthreadinfo)
             args=$args"mfsthreads "
         ;;
@@ -333,7 +340,8 @@ if [ -z "$rolefile" ]; then
 else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
     \"-dir=$copydir\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
-    \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\" \"-mail=$maillist\" \"-sub=$mailsub\""
+    \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\" \"-mail=$maillist\" \"-sub=$mailsub\" \
+    \"-pn=$pname\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else

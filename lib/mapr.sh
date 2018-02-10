@@ -3104,20 +3104,20 @@ function maprutil_copyZippedLogsFromNode(){
     ssh_executeCommandasRoot "rm -rf $filetocopy" > /dev/null 2>&1
 }
 
-function maprutil_copymfstrace(){
+function maprutil_copyprocesstrace(){
     local node=$1
     local timestamp=$2
     local copyto=$3
     mkdir -p $copyto > /dev/null 2>&1
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
-    local dirtocopy="/tmp/mfstrace/$timestamp/$host"
+    local dirtocopy="/tmp/maprtrace/$timestamp/$host"
 
     [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
     ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
     ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
 }
 
-function maprutil_mfstraceonNode(){
+function maprutil_processtraceonNode(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
     fi
@@ -3133,27 +3133,35 @@ function maprutil_mfstraceonNode(){
         return
     fi
 
-    echo "maprutil_mfstrace \"$timestamp\" \"$iter\"" >> $scriptpath
+    echo "maprutil_processtrace \"$timestamp\" \"$iter\"" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$node" "$scriptpath"
     maprutil_addToPIDList "$!"
 }
 
-function maprutil_mfstrace(){
-    [ ! -e "/opt/mapr/roles/fileserver" ] && return
-    local mfspid=$(pidof mfs)
-    [ -z "$mfspid" ] && return
-    
+function maprutil_processtrace(){
     local timestamp=$1
     local iter=$2
+    local pname="$GLB_TRACE_PNAME"
+    local isjava=
+
+    [ -z "$pname" ] && [ ! -e "/opt/mapr/roles/fileserver" ] && return
+    [ -n "$pname" ] && [ -n "$(jps 2>/dev/null | grep $pname)" ] && isjava=1
+    [ -z "$pname" ] && pname="mfs"
+    
+    local ppid=$(pidof $pname)
+    [ -n "$isjava" ] && ppid=$(jps 2>/dev/null | grep $pname | awk '{print $1}')
+    [ -z "$ppid" ] && return
     [ -z "$iter" ] && iter=10
-    local tmpdir="/tmp/mfstrace/$timestamp/$(hostname -f)"
+    
+    local tmpdir="/tmp/maprtrace/$timestamp/$(hostname -f)"
     mkdir -p $tmpdir > /dev/null 2>&1
 
     for i in $(seq $iter)
     do
-        local tracefile="$tmpdir/mfstrace_$(date '+%Y-%m-%d-%H-%M-%S')"
-        gstack $mfspid > $tracefile
+        local tracefile="$tmpdir/${pname}_trace_$(date '+%Y-%m-%d-%H-%M-%S')"
+        gstack $ppid > $tracefile
+        [ -n "$isjava" ] && jstack $ppid > ${tracefile}_jstack
         sleep 1
     done
 }
