@@ -757,7 +757,7 @@ function util_getMemInfo(){
 }
 
 function util_getNetInfo(){
-    local nics="$(ip link show | grep BROADCAST | grep UP | tr -d ':' | awk '{print $2}')"
+    local nics="$(ip link show | grep BROADCAST | grep "state UP" | grep -v docker | grep -wv master | tr -d ':' | awk '{print $2}' | cut -d'@' -f1)"
     log_msghead "Network Info : "
     for nic in $nics
     do

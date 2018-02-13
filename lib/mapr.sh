@@ -1351,10 +1351,11 @@ function maprutil_configure(){
         # SSH session exits after running for few seconds with error "Write failed: Broken pipe"; Running in background and waiting
         /opt/mapr/server/disksetup -FW $numstripe $diskfile &
     elif [[ -n "$numsps" ]] &&  [[ "$numsps" -le "$numdisks" ]]; then
-        if [ $((numdisks%2)) -eq 1 ] && [ $((numsps%2)) -eq 0 ]; then
-            numdisks=$(echo "$numdisks+1" | bc)
-        fi
+        [ $((numdisks%2)) -eq 1 ] && numdisks=$(echo "$numdisks+1" | bc)
         local numstripe=$(echo "$numdisks/$numsps"|bc)
+        if [[ "$(echo "$numstripe*$numsps" | bc)" -lt "$numdisks" ]]; then
+            numstripe=$(echo "$numstripe+1" | bc)
+        fi
         /opt/mapr/server/disksetup -FW $numstripe $diskfile &
     else
         /opt/mapr/server/disksetup -FM $diskfile &

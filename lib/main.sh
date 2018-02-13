@@ -657,7 +657,7 @@ function main_backuplogs(){
 }
 
 function main_getmfstrace(){
-	log_msghead "[$(util_getCurDate)] Running 'gstack/jstacck' on mapr process on all nodes and copying the trace files to $copydir"
+	log_msghead "[$(util_getCurDate)] Getting stacktrace of mapr process on all nodes and copying the trace files to $copydir"
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}
 	do	
