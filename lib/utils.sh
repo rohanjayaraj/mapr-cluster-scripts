@@ -765,10 +765,14 @@ function util_getNetInfo(){
 	    [ -z "$ip" ] && continue
         local mtu=$(cat /sys/class/net/$nic/mtu)
         local speed=$(cat /sys/class/net/${nic}/speed)
+        local numad=
         speed=$(echo "$speed/1000" | bc)
-        local numa=$(cat /sys/class/net/$nic/device/numa_node)
-        local cpulist=$(cat /sys/class/net/$nic/device/local_cpulist)
-        log_msg "\t NIC: $nic, MTU: $mtu, IP: $ip, Speed: ${speed}GigE, NUMA: $numa (cpus: $cpulist)"
+        if [ -e "/sys/class/net/$nic/device" ]; then
+            local numa=$(cat /sys/class/net/$nic/device/numa_node)
+            local cpulist=$(cat /sys/class/net/$nic/device/local_cpulist)
+            numad="NUMA: $numa (cpus: $cpulist)"
+        fi
+        log_msg "\t NIC: $nic, MTU: $mtu, IP: $ip, Speed: ${speed}GigE, ${numad}"
     done
 }
 
