@@ -3494,7 +3494,7 @@ function maprutil_buildMFSCpuUse(){
     maprutil_getMFSThreadUseFromGuts "$tempdir" "$2" "$3" &
     
     if [ -s "/opt/mapr/logs/iostat.log" ]; then 
-        maprutil_buildDiskUsage "$tempdir" "$stime" "$etime" &
+        maprutil_buildDiskUsage "$tempdir" "$2" "$3" &
     else
         log_warn "[$(util_getHostIP)] No disk stats available. Skipping disk usage stats"
     fi
