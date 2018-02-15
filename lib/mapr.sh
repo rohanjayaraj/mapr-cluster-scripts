@@ -1184,6 +1184,7 @@ function maprutil_startResourceTraces() {
         nohup sh -c 'log="/opt/mapr/logs/mfsresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(pidof mfs); if kill -0 ${mfspid}; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $mfspid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/gwresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $gwpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup sh -c 'log="/opt/mapr/logs/drillresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/drill" ]]; do qspid=$(cat /opt/mapr/pid/drillbit.pid 2>/dev/null); if kill -0 ${qspid}; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $qspid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        nohup sh -c 'log="/opt/mapr/logs/dagresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/data-access-gateway" ]]; do dagpid=$(cat /opt/mapr/pid/data-access-gateway.pid 2>/dev/null); if kill -0 ${dagpid}; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $dagpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
 }
 
@@ -3227,7 +3228,7 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$tjson" ] && json="$json,\"threads\":$tjson"
 
     # add MFS & GW cpu
-    files="mfs.log gw.log client.log qs.log"
+    files="mfs.log gw.log client.log qs.log dag.log"
     tjson=
     for fname in $files
     do
@@ -3338,7 +3339,7 @@ function maprutil_mfsCPUUseOnCluster(){
     done
     wait
 
-    files="mfs.log gw.log qs.log"
+    files="mfs.log gw.log qs.log dag.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
@@ -3465,52 +3466,7 @@ function maprutil_buildMFSCpuUse(){
         maprutil_buildClientUsage "$tempdir" "$stime" "$etime" &
     fi
 
-    local gwresuse="/opt/mapr/logs/gwresusage.log"
-    if [ -s "$gwresuse" ]; then
-        sl=1
-        el=$(cat $gwresuse | wc -l)
-        
-        cst=$(sed -n 1p $gwresuse | awk '{print $1,$2}') && cst=$(date -d "$cst" +%s)
-        cet=$(tail -1 $gwresuse | awk '{print $1,$2}') && cet=$(date -d "$cet" +%s)
-
-        [ -n "$stime" ] && sl=$(cat $gwresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
-        [ -n "$etime" ] && el=$(cat $gwresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
-        if [ -z "$el" ] || [ -z "$sl" ]; then
-            [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
-            [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
-            [ -z "$sl" ] && sl=1
-            [ -z "$el" ] && el=$(cat $gwresuse | wc -l)
-        fi 
-        [ "$sl" -gt "$el" ] && el=$(cat $gwresuse | wc -l)
-        if [ -z "$invalidts" ]; then
-            sed -n ${sl},${el}p $gwresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/gw.log 2>&1 &
-        fi
-    fi
-
-    local qsresuse="/opt/mapr/logs/drillresusage.log"
-    if [ -s "$qsresuse" ]; then
-        sl=1
-        el=$(cat $qsresuse | wc -l)
-        invalidts=
-        
-        cst=$(sed -n 1p $qsresuse | awk '{print $1,$2}') && cst=$(date -d "$cst" +%s)
-        cet=$(tail -1 $qsresuse | awk '{print $1,$2}') && cet=$(date -d "$cet" +%s)
-
-        [ -n "$stime" ] && sl=$(cat $qsresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
-        [ -n "$etime" ] && el=$(cat $qsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
-        
-        if [ -z "$el" ] || [ -z "$sl" ]; then
-            [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
-            [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
-            [ -z "$sl" ] && sl=1
-            [ -z "$el" ] && el=$(cat $qsresuse | wc -l)
-        fi 
-        [ "$sl" -gt "$el" ] && el=$(cat $qsresuse | wc -l)
-        if [ -z "$invalidts" ]; then
-            sed -n ${sl},${el}p $qsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/qs.log 2>&1 &
-        fi
-        
-    fi
+    maprutil_buildResUsage "$tempdir" "$2" "$3" &
 
     local sysuse="/opt/mapr/logs/dstat.log"
     if [ -s "$sysuse" ]; then
@@ -3537,41 +3493,55 @@ function maprutil_buildMFSCpuUse(){
 
     maprutil_getMFSThreadUseFromGuts "$tempdir" "$2" "$3" &
     
-    local mfsresuse="/opt/mapr/logs/mfsresusage.log"
-    
-    if [ -s "$mfsresuse" ]; then
-        sl=1
-        el=$(cat $mfsresuse | wc -l)
-        stime="$2"
-        etime="$3"
-        invalidts=
-
-        [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
-        [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
-
-        cst=$(sed -n 1p $mfsresuse | awk '{print $1,$2}') && cst=$(date -d "$cst" +%s)
-        cet=$(tail -1 $mfsresuse | awk '{print $1,$2}') && cet=$(date -d "$cet" +%s)
-
-        [ -n "$stime" ] && sl=$(cat $mfsresuse | grep -n "$stime" | cut -d':' -f1 | head -1)
-        [ -n "$etime" ] && el=$(cat $mfsresuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
-        
-        if [ -z "$el" ] || [ -z "$sl" ]; then
-            [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
-            [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
-            [ -z "$sl" ] && sl=1
-            [ -z "$el" ] && el=$(cat $mfsresuse | wc -l)
-        fi 
-        [ "$sl" -gt "$el" ] && el=$(cat $mfsresuse | wc -l)
-        if [ -z "$invalidts" ]; then
-            sed -n ${sl},${el}p $mfsresuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/mfs.log 2>&1 &
-        fi
-    fi
-
     if [ -s "/opt/mapr/logs/iostat.log" ]; then 
         maprutil_buildDiskUsage "$tempdir" "$stime" "$etime" &
     else
         log_warn "[$(util_getHostIP)] No disk stats available. Skipping disk usage stats"
     fi
+    wait
+}
+
+maprutil_buildResUsage(){
+    local tempdir="$1"
+    local stime="$2"
+    local etime="$3"
+
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
+
+    local PROCLIST=( "/opt/mapr/logs/mfsresusage.log:mfs.log"
+        "/opt/mapr/logs/gwresusage.log:gw.log"
+        "/opt/mapr/logs/drillresusage.log:qs.log"
+        "/opt/mapr/logs/dagresusage.log:dag.log" )
+
+    for proc in "${PROCLIST[@]}"
+    do
+        local resuse="${proc%%:*}"
+        local plog="${proc##*:}"
+        
+        if [ -s "$resuse" ]; then
+            local sl=1
+            local el=$(cat $resuse | wc -l)
+            local invalidts=
+
+            local cst=$(sed -n 1p $resuse | awk '{print $1,$2}') && cst=$(date -d "$cst" +%s)
+            local cet=$(tail -1 $resuse | awk '{print $1,$2}') && cet=$(date -d "$cet" +%s)
+
+            [ -n "$stime" ] && sl=$(cat $resuse | grep -n "$stime" | cut -d':' -f1 | head -1)
+            [ -n "$etime" ] && el=$(cat $resuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
+            
+            if [ -z "$el" ] || [ -z "$sl" ]; then
+                [[ -n "$etts" ]] && [[ "$etts" -lt "$cst" ]] && invalidts=1
+                [[ -n "$stts" ]] && [[ "$stts" -gt "$cet" ]] && invalidts=1
+                [ -z "$sl" ] && sl=1
+                [ -z "$el" ] && el=$(cat $resuse | wc -l)
+            fi 
+            [ "$sl" -gt "$el" ] && el=$(cat $resuse | wc -l)
+            if [ -z "$invalidts" ]; then
+                sed -n ${sl},${el}p $resuse | awk '{r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} printf("%s %s %.3f %s\n",$1,$2,r,$4)}' > $tempdir/$plog 2>&1 &
+            fi
+        fi
+    done
     wait
 }
 
