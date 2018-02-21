@@ -1961,9 +1961,12 @@ function maprutil_runMapRCmd(){
     if [ -z "$1" ]; then
         return
     fi
-    local cmd=`$1 > /dev/null;echo $?`;
+    local cmd=1;
     local i=0
     while [ "${cmd}" -ne "0" ]; do
+        bash -c "$1"
+        cmd=$?;
+        [[ "${cmd}" -eq 0 ]] && break
         sleep 20
         let i=i+1
         if [ "$i" -gt 3 ]; then
