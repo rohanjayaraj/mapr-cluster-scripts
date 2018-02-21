@@ -29,6 +29,7 @@ maxdisks=
 extraarg=
 backupdir=
 buildid=
+volname=
 putbuffer=
 maxmfsmem=
 fsthreads=
@@ -152,10 +153,12 @@ function usage () {
 	echo " Post install Options : "
     echo -e "\t -ct | --cldbtopo" 
     echo -e "\t\t - Move CLDB node & volume to /cldb topology"
-    echo -e "\t -y | --ycsbvol" 
-    echo -e "\t\t - Create YCSB related volumes "
-     echo -e "\t -tc | --tsdbtocldb" 
+    echo -e "\t -vol=<NAME,VOLUMEPATH> | -y=<NAME,VOLUMEPATH>  | --volume=<NAME,VOLUMEPATH>" 
+    echo -e "\t\t - Create volume NAME with VOLUMEPATH"
+    echo -e "\t -tc | --tsdbtocldb" 
     echo -e "\t\t - Move OpenTSDB volume to /cldb topology"
+    echo -e "\t -ea | --enableaudit" 
+    echo -e "\t\t - Enable cluster wide audit"
 
     echo -e "\t -t | --tablecreate" 
     echo -e "\t\t - Create /tables/usertable [cf->family] with compression off"
@@ -227,9 +230,16 @@ while [ "$1" != "" ]; do
         -tc | --tsdbtocldb)
             extraarg=$extraarg"tsdbtopo "
         ;;
-    	-y | --ycsbvol)
-    		extraarg=$extraarg"ycsb "
+    	-vol | -y | --volume)
+            if [ -z "$VALUE" ]; then
+                VALUE="tables,/tables"
+            fi
+            extraarg=$extraarg"createvol "
+            volname=$VALUE
     	;;
+        -ea | --enableaudit)
+            extraarg=$extraarg"enableaudit "
+        ;;
     	-t | --tablecreate)
 			extraarg=$extraarg"tablecreate "
     	;;
@@ -357,7 +367,7 @@ if [ -z "$rolefile" ]; then
 else
     $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
     "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-ft=$fsthreads" "-gt=$gwthreads" "-repo=$repourl" \
-    "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid" "-maxm=$maxmfsmem"
+    "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid" "-maxm=$maxmfsmem" "-vol=$volname"
     returncode=$?
     [ "$returncode" -ne "0" ] && exit $returncode
 fi

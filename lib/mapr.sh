@@ -1725,7 +1725,7 @@ function maprutil_buildRepoFile(){
     local nodeos=$(getOSFromNode $node)
     local meprepo=
     if [ "$nodeos" = "centos" ]; then
-        meprepo="http://yum.qa.lab/opensource"
+        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.1.0/redhat/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-rpm/"
@@ -1760,7 +1760,7 @@ function maprutil_buildRepoFile(){
         fi
         echo >> $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.0/ubuntu/"
+        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.1.0/ubuntu/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/ubuntu/"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-deb/"
@@ -1984,11 +1984,14 @@ function maprutil_runCommands(){
             tsdbtopo)
                 maprutil_moveTSDBVolumeToCLDBTopology
             ;;
-            ycsb)
-                maprutil_createYCSBVolume
+            createvol)
+                maprutil_createVolume
             ;;
             tablecreate)
                 maprutil_createTableWithCompressionOff
+            ;;
+            enableaudit)
+                maprutil_enableClusterAudit
             ;;
             jsontable)
                 maprutil_createJSONTable
@@ -2056,10 +2059,20 @@ function maprutil_runCommands(){
     done
 }
 
-function maprutil_createYCSBVolume () {
-    log_msghead " *************** Creating YCSB Volume **************** "
-    maprutil_runMapRCmd "maprcli volume create -name tables -path /tables -replication 3 -topology /data"
-    maprutil_runMapRCmd "hadoop mfs -setcompression off /tables"
+function maprutil_enableClusterAudit () {
+    log_msghead " *************** Enable cluster wide Audit **************** "
+    maprutil_runMapRCmd "maprcli audit cluster -enabled true"
+    maprutil_runMapRCmd "maprcli audit data -enabled true"
+}
+
+function maprutil_createVolume () {
+    local volname=$(echo "$GLB_CREATE_VOL" | cut -d',' -f1)
+    local volpath=$(echo "$GLB_CREATE_VOL" | cut -d',' -f2)
+    [ -z "$volname" ] || [ -z "$volpath" ] && return
+
+    log_msghead " *************** Creating $volname Volume **************** "
+    maprutil_runMapRCmd "maprcli volume create -name $volname -path $volpath -replication 3 -topology /data"
+    [[ "$volname" = "tables" ]] && maprutil_runMapRCmd "hadoop mfs -setcompression off /tables"
 }
 
 function maprutil_createTableWithCompression(){

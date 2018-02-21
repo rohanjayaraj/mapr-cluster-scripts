@@ -115,6 +115,7 @@ GLB_HAS_FUSE=
 GLB_TABLE_NS=
 GLB_CLDB_TOPO=
 GLB_TSDB_TOPO=
+GLB_CREATE_VOL=
 GLB_PONTIS=
 GLB_BG_PIDS=
 GLB_DISK_TYPE=
@@ -1111,7 +1112,7 @@ while [ "$2" != "" ]; do
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
-				if [[ "$i" = "ycsb" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]] || [[ "$i" = "traceon" ]] || [[ "$i" = "traceoff" ]] || [[ "$i" = "insttrace" ]]; then
+				if [[ "$i" = "createvol" ]] || [[ "$i" = "enableaudit" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]] || [[ "$i" = "traceon" ]] || [[ "$i" = "traceoff" ]] || [[ "$i" = "insttrace" ]]; then
 					if [[ "$i" = "cldbtopo" ]]; then
     					GLB_CLDB_TOPO=1
     				elif [[ "$i" = "traceon" ]]; then
@@ -1333,6 +1334,11 @@ while [ "$2" != "" ]; do
 		-sub)
 			if [ -n "$VALUE" ]; then
 				GLB_MAIL_SUB="$VALUE"
+			fi
+		;;
+		-vol)
+			if [ -n "$VALUE" ]; then
+				GLB_CREATE_VOL="$VALUE"
 			fi
 		;;
 		-pid)
