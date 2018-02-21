@@ -2065,7 +2065,7 @@ function maprutil_enableClusterAudit () {
     log_msghead " *************** Enable cluster wide Audit **************** "
     maprutil_runMapRCmd "maprcli audit cluster -enabled true"
     maprutil_runMapRCmd "maprcli audit data -enabled true"
-    if [[ "$GLB_ENABLE_AUDIT" -gt "1" ]; then
+    if [[ "$GLB_ENABLE_AUDIT" -gt "1" ]]; then
         maprutil_runMapRCmd "maprcli config save -values '{\"mfs.enable.audit.as.stream\":\"1\"}'"
         maprutil_runMapRCmd "maprcli node services -name hoststats -action restart -filter '[csvc==hoststats]'"
     fi
