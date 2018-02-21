@@ -108,6 +108,7 @@ GLB_CLUSTER_NAME="archerx"
 GLB_CLUSTER_SIZE=$(cat $rolefile |  grep "^[^#;]" | grep 'mapr-fileserver' | wc -l)
 GLB_ROLE_LIST=
 GLB_TRACE_ON=1
+GLB_ENABLE_AUDIT=
 GLB_MULTI_MFS=
 GLB_NUM_SP=
 GLB_TRIM_SSD=
@@ -1112,13 +1113,17 @@ while [ "$2" != "" ]; do
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
-				if [[ "$i" = "createvol" ]] || [[ "$i" = "enableaudit" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]] || [[ "$i" = "traceon" ]] || [[ "$i" = "traceoff" ]] || [[ "$i" = "insttrace" ]]; then
+				if [[ "$i" = "createvol" ]] || [[ "$i" = "enableaudit" ]] || [[ "$i" = "auditstream" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]] || [[ "$i" = "traceon" ]] || [[ "$i" = "traceoff" ]] || [[ "$i" = "insttrace" ]]; then
 					if [[ "$i" = "cldbtopo" ]]; then
     					GLB_CLDB_TOPO=1
     				elif [[ "$i" = "traceon" ]]; then
     					GLB_TRACE_ON=
     				elif [[ "$i" = "tsdbtopo" ]]; then
     					GLB_TSDB_TOPO=1
+    				elif [[ "$i" = "enableaudit" ]]; then
+    					GLB_ENABLE_AUDIT=1
+    				elif [[ "$i" = "auditstream" ]]; then
+    					GLB_ENABLE_AUDIT=2
     				fi
     				if [ -z "$doCmdExec" ]; then
     					doCmdExec=$i

@@ -238,7 +238,11 @@ while [ "$1" != "" ]; do
             volname=$VALUE
     	;;
         -ea | --enableaudit)
-            extraarg=$extraarg"enableaudit "
+            if [ -z "$VALUE" ]; then
+                extraarg=$extraarg"enableaudit "
+            else
+                extraarg=$extraarg"auditstream "
+            fi
         ;;
     	-t | --tablecreate)
 			extraarg=$extraarg"tablecreate "
