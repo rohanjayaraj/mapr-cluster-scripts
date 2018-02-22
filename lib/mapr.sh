@@ -2193,7 +2193,7 @@ function maprutil_checkContainerDistribution(){
     fi
 
     local hostip=$(util_getHostIP)
-    local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null |  grep cid: | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $2,$4}' | sort -n -k2.4)
+    local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null |  grep cid: | grep -v "issnap:1" | grep -v "volid:0" | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $2,$4}' | sort -n -k2.4)
     local numcnts=$(echo "$cntrlist" | wc -l)
     local cids="$(echo "$cntrlist" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/,/g')"
     local nummcids=$(timeout 10 maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep Master | grep $hostip | wc -l)
