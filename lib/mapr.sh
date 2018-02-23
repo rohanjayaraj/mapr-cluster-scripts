@@ -455,7 +455,7 @@ function maprutil_getMapRVersionOnNode(){
     local version=$(ssh_executeCommandasRoot "$node" "[ -e '/opt/mapr/MapRBuildVersion' ] && cat /opt/mapr/MapRBuildVersion")
     local patch=
     local nodeos=$(getOSFromNode $node)
-    if [ "$nodeos" = "centos" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         patch=$(ssh_executeCommandasRoot "$node" "rpm -qa | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1")
     elif [ "$nodeos" = "ubuntu" ]; then
         patch=$(ssh_executeCommandasRoot "$node" "dpkg -l | grep mapr-patch | awk '{print $3}' | cut -d'-' -f4 | cut -d'.' -f1")
@@ -630,6 +630,9 @@ function maprutil_uninstall(){
         apt-get install -f -y > /dev/null 2>&1
         apt-get autoremove -y > /dev/null 2>&1
         apt-get update > /dev/null 2>&1
+    elif [ "$nodeos" = "suse" ]; then
+        zypper refresh > /dev/null 2>&1
+        zypper clean > /dev/null 2>&1
     fi
 
     # Remove mapr shared memory segments
@@ -1156,10 +1159,14 @@ function maprutil_startTraces() {
     maprutil_killTraces
     if [[ "$ISCLIENT" -eq "0" ]] && [[ -e "/opt/mapr/roles" ]]; then
         nohup bash -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(pidof mfs); if kill -0 ${mfspid}; then timeout 70 /opt/mapr/bin/guts time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all io:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
-        #nohup bash -c 'log="/opt/mapr/logs/tguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if kill -0 ${mfspid}; then timeout 70 /opt/mapr/bin/guts time:all cpu:none db:none fs:none rpc:none cache:none threadcpu:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/dstat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 dstat -tcdnim >> $log; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/iostat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
-        nohup bash -c 'log="/opt/mapr/logs/mfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(pidof mfs); if [ -n "$mfspid" ]; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        local nodeos=$(getOS)
+        if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+            nohup bash -c 'log="/opt/mapr/logs/mfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(pidof mfs); if [ -n "$mfspid" ]; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        elif [ "$nodeos" = "ubuntu" ]; then
+            nohup bash -c 'log="/opt/mapr/logs/tguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if kill -0 ${mfspid}; then timeout 70 /opt/mapr/bin/guts time:all cpu:none db:none fs:none rpc:none cache:none threadcpu:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &    
+        fi
         nohup bash -c 'log="/opt/mapr/logs/gatewayguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts clientpid:$gwpid time:all gateway:all >> $log; rc=$?; [ "$rc" -eq "1" ] && [ -z "$(grep Printing $log)" ] && truncate -s 0 $log && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/gatewaytop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $gwpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
@@ -1650,6 +1657,8 @@ function maprutil_checkBuildExists(){
         retval=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep $buildid")
     elif [ "$nodeos" = "ubuntu" ]; then
         retval=$(ssh_executeCommandasRoot "$node" "apt-get update >/dev/null 2>&1 && apt-cache policy mapr-core | grep $buildid")
+    elif [ "$nodeos" = "suse" ]; then
+        retval=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep $buildid")
     fi
     echo "$retval"
 }
@@ -1669,6 +1678,8 @@ function maprutil_checkNewBuildExists(){
         newchangeset=$(ssh_executeCommandasRoot "$node" "yum clean all > /dev/null 2>&1; yum --showduplicates list mapr-core | grep -v '$curchangeset' | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$2}' | cut -d'.' -f4")
     elif [ "$nodeos" = "ubuntu" ]; then
         newchangeset=$(ssh_executeCommandasRoot "$node" "apt-get update > /dev/null 2>&1; apt-cache policy mapr-core | grep Candidate | grep -v '$curchangeset' | awk '{print \$2}' | cut -d'.' -f4")
+    elif [ "$nodeos" = "suse" ]; then
+        newchangeset=$(ssh_executeCommandasRoot "$node" "zypper refresh > /dev/null 2>&1; zypper search -s mapr-core | grep -v '$curchangeset' | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$7}' | cut -d'.' -f4")
     fi
 
     if [[ -n "$newchangeset" ]] && [[ "$(util_isNumber $newchangeset)" = "true" ]] && [[ "$newchangeset" -gt "$curchangeset" ]]; then
@@ -1688,6 +1699,8 @@ function maprutil_getMapRVersionFromRepo(){
         maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$2}' | cut -d'.' -f1-3")
     elif [ "$nodeos" = "ubuntu" ]; then
         maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | awk '{print \$2}' | cut -d'.' -f1-3")
+    elif [ "$nodeos" = "suse" ]; then
+        maprversion=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep -v '$curchangeset' | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$7}' | cut -d'.' -f1-3")
     fi
 
     if [[ -n "$maprversion" ]]; then
@@ -1701,6 +1714,7 @@ function maprutil_copyRepoFile(){
     fi
     local node=$1
     local repofile=$2
+    local repofilename=$(basename $repofile)
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
         ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled=0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1" > /dev/null 2>&1
@@ -1714,6 +1728,12 @@ function maprutil_copyRepoFile(){
         ssh_executeCommandasRoot "$1" "sed -i '/package.mapr.com/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
 
         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/" > /dev/null 2>&1
+    elif [ "$nodeos" = "suse" ]; then
+        ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled=0/g' /etc/zypp/repos.d/*mapr*.repo > /dev/null 2>&1" > /dev/null 2>&1
+        ssh_copyCommandasRoot "$node" "$2" "/etc/zypp/repos.d/" > /dev/null 2>&1
+        ssh_executeCommandasRoot "$1" "sed -i 's/redhat/suse/g' /etc/zypp/repos.d/$repofilename > /dev/null 2>&1" > /dev/null 2>&1
+        ssh_executeCommandasRoot "$1" "sed -i 's/protect=1/type=rpm-md/g' /etc/zypp/repos.d/$repofilename > /dev/null 2>&1" > /dev/null 2>&1
+        #statements
     fi
 }
 
@@ -1726,7 +1746,7 @@ function maprutil_buildRepoFile(){
     local node=$3
     local nodeos=$(getOSFromNode $node)
     local meprepo=
-    if [ "$nodeos" = "centos" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.1.0/redhat/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
@@ -1785,6 +1805,9 @@ function maprutil_getRepoURL(){
     elif [ "$nodeos" = "ubuntu" ]; then
         local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv 'mep\|opensource\|file://\|ebf' | head -1)
         echo "$repolist"
+    elif [ "$nodeos" = "suse" ]; then
+        local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://\|ebf' | head -1)
+        echo "$repolist"
     fi
 }
 
@@ -1795,6 +1818,9 @@ function maprutil_getPatchRepoURL(){
         echo "$repolist"
     elif [ "$nodeos" = "ubuntu" ]; then
         local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv 'mep\|opensource\|file://' | grep -i EBF| head -1)
+        echo "$repolist"
+    elif [ "$nodeos" = "suse" ]; then
+        local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://' | grep -i EBF | head -1)
         echo "$repolist"
     fi
 }
@@ -1814,6 +1840,13 @@ function maprutil_disableAllRepo(){
         do
            local repof=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep $repo | cut -d":" -f1)
            sed -i "/${repo}/s/^/#/" ${repof}
+        done
+    elif [ "$nodeos" = "suse" ]; then
+        local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $0}' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $3}' | grep -iv opensource)
+        for repo in $repolist
+        do
+           log_info "[$(util_getHostIP)] Disabling repository $repo"
+           zypper modifyrepo -d $repo > /dev/null 2>&1
         done
     fi
 }
@@ -1844,6 +1877,16 @@ function maprutil_addLocalRepo(){
         echo "deb file:$repourl ./" > $repofile
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
         apt-get update > /dev/null 2>&1
+    elif [ "$nodeos" = "suse" ]; then
+        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
+        echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
+        echo "baseurl=file://$repourl" >> $repofile
+        echo "enabled=1" >> $repofile
+        echo "gpgcheck=0" >> $repofile
+        echo "type=rpm-md" >> $repofile
+        cp $repofile /etc/zypp/repos.d/ > /dev/null 2>&1
+        zypper clean > /dev/null 2>&1
+        zypper refresh > /dev/null 2>&1
     fi
 }
 
@@ -1860,7 +1903,7 @@ function maprutil_downloadBinaries(){
     local repourl=$2
     local searchkey=$3
     log_info "[$(util_getHostIP)] Downloading binaries for version [$searchkey]"
-    if [ "$nodeos" = "centos" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         pushd $dlddir > /dev/null 2>&1
         wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
         popd > /dev/null 2>&1
@@ -2440,7 +2483,7 @@ function maprutil_getMapRInfo(){
     local patch=
     local client=
     local bins=
-    if [ "$nodeos" = "centos" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         local rpms=$(rpm -qa | grep mapr)
         patch=$(echo "$rpms" | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1)
         client=$(echo "$rpms" | grep mapr-client | cut -d'-' -f3)

@@ -63,6 +63,8 @@ function util_checkAndInstall(){
         command -v $1 >/dev/null 2>&1 || yum --enablerepo=C6*,C7*,base,epel,epel-release install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         command -v $1 >/dev/null 2>&1 || apt-get -y install $2 2>/dev/null
+    elif [[ "$(getOS)" = "suse" ]]; then
+        command -v $1 >/dev/null 2>&1 || zypper --non-interactive -q install -n $2 2>/dev/null
     fi
 }
 
@@ -81,6 +83,10 @@ function util_checkAndInstall2(){
         if [ ! -e "$1" ]; then
             apt-get install -y $2  2>/dev/null
         fi
+    elif [[ "$(getOS)" = "suse" ]]; then
+        if [ ! -e "$1" ]; then
+            zypper --non-interactive -q install $2  2>/dev/null
+        fi
     fi
 }
 
@@ -88,12 +94,17 @@ function util_maprprereq(){
     local DEPENDENCY_BASE_DEB="apt-utils curl dnsutils file iputils-ping libssl1.0.0 \
     net-tools nfs-common openssl sudo syslinux sysv-rc-conf tzdata wget clustershell"
     local DEPENDENCY_BASE_RPM="curl file net-tools openssl sudo syslinux wget which clustershell"
+    local DEPENDENCY_BASE_SUSE="aaa_base curl net-tools sudo timezone wget which"
     local DEPENDENCY_DEB="$DEPENDENCY_BASE_DEB debianutils libnss3 libsysfs2 netcat ntp \
     ntpdate openssh-client openssh-server python-dev python-pycurl sdparm sshpass \
     syslinux sysstat"
     local DEPENDENCY_RPM="$DEPENDENCY_BASE_RPM device-mapper initscripts iputils \
     libsysfs lvm2 nc nfs-utils nss ntp openssh-clients openssh-server \
     python-devel python-pycurl rpcbind sdparm sshpass sysstat"
+    local DEPENDENCY_SUSE="$DEPENDENCY_BASE_SUSE libopenssl1_0_0 \
+    netcat-openbsd nfs-client openssl syslinux tar util-linux vim openssh \
+    device-mapper iputils lvm2 mozilla-nss ntp sdparm sysfsutils sysstat util-linux python-pycurl"
+
     if [ "$(getOS)" = "centos" ]; then
         yum --disablerepo=epel -q -y update ca-certificates 
         yum -q -y install $DEPENDENCY_RPM --enablerepo=C6*,C7*,epel,epel-release 
@@ -101,8 +112,14 @@ function util_maprprereq(){
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get update -qq 
         apt-get -qq -y install  ca-certificates
-        apt-get -qq -y install $DEPENDENCY
+        apt-get -qq -y install $DEPENDENCY_DEB
         apt-get -qq -y install --force-yes openjdk-8-jdk
+    elif [[ "$(getOS)" = "suse" ]]; then
+        zypper --non-interactive -q refresh
+        zypper --non-interactive -q --no-gpg-checks -p http://download.opensuse.org/distribution/leap/42.3/repo/oss/ install sshpass
+        zypper --non-interactive -q install ca-certificates
+        zypper --non-interactive -q install -n $DEPENDENCY_SUSE
+        zypper --non-interactive -q install -n java-1_8_0-openjdk-devel
     fi
 
     local MAPR_UID=${MAPR_UID:-5000}
@@ -161,6 +178,10 @@ function util_installprereq(){
         util_checkAndInstall "host" "dnsutils"
         util_checkAndInstall "sendmail" "sendmail"
         util_checkAndInstall "ethtool" "ethtool"
+    elif [ "$(getOS)" = "suse" ]; then
+        util_checkAndInstall "createrepo" "createrepo"
+        util_checkAndInstall "host" "bind-utils"
+        util_checkAndInstall "perf" "perf"
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
@@ -206,6 +227,8 @@ function util_checkPackageExists(){
         yum --showduplicates list $1 | grep $2 1> /dev/null && echo "true" || echo "false"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-cache policy $1 | grep $2 1> /dev/null && echo "true" || echo "false"
+    elif [[ "$(getOS)" = "suse" ]]; then
+        zypper search -s $1 | grep $2 1> /dev/null && echo "true" || echo "false"
     fi
    
 }
@@ -216,7 +239,7 @@ function util_getInstalledBinaries(){
         return
     fi
 
-    if [ "$(getOS)" = "centos" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
         echo $(rpm -qa | grep $1 | awk '{split ($0, a, "-0"); print a[1]}' | sed ':a;N;$!ba;s/\n/ /g')
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         echo $(dpkg -l | grep $1 | awk '{print $2}' | sed ':a;N;$!ba;s/\n/ /g')
@@ -237,13 +260,13 @@ function util_appendVersionToPackage(){
         local binexists=$(util_checkPackageExists $bin $version)
         if [ "$binexists" = "true" ]; then
             if [ -z "$newbins" ]; then
-                if [ "$(getOS)" = "centos" ]; then
+                if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
                     newbins="$bin$prefix*$version*"
                 elif [[ "$(getOS)" = "ubuntu" ]]; then
                     newbins="$bin=$prefix*$version*"
                 fi
             else
-                if [ "$(getOS)" = "centos" ]; then
+                if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
                     newbins=$newbins" $bin$prefix*$version*"
                 elif [[ "$(getOS)" = "ubuntu" ]]; then
                     newbins=$newbins" $bin=$prefix*$version*"
@@ -277,6 +300,9 @@ function util_installBinaries(){
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get update > /dev/null 2>&1
         apt-get -y install ${bins} --force-yes
+    elif [[ "$(getOS)" = "suse" ]]; then
+        zypper refresh > /dev/null 2>&1
+        zypper --non-interactive -q install -n ${bins}
     fi
 }
 
@@ -296,6 +322,9 @@ function util_upgradeBinaries(){
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get update
         apt-get -y upgrade ${bins} --force-yes
+    elif [[ "$(getOS)" = "suse" ]]; then
+        zypper refresh
+        zypper --non-interactive -q update ${bins}
     fi
 }
 
@@ -319,7 +348,7 @@ function util_removeBinaries(){
     [ -z "$rembins" ] && return
 
     log_info "[$(util_getHostIP)] Removing packages : $rembins"
-    if [ "$(getOS)" = "centos" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
         rpm -ef $rembins > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get -y --purge $rembins
@@ -874,7 +903,7 @@ function util_getNearestPower2() {
 }
 
 function util_restartSSHD(){
-    if [ "$(getOS)" = "centos" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
         service sshd restart > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         service ssh restart > /dev/null 2>&1
