@@ -182,7 +182,7 @@ function util_installprereq(){
         util_checkAndInstall "createrepo" "createrepo"
         util_checkAndInstall "host" "bind-utils"
         util_checkAndInstall "perf" "perf"
-        zypper --no-gpg-checks -q -p http://download.opensuse.org/distribution/leap/42.3/repo/oss/ install sshpass > /dev/null 2>&1
+        zypper -n --no-gpg-checks -q -p http://download.opensuse.org/distribution/leap/42.3/repo/oss/ install sshpass > /dev/null 2>&1
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
