@@ -64,7 +64,7 @@ function util_checkAndInstall(){
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         command -v $1 >/dev/null 2>&1 || apt-get -y install $2 2>/dev/null
     elif [[ "$(getOS)" = "suse" ]]; then
-        command -v $1 >/dev/null 2>&1 || zypper --non-interactive -q install -n $2 2>/dev/null
+        command -v $1 >/dev/null 2>&1 || zypper --no-gpg-checks --non-interactive -q install -n $2 2>/dev/null
     fi
 }
 
@@ -85,7 +85,7 @@ function util_checkAndInstall2(){
         fi
     elif [[ "$(getOS)" = "suse" ]]; then
         if [ ! -e "$1" ]; then
-            zypper --non-interactive -q install $2  2>/dev/null
+            zypper --no-gpg-checks --non-interactive -q install $2  2>/dev/null
         fi
     fi
 }
@@ -182,6 +182,7 @@ function util_installprereq(){
         util_checkAndInstall "createrepo" "createrepo"
         util_checkAndInstall "host" "bind-utils"
         util_checkAndInstall "perf" "perf"
+        zypper --no-gpg-checks -q -p http://download.opensuse.org/distribution/leap/42.3/repo/oss/ install sshpass > /dev/null 2>&1
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
@@ -302,7 +303,7 @@ function util_installBinaries(){
         apt-get -y install ${bins} --force-yes
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper refresh > /dev/null 2>&1
-        zypper -n install ${bins}
+        zypper --no-gpg-checks -n install ${bins}
     fi
 }
 
@@ -324,7 +325,7 @@ function util_upgradeBinaries(){
         apt-get -y upgrade ${bins} --force-yes
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper refresh
-        zypper -n update ${bins}
+        zypper --no-gpg-checks -n update ${bins}
     fi
 }
 
