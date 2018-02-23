@@ -302,7 +302,7 @@ function util_installBinaries(){
         apt-get -y install ${bins} --force-yes
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper refresh > /dev/null 2>&1
-        zypper --non-interactive -q install -n ${bins}
+        zypper -n install ${bins}
     fi
 }
 
@@ -324,7 +324,7 @@ function util_upgradeBinaries(){
         apt-get -y upgrade ${bins} --force-yes
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper refresh
-        zypper --non-interactive -q update ${bins}
+        zypper -n update ${bins}
     fi
 }
 
