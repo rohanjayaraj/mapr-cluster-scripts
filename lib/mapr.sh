@@ -1100,11 +1100,18 @@ function maprutil_buildDiskList() {
         return
     fi
     local diskfile=$1
+    local ignorefile=$2
     echo "$(util_getRawDisks $GLB_DISK_TYPE)" > $diskfile
     maprutil_getSSDvsHDDRatio "$(cat $diskfile)"
     local diskratio=$?
     [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "1" ]] && echo "$(util_getRawDisks "ssd")" > $diskfile
     [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "0" ]] && echo "$(util_getRawDisks "hdd")" > $diskfile
+    if [ -s "$ignorefile" ]; then
+        local baddisks=$(cat $ignorefile | sed 's/,/ /g' | tr -s " " | tr ' ' '\n')
+        local gooddisks=$(cat $diskfile | grep -v "$baddisks")
+        log_warn "[$(util_getHostIP)] Excluding disks [$(echo $baddisks | sed ':a;N;$!ba;s/\n/,/g')] "
+        echo "$gooddisks" > $diskfile
+    fi
 
     local limit=$GLB_MAX_DISKS
     local numdisks=$(wc -l $diskfile | cut -f1 -d' ')
@@ -1292,7 +1299,8 @@ function maprutil_configure(){
     local zknodes=$(util_getCommaSeparated "$2")
     local hsnodes=$(maprutil_getNodesForService "historyserver")
     local rmnodes=$(maprutil_getNodesForService "resourcemanager")
-    maprutil_buildDiskList "$diskfile"
+    local ignoredisks=/root/ignoredisks
+    maprutil_buildDiskList "$diskfile" "$ignoredisks"
 
     local disklist="$(cat $diskfile)"
     [ -n "$(maprutil_isSSDOnlyInstall "$disklist")" ] && maprutil_configureSSD
