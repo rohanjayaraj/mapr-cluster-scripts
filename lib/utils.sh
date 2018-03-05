@@ -170,6 +170,7 @@ function util_installprereq(){
         util_checkAndInstall "perf" "perf"
         util_checkAndInstall "sendmail" "sendmail sendmail-cf m4"
         util_checkAndInstall "ethtool" "ethtool.x86_64"
+        util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         util_checkAndInstall "add-apt-repository" "python-software-properties"
         util_checkAndInstall "add-apt-repository" "software-properties-common"
@@ -178,10 +179,12 @@ function util_installprereq(){
         util_checkAndInstall "host" "dnsutils"
         util_checkAndInstall "sendmail" "sendmail"
         util_checkAndInstall "ethtool" "ethtool"
+        util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "google-perftools"
     elif [ "$(getOS)" = "suse" ]; then
         util_checkAndInstall "createrepo" "createrepo"
         util_checkAndInstall "host" "bind-utils"
         util_checkAndInstall "perf" "perf"
+        util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
         zypper -n --no-gpg-checks -q -p http://download.opensuse.org/distribution/leap/42.3/repo/oss/ install sshpass > /dev/null 2>&1
     fi
 
@@ -913,9 +916,15 @@ function util_restartSSHD(){
 
 function util_createExtractFile(){
     local scriptfile="extract.sh"
+    echo -e '#!/bin/bash \n' > $scriptfile
     echo "for i in \$(ls *.bz2);do bzip2 -dk \$i;done " >> $scriptfile
     echo "for i in \$(ls *.tar);do tar -xf \$i && rm -f \${i}; done" >> $scriptfile
     chmod +x $scriptfile
+
+    local delscriptfile="delextract.sh"
+    echo -e '#!/bin/bash \n' > $delscriptfile
+    echo "for i in \$(ls | grep -v \"bz2\$\" | grep -v "extract.sh$");do rm -f \${i}; done" >> $delscriptfile
+    chmod +x $delscriptfile
 }
 
 function util_getResourceUseHeader(){
