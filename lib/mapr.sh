@@ -1169,11 +1169,11 @@ function maprutil_startTraces() {
         nohup bash -c 'log="/opt/mapr/logs/dstat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 dstat -tcdnim >> $log; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/iostat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         local nodeos=$(getOS)
-        if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-            nohup bash -c 'log="/opt/mapr/logs/mfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(pidof mfs); if [ -n "$mfspid" ]; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
-        elif [ "$nodeos" = "ubuntu" ]; then
+        #if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+        #    nohup bash -c 'log="/opt/mapr/logs/mfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(pidof mfs); if [ -n "$mfspid" ]; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        #elif [ "$nodeos" = "ubuntu" ]; then
             nohup bash -c 'log="/opt/mapr/logs/tguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" ]]; do mfspid=$(cat /opt/mapr/pid/mfs.pid 2>/dev/null); if kill -0 ${mfspid}; then timeout 70 /opt/mapr/bin/guts time:all cpu:none db:none fs:none rpc:none cache:none threadcpu:all >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &    
-        fi
+        #fi
         nohup bash -c 'log="/opt/mapr/logs/gatewayguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts clientpid:$gwpid time:all gateway:all >> $log; rc=$?; [ "$rc" -eq "1" ] && [ -z "$(grep Printing $log)" ] && truncate -s 0 $log && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/gatewaytop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid}; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $gwpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
@@ -3236,7 +3236,7 @@ function maprutil_processtrace(){
     for i in $(seq $iter)
     do
         local tracefile="$tmpdir/${pname}_trace_$(date '+%Y-%m-%d-%H-%M-%S')"
-        gstack $ppid > $tracefile
+        command -v gstack >/dev/null 2>&1 && gstack $ppid > $tracefile || gdb -ex "t a a bt" --batch -p $ppid  | grep -v "^\[New" > $tracefile
         [ -n "$isjava" ] && jstack $ppid > ${tracefile}_jstack
         sleep 1
     done
@@ -3255,7 +3255,8 @@ function maprutil_mfsthreads(){
     if [ -s "$mfsgstack" ] && [ -n "$(cat $mfsgstack | grep CpuQ_FS)" ]; then
         mfstrace=$(cat $mfsgstack) 
     else
-        mfstrace=$(gstack $mfspid | sed '1!G;h;$!d')
+        #mfstrace=$(gstack $mfspid | sed '1!G;h;$!d')
+        mfstrace=$(command -v gstack >/dev/null 2>&1 && gstack $mfspid | sed '1!G;h;$!d' || gdb -ex "t a a bt" --batch -p $mfspid  | grep -v "^\[New" | sed '1!G;h;$!d')
         echo "$mfstrace" > $mfsgstack
     fi
     echo
