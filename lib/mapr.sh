@@ -3666,7 +3666,7 @@ maprutil_getMFSThreadUseFromGuts(){
         do
             local logfile="$tempdir/mfs${j}_${type}.log"
             local colids="$(echo "$gheader" | grep $type | grep "\[$ji]" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/ /g')"
-            sed -n ${sl},${el}p $gutsfile | awk -v var="$colids" 'BEGIN{split(var,cids," "); ncols=length(cids)} {for (i=1;i<=length(cids);i++) { sum+=$cids[i]; if($cids[i]>max) max=$cids[i] } printf("%d %d\n",sum/ncols, max); sum=0; max=0}' > $logfile 2>&1 &
+            sed -n ${sl},${el}p $gutsfile | grep "^2" | awk -v var="$colids" 'BEGIN{split(var,cids," "); ncols=length(cids)} {for (i=1;i<=length(cids);i++) { sum+=$cids[i]; if($cids[i]>max) max=$cids[i] } printf("%d %d\n",sum/ncols, max); sum=0; max=0}' > $logfile 2>&1 &
         done
     done
     wait
