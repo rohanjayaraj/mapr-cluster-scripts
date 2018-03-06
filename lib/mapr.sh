@@ -3302,6 +3302,20 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
     [ -n "$tjson" ] && json="$json,\"threads\":$tjson"
 
+    ttime=0
+    local files="Rpc.log IOMgr.log FS.log DBMain.log DBHelper.log DBFlush.log Compress.log SysCalls.log ExtInstance.log Rpc_max.log IOMgr_max.log FS_max.log DBMain_max.log DBHelper_max.log DBFlush_max.log Compress_max.log SysCalls_max.log ExtInstance_max.log"
+    for fname in $files
+    do
+        [ ! -s "$fname" ] && continue
+        local tlog=$(cat $fname | awk 'BEGIN{printf("["); i=1} { if(i!=1) printf(","); printf("%s",$1); i++} END{printf("]")}')
+        [ -n "$tjson" ] && tjson="$tjson,"
+        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$tlog"
+        [ "$ttime" -lt "$(cat $fname | wc -l)" ] && ttime=$(cat $fname | wc -l)
+    done
+    [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+    [ -n "$tjson" ] && json="$json,\"threads\":$tjson"
+
+
     # add MFS & GW cpu
     files="mfs.log gw.log client.log qs.log dag.log"
     tjson=
