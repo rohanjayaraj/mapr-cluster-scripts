@@ -649,11 +649,16 @@ function main_backuplogs(){
 	wait
 
 	local scriptfile="$doBackup/extract.sh"
-	echo "echo \"extracting bzip2\"" > $scriptfile
+	echo -e '#!/bin/bash \n' > $scriptfile
+	echo "echo \"extracting bzip2\"" >> $scriptfile
 	echo "for i in \$(ls *.bz2);do bzip2 -dk \$i;done " >> $scriptfile
 	echo "echo \"extracting tar\"" >> $scriptfile
 	echo "for i in \$(ls *.tar);do DIR=\$(echo \$i| sed 's/.tar//g' | tr '.' '_' | cut -d'_' -f2); echo \$DIR;mkdir -p \$DIR;tar -xf \$i -C \$(pwd)/\$DIR && rm -f \${i}; done" >> $scriptfile
 	chmod +x $scriptfile
+	local delscriptfile="$doBackup/delextract.sh"
+    echo -e '#!/bin/bash \n' > $delscriptfile
+    echo "for i in \$(ls | grep -v \"bz2\$\" | grep -v \"extract.sh\$\");do rm -f \${i}; done" >> $delscriptfile
+    chmod +x $delscriptfile
 
 	log_msghead "[$(util_getCurDate)] Backup complete! [ RunTime - $(main_timetaken) ]"
 }
