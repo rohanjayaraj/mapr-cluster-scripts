@@ -811,12 +811,19 @@ function maprutil_installBinariesOnNode(){
     
     ## Append MapR release version as there might be conflicts with mapr-patch-client with regex as 'mapr-patch*$VERSION*'
     local nodeos=$(getOSFromNode $node)
-    if [ "$nodeos" = "centos" ]; then
+    [ -n "$maprpatch" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""-$GLB_MAPR_VERSION"\"" >> $scriptpath
-        [ -n "$maprpatch" ] && echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
+        if [ -n "$maprpatch" ]; then
+            echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
+            echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
+        fi
     else
         echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""$GLB_MAPR_VERSION"\"" >> $scriptpath
-        [ -n "$maprpatch" ] && echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
+        if [ -n "$maprpatch" ]; then
+            echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
+            echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
+        fi
     fi
     
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
@@ -1342,6 +1349,7 @@ function maprutil_configure(){
     # Return if configuring client node after this
     if [ "$ISCLIENT" -eq 1 ]; then
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
+        [ -n "$GLB_TRACE_ON" ] && maprutil_startTraces
         log_info "[$hostip] Done configuring client node"
         return 
     fi
@@ -1856,6 +1864,42 @@ function maprutil_disableAllRepo(){
            log_info "[$(util_getHostIP)] Disabling repository $repo"
            zypper modifyrepo -d $repo > /dev/null 2>&1
         done
+    fi
+}
+
+function maprutil_disableRepoByURL(){
+    local nodeos=$(getOS)
+    local repourl="$1"
+    [ "$nodeos" = "suse" ] && repourl=$(echo "$repourl" | sed 's/redhat/suse/g')
+    
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+        local repoline=$(grep -n "^baseurl=${repourl}")
+        local repofile=$(echo "$repoline" | cut -d':' -f1)
+        local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
+        sed -i "${repoln}s/enabled.*/enabled=0/" $repofile
+    elif [ "$nodeos" = "ubuntu" ]; then
+        local repoline=$(grep -n "^${repourl}")
+        local repofile=$(echo "$repoline" | cut -d':' -f1)
+        local repoln=$(echo "$repoline" | cut -d':' -f2)
+        sed -i "${repoln}s/^/#/" $repofile
+    fi
+}
+
+function maprutil_enableRepoByURL(){
+    local nodeos=$(getOS)
+    local repourl="$1"
+    [ "$nodeos" = "suse" ] && repourl=$(echo "$repourl" | sed 's/redhat/suse/g')
+    
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+        local repoline=$(grep -n "^baseurl=${repourl}")
+        local repofile=$(echo "$repoline" | cut -d':' -f1)
+        local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
+        sed -i "${repoln}s/enabled.*/enabled=1/" $repofile
+    elif [ "$nodeos" = "ubuntu" ]; then
+        local repoline=$(grep -n "^${repourl}")
+        local repofile=$(echo "$repoline" | cut -d':' -f1)
+        local repoln=$(echo "$repoline" | cut -d':' -f2)
+        sed -i "${repoln}s/^#//" $repofile
     fi
 }
 
