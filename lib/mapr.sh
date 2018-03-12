@@ -1872,7 +1872,7 @@ function maprutil_disableRepoByURL(){
     local repourl="$1"
     
     if [ "$nodeos" = "centos" ]; then
-        local repofiles=$(grep "enabled=1" /etc/yum.repos.d/* | uniq)
+        local repofiles=$(grep "enabled=1" /etc/yum.repos.d/* | uniq | cut -d':' -f1)
         local repoline=$(grep -n "^baseurl=${repourl}" $repofiles)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
         local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
@@ -1884,7 +1884,7 @@ function maprutil_disableRepoByURL(){
         sed -i "${repoln}s/^/#/" $repofile
     elif [ "$nodeos" = "suse" ]; then
         repourl=$(echo "$repourl" | sed 's/redhat/suse/g')
-        local repofiles=$(grep "enabled=1" /etc/zypp/repos.d/* | uniq)
+        local repofiles=$(grep "enabled=1" /etc/zypp/repos.d/* | uniq | cut -d':' -f1)
         local repoline=$(grep -n "^baseurl=${repourl}" $repofiles)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
         local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
@@ -1897,7 +1897,7 @@ function maprutil_enableRepoByURL(){
     local nodeos=$(getOS)
     
     if [ "$nodeos" = "centos" ]; then
-        local repofiles=$(grep "enabled=1" /etc/yum.repos.d/* | uniq)
+        local repofiles=$(grep "enabled=1" /etc/yum.repos.d/* | uniq | cut -d':' -f1)
         local repoline=$(grep -n "^baseurl=${repourl}" $repofiles)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
         local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
@@ -1909,7 +1909,7 @@ function maprutil_enableRepoByURL(){
         sed -i "${repoln}s/^#//" $repofile
     elif [ "$nodeos" = "suse" ]; then
         repourl=$(echo "$repourl" | sed 's/redhat/suse/g')
-        local repofiles=$(grep "enabled=1" /etc/zypp/repos.d/* | uniq)
+        local repofiles=$(grep "enabled=1" /etc/zypp/repos.d/* | uniq | cut -d':' -f1)
         local repoline=$(grep -n "^baseurl=${repourl}" $repofiles)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
         local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
