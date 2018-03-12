@@ -1870,36 +1870,46 @@ function maprutil_disableAllRepo(){
 function maprutil_disableRepoByURL(){
     local nodeos=$(getOS)
     local repourl="$1"
-    [ "$nodeos" = "suse" ] && repourl=$(echo "$repourl" | sed 's/redhat/suse/g')
     
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        local repoline=$(grep -n "^baseurl=${repourl}")
+    if [ "$nodeos" = "centos" ]; then
+        local repoline=$(grep -n "^baseurl=${repourl}" /etc/yum.repos.d/*)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
         local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
         sed -i "${repoln}s/enabled.*/enabled=0/" $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        local repoline=$(grep -n "^${repourl}")
+        local repoline=$(grep -n "^${repourl}" /etc/apt/sources.list.d/*)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
         local repoln=$(echo "$repoline" | cut -d':' -f2)
         sed -i "${repoln}s/^/#/" $repofile
+    elif [ "$nodeos" = "suse" ]; then
+        repourl=$(echo "$repourl" | sed 's/redhat/suse/g')
+        local repoline=$(grep -n "^baseurl=${repourl}" /etc/zypp/repos.d/*)
+        local repofile=$(echo "$repoline" | cut -d':' -f1)
+        local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
+        sed -i "${repoln}s/enabled.*/enabled=0/" $repofile
     fi
 }
 
 function maprutil_enableRepoByURL(){
-    local nodeos=$(getOS)
     local repourl="$1"
-    [ "$nodeos" = "suse" ] && repourl=$(echo "$repourl" | sed 's/redhat/suse/g')
+    local nodeos=$(getOS)
     
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        local repoline=$(grep -n "^baseurl=${repourl}")
+    if [ "$nodeos" = "centos" ]; then
+        local repoline=$(grep -n "^baseurl=${repourl}" /etc/yum.repos.d/*)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
         local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
         sed -i "${repoln}s/enabled.*/enabled=1/" $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        local repoline=$(grep -n "^${repourl}")
+        local repoline=$(grep -n "^${repourl}" /etc/apt/sources.list.d/*)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
         local repoln=$(echo "$repoline" | cut -d':' -f2)
         sed -i "${repoln}s/^#//" $repofile
+    elif [ "$nodeos" = "suse" ]; then
+        repourl=$(echo "$repourl" | sed 's/redhat/suse/g')
+        local repoline=$(grep -n "^baseurl=${repourl}" /etc/zypp/repos.d/*)
+        local repofile=$(echo "$repoline" | cut -d':' -f1)
+        local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
+        sed -i "${repoln}s/enabled.*/enabled=1/" $repofile
     fi
 }
 
