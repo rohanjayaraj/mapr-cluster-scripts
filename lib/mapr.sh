@@ -4285,9 +4285,9 @@ function maprutil_runmrconfig_info(){
     local commands=$(/opt/mapr/server/mrconfig $info | awk '{if(NF==2) print $2}')
     log_msghead "[$(util_getHostIP)] Running 'mrconfig $info' commands : "
     for i in $commands; do
-        log_msg "\t mrconfig $info $i"
+        log_msg "/opt/mapr/server/mrconfig $info $i"
         local output=$(/opt/mapr/server/mrconfig $info $i)
-        echo "$output" | sed 's/^/\t\t/'
+        echo "$output" | sed 's/^/\t/'
         echo
     done
 }
