@@ -955,7 +955,7 @@ EOL
 }
 
 function maprutil_updateMFSMemory(){
-    [ ! -e "/opt/mapr/roles/fileserver" ]&& return
+    [ ! -e "/opt/mapr/roles/fileserver" ] && return
     [ -z "$GLB_MFS_MAXMEM" ] && return
     [[ "$(util_isNumber $GLB_MFS_MAXMEM)" = "false" ]] && return
     [[ "$GLB_MFS_MAXMEM" -le "0" ]] && return
@@ -2008,12 +2008,17 @@ function maprutil_runCommandsOnNodesInParallel(){
     local cmd=$2
     local mailfile=$3
 
-    local tempdir="$RUNTEMPDIR/cmdrun"
-    mkdir -p $tempdir > /dev/null 2>&1
+    local tempdir=$GLB_COPY_DIR
+    if [ -z "$tempdir" ]; then
+        tempdir="$RUNTEMPDIR/cmdrun"
+        mkdir -p $tempdir > /dev/null 2>&1
+    else
+        tempdir="$tempdir/$cmd"
+    fi
 
     for node in ${nodes[@]}
     do
-        local nodefile="$tempdir/$node.log"
+        local nodefile="$tempdir/${node}_${cmd}.log"
         maprutil_runCommandsOnNode "$node" "$cmd" > $nodefile &
         maprutil_addToPIDList "$!" 
     done
@@ -2021,7 +2026,7 @@ function maprutil_runCommandsOnNodesInParallel(){
 
     for node in ${nodes[@]}
     do
-        local nodefile="$tempdir/$node.log"
+        local nodefile="$tempdir/${node}_${cmd}.log"
         if [ "$(cat $nodefile | wc -w)" -gt "0" ]; then
             cat "$nodefile" 2>/dev/null
             if [ -n "$mailfile" ]; then
@@ -2031,7 +2036,7 @@ function maprutil_runCommandsOnNodesInParallel(){
             fi
         fi
     done
-    rm -rf $tempdir > /dev/null 2>&1
+    [ -z "$GLB_COPY_DIR" ] && rm -rf $tempdir > /dev/null 2>&1
 }
 
 # @param host node
@@ -2150,6 +2155,12 @@ function maprutil_runCommands(){
             traceon)
                 maprutil_killTraces
                 maprutil_startTraces
+            ;;
+            mrinfo)
+                maprutil_runmrconfig_info
+            ;;
+            mrdbinfo)
+                maprutil_runmrconfig_info "dbinfo"
             ;;
             insttrace)
                 maprutil_startInstanceGuts
@@ -4265,6 +4276,18 @@ function maprutil_debugCore(){
         [ "$sz" -gt "10737418240" ] && log_warn "[$(util_getHostIP)] Disk may get full with large(>10GB) core file(s)"
     fi
     [ -n "$backtrace" ] && echo "$backtrace" | sed  -n '/Switching to thread/q;p'
+}
+
+function maprutil_runmrconfig_info(){
+    [ ! -e "/opt/mapr/roles/fileserver" ] && return
+    local info="$1"
+    [ -z "$info" ] && info="dbinfo"
+    local commands=$(/opt/mapr/server/mrconfig $info | awk '{if(NF==2) print $2}')
+    log_msg "[$util_getHostIP] Running 'mrconfig $info' commands on node "
+    for i in $commands; do
+        log_info " mrconfig $info $i"
+        /opt/mapr/server/mrconfig $info $i
+    done
 }
 
 # @param scriptpath

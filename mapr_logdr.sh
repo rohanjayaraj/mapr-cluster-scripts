@@ -153,6 +153,12 @@ function usage () {
     echo -e "\t -gwguts" 
     echo -e "\t\t - When passed with -guts option, build gateway guts instead of mfs"
 
+    echo -e "\t -minfo" 
+    echo -e "\t\t - Run 'mrconfig info' commands on all MFS nodes"
+
+    echo -e "\t -mdbinfo" 
+    echo -e "\t\t - Run 'mrconfig dbinfo' commands on all MFS nodes"
+
     echo -e "\t -dir=<COPYTODIR> | --copydir=<COPYTODIR>" 
     echo -e "\t\t - Specify a COPYTODIR to copy logs,coredump analysis, w/ mcu,mt,guts options"
 
@@ -297,6 +303,12 @@ while [ "$1" != "" ]; do
         ;;
         -gwguts)
             args=$args"gwguts "
+        ;;
+        -minfo)
+            args=$args"mrinfo "
+        ;;
+        -mdbinfo)
+            args=$args"mrdbinfo "
         ;;
         -gc | --gutscol)
             if [ -n "$VALUE" ]; then

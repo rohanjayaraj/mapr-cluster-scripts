@@ -885,6 +885,14 @@ function main_runLogDoctor(){
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzecores" "$mailfile"
         	;;
+        	mrinfo)
+				log_msghead "[$(util_getCurDate)] Running mrconfig info "
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "mrinfo"
+        	;;
+        	mrdbinfo)
+				log_msghead "[$(util_getCurDate)] Running mrconfig dbinfo "
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "mrdbinfo"
+        	;;
         	mfstrace)
 				main_getmfstrace
 			;;
@@ -1188,6 +1196,10 @@ while [ "$2" != "" ]; do
 	    			GLB_PERF_URL="http://dash.perf.lab/puffd/"
 	    		elif [[ "$i" = "gutsstats" ]]; then
 	    			doLogAnalyze="$doLogAnalyze gutsstats"
+	    		elif [[ "$i" = "mrinfo" ]]; then
+	    			doLogAnalyze="$doLogAnalyze mrinfo"
+	    		elif [[ "$i" = "mrdbinfo" ]]; then
+	    			doLogAnalyze="$doLogAnalyze mrdbinfo"
 	    		elif [[ "$i" = "gwguts" ]]; then
 	    			doGutsType="gw"
 	    		elif [[ "$i" = "defaultguts" ]]; then
