@@ -4283,9 +4283,9 @@ function maprutil_runmrconfig_info(){
     local info="$1"
     [ -z "$info" ] && info="dbinfo"
     local commands=$(/opt/mapr/server/mrconfig $info | awk '{if(NF==2) print $2}')
-    log_msg "[$util_getHostIP] Running 'mrconfig $info' commands on node "
+    log_msghead "[$(util_getHostIP)] Running 'mrconfig $info' commands : "
     for i in $commands; do
-        log_info " mrconfig $info $i"
+        log_msg " mrconfig $info $i"
         /opt/mapr/server/mrconfig $info $i
     done
 }
