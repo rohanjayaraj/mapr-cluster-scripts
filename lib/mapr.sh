@@ -2011,10 +2011,10 @@ function maprutil_runCommandsOnNodesInParallel(){
     local tempdir=$GLB_COPY_DIR
     if [ -z "$tempdir" ]; then
         tempdir="$RUNTEMPDIR/cmdrun"
-        mkdir -p $tempdir > /dev/null 2>&1
     else
         tempdir="$tempdir/$cmd"
     fi
+    mkdir -p $tempdir > /dev/null 2>&1
 
     for node in ${nodes[@]}
     do
