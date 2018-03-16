@@ -1053,7 +1053,7 @@ function main_printURLs(){
 function main_preSetup(){
 	[ -z "$GLB_HAS_FUSE" ] && [ -n "$(cat $rolefile | grep mapr-posix)" ] && GLB_HAS_FUSE=1
 	[ -z "$GLB_ROLE_LIST" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
-	[ -n "$copydir" ] && GLB_COPY_DIR="$copydir"
+	[ -n "$copydir" ] && GLB_COPY_DIR="$copydir" && mkdir -p $GLB_COPY_DIR > /dev/null 2>&1
 }
 
 function main_extractMapRVersion(){
