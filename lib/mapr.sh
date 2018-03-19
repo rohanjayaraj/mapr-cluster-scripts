@@ -685,6 +685,8 @@ function maprutil_upgrade(){
     upbins=$(echo $upbins | sed 's/\n/ /g')
 
     local buildversion=$1
+    local starttrace=
+    [ -n "$(maprutil_areTracesRunning)" ] && maprutil_killTraces && starttrace=1
     
     local removebins="mapr-patch"
     if [ -n "$(util_getInstalledBinaries $removebins)" ]; then
@@ -717,6 +719,8 @@ function maprutil_upgrade(){
     
     # Restart services on the node
     maprutil_restartWarden "start" > /dev/null 2>&1
+
+    [ -n "$starttrace" ] && maprutil_startTraces
 }
 
 # @param host ip
@@ -1246,6 +1250,10 @@ done
 EOL
     chmod +x $tracescript > /dev/null 2>&1
     nohup bash -c '/tmp/clienttrace.sh' > /dev/null 2>&1 &
+}
+
+function maprutil_areTracesRunning(){
+    [[ -n "$(ps -ef | grep "[l]og=\"/opt")" ]] && echo "true"
 }
 
 function maprutil_killTraces() {

@@ -911,7 +911,7 @@ function main_runLogDoctor(){
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "mfsthreads"
         	;;
         esac
-        local ec=$?
+        local ec=$GLB_EXIT_ERRCODE
         [ -n "$ec" ] && [ "$rc" -eq "0" ] && rc=$ec
 	done
 	if [ -s "$mailfile" ] && [ -n "$GLB_MAIL_LIST" ]; then
