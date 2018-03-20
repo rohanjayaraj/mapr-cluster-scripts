@@ -819,7 +819,7 @@ function util_getDiskInfo(){
     for disk in $disks
     do
         local blk=$(echo $disk | cut -d'/' -f3)
-        local size=$(echo "$fd" | grep "Disk \/" | grep "$disk" | tr -d ':' | awk '{print $3}')
+        local size=$(echo "$fd" | grep "Disk \/" | grep "$disk" | tr -d ':' | awk '{if($4 ~ /^G/) {print $3} else if($4 ~ /^T/) {print $3*1024} else if($4 ~ /^M/) {print $3/1024}}')
         local dtype=$(cat /sys/block/$blk/queue/rotational)
         local isos=$(echo "$fd" |  grep -wA6 "$disk" | grep "Disk identifier" | awk '{print $3}')
         local used=$(echo "$defdisks" | grep -w "$disk")
@@ -829,7 +829,13 @@ function util_getDiskInfo(){
             dtype="HDD"
         fi
         if [ -n "$isos" ]; then
-            local dival=$(printf "%d\n" $isos)
+            local dival=0
+            if [ -n "$(echo $isos | grep "^0x" )" ]; then
+                dival=$(printf "%d\n" $isos)
+            elif 
+                [ -n "$(echo $isos | grep "-")" ];
+                dival=1
+            fi
             if [[ "$dival" -ne 0 ]]; then
                 isos="[ OS ]"
                 used=
