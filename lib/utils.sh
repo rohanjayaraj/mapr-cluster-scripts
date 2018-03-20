@@ -832,8 +832,7 @@ function util_getDiskInfo(){
             local dival=0
             if [ -n "$(echo $isos | grep "^0x" )" ]; then
                 dival=$(printf "%d\n" $isos)
-            elif 
-                [ -n "$(echo $isos | grep "-")" ];
+            elif [ -n "$(echo $isos | grep "-")" ]; then
                 dival=1
             fi
             if [[ "$dival" -ne 0 ]]; then
