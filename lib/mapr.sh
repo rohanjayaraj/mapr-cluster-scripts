@@ -241,7 +241,7 @@ function maprutil_isClientNode() {
         return 1
     fi
     [ -n "$(grep $2 $1 | grep mapr-fileserver)" ] && return
-    local isclient=$(grep $2 $1 | grep -v 'mapr-fileserver' | grep 'mapr-client\|mapr-loopbacknfs' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local isclient=$(grep $2 $1 | grep -v 'mapr-fileserver' | grep 'mapr-client\|mapr-loopbacknfs\|mapr-posix' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     [ -z "$isclient" ] && isclient=$(grep $2 $1 | cut -d',' -f2 | grep -v 'mapr-fileserver' | grep mapr-core)
     if [ -n "$isclient" ]; then
         echo $isclient
@@ -1053,11 +1053,11 @@ function maprutil_customConfigure(){
 function maprutil_configureCLDBTopology(){
     log_info "[$(util_getHostIP)] Moving $GLB_CLUSTER_SIZE nodes to /data topology"
     local datatopo=$(maprcli node list -json 2>/dev/null | grep racktopo | grep "/data/" | wc -l)
-    local numdnodes=$(maprcli node list  -json 2>/dev/null | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
+    local numdnodes=$(maprcli node list  -columns id,service | awk '{if ($2 ~ /fileserver/) print $4}' | wc -l) 
     local j=0
     local downnodes=
     while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ]; do
-        numdnodes=$(maprcli node list  -json 2>/dev/null | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | wc -l) 
+        numdnodes=$(maprcli node list  -columns id,service | awk '{if ($2 ~ /fileserver/) print $4}' | wc -l) 
         let j=j+1
         if [ "$j" -gt 12 ]; then
             log_warn "[$(util_getHostIP)] Timeout reached waiting for nodes to be online"

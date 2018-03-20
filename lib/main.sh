@@ -105,7 +105,7 @@ trap main_stopall SIGHUP SIGINT SIGTERM SIGKILL
 
 # Global Variables : All need to start with 'GLB_' as they are replayed back to other cluster nodes during setup
 GLB_CLUSTER_NAME="archerx"
-GLB_CLUSTER_SIZE=$(cat $rolefile |  grep "^[^#;]" | grep 'mapr-fileserver' | wc -l)
+GLB_CLUSTER_SIZE=
 GLB_ROLE_LIST=
 GLB_TRACE_ON=1
 GLB_ENABLE_AUDIT=
@@ -1054,6 +1054,7 @@ function main_preSetup(){
 	[ -z "$GLB_HAS_FUSE" ] && [ -n "$(cat $rolefile | grep mapr-posix)" ] && GLB_HAS_FUSE=1
 	[ -z "$GLB_ROLE_LIST" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
 	[ -n "$copydir" ] && GLB_COPY_DIR="$copydir" && mkdir -p $GLB_COPY_DIR > /dev/null 2>&1
+	GLB_CLUSTER_SIZE=$(cat $rolefile |  grep "^[^#;]" | grep 'mapr-fileserver' | wc -l)
 }
 
 function main_extractMapRVersion(){

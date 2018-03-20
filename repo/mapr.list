@@ -1,10 +1,10 @@
 #################### Current Release Repositories #############
 
 # 6.1.0 Binaries
-#deb http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.1.0/ubuntu/ mapr optional/
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.1.0/ubuntu/ binary trusty
 
 # 6.0.1 Binaries
-deb http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.0.1/ubuntu/ mapr optional/
+deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.0.1/ubuntu/ binary trusty
 
 #################### MEP Repositories ##########################
 
@@ -37,23 +37,23 @@ deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0.
 #################### MapR Release - Core & Patch Repositories  #####################
 
 # 6.1.0 Binaries
-#deb http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.1.0/ubuntu/ mapr optional/
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.1.0/ubuntu/ binary trusty
 
 # 6.0.1 Binaries
-#deb http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.0.1/ubuntu/ mapr optional/
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.0.1/ubuntu/ binary trusty
 
 # 6.0 Binaries
-#deb http://artifactory.devops.lab/artifactory/prestage/releases-qa/v6.0.0/ubuntu/ mapr optional/
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.0.0/ubuntu/ binary trusty
 #dev http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v6.0.0/ubuntu/ binary trusty
 
 # 5.2.1 Binaries
-#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.2.1/ubuntu/ mapr optional/
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.2.1/ubuntu/ binary trusty
 #dev http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.2.1/ubuntu/ binary trusty
 
 # 5.2 Binaries
-#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.2.0/ubuntu/ mapr optional/
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.2.0/ubuntu/ binary trusty
 #deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.2.0/ubuntu binary trusty
 
 # 5.1 Binaries
-#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.1.0/ubuntu/ mapr optional/
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.1.0/ubuntu/ binary trusty
 #deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.1.0/ubuntu binary trusty
