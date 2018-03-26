@@ -2573,7 +2573,7 @@ function maprutil_getMapRInfo(){
         local rpms=$(rpm -qa | grep mapr)
         patch=$(echo "$rpms" | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1)
         client=$(echo "$rpms" | grep mapr-client | cut -d'-' -f3)
-        bins=$(echo "$rpms" | grep mapr- | sort | cut -d'-' -f1-2 | tr '\n' ' ')
+        bins=$(echo "$rpms" | grep mapr- | sort | sed 's/-[0-9].*//' | tr '\n' ' ')
     elif [ "$nodeos" = "ubuntu" ]; then
         local debs=$(dpkg -l | grep mapr)
         patch=$(echo "$debs" | grep mapr-patch | awk '{print $3}' | cut -d'-' -f4 | cut -d'.' -f1)
