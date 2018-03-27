@@ -3164,6 +3164,7 @@ function maprutil_zipDirectory(){
     local tmpdir="/tmp/maprlogs/$(hostname -f)/"
     local logdir="/opt/mapr/logs"
     local drilllogdir="$(find  /opt/mapr/drill -name logs -type d  2>/dev/null)"
+    local daglogdir="$(find  /opt/mapr/data-access-gateway -name logs -type d  2>/dev/null)"
     local buildid=$(cat /opt/mapr/MapRBuildVersion)
     local tarfile="maprlogs_$(hostname -f)_$buildid_$timestamp.tar.bz2"
 
@@ -3181,6 +3182,10 @@ function maprutil_zipDirectory(){
     if [ -n "$drilllogdir" ]; then 
         mkdir -p drilllogs > /dev/null 2>&1
         cp -r $drilllogdir/drillbit.* drilllogs > /dev/null 2>&1
+    fi
+    if [ -n "$daglogdir" ]; then 
+        mkdir -p daglogs > /dev/null 2>&1
+        cp -r $daglogdir daglogs > /dev/null 2>&1
     fi
     local dirstotar=$(echo $(ls -d */))
     #tar -cjf $tarfile $dirstotar > /dev/null 2>&1
