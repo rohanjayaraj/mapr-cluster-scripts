@@ -44,7 +44,14 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 		if [ -z "$(util_fileExists $rolefile)" ]; then
 			if  [[ $1 =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
 				dummyrole=$rolesdir"/mapr_roles.temp"
-				echo "$1,dummy" > $dummyrole
+				if [ -z "$(echo "$1" | grep "]")" ]; then
+					:> $dummyrole
+					for i in $(echo "$1" | tr ',' ' '); do
+						echo "$i,dummy" >> $dummyrole	
+					done
+				else
+					echo "$1,dummy" > $dummyrole
+				fi
 				rolefile=$dummyrole
 			else
 				rolefile="/tmp/$1"

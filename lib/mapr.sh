@@ -4217,7 +4217,7 @@ function maprutil_analyzeCores(){
             log_msg "\t\t Core file is truncated"
         elif [ -n "$backtrace" ]; then
             if [ -z "$GLB_LOG_VERBOSE" ]; then
-                local btlen=$(echo "$backtrace" | wc -l)
+                local btlen=$(echo -e "$backtrace" | wc -l)
                 echo -e "$backtrace" | awk -v l=$btlen 'BEGIN{i=0; j=0;}{i++; if(i<40||i>l-10){print $0;}else if(j<3){j++;printf("...\n")}}' | sed 's/^/\t\t/' 
             else
                 cat $tracefile | sed -e '1,/Thread debugging using/d' | sed 's/^/\t\t/'
