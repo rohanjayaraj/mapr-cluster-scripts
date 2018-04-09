@@ -1771,7 +1771,7 @@ function maprutil_buildRepoFile(){
     local nodeos=$(getOSFromNode $node)
     local meprepo=
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.1.0/redhat/"
+        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0.0/redhat/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-rpm/"
@@ -1806,7 +1806,7 @@ function maprutil_buildRepoFile(){
         fi
         echo >> $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.1.0/ubuntu/"
+        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0.0/ubuntu/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/ubuntu/"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-deb/"
