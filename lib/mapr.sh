@@ -1099,9 +1099,10 @@ function maprutil_moveTSDBVolumeToCLDBTopology(){
         return
     fi
 
-    maprcli volume modify -name mapr.monitoring -minreplication 1 2>/dev/null
-    maprcli volume modify -name mapr.monitoring -replication 1 2>/dev/null
+    #maprcli volume modify -name mapr.monitoring -minreplication 1 2>/dev/null
+    #maprcli volume modify -name mapr.monitoring -replication 1 2>/dev/null
     maprcli volume move -name mapr.monitoring -topology /cldb 2>/dev/null
+    maprcli volume move -name mapr.monitoring.metricstreams -topology /cldb 2>/dev/null
 }
 
 # @param diskfile
