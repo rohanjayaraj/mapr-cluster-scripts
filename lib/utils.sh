@@ -999,19 +999,21 @@ function util_postToSlack(){
 
     local SLACK_URL="https://hooks.slack.com/services/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"
     local rolefile="$1"
-    local type="$2"
+    local optype="$2"
     local extrainfo="$3"
     
-    local json="{\"text\":\" Cluster $(echo $str | awk '{print toupper($0)}')\n\n"
     local roles="$(cat $rolefile)"
+    local text="$(echo -e "Cluster *$(echo $optype | awk '{print toupper($0)}')* \n $roles")"
     if [ -n "$extrainfo" ]; then
-        json="$json $roles \n\n $extrainfo\"}"
-        json="$(echo "$json" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')"
-    else
-         json="$json $roles\"}"
+        text="$(echo -e "$text \n\n $extrainfo")"
     fi
+    text="$(echo "$text" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')"
     
-    curl -X POST -H 'Content-type: application/json' --data '$json' $SLACK_URL > /dev/null 2>&1
+    local json="{\"text\":$text}"
+    local tmpfile=$(mktemp)
+    echo "$json" > $tmpfile
+    curl -L -X POST -H 'Content-type: application/json' --data @-  $SLACK_URL  < $tmpfile > /dev/null 2>&1
+    rm -f $tmpfile > /dev/null 2>&1
 }
 
 function util_postToSlack2(){

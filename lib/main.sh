@@ -1421,6 +1421,7 @@ if [ -z "$dummyrole" ]; then
 	elif [ "$doUninstall" -eq 1 ]; then
 		log_msghead " *************** Starting Cluster Uninstallation **************** "
 		main_uninstall
+		doSkip=1
 	elif [ "$doUpgrade" -eq 1 ]; then
 		log_msghead " *************** Starting Cluster Upgrade **************** "
 		main_upgrade
