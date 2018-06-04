@@ -174,6 +174,7 @@ function main_install(){
 	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 	    	echo
 	    	log_msg "Abandoning install! "
+	    	doSkip=1
 	        return 1
 	    fi
 	fi
@@ -253,7 +254,8 @@ function main_install(){
 	main_printURLs
 
 	# Post to SLACK
-	util_postToSlack "$rolefile" "INSTALLED"
+	local cs="$(maprutil_getClusterSpec "$nodes")"
+	util_postToSlack "$rolefile" "INSTALLED" "$cs"
 
 	#set +x
 	log_msghead "[$(util_getCurDate)] Install is complete! [ RunTime - $(main_timetaken) ]"
@@ -273,6 +275,7 @@ function main_reconfigure(){
 		read -p "Press 'y' to confirm... " -n 1 -r
 	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 	    	log_msg "Reconfigure C-A-N-C-E-L-L-E-D! "
+	    	doSkip=1
 	        return 1
 	    fi
 	fi
@@ -342,7 +345,8 @@ function main_reconfigure(){
 	main_printURLs
 
 	# Post to SLACK
-	util_postToSlack "$rolefile" "RECONFIGURED"
+	local cs="$(maprutil_getClusterSpec "$nodes")"
+	util_postToSlack "$rolefile" "RECONFIGURED" "$cs"
 
 	log_msghead "[$(util_getCurDate)] Reconfiguration is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -361,6 +365,7 @@ function main_upgrade(){
 		read -p "Press 'y' to confirm... " -n 1 -r
 	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 	    	log_msg "Upgrade C-A-N-C-E-L-L-E-D! "
+	    	doSkip=1
 	        return 1
 	    fi
 	fi
@@ -519,7 +524,8 @@ function main_upgrade(){
 	main_printURLs
 
 	# Post to SLACK
-	util_postToSlack "$rolefile" "UPGRADED"
+	local cs="$(maprutil_getClusterSpec "$nodes")"
+	util_postToSlack "$rolefile" "UPGRADED" "$cs"
 
 	log_msghead "[$(util_getCurDate)] Upgrade is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -540,6 +546,7 @@ function main_uninstall(){
 		read -p "Press 'y' to confirm... " -n 1 -r
 	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 	    	log_msg "Uninstall C-A-N-C-E-L-L-E-D! "
+	    	doSkip=1
 	        return 1
 	    fi
 	fi
@@ -1110,6 +1117,7 @@ doPublish=
 doGutsDef=
 doGutsCol=
 doGutsType=
+doSkip=
 startstr=
 endstr=
 copydir=
@@ -1423,17 +1431,17 @@ if [ -z "$dummyrole" ]; then
 
 	[ -n "$GLB_EXIT_ERRCODE" ] && log_critical "One or more nodes returned error '$GLB_EXIT_ERRCODE'" && exit "$GLB_EXIT_ERRCODE"
 
-	if [ -n "$doCmdExec" ]; then
+	if [ -z "$doSkip" ] && [ -n "$doCmdExec" ]; then
 		main_runCommandExec "$doCmdExec"
 	fi
 fi
 
-if [ -n "$doBackup" ]; then
+if [ -z "$doSkip" ] && [ -n "$doBackup" ]; then
 	log_msghead " *************** Starting logs backup **************** "
 	main_backuplogs	
 fi
 
-if [ -n "$doLogAnalyze" ]; then
+if [ -z "$doSkip" ] && [ -n "$doLogAnalyze" ]; then
 	main_runLogDoctor
 fi
 
