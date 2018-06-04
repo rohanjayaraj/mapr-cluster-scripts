@@ -1189,8 +1189,6 @@ while [ "$2" != "" ]; do
     				GLB_DISK_TYPE="ssd"
     			elif [[ "$i" = "hddonly" ]]; then
     				GLB_DISK_TYPE="hdd"
-    			elif [[ "$i" = "slack" ]]; then
-    				GLB_SLACK_TRACE=1
     			fi
     		done
     	;;
@@ -1230,7 +1228,9 @@ while [ "$2" != "" ]; do
 	    			doGutsDef=1
 	    		elif [[ "$i" = "copycores" ]]; then
     				GLB_COPY_CORES=1
-	    		fi
+	    		elif [[ "$i" = "slack" ]]; then
+    				GLB_SLACK_TRACE=1
+    			fi
 	    	done
 		;;
 		-dir)
