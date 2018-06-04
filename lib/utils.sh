@@ -997,7 +997,7 @@ function util_removeXterm(){
 function util_postToSlack(){
      [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
 
-    local SLACK_URL="https://bit.ly/2LlY8Od"
+    local SLACK_URL="https://hooks.slack.com/services/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"
     local rolefile="$1"
     local type="$2"
 
@@ -1008,15 +1008,18 @@ function util_postToSlack(){
 }
 
 function util_postToSlack2(){
-     [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
+     [ -z "$1" ] && echo "Missing arguments" && return
 
-    local SLACK_URL="$1"
-    local filetopost="$2"
+    local SLACK_URL="https://hooks.slack.com/services/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"
+    local filetopost="$1"
     
     local posttext="$(cat $filetopost)"
+    posttext=$(echo $posttext | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
     local json="{\"text\":\"$posttext\"}"
-
-    curl -X POST -H 'Content-type: application/json' --data '$json' $SLACK_URL > /dev/null 2>&1
+    local tmpfile=$(mktemp)
+    echo "$json" > $tmpfile
+    curl -L -X POST -H 'Content-type: application/json' --data @-  $SLACK_URL  < $tmpfile > /dev/null 2>&1
+    rm -f $tmpfile > /dev/null 2>&1
 }
 
 # @param host name with domin
