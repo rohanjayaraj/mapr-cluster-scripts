@@ -1021,8 +1021,8 @@ function util_postToSlack2(){
     local filetopost="$1"
     
     local posttext="$(cat $filetopost)"
-    posttext="$(echo "$posttext" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')"
-    local json="{\"text\":$posttext}"
+    local json="$(echo "{\"text\":\"$posttext\"}" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')"
+
     local tmpfile=$(mktemp)
     echo "$json" > $tmpfile
     curl -L -X POST -H 'Content-type: application/json' --data @-  $SLACK_URL  < $tmpfile > /dev/null 2>&1
