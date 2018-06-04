@@ -994,6 +994,31 @@ function util_removeXterm(){
     echo "$1" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g'
 }
 
+function util_postToSlack(){
+     [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
+
+    local SLACK_URL="https://bit.ly/2LlY8Od"
+    local rolefile="$1"
+    local type="$2"
+
+    local json="{\"text\":\" Cluster $(echo $str | awk '{print toupper($0)}')\n\n"
+    local roles="$(cat $rolefile)"
+    json="$json$roles\"}"
+    curl -X POST -H 'Content-type: application/json' --data '$json' $SLACK_URL > /dev/null 2>&1
+}
+
+function util_postToSlack2(){
+     [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
+
+    local SLACK_URL="$1"
+    local filetopost="$2"
+    
+    local posttext="$(cat $filetopost)"
+    local json="{\"text\":\"$posttext\"}"
+
+    curl -X POST -H 'Content-type: application/json' --data '$json' $SLACK_URL > /dev/null 2>&1
+}
+
 # @param host name with domin
 function util_getIPfromHostName(){
     if [ -z "$1" ]; then

@@ -151,6 +151,7 @@ GLB_COPY_DIR=
 GLB_COPY_CORES=
 GLB_MAIL_LIST=
 GLB_MAIL_SUB=
+GLB_SLACK_TRACE=
 GLB_EXIT_ERRCODE=
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
@@ -251,6 +252,9 @@ function main_install(){
 	# Print URLs
 	main_printURLs
 
+	# Post to SLACK
+	util_postToSlack "$rolefile" "INSTALLED"
+
 	#set +x
 	log_msghead "[$(util_getCurDate)] Install is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -336,6 +340,9 @@ function main_reconfigure(){
 
 	# Print URLs
 	main_printURLs
+
+	# Post to SLACK
+	util_postToSlack "$rolefile" "RECONFIGURED"
 
 	log_msghead "[$(util_getCurDate)] Reconfiguration is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -511,6 +518,9 @@ function main_upgrade(){
 	# Print URLs
 	main_printURLs
 
+	# Post to SLACK
+	util_postToSlack "$rolefile" "UPGRADED"
+
 	log_msghead "[$(util_getCurDate)] Upgrade is complete! [ RunTime - $(main_timetaken) ]"
 }
 
@@ -608,6 +618,9 @@ function main_uninstall(){
 	#fi
 
 	maprutil_wait
+
+	# Post to SLACK
+	util_postToSlack "$rolefile" "UNINSTALLED"
 
 	log_msghead "[$(util_getCurDate)] Uninstall is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -891,6 +904,7 @@ function main_runLogDoctor(){
         	analyzecores)
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzecores" "$mailfile"
+				[ -n "$GLB_SLACK_TRACE" ] && util_postToSlack2 "https://bit.ly/2swY0nZ" "$mailfile"
         	;;
         	mrinfo)
 				log_msghead "[$(util_getCurDate)] Running mrconfig info "
@@ -1175,6 +1189,8 @@ while [ "$2" != "" ]; do
     				GLB_DISK_TYPE="ssd"
     			elif [[ "$i" = "hddonly" ]]; then
     				GLB_DISK_TYPE="hdd"
+    			elif [[ "$i" = "slack" ]]; then
+    				GLB_SLACK_TRACE=1
     			fi
     		done
     	;;

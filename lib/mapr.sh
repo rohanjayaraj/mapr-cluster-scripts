@@ -4186,7 +4186,7 @@ function maprutil_buildClientUsage(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java.core\|writer\|collectd' | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java.core\|reader\|writer\|collectd' | awk '{print $9}')
     [ -z "$cores" ] && return
 
     echo
@@ -4246,7 +4246,7 @@ function maprutil_debugCore(){
     local tracefile=$2
     local newcore=
     local isjava=$(echo $corefile | grep "java.core")
-    local iscollectd=$(echo $corefile | grep "writer\|collectd")
+    local iscollectd=$(echo $corefile | grep "reader\|writer\|collectd")
     local ismfs=$(echo $corefile | grep "mfs.core")
     local colbin=
 

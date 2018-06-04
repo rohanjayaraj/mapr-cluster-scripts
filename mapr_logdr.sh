@@ -167,6 +167,9 @@ function usage () {
 
     echo -e "\t -sub=<MAILSUBJECT> | --subject=<MAILSUBJECT>" 
     echo -e "\t\t - Use MAILSUBJECT for the mail"
+
+    echo -e "\t -sl | --slack" 
+    echo -e "\t\t - Post 'analyzecores' to slack #perf-stack-trace channel"
     
     echo 
     echo " Examples : "
@@ -294,6 +297,9 @@ while [ "$1" != "" ]; do
             if [ -n "$VALUE" ]; then
                 mailsub="$VALUE"
             fi
+        ;;
+        -sl | --slack)
+            args=$args"slack "
         ;;
         -guts)
             if [ -n "$VALUE" ]; then
