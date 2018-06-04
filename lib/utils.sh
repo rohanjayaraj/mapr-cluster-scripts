@@ -189,6 +189,8 @@ function util_installprereq(){
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
+    util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf-c"
+    util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf"
 
     if [ "$(getOS)" = "centos" ]; then
          yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1 && yum clean metadata > /dev/null 2>&1

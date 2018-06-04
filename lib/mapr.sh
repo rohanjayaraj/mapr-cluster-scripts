@@ -1329,7 +1329,7 @@ function maprutil_configure(){
     if [ -n "$GLB_SECURE_CLUSTER" ]; then
         extops="-secure"
         pushd /opt/mapr/conf/ > /dev/null 2>&1
-        rm -rf cldb.key ssl_truststore ssl_keystore cldb.key maprserverticket /tmp/maprticket_* > /dev/null 2>&1
+        rm -rf cldb.key ssl_truststore ssl_keystore* cldb.key maprserverticket /tmp/maprticket_* > /dev/null 2>&1
         popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ]; then
             extops=$extops" -genkeys"
@@ -1406,6 +1406,9 @@ function maprutil_configure(){
     
     # Restart services on the node
     maprutil_restartWarden > /dev/null 2>&1
+
+    # Restart posix-client
+    service mapr-posix-client* restart > /dev/null 2>&1
 
     # Mount self-hosting on all nodes
     maprutil_mountSelfHosting
@@ -1605,16 +1608,16 @@ function maprutil_copySecureFilesFromCLDB(){
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
         ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/"; 
     fi
-    if [ "$ISCLIENT" -eq 0 ]; then
-        ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore" "/opt/mapr/conf/"; 
+    #if [ "$ISCLIENT" -eq 0 ]; then
+        ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore*" "/opt/mapr/conf/"; 
         ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"; 
-    fi
+    #fi
     ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"; 
     
-    if [ "$ISCLIENT" -eq 0 ]; then
+    #if [ "$ISCLIENT" -eq 0 ]; then
         chown mapr:mapr /opt/mapr/conf/maprserverticket > /dev/null 2>&1
-        chmod +600 /opt/mapr/conf/maprserverticket /opt/mapr/conf/ssl_keystore > /dev/null 2>&1
-    fi
+        chmod +600 /opt/mapr/conf/maprserverticket /opt/mapr/conf/ssl_keystore* > /dev/null 2>&1
+    #fi
     chmod +444 /opt/mapr/conf/ssl_truststore > /dev/null 2>&1
 }
 # @param host ip
