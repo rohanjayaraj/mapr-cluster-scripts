@@ -1003,7 +1003,8 @@ function util_postToSlack(){
     local extrainfo="$3"
     
     local roles="$(cat $rolefile)"
-    local text="$(echo -e "Cluster *$(echo $optype | awk '{print toupper($0)}')* \n \`\`\`$roles\`\`\`")"
+    local mainnode=$(echo "$roles" | grep '^[^#;]' | grep cldb | head -1 | cut -d',' -f1)
+    local text="$(echo -e "Cluster *$mainnode $(echo $optype | awk '{print toupper($0)}')* \n \`\`\`$roles\`\`\`")"
     if [ -n "$extrainfo" ]; then
         extrainfo="$(echo "$extrainfo" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')"
         text="$(echo -e "$text \n\n \`\`\`$extrainfo\`\`\`")"
@@ -1024,7 +1025,8 @@ function util_postToSlack2(){
     local filetopost="$1"
     
     local posttext="$(cat $filetopost)"
-    posttext="$(echo "\`\`\`$posttext\`\`\`" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')"
+    posttext="$(echo "$posttext" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')"
+    posttext=$(echo "$posttext" | sed 's|^.\{1\}|"```|g' | sed 's|.$|```"|g')
     local json="{\"text\":$posttext}"
     local tmpfile=$(mktemp)
     echo "$json" > $tmpfile
