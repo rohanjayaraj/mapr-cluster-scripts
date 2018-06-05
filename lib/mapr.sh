@@ -2627,7 +2627,7 @@ function maprutil_getClusterSpec(){
     ## CPU
     local cpucores=$(echo "$sysinfo" | grep -A1 cores | grep -B1 Enabled | grep cores | cut -d ':' -f2 | sed 's/ *//g')
     [ -n "$cpucores" ] && [ "$(echo $cpucores| wc -w)" -ne "$numnodes" ] && log_warn "CPU hyperthreading mismatch on nodes" && cpucores=0
-    [ -n "$cpucores" ] && cpucores=$(echo "$cpucores" | uniq)
+    [ -n "$cpucores" ] && cpucores=$(echo "$cpucores" | sort | uniq)
     if [ -n "$cpucores" ] && [ "$(echo $cpucores | wc -w)" -gt "1" ]; then
         log_warn "CPU cores do not match. Not a homogeneous cluster"
         cpucores=$(echo "$cpucores" | sort -nr | head -1)
@@ -2636,7 +2636,7 @@ function maprutil_getClusterSpec(){
     fi
     
     if [ -z "$cpucores" ]; then
-        cpucores=$(echo "$sysinfo" | grep -A1 cores | grep -B1 Disabled | grep cores | cut -d ':' -f2 | sed 's/ *//g' | uniq)
+        cpucores=$(echo "$sysinfo" | grep -A1 cores | grep -B1 Disabled | grep cores | cut -d ':' -f2 | sed 's/ *//g' | sort | uniq)
         [ -n "$cpucores" ] && [ "$(echo $cpucores | wc -w)" -gt "1" ] && log_warn "CPU cores do not match. Not a homogeneous cluster" && cpucores=$(echo "$cpucores" | sort -nr | head -1)
     fi
 
@@ -2645,7 +2645,7 @@ function maprutil_getClusterSpec(){
     local numdisks=$(echo "$sysinfo" | grep "Disk Info" | cut -d':' -f3 | tr -d ']' | sed 's/ *//g')
     if [ -n "$numdisks" ]; then 
         [ "$(echo $numdisks| wc -w)" -ne "$numnodes" ] && log_warn "Few nodes do not have disks"
-        numdisks=$(echo "$numdisks" | uniq)
+        numdisks=$(echo "$numdisks" | sort | uniq)
         if [ "$(echo $numdisks | wc -w)" -gt "1" ]; then
             log_warn "# of disks do not match. Not a homogeneous cluster"
             numdisks=$(echo "$numdisks" | sort -nr | head -1)
@@ -2663,22 +2663,23 @@ function maprutil_getClusterSpec(){
     fi
     [ "$diskcnt" -lt "$numdisks" ] && numdisks=$diskcnt
     
-    local disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | uniq)
+    local disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | sort | uniq)
     if [ "$(echo $disktype | wc -w)" -gt "1" ]; then
         log_warn "Mix of HDD & SSD disks. Not a homogeneous cluster"
-        disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | uniq -c | sort -nr | awk '{print $2}' | tr '\n' ' ')
+        disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | sort | uniq -c | sort -nr | awk '{print $2}' | tr '\n' '/' | sed s'/.$//')
     fi
 
-    local disksize=$(echo "$diskstr" | awk '{print $6}' | uniq)
+    local disksize=$(echo "$diskstr" | awk '{print $6}' | sort | uniq)
     if [ "$(echo $disksize | wc -w)" -gt "1" ]; then
+        local dn=
         local dz=
         for d in $disksize
         do
             local sz=$(util_getNearestPower2 $d)
             [ -z "$dz" ] && dz=$sz
-            [ "$sz" -ne "$dz" ] && log_warn "Disks are of different capacities"
+            [ -z "$dn" ] && [ "$sz" -ne "$dz" ] && log_warn "Disks are of different capacities" && dn=1
         done
-        disksize=$(echo "$diskstr" | awk '{print $6}' | uniq | sort -nr | head -1)
+        disksize=$(echo "$diskstr" | awk '{print $6}' | sort | uniq | sort -nr | head -1)
     fi
     disksize=$(util_getNearestPower2 $disksize)
     if [ "$disksize" -lt "999" ]; then
@@ -2691,12 +2692,12 @@ function maprutil_getClusterSpec(){
 
     ## Memory
     local memory=
-    local memorystr=$(echo "$sysinfo" | grep Memory | grep -v Info | cut -d':' -f2)
+    local memorystr=$(echo "$sysinfo" | grep -A1 "Memory Info" | grep Memory | grep -v Info | cut -d':' -f2)
     local memcnt=$(echo "$memorystr" | wc -l)
     if [ -n "$memorystr" ]; then 
         [ "$memcnt" -ne "$numnodes" ] && log_warn "No memory listed for few nodes"
-        memory=$(echo "$memorystr" | awk '{print $1}' | uniq)
-        local gb=$(echo "$memorystr" | awk '{print $2}' | uniq | sort -nr | head -1)
+        memory=$(echo "$memorystr" | awk '{print $1}' | sort | uniq)
+        local gb=$(echo "$memorystr" | awk '{print $2}' | sort | uniq | sort -nr | head -1)
         if [ "$(echo $memory | wc -w)" -gt "1" ]; then
             log_warn "Memory isn't same all node nodes. Not a homogeneous cluster"
             memory=$(echo "$memory" | sort -nr | head -1)
@@ -2717,12 +2718,12 @@ function maprutil_getClusterSpec(){
         local niccnt=$(echo "$nwstr" | wc -l)
         local nicpernode=$(echo "$niccnt/$numnodes" | bc)
         [ "$(( $niccnt % $numnodes ))" -ne "0" ] && log_warn "# of NICs do not match. Not a homogeneous cluster"
-        local mtus=$(echo "$nwstr" | awk '{print $4}' | tr -d ',' | uniq)
+        local mtus=$(echo "$nwstr" | awk '{print $4}' | tr -d ',' | sort | uniq)
         if [ "$(echo $mtus | wc -w)" -gt "1" ]; then
             log_warn "MTUs on the NIC(s) are not same"
             mtus=$(echo "$mtus" | sort -nr | head -1)
         fi
-        local nwsp=$(echo "$nwstr" | awk '{print $8}' | tr -d ',' | uniq)
+        local nwsp=$(echo "$nwstr" | awk '{print $8}' | tr -d ',' | sort | uniq)
         if [ "$(echo $nwsp | wc -w)" -gt "1" ]; then
             log_warn "NIC(s) are of different speeds"
             nwsp=$(echo "$nwsp" | sort -nr | head -1)
@@ -2739,8 +2740,8 @@ function maprutil_getClusterSpec(){
     local oscnt=$(echo "$osstr" | wc -l)
     if [ -n "$osstr" ]; then 
         [ "$oscnt" -ne "$numnodes" ] && log_warn "No OS listed for few nodes"
-        os=$(echo "$osstr" | awk '{print $1}' | uniq)
-        local ver=$(echo "$osstr" | awk '{print $2}' | uniq | sort -nr | head -1)
+        os=$(echo "$osstr" | awk '{print $1}' | sort | uniq)
+        local ver=$(echo "$osstr" | awk '{print $2}' | sort | uniq | sort -nr | head -1)
         if [ "$(echo $os | wc -w)" -gt "1" ]; then
             log_warn "OS isn't same all node nodes. Not a homogeneous cluster"
             os=$(echo "$os" | sort | head -1)
@@ -2757,21 +2758,21 @@ function maprutil_getClusterSpec(){
     local maprstr=$(echo "$sysinfo" | grep -A6 "MapR Info")
     if [ -n "$maprstr" ]; then 
         local maprverstr=$(echo "$maprstr" | grep Version |  cut -d':' -f2- | sed 's/^ //g')
-        local maprver=$(echo "$maprverstr" | awk '{print $1}' | uniq)
-        local maprpver=$(echo "$maprverstr" | grep patch | awk '{print $2,$3}' | uniq | head -1)
+        local maprver=$(echo "$maprverstr" | awk '{print $1}' | sort | uniq)
+        local maprpver=$(echo "$maprverstr" | grep patch | awk '{print $2,$3}' | sort | uniq | head -1)
         if [ "$(echo $maprver | wc -w)" -gt "1" ]; then
             log_warn "Different versions of MapR installed."
             maprver=$(echo "$maprver" | sort -nr | head -1)
         fi
         [ -n "$maprpver" ] && maprver="$maprver $maprpver"
 
-        local nummfs=$(echo "$maprstr" | grep "# of MFS" | cut -d':' -f2 | sed 's/^ //g' | uniq )
+        local nummfs=$(echo "$maprstr" | grep "# of MFS" | cut -d':' -f2 | sed 's/^ //g' | sort | uniq )
         if [ "$(echo $nummfs | wc -w)" -gt "1" ]; then
              log_warn "Different # of MFS configured on nodes"
              nummfs=$(echo "$nummfs" | sort -nr | head -1)
         fi
 
-        local numsps=$(echo "$maprstr" | grep "# of SPs" | awk '{print $5}' | uniq )
+        local numsps=$(echo "$maprstr" | grep "# of SPs" | awk '{print $5}' | sort | uniq )
         if [ "$(echo $numsps | wc -w)" -gt "1" ]; then
              log_warn "Different # of SPs configured on nodes"
              numsps=$(echo "$numsps" | sort -nr | head -1)

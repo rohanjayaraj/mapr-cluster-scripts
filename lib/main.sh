@@ -911,7 +911,7 @@ function main_runLogDoctor(){
         	analyzecores)
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzecores" "$mailfile"
-				[ -n "$GLB_SLACK_TRACE" ] && util_postToSlack2 "$mailfile"
+				[ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ] && util_postToSlack2 "$mailfile"
         	;;
         	mrinfo)
 				log_msghead "[$(util_getCurDate)] Running mrconfig info "
