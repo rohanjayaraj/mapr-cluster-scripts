@@ -126,6 +126,8 @@ function usage () {
     echo -e "\t\t - Use only HDD disks if the node(s) have mix of HDD & SSD"
     echo -e "\t -s | --secure" 
     echo -e "\t\t - Enable wire-level security on the cluster nodes"
+     echo -e "\t -dare" 
+    echo -e "\t\t - Generate dare master key if security is enabled"
     echo -e "\t -f | --force" 
     echo -e "\t\t - Force uninstall a node/cluster"
     echo -e "\t -pb=<#ofMBs> | --putbuffer=<#ofMBs>" 
@@ -299,6 +301,9 @@ while [ "$1" != "" ]; do
         ;;
         -s | --secure)
             extraarg=$extraarg"secure "
+        ;;
+        -dare)
+            extraarg=$extraarg"dare "
         ;;
         -b | --backuplogs)
             if [ -z "$VALUE" ]; then

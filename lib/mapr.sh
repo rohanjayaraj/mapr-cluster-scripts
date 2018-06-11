@@ -1293,6 +1293,24 @@ function maprutil_configureSSH(){
             fi
         done
     fi
+    local nodehn=
+    for node in ${nodes[@]}
+    do
+        local hostname=$(ssh $node "\$(hostname -f)")
+        nodehn="$nodehn $hostname"
+    done
+
+    if [ -n $(ssh_checkSSHonNodes "$nodehn") ]; then
+        for node in ${nodehn[@]}
+        do
+            local isEnabled=$(ssh_check "root" "$node")
+            if [ "$isEnabled" != "enabled" ]; then
+                log_info "Configuring key-based authentication from $hostip to $node "
+                ssh_copyPublicKey "root" "$node"
+            fi
+        done
+    fi
+
 }
 
 function maprutil_configure(){
@@ -1329,13 +1347,14 @@ function maprutil_configure(){
     if [ -n "$GLB_SECURE_CLUSTER" ]; then
         extops="-secure"
         pushd /opt/mapr/conf/ > /dev/null 2>&1
-        rm -rf cldb.key ssl_truststore ssl_keystore* cldb.key maprserverticket /tmp/maprticket_* > /dev/null 2>&1
+        rm -rf cldb.key ssl_truststore ssl_keystore* maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
         popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ]; then
             extops=$extops" -genkeys"
         else
             maprutil_copySecureFilesFromCLDB "$cldbnode" "$cldbnodes" "$zknodes"
         fi
+        [ -n "$GLB_ENABLE_DARE" ] && extops="$extops -dare"
     fi
 
     local configurecmd="/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
@@ -1606,8 +1625,10 @@ function maprutil_copySecureFilesFromCLDB(){
     sleep 10
 
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
-        ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/"; 
+        ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/";
     fi
+    [ -n "$GLB_ENABLE_DARE" ] && ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/dare.master.key" "/opt/mapr/conf/";
+     
     #if [ "$ISCLIENT" -eq 0 ]; then
         ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore*" "/opt/mapr/conf/"; 
         ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"; 
@@ -4291,6 +4312,7 @@ function maprutil_debugCore(){
         cp $corefile $GLB_COPY_DIR/ > /dev/null 2>&1
         [ -n "$ismfs" ] && [ ! -f "$GLB_COPY_DIR/mfs" ] && cp /opt/mapr/server/mfs $GLB_COPY_DIR/ > /dev/null 2>&1
         [ ! -f "$GLB_COPY_DIR/libMapRClient.so" ] && cp /opt/mapr/lib/libMapRClient.so $GLB_COPY_DIR/ > /dev/null 2>&1
+        [ ! -f "$GLB_COPY_DIR/libGatewayNative.so" ] && cp /opt/mapr/lib/libGatewayNative.so $GLB_COPY_DIR/ > /dev/null 2>&1
         [ -n "$colbin" ] && [ ! -f "$GLB_COPY_DIR/collectd" ] && cp $colbin $GLB_COPY_DIR/ > /dev/null 2>&1
         [ "$sz" -gt "10737418240" ] && log_warn "[$(util_getHostIP)] Disk may get full with large(>10GB) core file(s)"
     fi
