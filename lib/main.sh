@@ -1160,7 +1160,7 @@ while [ "$2" != "" ]; do
 				if [[ "$i" = "createvol" ]] || [[ "$i" = "enableaudit" ]] || [[ "$i" = "auditstream" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]] || [[ "$i" = "traceon" ]] || [[ "$i" = "traceoff" ]] || [[ "$i" = "insttrace" ]]; then
 					if [[ "$i" = "cldbtopo" ]]; then
     					GLB_CLDB_TOPO=1
-    				elif [[ "$i" = "traceon" ]]; then
+    				elif [[ "$i" = "traceoff" ]]; then
     					GLB_TRACE_ON=
     				elif [[ "$i" = "tsdbtopo" ]]; then
     					GLB_TSDB_TOPO=1
