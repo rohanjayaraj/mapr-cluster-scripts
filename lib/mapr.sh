@@ -568,6 +568,10 @@ function maprutil_cleanPrevClusterConfig(){
     maprutil_killTraces
 
     rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.conf /opt/mapr/logs/* 2>/dev/null
+
+    pushd /opt/mapr/conf/ > /dev/null 2>&1
+    rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
+    popd > /dev/null 2>&1
     
      # Remove all directories
     maprutil_removedirs "cores" > /dev/null 2>&1
@@ -1421,7 +1425,7 @@ function maprutil_configure(){
     maprutil_addRootUserToCntrExec
 
     # Start zookeeper
-    service mapr-zookeeper start 2>/dev/null
+    service mapr-zookeeper restart 2>/dev/null
     
     # Restart services on the node
     maprutil_restartWarden > /dev/null 2>&1
