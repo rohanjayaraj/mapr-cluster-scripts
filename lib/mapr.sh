@@ -1347,7 +1347,7 @@ function maprutil_configure(){
     if [ -n "$GLB_SECURE_CLUSTER" ]; then
         extops="-secure"
         pushd /opt/mapr/conf/ > /dev/null 2>&1
-        rm -rf cldb.key ssl_truststore ssl_keystore* maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
+        rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
         popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ]; then
             extops=$extops" -genkeys"
@@ -1633,13 +1633,13 @@ function maprutil_copySecureFilesFromCLDB(){
         ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_keystore*" "/opt/mapr/conf/"; 
         ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprserverticket" "/opt/mapr/conf/"; 
     #fi
-    ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore" "/opt/mapr/conf/"; 
+    ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_truststore*" "/opt/mapr/conf/"; 
     
     #if [ "$ISCLIENT" -eq 0 ]; then
         chown mapr:mapr /opt/mapr/conf/maprserverticket > /dev/null 2>&1
         chmod +600 /opt/mapr/conf/maprserverticket /opt/mapr/conf/ssl_keystore* > /dev/null 2>&1
     #fi
-    chmod +444 /opt/mapr/conf/ssl_truststore > /dev/null 2>&1
+    chmod +444 /opt/mapr/conf/ssl_truststore* > /dev/null 2>&1
 }
 # @param host ip
 # @param config file path
