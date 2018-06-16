@@ -1088,7 +1088,7 @@ function maprutil_configureCLDBTopology(){
         #local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
         local cldbnodes=$(maprcli node list -json 2>/dev/null | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')
         local numcldbs=$(echo "$cldbnodes" | tr ',' '\n' | wc -l)
-        [[ -z "$1" ]] && [[ "$numcldbs" -gt "1" ] && log_info "[$(util_getHostIP)] Multiple CLDBs found; Not moving them to /cldb topology" && return
+        [[ -z "$1" ]] && [[ "$numcldbs" -gt "1" ]] && log_info "[$(util_getHostIP)] Multiple CLDBs found; Not moving them to /cldb topology" && return
         log_info "[$(util_getHostIP)] Moving CLDB nodes($cldbnodes) & cldb internal volume to /cldb topology"
         maprcli node move -serverids "$cldbnodes" -topology /cldb 2>/dev/null
         ### Moving CLDB Volume as well
