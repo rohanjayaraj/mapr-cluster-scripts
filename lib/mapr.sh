@@ -2333,14 +2333,13 @@ function maprutil_checkTabletDistribution(){
         do
             local tabletinfo=$(echo "$nodetablets" | grep -B4 -A7 $tabletfid | grep -w 'physicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
             
-            local tabletsize=$(echo "$tabletinfo" |  grep -w physicalsize | cut -d':' -f2 | awk '{print $1/1073741824}')
-            tabletsize=$(printf "%.2f\n" $tabletsize)
+            local tabletsize=$(echo "$tabletinfo" |  grep -w physicalsize | cut -d':' -f2 | awk '{ if($1<1024) printf("%dB",$1); else if($1<(1024*1024)) printf("%dKB",($1/1024)); else if($1<(1024*1024*1024)) printf("%dMB",($1/1024*1024)); else printf("%.2fGB",($1/1073741824));}')
             local numrows=$(echo "$tabletinfo" | grep -w numberofrows | cut -d':' -f2)
             local numdelrows=$(echo "$tabletinfo" | grep -w numberofrowswithdelete | cut -d':' -f2)
             local numspills=$(echo "$tabletinfo" | grep -w numberofspills | cut -d':' -f2)
             local numsegs=$(echo "$tabletinfo" | grep -w numberofsegments | cut -d':' -f2)
             
-            log_msg "\t\t Tablet [$tabletfid] Size: ${tabletsize}GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills"
+            log_msg "\t\t Tablet [$tabletfid] Size: ${tabletsize}, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills"
         done
 
     done
