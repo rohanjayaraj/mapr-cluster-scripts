@@ -1025,13 +1025,23 @@ function util_postToSlack2(){
     local filetopost="$1"
     
     local posttext="$(cat $filetopost)"
-    posttext="$(echo "$posttext" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')"
-    posttext=$(echo "$posttext" | sed 's|^.\{1\}|"```|g' | sed 's|.$|```"|g')
-    local json="{\"text\":$posttext}"
-    local tmpfile=$(mktemp)
-    echo "$json" > $tmpfile
-    curl -L -X POST -H 'Content-type: application/json' --data @-  $SLACK_URL  < $tmpfile > /dev/null 2>&1
-    rm -f $tmpfile > /dev/null 2>&1
+    posttext="$(echo "$posttext" | python -c 'import json,sys; print json.dumps(sys.stdin.read())' | sed 's/^.\(.*\).$/\1/')"
+
+    # Slack per message size limit
+    local charlimit=3800
+    local textlen=${#posttext}
+    while [[ "$textlen" -gt "2" ]]; do
+        local nlpos=$(echo "$posttext" | grep -aob '\\n' | cut -d ':' -f1 | awk -v sl=$charlimit '{if($1<=sl)l=$1}END{print l+2}')
+        local ptext="${posttext:0:$nlpos}"
+        local json="{\"text\":\"\`\`\`$ptext\`\`\`\"}"
+        local tmpfile=$(mktemp)
+        echo "$json" > $tmpfile
+        curl -L -X POST -H 'Content-type: application/json' --data @-  $SLACK_URL  < $tmpfile > /dev/null 2>&1
+        rm -f $tmpfile > /dev/null 2>&1
+        let nlpos=nlpos+1
+        textlen=${#posttext}
+        posttext="${posttext:$nlpos:$textlen}"
+    done
 }
 
 # @param host name with domin

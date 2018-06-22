@@ -1089,7 +1089,7 @@ function maprutil_configureCLDBTopology(){
         local cldbnodes=$(maprcli node list -json 2>/dev/null | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')
         local numcldbs=$(echo "$cldbnodes" | tr ',' '\n' | wc -l)
         [[ -z "$1" ]] && [[ "$numcldbs" -gt "1" ]] && log_info "[$(util_getHostIP)] Multiple CLDBs found; Not moving them to /cldb topology" && return
-        log_info "[$(util_getHostIP)] Moving CLDB nodes($cldbnodes) & cldb internal volume to /cldb topology"
+        log_info "[$(util_getHostIP)] Moving CLDB node(s) & cldb internal volume to /cldb topology"
         maprcli node move -serverids "$cldbnodes" -topology /cldb 2>/dev/null
         ### Moving CLDB Volume as well
         maprcli volume move -name mapr.cldb.internal -topology /cldb 2>/dev/null
@@ -2305,10 +2305,12 @@ function maprutil_checkTabletDistribution(){
     local filepath=$GLB_TABLET_DIST
     local hostnode=$(hostname -f)
 
+    [ -n "$(echo "$filepath" | grep -ow "[0-9]*\.[0-9]*\.[0-9]*")" ] && maprutil_checkTabletDistribution2 && return
+
     local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null |  grep cid: | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
     [ -z "$cntrlist" ] && return
 
-    local nodetablets=$(maprcli table region list -path $filepath -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/},/\n},/g' | sed 's/,"/,\n"/g' | sed 's/}]/\n}]/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 $hostnode | tr -d '"' | tr -d ',')
+    local nodetablets=$(maprcli table region list -path $filepath -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/},/\n},/g' | sed 's/,"/,\n"/g' | sed 's/}]/\n}]/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 "mfs\":\"$hostnode" | tr -d '"' | tr -d ',')
     local tabletContainers=$(echo "$nodetablets" | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
     [ -z "$tabletContainers" ] && return
     
@@ -2343,6 +2345,70 @@ function maprutil_checkTabletDistribution(){
         done
 
     done
+}
+
+function maprutil_checkTabletDistribution2(){
+    if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
+        return
+    fi
+    
+    local hostip=$(util_getHostIP)
+    local tablecid=$(echo "$GLB_TABLET_DIST" | cut -d'.' -f1)
+
+    local tablemapfid=$(maprcli debugdb dump -fid $GLB_TABLET_DIST -json 2>/dev/null | grep -A2 "tabletmap" | grep fid | grep -oh "<parentCID>\.[0-9]*\.[0-9]*" | cut -d'.' -f2-)
+    [ -z "$tablemapfid" ] && return
+
+    tablemapfid="$tablecid.$tablemapfid"
+
+    local alltabletfids=$(maprcli debugdb dump -fid $tablemapfid -json 2>/dev/null | grep fid | cut -d':' -f2 | tr -d '"' | sort)
+    local allcids=$(echo "$alltabletfids" | cut -d'.' -f1 | sort | uniq | sed ':a;N;$!ba;s/\n/,/g')
+
+    local localcids=$(timeout 10 maprcli dump containerinfo -ids $allcids -json 2>/dev/null | grep '\"ContainerId\"\|\"Master\"' | grep -B1 "$hostip" | grep ContainerId | cut -d':' -f2 | tr -d ',')
+    local numlocalcids=$(echo "$localcids" | wc -l)
+
+    local localtabletfids=
+    for i in $alltabletfids; do
+      for j in $localcids; do
+        [ -n "$(echo "$i" | grep "^$j\.")" ] && localtabletfids="$localtabletfids $i"
+      done
+    done
+    localtabletfids=$(echo "$localtabletfids" | tr ' ' '\n' | grep "[0-9]*")
+
+    local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null |  grep cid: | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
+    [ -z "$cntrlist" ] && return
+
+    local storagePools=$(/opt/mapr/server/mrconfig sp list 2>/dev/null | grep name | cut -d":" -f2 | awk '{print $2}' | tr -d ',' | sort -n -k1.3)
+    local numTablets=$(echo "$alltabletfids" | cut -d'.' -f1 | grep -Fw "$localcids" | wc -l)
+    log_msg "$(util_getHostIP) : [# of tablets: $numTablets], [# of containers: $numlocalcids]"
+
+    for sp in $storagePools; do
+        local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
+        local cnt=$(echo "$localcids" |  grep -Fw "${spcntrs}" | wc -l)
+        local numcnts=$(echo "$localcids" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
+        [ "$cnt" -eq "0" ] && continue
+
+        local sptabletfids=$(echo "$localtabletfids" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2)
+        [ -z "$sptabletfids" ] && continue
+        [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
+
+        [ -z "$GLB_LOG_VERBOSE" ] && continue
+
+        for tabletfid in $sptabletfids
+        do
+            local tabletinfo=$(maprcli debugdb dump -fid $tabletfid -json 2>/dev/null | grep -w 'numPhysicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
+            local tabletsize=$(echo "$tabletinfo" |  grep -w numPhysicalBlocks | cut -d':' -f2 | awk '{sum+=$1}END{print sum*8192/1073741824}')
+            tabletsize=$(printf "%.2f\n" $tabletsize)
+            
+            local numrows=$(echo "$tabletinfo" | grep -w numRows | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+            local numdelrows=$(echo "$tabletinfo" | grep -w numRowsWithDelete | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+            local numspills=$(echo "$tabletinfo" | grep -w numSpills | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+            local numsegs=$(echo "$tabletinfo" | grep -w numSegments | cut -d':' -f2 | awk '{sum+=$1}END{print sum}')
+
+            log_msg "\t\t Tablet [$tabletfid] Size: ${tabletsize}GB, #ofRows: $numrows, #ofDelRows: $numdelrows, #ofSegments: $numsegs, #ofSpills: $numspills"
+        done
+
+    done
+
 }
 
 function maprutil_checkContainerDistribution(){
@@ -2392,7 +2458,7 @@ function maprutil_checkIndexTabletDistribution(){
 
     for index in $indexlist
     do
-        local nodeindextablets=$(maprcli table region list -path $tablepath -index $index -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/,"/,\n"/g' | sed 's/},/\n},/g' | sed 's/}]/\n}]/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 $hostnode | tr -d '"' | tr -d ',')
+        local nodeindextablets=$(maprcli table region list -path $tablepath -index $index -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/,"/,\n"/g' | sed 's/},/\n},/g' | sed 's/}]/\n}]/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 "mfs\":\"$hostnode" | tr -d '"' | tr -d ',')
         local tabletContainers=$(echo "$nodeindextablets" | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
         [ -z "$tabletContainers" ] && continue
         local numTablets=$(echo "$tabletContainers" | wc -l)
