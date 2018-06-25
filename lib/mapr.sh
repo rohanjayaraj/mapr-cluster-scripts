@@ -2363,7 +2363,8 @@ function maprutil_checkTabletDistribution2(){
     local alltabletfids=$(maprcli debugdb dump -fid $tablemapfid -json 2>/dev/null | grep fid | cut -d':' -f2 | tr -d '"' | sort)
     local allcids=$(echo "$alltabletfids" | cut -d'.' -f1 | sort | uniq | sed ':a;N;$!ba;s/\n/,/g')
 
-    local localcids=$(timeout 10 maprcli dump containerinfo -ids $allcids -json 2>/dev/null | grep '\"ContainerId\"\|\"Master\"' | grep -B1 "$hostip" | grep ContainerId | cut -d':' -f2 | tr -d ',')
+    local localcids=$(timeout 10 maprcli dump containerinfo -ids $allcids -json 2>/dev/null | grep '\"ContainerId\"\|\"Master\"' | grep -B1 "$hostip" | grep ContainerId | cut -d':' -f2 | tr -d ',' | grep "^[0-9]*")
+    [ -z "$localcids" ] && return
     local numlocalcids=$(echo "$localcids" | wc -l)
 
     local localtabletfids=
@@ -2383,13 +2384,11 @@ function maprutil_checkTabletDistribution2(){
 
     for sp in $storagePools; do
         local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
-        local cnt=$(echo "$localcids" |  grep -Fw "${spcntrs}" | wc -l)
         local numcnts=$(echo "$localcids" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
-        [ "$cnt" -eq "0" ] && continue
-
         local sptabletfids=$(echo "$localtabletfids" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2)
         [ -z "$sptabletfids" ] && continue
-        [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
+        local tcnt=$(echo "$sptabletfids" | wc -l)
+        [ -n "$sptabletfids" ] && log_msg "\t$sp : $tcnt Tablets (on $numcnts containers)"
 
         [ -z "$GLB_LOG_VERBOSE" ] && continue
 
