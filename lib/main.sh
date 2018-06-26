@@ -153,6 +153,7 @@ GLB_COPY_CORES=
 GLB_MAIL_LIST=
 GLB_MAIL_SUB=
 GLB_SLACK_TRACE=
+GLB_EXT_ARGS=
 GLB_EXIT_ERRCODE=
 
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
@@ -1405,6 +1406,11 @@ while [ "$2" != "" ]; do
  				GLB_MAPR_PATCH=1
  			fi
  		;;
+ 		-extarg)
+			if [ -n "$VALUE" ]; then
+				GLB_EXT_ARGS=$VALUE
+			fi
+    	;;
  		*)
             log_error "unknown option \"$OPTION\""
             main_usage

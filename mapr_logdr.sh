@@ -19,6 +19,7 @@ rolefile=
 args=
 backupdir=
 copydir=
+extarg=
 tbltdist=
 indexname=
 sysinfo=
@@ -78,8 +79,8 @@ function usage () {
     echo -e "\t -d | --diskerror" 
     echo -e "\t\t - Find any disk errors on nodes"
 
-    echo -e "\t -ac | --analyzecores" 
-    echo -e "\t\t - Analyze cores present"
+    echo -e "\t -ac | --analyzecores | -ac=<core> | --analyzecores=<core>" 
+    echo -e "\t\t - Analyze core(s) present"
 
     echo -e "\t -cc=<COPYTODIR>  | --copycores=<COPYTODIR> " 
     echo -e "\t\t - Copy core files to <COPYTODIR> directory on respective node when run with -ac option"
@@ -206,7 +207,7 @@ while [ "$1" != "" ]; do
     	;;
         -ac | --analyzecores)
             args=$args"analyzecores "
-            [ -n "$VALUE" ] && copydir="$VALUE"
+            [ -n "$VALUE" ] && extarg="$VALUE"
         ;;
         -cc | --copycores)
             args=$args"copycores "
@@ -359,7 +360,7 @@ else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
     \"-dir=$copydir\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
     \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\" \"-mail=$maillist\" \"-sub=$mailsub\" \
-    \"-pn=$pname\""
+    \"-pn=$pname\" \"-extarg=$extarg\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else

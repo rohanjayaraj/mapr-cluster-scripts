@@ -306,6 +306,9 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/g*.log")
     dirlist+=("/opt/cores/h*.log")
     dirlist+=("/opt/cores/java*.hprof")
+    dirlist+=("/opt/cores/mrdisk*core*")
+    dirlist+=("/opt/cores/hoststat*core*")
+    dirlist+=("/opt/cores/posix*core*")
     echo ${dirlist[*]}
 }
 
@@ -4279,6 +4282,7 @@ function maprutil_buildClientUsage(){
 
 function maprutil_analyzeCores(){
     local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java.core\|reader\|writer\|collectd' | awk '{print $9}')
+    [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
 
     echo
