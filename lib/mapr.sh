@@ -2338,7 +2338,7 @@ function maprutil_checkTabletDistribution(){
         do
             local tabletinfo=$(echo "$nodetablets" | grep -B4 -A7 $tabletfid | grep -w 'physicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
             
-            local tabletsize=$(echo "$tabletinfo" |  grep -w physicalsize | cut -d':' -f2 | tr -d ',' | awk '{ if($1<1024) printf("%d B",$1); else if($1<(1024*1024)) printf("%d KB",($1/1024)); else if($1<(1024*1024*1024)) printf("%d MB",($1/1024*1024)); else printf("%.2f GB",($1/1073741824));}')
+            local tabletsize=$(echo "$tabletinfo" |  grep -w physicalsize | cut -d':' -f2 | tr -d ',' | awk '{ if($1<1024) printf("%d B",$1); else if($1<(1024*1024)) printf("%d KB",($1/1024)); else if($1<(1024*1024*1024)) printf("%d MB",($1/(1024*1024)); else printf("%.2f GB",($1/1073741824));}')
             local numrows=$(echo "$tabletinfo" | grep -w numberofrows | cut -d':' -f2)
             local numdelrows=$(echo "$tabletinfo" | grep -w numberofrowswithdelete | cut -d':' -f2)
             local numspills=$(echo "$tabletinfo" | grep -w numberofspills | cut -d':' -f2)
@@ -2479,7 +2479,7 @@ function maprutil_checkIndexTabletDistribution(){
             do
                 local tabletinfo=$(echo "$nodeindextablets" | grep -B4 -A7 $tabletfid | grep -w 'physicalsize\|numberofrows\|numberofrowswithdelete\|numberofspills\|numberofsegments')
                 
-                local tabletsize=$(echo "$tabletinfo" |  grep -w physicalsize | cut -d':' -f2 | tr -d ',' | awk '{ if($1<1024) printf("%d B",$1); else if($1<(1024*1024)) printf("%d KB",($1/1024)); else if($1<(1024*1024*1024)) printf("%d MB",($1/1024*1024)); else printf("%.2f GB",($1/1073741824));}')
+                local tabletsize=$(echo "$tabletinfo" |  grep -w physicalsize | cut -d':' -f2 | tr -d ',' | awk '{ if($1<1024) printf("%d B",$1); else if($1<(1024*1024)) printf("%d KB",($1/1024)); else if($1<(1024*1024*1024)) printf("%d MB",($1/(1024*1024)); else printf("%.2f GB",($1/1073741824));}')
                 local numrows=$(echo "$tabletinfo" | grep -w numberofrows | cut -d':' -f2)
                 local numdelrows=$(echo "$tabletinfo" | grep -w numberofrowswithdelete | cut -d':' -f2)
                 local numspills=$(echo "$tabletinfo" | grep -w numberofspills | cut -d':' -f2)
