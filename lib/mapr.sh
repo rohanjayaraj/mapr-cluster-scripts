@@ -2328,7 +2328,7 @@ function maprutil_checkTabletDistribution(){
         local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
         [ "$cnt" -eq "0" ] && continue
 
-        local sptabletfids=$(echo "$nodetablets" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2 | sort)
+        local sptabletfids=$(echo "$nodetablets" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2 | sort -t. -n -k1,1 -k2,2 -k3)
         [ -z "$sptabletfids" ] && continue
         [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)"
 
@@ -2388,7 +2388,7 @@ function maprutil_checkTabletDistribution2(){
     for sp in $storagePools; do
         local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
         local numcnts=$(echo "$localcids" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
-        local sptabletfids=$(echo "$localtabletfids" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2 | sort)
+        local sptabletfids=$(echo "$localtabletfids" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2 | sort -t. -n -k1,1 -k2,2 -k3)
         [ -z "$sptabletfids" ] && continue
         local tcnt=$(echo "$sptabletfids" | wc -l)
         [ -n "$sptabletfids" ] && log_msg "\t$sp : $tcnt Tablets (on $numcnts containers)"
@@ -2472,7 +2472,7 @@ function maprutil_checkIndexTabletDistribution(){
             [ "$cnt" -eq "0" ] && continue
 
             local numcnts=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | sort -n | uniq | wc -l)
-            local sptabletfids=$(echo "$nodeindextablets" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2 | sort)
+            local sptabletfids=$(echo "$nodeindextablets" | grep -Fw "${spcntrs}" | grep -w "[0-9]*\.[0-9].*\.[0-9].*" | cut -d':' -f2 | sort -t. -n -k1,1 -k2,2 -k3)
             [ -z "$sptabletfids" ] && continue
             [ -n "$sptabletfids" ] && log_msg "\t$sp : $cnt Tablets (on $numcnts containers)" >> $indexlog
             for tabletfid in $sptabletfids
