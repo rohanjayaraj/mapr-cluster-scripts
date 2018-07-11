@@ -365,7 +365,9 @@ function util_removeBinaries(){
 function util_getDefaultDisks(){
     local disks=
     disks=$(blkid -o list | grep -v 'not mounted' | grep '/' | cut -d' ' -f1 | tr -d '[0-9]' | uniq | sort)
-    disks="${disks}\n$(df -x tmpfs | grep -v : | cut -d' ' -f1 | sed -e /Filesystem/d |  sed '/^$/d' |  tr -d '[0-9]')"
+    local tmpfs="$(timeout 3 df -x tmpfs)"
+    [ -z "$tmpfs" ] && tmpfs="$(df -l)"
+    disks="${disks}\n$(echo "$tmpfs" | grep -v : | cut -d' ' -f1 | sed -e /Filesystem/d |  sed '/^$/d' |  tr -d '[0-9]' | sort | uniq)"
     disks="${disks}\n$(lsblk -nl 2>/dev/null| grep -v disk | cut -d' ' -f1)"
     disks=$(echo -e "$disks" | sort | uniq)
     echo -e "$disks"
