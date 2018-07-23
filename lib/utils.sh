@@ -98,7 +98,7 @@ function util_maprprereq(){
     local DEPENDENCY_DEB="$DEPENDENCY_BASE_DEB debianutils libnss3 libsysfs2 netcat ntp \
     ntpdate openssh-client openssh-server python-dev python-pycurl sdparm sshpass \
     syslinux sysstat"
-    local DEPENDENCY_RPM="$DEPENDENCY_BASE_RPM device-mapper initscripts iputils \
+    local DEPENDENCY_RPM="$DEPENDENCY_BASE_RPM device-mapper iputils \
     libsysfs lvm2 nc nfs-utils nss ntp openssh-clients openssh-server \
     python-devel python-pycurl rpcbind sdparm sshpass sysstat"
     local DEPENDENCY_SUSE="$DEPENDENCY_BASE_SUSE libopenssl1_0_0 \
