@@ -986,8 +986,11 @@ function main_stopall() {
     log_warn "$me script interrupted!!! Stopping... "
     for i in "${GLB_BG_PIDS[@]}"
     do
-        log_info "[$me] kill -9 $i"
-        kill -9 ${i} 2>/dev/null
+    	[ -z "${i}" ] && continue
+        if kill -0 ${i}; then 
+        	log_info "[$me] kill -9 $i"
+        	kill -9 ${i} 2>/dev/null
+        fi
     done
 }
 

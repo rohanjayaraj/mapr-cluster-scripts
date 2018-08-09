@@ -3242,6 +3242,10 @@ function maprutil_wait(){
     #log_info "Waiting for background processes to complete [${GLB_BG_PIDS[*]}]"
     for((i=0;i<${#GLB_BG_PIDS[@]};i++)); do
         local pid=${GLB_BG_PIDS[i]}
+        if ! kill -0 ${pid}; then 
+            unset GLB_BG_PIDS[$i]
+            continue
+        fi
         wait $pid
         local errcode=$?
         #if [ "$errcode" -eq "0" ]; then
@@ -3251,6 +3255,7 @@ function maprutil_wait(){
             log_warn "Child process [$pid] exited with errorcode : $errcode"
             [ -z "$GLB_EXIT_ERRCODE" ] && GLB_EXIT_ERRCODE=$errcode
         fi
+        unset GLB_BG_PIDS[$i]
     done
     GLB_BG_PIDS=()
 }
