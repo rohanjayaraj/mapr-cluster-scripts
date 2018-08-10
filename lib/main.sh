@@ -987,7 +987,7 @@ function main_stopall() {
     for i in "${GLB_BG_PIDS[@]}"
     do
     	[ -z "${i}" ] && continue
-        if kill -0 ${i}; then 
+        if kill -0 ${i} 2>/dev/null; then 
         	log_info "[$me] kill -9 $i"
         	kill -9 ${i} 2>/dev/null
         fi
