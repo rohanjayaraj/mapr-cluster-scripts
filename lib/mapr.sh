@@ -2465,7 +2465,7 @@ function maprutil_checkIndexTabletDistribution(){
         [ -z "$tabletContainers" ] && continue
         local numTablets=$(echo "$tabletContainers" | wc -l)
         local numContainers=$(echo "$tabletContainers" | sort | uniq | wc -l)
-        local indexlog="$tempdir/$indexname.log"
+        local indexlog="$tempdir/$index.log"
         for sp in $storagePools; do
             local spcntrs=$(echo "$cntrlist" | grep -w $sp | awk '{print $2}')
             local cnt=$(echo "$tabletContainers" |  grep -Fw "${spcntrs}" | wc -l)
