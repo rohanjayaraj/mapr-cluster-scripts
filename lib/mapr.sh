@@ -3964,7 +3964,7 @@ function maprutil_getGutsDefCols(){
     [ -n "$(echo $runtype | grep -w "fs")" ] && finalcols="${finalcols}${deffscols},"
     [ -n "$(echo $runtype | grep -w "cache")" ] && finalcols="${finalcols}${defcaccols},"
     if [ -n "$(echo $runtype | grep -w "all")" ]; then
-        finalcols=$(echo $collist | tr ' ' '\n' | grep -v "=cpu" | grep "^[0-9]" | cut -d '=' -f2 | sed ':a;N;$!ba;s/\n/,/g')
+        finalcols=$(echo $collist | tr ' ' '\n' | grep -v "=cpu_[0-9]*" | grep "^[0-9]" | cut -d '=' -f2 | sed ':a;N;$!ba;s/\n/,/g')
     fi
             
     [ -n "$finalcols" ] && echo "$finalcols" | sed 's/,$//' | sed 's/,/ /g'
