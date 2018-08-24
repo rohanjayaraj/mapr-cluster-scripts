@@ -555,6 +555,7 @@ function maprutil_cleanPrevClusterConfig(){
     # Stop warden
     if [[ "$ISCLIENT" -eq 0 ]]; then
         maprutil_restartWarden "stop" 2>/dev/null
+        sleep 60
     fi
 
     # Remove mapr shared memory segments
