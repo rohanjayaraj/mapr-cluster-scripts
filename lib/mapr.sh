@@ -3433,7 +3433,7 @@ function maprutil_mfsthreads(){
     [ -z "$mfspid" ] && log_warn "[$(util_getHostIP)] No MFS running to list it's threads" && return
     [ -n "$(ls /opt/mapr/logs/*mfs*.gdbtrace 2>/dev/null)" ] && log_warn "[$(util_getHostIP)] MFS has previously crashed. Thread IDs may not match"
 
-    local types="CpuQ_IOMgr CpuQ_FS CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_Compress CpuQ_SysCalls CpuQ_Rpc CpuQ_ExtInstance"
+    local types="CpuQ_IOMgr CpuQ_FS CpuQ_Compress CpuQ_DBMain CpuQ_DBHelper CpuQ_DBFlush CpuQ_SysCalls CpuQ_Rpc CpuQ_ExtInstance"
     local mfsgstack="/opt/mapr/logs/$mfspid.gstack"
     local mfstrace=
 
@@ -3448,7 +3448,7 @@ function maprutil_mfsthreads(){
     log_msg "$(util_getHostIP): MFS ($mfspid) thread id(s)"
     for type in $types
     do
-        local ids=$(echo "$mfstrace" | grep -e "$type" -e "^Thread" | grep -A1 "$type" | grep -o "LWP [0-9]*" | awk '{print $2}' | sed ':a;N;$!ba;s/\n/,/g')
+        local ids=$(echo "$mfstrace" | grep -e "$type" -e "^Thread" | grep -A1 "$type" | grep -o "LWP [0-9]*" | awk '{print $2}' | sort -n | sed ':a;N;$!ba;s/\n/,/g')
         [ -n "$ids" ] && log_msg "\t${type}: $ids"
     done
 }
