@@ -3613,7 +3613,7 @@ function maprutil_mfsCPUUseOnCluster(){
     done
     wait
 
-    files="mfs.log gw.log qs.log dag.log tsdb.log"
+    files="mfs.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
@@ -3636,6 +3636,13 @@ function maprutil_mfsCPUUseOnCluster(){
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {rsum+=$i; k=i+1; ssum+=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,rsum/j,ssum/j); rsum=0; ssum=0; j=0}' > $logdir/$fname 2>&1 &
+    done
+    # logs from all nodes, NOT just MFS/data nodes
+    files="gw.log qs.log dag.log tsdb.log"
+    for fname in $files
+    do
+        local filelist=$(find $alldirlist -name $fname 2>/dev/null)
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {msum+=$i; k=i+1; csum=$k; j++} printf("%s %s %.3f %.0f\n",$1,$2,msum/j,csum/j); msum=0; csum=0; j=0}' > $logdir/$fname 2>&1 &
     done
     wait
 
