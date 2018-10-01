@@ -3361,7 +3361,7 @@ function maprutil_copyZippedLogsFromNode(){
     local filetocopy="/tmp/maprlogs/$host/*$timestamp.tar.bz2"
     
     [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
-    ssh_copyFromCommandinBG "root" "$node" "$filetocopy" "$copyto" > /dev/null 2>&1
+    ssh_copyFromCommand "root" "$node" "$filetocopy" "$copyto" > /dev/null 2>&1
     ssh_executeCommandasRoot "rm -rf $filetocopy" > /dev/null 2>&1
 }
 
@@ -3374,7 +3374,7 @@ function maprutil_copyprocesstrace(){
     local dirtocopy="/tmp/maprtrace/$timestamp/$host"
 
     [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
-    ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
+    ssh_copyFromCommand "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
     ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
 }
 
@@ -3694,7 +3694,7 @@ function maprutil_copymfscpuuse(){
     local dirtocopy="/tmp/mfscpuuse/$timestamp/$host"
 
     [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
-    ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
+    ssh_copyFromCommand "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
     ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
 }
 
@@ -4038,7 +4038,7 @@ function maprutil_copygutsstats(){
     local dirtocopy="/tmp/gutsstats/$timestamp/$host"
 
     [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
-    ssh_copyFromCommandinBG "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
+    ssh_copyFromCommand "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
     ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
 }
 
@@ -4290,6 +4290,97 @@ function maprutil_buildClientUsage(){
     done
     [ -s "$tmpclog" ] && cat $tmpclog | awk '{ts=$1" "$2; cnt[ts]+=1; r=$3; if(r ~ /g/) {r=r*1} else if(r ~ /t/) {r=r*1024} else if(r ~ /m/) {r=r/1024} else {r=r/1024/1024} cmem[ts]+=r; ccpu[ts]+=$4} END {for (i in cnt) printf("%s %.3f %.0f\n",i,cmem[i]/cnt[i],ccpu[i]/cnt[i])}' | sort -n > ${clientsfile}
     rm -f $tmpclog > /dev/null 2>&1
+}
+
+function maprutil_perfToolOnNode(){
+    if [ -z "$1" ] || [ -z "$2" ]; then
+        return
+    fi
+
+    local node=$1
+    local timestamp=$2
+    
+    local scriptpath="$RUNTEMPDIR/perftool_${node}.sh"
+    maprutil_buildSingleScript "$scriptpath" "$node"
+    local retval=$?
+    if [ "$retval" -ne 0 ]; then
+        return
+    fi
+
+    echo "maprutil_perftool \"$timestamp\"" >> $scriptpath
+   
+    ssh_executeScriptasRootInBG "$node" "$scriptpath"
+    maprutil_addToPIDList "$!"
+}
+
+function maprutil_copyperfoutput(){
+    local node=$1
+    local timestamp=$2
+    local copyto=$3
+    mkdir -p $copyto > /dev/null 2>&1
+    local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+    local dirtocopy="/tmp/perftool/$timestamp/$host"
+
+    [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
+    ssh_copyFromCommand "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
+    ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
+
+    ## TBD : PRINT Top 20 frames
+}
+
+function maprutil_perftool(){
+    local timestamp=$1
+    
+    local ppid=
+    local tids=
+    local binarypath="/opt/mapr/server/mfs"
+    
+    case $GLB_PERF_OPTION in 
+        mfs) 
+            ppid=$(pidof mfs) 
+        ;;
+        gw) 
+            ppid="$(jps | awk '{if($2 == "Gateway") print $1}')"
+            binarypath="/opt/mapr/lib/libGatewayNative.so"
+        ;;
+        *)
+            ppid=$(pidof mfs) 
+            local mfsthreads=$(maprutil_mfsthreads | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')
+            case $GLB_PERF_OPTION in
+                fs)
+                    tids="$(echo "$mfsthreads" | grep CpuQ_FS | awk '{print $2}')"
+                ;;
+                compress)
+                    tids="$(echo "$mfsthreads" | grep CpuQ_Compress | awk '{print $2}')"
+                ;;
+                dbmain)
+                    tids="$(echo "$mfsthreads" | grep CpuQ_DBMain | awk '{print $2}')"
+                ;;
+                dbflusher)
+                    tids="$(echo "$mfsthreads" | grep CpuQ_DBFlush | awk '{print $2}')"
+                ;;
+                dbhelper)
+                    tids="$(echo "$mfsthreads" | grep CpuQ_DBHelper | awk '{print $2}')"
+                ;;
+                rpc)
+                    tids="$(echo "$mfsthreads" | grep CpuQ_Rpc | awk '{print $2}')"
+                ;;
+            esac
+        ;;
+    esac
+
+    [ -z "$ppid" ] && [ -z "$tids" ] && return
+
+    local tempdir="/tmp/perftool/$timestamp/$(hostname -f)"
+    mkdir -p $tempdir > /dev/null 2>&1
+
+    cd $tempdir
+    timeout $GLB_PERF_INTERVAL perf record -p $ppid -q -o "perf.data.$ppid"
+    
+    [ -n "$tids" ] && tids="--tid=$tids"
+
+    perf report $tids -k $binarypath --stdio -i perf.data.$ppid > perf.log
+    rm -rf perf.data.$ppid > /dev/null 2>&1
 }
 
 function maprutil_analyzeCores(){

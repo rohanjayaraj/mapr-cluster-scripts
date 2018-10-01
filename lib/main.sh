@@ -44,15 +44,18 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 		if [ -z "$(util_fileExists $rolefile)" ]; then
 			if  [[ $1 =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
 				dummyrole=$rolesdir"/mapr_roles.temp"
-				if [ -z "$(echo "$1" | grep "]")" ]; then
-					:> $dummyrole
-					for i in $(echo "$1" | tr ',' ' '); do
-						echo "$i,dummy" >> $dummyrole	
-					done
-				else
-					echo "$1,dummy" > $dummyrole
-				fi
-				rolefile=$dummyrole
+				nls=$(echo "$1" | sed 's/],*/]\n/g' | sed 's/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*,/&\n/g' | sed 's/,*$//g' | sed '/^\s*$/d')
+                :> $dummyrole
+                for nl in $nls; do
+	                if [ -z "$(echo "$nl" | grep "]")" ]; then
+                        for i in $(echo "$nl" | tr ',' ' '); do
+                            echo "$i,dummy" >> $dummyrole
+                        done
+	                else
+                        echo "$nl,dummy" >> $dummyrole
+	                fi
+                done
+                rolefile=$dummyrole
 			else
 				rolefile="/tmp/$1"
 				maprutil_readClusterRoles "$rolefile" "$1"
@@ -153,6 +156,8 @@ GLB_COPY_CORES=
 GLB_MAIL_LIST=
 GLB_MAIL_SUB=
 GLB_SLACK_TRACE=
+GLB_PERF_OPTION=
+GLB_PERF_INTERVAL=
 GLB_EXT_ARGS=
 GLB_EXIT_ERRCODE=
 
@@ -673,7 +678,7 @@ function main_backuplogs(){
 	maprutil_wait
 	for node in ${nodes[@]}
 	do	
-    	maprutil_copyZippedLogsFromNode "$node" "$timestamp" "$doBackup"
+    	maprutil_copyZippedLogsFromNode "$node" "$timestamp" "$doBackup" &
 	done
 	wait
 
@@ -702,7 +707,7 @@ function main_getmfstrace(){
 	maprutil_wait
 	for node in ${nodes[@]}
 	do	
-    	maprutil_copyprocesstrace "$node" "$timestamp" "$copydir"
+    	maprutil_copyprocesstrace "$node" "$timestamp" "$copydir" &
 	done
 	wait
 }
@@ -722,7 +727,7 @@ function main_getmfscpuuse(){
 	maprutil_wait
 	for node in ${nodes[@]}
 	do	
-		maprutil_copymfscpuuse "$node" "$timestamp" "$copydir"
+		maprutil_copymfscpuuse "$node" "$timestamp" "$copydir" &
 	done
 	wait
 	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
@@ -807,11 +812,37 @@ function main_getgutsstats(){
 	for node in ${nodes[@]}
 	do	
 		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
-		maprutil_copygutsstats "$node" "$timestamp" "$copydir"
+		maprutil_copygutsstats "$node" "$timestamp" "$copydir" &
 	done
 	wait
 	log_info "Aggregating guts stats from Nodes [$mfsnodes]"
 	maprutil_gutstatsOnCluster "$mfsnodes" "$copydir" "$timestamp" "$colids" "$colnames" "$doPublish"
+}
+
+function main_perftool(){
+	[ -z "$copydir" ] && log_error "Copy directory not specified" && exit 1
+
+	log_msghead "[$(util_getCurDate)] Running 'perf' CPU profiler on nodes and copying output to '$copydir'"
+	
+	local timestamp=$(date +%s)
+	for node in ${nodes[@]}
+	do	
+		log_info "Running perf tool on $node"
+		maprutil_perfToolOnNode "$node" "$timestamp"
+	done
+	maprutil_wait
+	for node in ${nodes[@]}
+	do	
+		maprutil_copyperfoutput "$node" "$timestamp" "$copydir"
+	done
+	wait
+	for node in ${nodes[@]}
+	do	
+		maprutil_copyperfoutput "$node" "$timestamp" "$copydir" &
+	done
+	wait
+	
+
 }
 
 function main_runCommandExec(){
@@ -922,6 +953,9 @@ function main_runLogDoctor(){
         	mrdbinfo)
 				log_msghead "[$(util_getCurDate)] Running mrconfig dbinfo "
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "mrdbinfo"
+        	;;
+        	perftool)
+				main_perftool
         	;;
         	mfstrace)
 				main_getmfstrace
@@ -1267,6 +1301,17 @@ while [ "$2" != "" ]; do
 			if [ -n "$VALUE" ]; then
 				doLogAnalyze="$doLogAnalyze tabletdist"
 				GLB_TABLET_DIST=$VALUE
+			fi
+		;;
+		-pt)
+			if [ -n "$VALUE" ]; then
+				doLogAnalyze="$doLogAnalyze perftool"
+				GLB_PERF_OPTION=$VALUE
+			fi
+		;;
+		-pi)
+			if [ -n "$VALUE" ]; then
+				GLB_PERF_INTERVAL=$VALUE
 			fi
 		;;
 		-in)

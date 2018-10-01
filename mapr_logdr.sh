@@ -30,6 +30,8 @@ gutscols=
 publishdesc=
 startstr=
 endstr=
+perftool=
+perfinterval=
 maillist=
 mailsub=
 backupregex=
@@ -171,7 +173,13 @@ function usage () {
 
     echo -e "\t -sl | --slack" 
     echo -e "\t\t - Post 'analyzecores' to slack #perf-stack-trace channel"
+
+    echo -e "\t -pt=<OPTION> | --perftool=<OPTION>" 
+    echo -e "\t\t - Perform 'perf' CPU profile on process/thread. OPTION : mfs,gw,fs,rpc,compress,dbmain,dbflusher,dbhelper"
     
+    echo -e "\t -pi=<NUM> | --perfinterval=<NUM>" 
+    echo -e "\t\t - Perf interval in seconds to run perf cpu profile. (default : 30)"
+
     echo 
     echo " Examples : "
     echo -e "\t ./mapr_logdr.sh -c=maprdb -d -l"
@@ -338,6 +346,14 @@ while [ "$1" != "" ]; do
         -l | --mfsloggrep)
             args=$args"mfsgrep "
         ;;
+        -pt | --perftool)
+            perftool="$VALUE"
+            [ -z "$perftool" ] && perftool="mfs"
+        ;;
+        -pi | --perfinterval)
+            perfinterval="$VALUE"
+            [ -z "$perfinterval" ] && perfinterval="30"
+        ;; 
         -v | --verbose)
             verbose=1
         ;;
@@ -360,7 +376,7 @@ else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
     \"-dir=$copydir\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
     \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\" \"-mail=$maillist\" \"-sub=$mailsub\" \
-    \"-pn=$pname\" \"-extarg=$extarg\""
+    \"-pn=$pname\" \"-pt=$perftool\" \"-pi=$perfinterval\" \"-extarg=$extarg\""
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else
