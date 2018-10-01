@@ -4334,8 +4334,7 @@ function maprutil_printperfoutput(){
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     local perflog="$logdir/$host/perf.log"
 
-    log_msghead "[$node]: Perf CPU Profile"
-    echo 
+    log_msghead "[$node]: Perf CPU Profile for '$GLB_PERF_OPTION'"
     [ ! -s "$perflog" ] && return
 
     cat $perflog | sed '/#/d' | sed '/^\[/d' | sed 's/^ *//g' | awk '{if($3 !~ /kernel.kallsyms/ || $5 !~ /0x/ ) print $0}' | head -n 20 | sed 's/^/\t/'
