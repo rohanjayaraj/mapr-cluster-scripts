@@ -3362,7 +3362,7 @@ function maprutil_copyZippedLogsFromNode(){
     
     [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
     ssh_copyFromCommand "root" "$node" "$filetocopy" "$copyto" > /dev/null 2>&1
-    ssh_executeCommandasRoot "rm -rf $filetocopy" > /dev/null 2>&1
+    ssh_executeCommandasRoot "$node" "rm -rf $filetocopy" > /dev/null 2>&1
 }
 
 function maprutil_copyprocesstrace(){
@@ -3375,7 +3375,7 @@ function maprutil_copyprocesstrace(){
 
     [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
     ssh_copyFromCommand "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
-    ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
+    ssh_executeCommandasRoot "$node" "rm -rf $dirtocopy" > /dev/null 2>&1
 }
 
 function maprutil_processtraceonNode(){
@@ -3695,7 +3695,7 @@ function maprutil_copymfscpuuse(){
 
     [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
     ssh_copyFromCommand "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
-    ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
+    ssh_executeCommandasRoot "$node" "rm -rf $dirtocopy" > /dev/null 2>&1
 }
 
 function maprutil_mfsCpuUseOnNode(){
@@ -4039,7 +4039,7 @@ function maprutil_copygutsstats(){
 
     [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
     ssh_copyFromCommand "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
-    ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
+    ssh_executeCommandasRoot "$node" "rm -rf $dirtocopy" > /dev/null 2>&1
 }
 
 function maprutil_gutsStatsOnNode(){
@@ -4323,9 +4323,21 @@ function maprutil_copyperfoutput(){
 
     [ -n "$host" ] && [ -d "$copyto/$host" ] && rm -rf $copyto/$host > /dev/null 2>&1
     ssh_copyFromCommand "root" "$node" "$dirtocopy" "$copyto" > /dev/null 2>&1
-    ssh_executeCommandasRoot "rm -rf $dirtocopy" > /dev/null 2>&1
+    ssh_executeCommandasRoot "$node" "rm -rf $dirtocopy" > /dev/null 2>&1
 
     ## TBD : PRINT Top 20 frames
+}
+
+function maprutil_printperfoutput(){
+    local node=$1
+    local logdir=$2
+    local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+    local perflog="$copyto/$host/perf.log"
+
+    log_msghead "[$node]: Perf CPU Profile"
+    [ -s "$perflog" ] && return
+
+    cat $perflog | sed '/#/d' | sed '/^\[/d' | sed 's/^ *//g' | awk '{if($3 !~ /kernel.kallsyms/ || $5 !~ /0x/ ) print $0}' | head -n 20 | sed 's/^/\t\t/'
 }
 
 function maprutil_perftool(){

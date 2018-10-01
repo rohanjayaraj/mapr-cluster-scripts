@@ -820,29 +820,25 @@ function main_getgutsstats(){
 }
 
 function main_perftool(){
-	[ -z "$copydir" ] && log_error "Copy directory not specified" && exit 1
+	[ -z "$copydir" ] && log_error "Copy directory not specified. Specify '-cc=</path/to/dir>' option" && exit 1
 
 	log_msghead "[$(util_getCurDate)] Running 'perf' CPU profiler on nodes and copying output to '$copydir'"
 	
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}
 	do	
-		log_info "Running perf tool on $node"
 		maprutil_perfToolOnNode "$node" "$timestamp"
 	done
 	maprutil_wait
 	for node in ${nodes[@]}
 	do	
-		maprutil_copyperfoutput "$node" "$timestamp" "$copydir"
+		maprutil_copyperfoutput "$node" "$timestamp" "$copydir" &
 	done
 	wait
 	for node in ${nodes[@]}
 	do	
-		maprutil_copyperfoutput "$node" "$timestamp" "$copydir" &
+		maprutil_printperfoutput "$node" "$copydir"
 	done
-	wait
-	
-
 }
 
 function main_runCommandExec(){
