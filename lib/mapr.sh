@@ -4375,11 +4375,11 @@ function maprutil_perftool(){
     mkdir -p $tempdir > /dev/null 2>&1
 
     cd $tempdir
-    timeout $GLB_PERF_INTERVAL perf record -p $ppid -q -o "perf.data.$ppid"
+    timeout $GLB_PERF_INTERVAL perf record -p $ppid -q -o "perf.data.$ppid" > /dev/null 2>&1
     
     [ -n "$tids" ] && tids="--tid=$tids"
 
-    perf report $tids -k $binarypath --stdio -i perf.data.$ppid > perf.log
+    perf report $tids -k $binarypath --stdio -i perf.data.$ppid > perf.log 2>&1
     rm -rf perf.data.$ppid > /dev/null 2>&1
 }
 
