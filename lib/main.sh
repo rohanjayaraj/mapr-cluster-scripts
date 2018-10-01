@@ -204,7 +204,7 @@ function main_install(){
 	do
 		local maprrepo=$(main_getRepoFile $node)
 		# Copy mapr.repo if it doen't exist
-		maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
+		maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node) && maprutil_buildPatchRepoURL "$node"
 		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
 			main_isValidBuildVersion
 			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
@@ -448,7 +448,7 @@ function main_upgrade(){
 		local maprrepo=$(main_getRepoFile $node)
 		if [ -z "$idx" ]; then
 			# Copy mapr.repo if it doen't exist
-			maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
+			maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node) && maprutil_buildPatchRepoURL "$node"
 			if [ -z "$buildexists" ] && [ -z "$(maprutil_checkNewBuildExists $node)" ]; then
 				log_error "No newer build exists. Please check the repo file [$maprrepo] for configured repositories"
 				exit 1

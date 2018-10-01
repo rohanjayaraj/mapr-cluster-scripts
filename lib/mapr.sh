@@ -1797,6 +1797,20 @@ function maprutil_copyRepoFile(){
     fi
 }
 
+function maprutil_buildPatchRepoURL(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local node=$1
+    local nodeos=$(getOSFromNode $node)
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+        [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
+    elif [ "$nodeos" = "ubuntu" ]; then
+        [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/ubuntu/"
+    fi
+    echo "$GLB_PATCH_REPOFILE"
+}
+
 function maprutil_buildRepoFile(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
@@ -1809,7 +1823,7 @@ function maprutil_buildRepoFile(){
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0.0/redhat/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
-        [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
+        [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-rpm/"
         
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g')
@@ -1844,7 +1858,7 @@ function maprutil_buildRepoFile(){
     elif [ "$nodeos" = "ubuntu" ]; then
         meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0.0/ubuntu/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
-        [ -n "$GLB_MAPR_PATCH" ] && [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/ubuntu/"
+        [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-deb/"
 
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g')
@@ -4334,11 +4348,11 @@ function maprutil_printperfoutput(){
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     local perflog="$logdir/$host/perf.log"
 
-    log_msghead "[$node]: Perf CPU Profile for '$GLB_PERF_OPTION'"
+    log_msghead "[$node]: Perf CPU profile for '$GLB_PERF_OPTION'"
     [ ! -s "$perflog" ] && return
 
-    cat $perflog | sed '/#/d' | sed '/^\[/d' | sed 's/^ *//g' | awk '{if($3 !~ /kernel.kallsyms/ || $5 !~ /0x/ ) print $0}' | head -n 20 | sed 's/^/\t/'
-    echo
+    local lines="$(cat $perflog | sed '/#/d' | sed '/^\[/d' | sed 's/^ *//g' | awk '{if($3 !~ /kernel.kallsyms/ || $5 !~ /0x/ ) print $0}' | sed '/^\s*$/d' | head -n 20)"
+    [ -n "$lines" ] && echo "$lines" | sed 's/^/\t/' && echo
 }
 
 function maprutil_perftool(){
