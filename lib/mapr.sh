@@ -346,6 +346,9 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/maprsetup_*")
     dirlist+=("/tmp/ycsb*.sh")
     dirlist+=("/tmp/clienttrace*.sh")
+    dirlist+=("/tmp/perftool/")
+    dirlist+=("/tmp/maprtrace/")
+    dirlist+=("/tmp/maprlogs/")
 
     echo  ${dirlist[*]}
 }  
@@ -1808,7 +1811,7 @@ function maprutil_buildPatchRepoURL(){
     elif [ "$nodeos" = "ubuntu" ]; then
         [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/ubuntu/"
     fi
-    echo "$GLB_PATCH_REPOFILE"
+    #echo "$GLB_PATCH_REPOFILE"
 }
 
 function maprutil_buildRepoFile(){
@@ -1821,7 +1824,7 @@ function maprutil_buildRepoFile(){
     local nodeos=$(getOSFromNode $node)
     local meprepo=
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0.0/redhat/"
+        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.0/redhat/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-rpm/"
@@ -1856,7 +1859,7 @@ function maprutil_buildRepoFile(){
         fi
         echo >> $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0.0/ubuntu/"
+        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.0/ubuntu/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-deb/"
@@ -3586,6 +3589,7 @@ function maprutil_mfsCPUUseOnCluster(){
 
     local hostlist=
     local buildid=
+    local patchid=
     local dirlist=
     local alldirlist=
     for node in ${allnodes[@]}
@@ -3595,7 +3599,9 @@ function maprutil_mfsCPUUseOnCluster(){
         [ -n "$(echo $nodes | grep -w $node)" ] && dirlist="$dirlist $tmpdir/$host/" && hostlist="$hostlist $node"
         alldirlist="$alldirlist $tmpdir/$host/"
         [ -z "$buildid" ] && buildid=$(ssh_executeCommandasRoot "$node" "cat /opt/mapr/MapRBuildVersion")
+        [ -z "$patchid" ] && patchid=$(ssh_executeCommandasRoot "$node" "ls /opt/mapr/.patch/README.* | cut -d '.' -f3 | tr -d 'p'" 2>/dev/null)
     done
+    [ -n "$buildid" ] && [ -n "$patchid" ] && buildid="$buildid (patch $patchid)"
     [ -z "$(echo $dirlist | grep "$tmpdir")" ] && return
     [ -z "$(ls $tmpdir/* 2>/dev/null)" ] && return
     local logdir="$tmpdir/cluster"
@@ -4143,6 +4149,7 @@ function maprutil_gutstatsOnCluster(){
 
     local hostlist=
     local buildid=
+    local patchid=
     local dirlist=
     for node in ${nodes[@]}
     do
@@ -4151,7 +4158,9 @@ function maprutil_gutstatsOnCluster(){
         dirlist="$dirlist $tmpdir/$host/"
         hostlist="$hostlist $node"
         [ -z "$buildid" ] && buildid=$(ssh_executeCommandasRoot "$node" "cat /opt/mapr/MapRBuildVersion")
+        [ -z "$patchid" ] && patchid=$(ssh_executeCommandasRoot "$node" "ls /opt/mapr/.patch/README.* | cut -d '.' -f3 | tr -d 'p'" 2>/dev/null)
     done
+    [ -n "$buildid" ] && [ -n "$patchid" ] && buildid="$buildid (patch $patchid)"
     [ -z "$(echo $dirlist | grep "$tmpdir")" ] && return
     [ -z "$(ls $tmpdir/* 2>/dev/null)" ] && return
     
@@ -4352,7 +4361,10 @@ function maprutil_printperfoutput(){
     [ ! -s "$perflog" ] && return
 
     local lines="$(cat $perflog | sed '/#/d' | sed '/^\[/d' | sed 's/^ *//g' | awk '{if($3 !~ /kernel.kallsyms/ || $5 !~ /0x/ ) print $0}' | sed '/^\s*$/d' | head -n 20)"
-    [ -n "$lines" ] && echo "$lines" | sed 's/^/\t/' && echo
+    if [ -n "$lines" ]; then
+        log_msg "\t Top 20 frames from $perflog "
+        echo "$lines" | sed 's/^/\t\t/' && echo
+    fi
 }
 
 function maprutil_perftool(){
@@ -4406,7 +4418,7 @@ function maprutil_perftool(){
     
     [ -n "$tids" ] && tids="--tid=$tids"
 
-    perf report $tids -k $binarypath --stdio -i perf.data.$ppid > perf.log 2>&1
+    perf report $tids -k $binarypath --stdio -i perf.data.$ppid -U --header > perf.log 2>&1
     rm -rf perf.data.$ppid > /dev/null 2>&1
 }
 
