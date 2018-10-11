@@ -1040,9 +1040,9 @@ function util_postToSlack2(){
         echo "$json" > $tmpfile
         curl -L -X POST -H 'Content-type: application/json' --data @-  $SLACK_URL  < $tmpfile > /dev/null 2>&1
         rm -f $tmpfile > /dev/null 2>&1
-        let nlpos=nlpos+1
-        textlen=${#posttext}
+        #let nlpos=nlpos+1
         posttext="${posttext:$nlpos:$textlen}"
+        textlen=${#posttext}
     done
 }
 
