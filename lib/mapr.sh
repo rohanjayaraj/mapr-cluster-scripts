@@ -329,6 +329,8 @@ function maprutil_knowndirs(){
     dirlist+=("/etc/drill")
     dirlist+=("/var/log/drill")
     dirlist+=("/mapr/perf")
+    dirlist+=("/mapr/archerx")
+    dirlist+=("/mapr/[a-z]*")
     echo ${dirlist[*]}
 }
 
