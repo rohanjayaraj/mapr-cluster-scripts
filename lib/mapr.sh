@@ -294,6 +294,15 @@ function maprutil_ycsbdirs(){
     echo ${dirlist[*]}
 }
 
+function maprutil_rubixdirs(){
+    local dirlist=()
+    for i in $(find /var/rubix -maxdepth 1 -type d -ctime +10 2>/dev/null)
+    do
+      dirlist+=("$i")
+    done
+    echo ${dirlist[*]}
+}
+
 function maprutil_coresdirs(){
     local dirlist=()
     dirlist+=("/opt/cores/guts*")
@@ -364,6 +373,7 @@ function maprutil_removedirs(){
             rm -rfv $(maprutil_tempdirs)  > /dev/null 2>&1
             rm -rfv $(maprutil_coresdirs) > /dev/null 2>&1
             rm -rfv $(maprutil_ycsbdirs) > /dev/null 2>&1
+            rm -rfv $(maprutil_rubixdirs) > /dev/null 2>&1
            ;;
          known)
             rm -rfv $(maprutil_knowndirs) 
@@ -376,6 +386,9 @@ function maprutil_removedirs(){
            ;;
          ycsb)
             rm -rfv $(maprutil_ycsbdirs)
+           ;;
+         rubix)
+            rm -rfv $(maprutil_rubixdirs)
            ;;
         *)
             log_warn "unknown parameter passed to removedirs \"$PARAM\""
