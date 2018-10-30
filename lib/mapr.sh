@@ -330,7 +330,7 @@ function maprutil_knowndirs(){
     dirlist+=("/var/log/drill")
     dirlist+=("/mapr/perf")
     dirlist+=("/mapr/archerx")
-    dirlist+=("/mapr/[a-z]*")
+    dirlist+=("/mapr/[A-Za-z0-9]*")
     echo ${dirlist[*]}
 }
 
@@ -1019,7 +1019,7 @@ EOL
     done
 }
 
-function maprutil_addRootUserToCntrExec(){
+function maprutil_updateConfigs(){
 
     local execfile="container-executor.cfg"
     local execfilelist=$(find /opt/mapr/hadoop -name $execfile -type f ! -path "*/templates/*")
@@ -1029,6 +1029,11 @@ function maprutil_addRootUserToCntrExec(){
             sed -i '/^allowed.system.users/ s/$/,root/' $i
         fi
     done
+
+    # Disable 'fuse.ticketfile.location' in fuse.conf 
+    if [ -s "/opt/mapr/conf/fuse.conf" ]; then
+        sed -i 's/^fuse.ticketfile.location/#fuse.ticketfile.location/g' /opt/mapr/conf/fuse.conf
+    fi
 }
 
 function maprutil_configureSSD(){
@@ -1449,7 +1454,7 @@ function maprutil_configure(){
     wait
 
     # Add root user to container-executor.cfg
-    maprutil_addRootUserToCntrExec
+    maprutil_updateConfigs
 
     # Start zookeeper
     service mapr-zookeeper restart 2>/dev/null
@@ -1458,7 +1463,8 @@ function maprutil_configure(){
     maprutil_restartWarden > /dev/null 2>&1
 
     # Restart posix-client
-    service mapr-posix-client* restart > /dev/null 2>&1
+    service mapr-posix-client-basic restart > /dev/null 2>&1
+    service mapr-posix-client-platinum restart > /dev/null 2>&1
 
     # Mount self-hosting on all nodes
     maprutil_mountSelfHosting
@@ -3207,6 +3213,7 @@ function maprutil_restartWardenOnNode() {
     fi
     
     echo "maprutil_restartWarden \"$stopstart\"" >> $scriptpath
+    echo "service mapr-posix-client-platinum \"$stopstart\" > /dev/null 2>&1" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$node" "$scriptpath"
     maprutil_addToPIDList "$!"   
