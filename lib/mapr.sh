@@ -356,6 +356,11 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/restartonnode_*")
     dirlist+=("/tmp/maprsetup_*")
     dirlist+=("/tmp/ycsb*.sh")
+    dirlist+=("/tmp/dstat.*.out")
+    dirlist+=("/tmp/iostat.*.out")
+    dirlist+=("/tmp/guts.*.out")
+    dirlist+=("/tmp/mpstat.*.out")
+    dirlist+=("/tmp/top.*.out")
     dirlist+=("/tmp/clienttrace*.sh")
     dirlist+=("/tmp/perftool/")
     dirlist+=("/tmp/maprtrace/")
@@ -1424,6 +1429,7 @@ function maprutil_configure(){
     local multimfs=$GLB_MULTI_MFS
     local numsps=$GLB_NUM_SP
     local numdisks=`wc -l $diskfile | cut -f1 -d' '`
+    local dspid=
     if [ -n "$multimfs" ] && [ "$multimfs" -gt 1 ]; then
         if [ "$multimfs" -gt "$numdisks" ]; then
             log_info "Node ["`hostname -s`"] has fewer disks than mfs instances. Defaulting # of mfs to # of disks"
@@ -1439,6 +1445,7 @@ function maprutil_configure(){
         fi
         # SSH session exits after running for few seconds with error "Write failed: Broken pipe"; Running in background and waiting
         /opt/mapr/server/disksetup -FW $numstripe $diskfile &
+        dspid=$!
     elif [[ -n "$numsps" ]] &&  [[ "$numsps" -le "$numdisks" ]]; then
         [ $((numdisks%2)) -eq 1 ] && numdisks=$(echo "$numdisks+1" | bc)
         local numstripe=$(echo "$numdisks/$numsps"|bc)
@@ -1446,10 +1453,12 @@ function maprutil_configure(){
             numstripe=$(echo "$numstripe+1" | bc)
         fi
         /opt/mapr/server/disksetup -FW $numstripe $diskfile &
+        dspid=$!
     else
         /opt/mapr/server/disksetup -FM $diskfile &
+        dspid=$!
     fi
-    for i in {1..20}; do echo -ne "."; sleep 1; done
+    while kill -0 ${dspid} 2>/dev/null; do echo -ne "."; sleep 1; done
     echo
     wait
 
@@ -2346,9 +2355,11 @@ function maprutil_checkTabletDistribution(){
     if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
         return
     fi
-    
+    [ -z "$(pidof mfs)" ] && return
+
     local filepath=$GLB_TABLET_DIST
     local hostnode=$(hostname -f)
+
 
     [ -n "$(echo "$filepath" | grep -ow "[0-9]*\.[0-9]*\.[0-9]*")" ] && maprutil_checkTabletDistribution2 && return
 
@@ -2396,7 +2407,8 @@ function maprutil_checkTabletDistribution2(){
     if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
         return
     fi
-    
+    [ -z "$(pidof mfs)" ] && return
+
     local hostip=$(util_getHostIP)
     local tablecid=$(echo "$GLB_TABLET_DIST" | cut -d'.' -f1)
 
@@ -2459,6 +2471,7 @@ function maprutil_checkContainerDistribution(){
     if [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
         return
     fi
+    [ -z "$(pidof mfs)" ] && return
 
     local hostip=$(util_getHostIP)
     local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null |  grep cid: | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $2,$4}' | sort -n -k2.4)
@@ -2483,7 +2496,8 @@ function maprutil_checkIndexTabletDistribution(){
     if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
         return
     fi
-    
+    [ -z "$(pidof mfs)" ] && return
+
     local tablepath=$GLB_TABLET_DIST
     local hostnode=$(hostname -f)
 
@@ -2546,6 +2560,8 @@ function maprutil_checkIndexTabletDistribution2(){
     if [[ -z "$GLB_TABLET_DIST" ]] || [[ ! -e "/opt/mapr/roles/fileserver" ]]; then
         return
     fi
+    [ -z "$(pidof mfs)" ] && return
+
     local hostip=$(util_getHostIP)
     local tablepath=$GLB_TABLET_DIST
 
@@ -2725,7 +2741,7 @@ function maprutil_getMapRInfo(){
     local numsps=
     local sppermfs=
     local nodetopo=
-    if [ -e "/opt/mapr/roles/fileserver" ]; then
+    if [ -e "/opt/mapr/roles/fileserver" ] && [ -n "$(pidof mfs)" ]; then
         nummfs=$(timeout 10 /opt/mapr/server/mrconfig info instances 2>/dev/null| head -1)
         numsps=$(timeout 10 /opt/mapr/server/mrconfig sp list 2>/dev/null| grep SP[0-9] | wc -l)
         #command -v maprcli >/dev/null 2>&1 && sppermfs=$(maprcli config load -json 2>/dev/null| grep multimfs.numsps.perinstance | tr -d '"' | tr -d ',' | cut -d':' -f2)
@@ -3513,6 +3529,8 @@ function maprutil_publishMFSCPUUse(){
 
     log_info "Publishing resource usage statistics to \"$GLB_PERF_URL\""
 
+    local sjson=
+    local stjson=
     local tjson=
     local ttime=0
     local files="fs.log db.log dbh.log dbf.log fs_max.log db_max.log dbh_max.log dbf_max.log"
@@ -3524,9 +3542,16 @@ function maprutil_publishMFSCPUUse(){
         # tlog=$(echo $tlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$tlog"
         [ "$ttime" -lt "$(cat $fname | wc -l)" ] && ttime=$(cat $fname | wc -l)
+
+        [ -n "$(echo $fname | grep "max")" ] && continue
+        local avg=$(cat $fname | awk '{sum+=$1}END{print sum/NR}')
+        local stddev=$(util_getStdDev "$(cat $fname)")
+        [ -n "$stjson" ] && stjson="$stjson,"
+        stjson="$stjson\"$(echo $fname| cut -d'.' -f1)\":{\"avg\":$avg,\"stddev\":$stddev}"
     done
     [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
     [ -n "$tjson" ] && json="$json,\"threads\":$tjson"
+    [ -n "$stjson" ] && sjson="\"threads\":{$stjson}" && stjson=
 
     ttime=0
     local files="Rpc.log IOMgr.log FS.log DBMain.log DBHelper.log DBFlush.log Compress.log SysCalls.log ExtInstance.log Rpc_max.log IOMgr_max.log FS_max.log DBMain_max.log DBHelper_max.log DBFlush_max.log Compress_max.log SysCalls_max.log ExtInstance_max.log"
@@ -3537,9 +3562,17 @@ function maprutil_publishMFSCPUUse(){
         [ -n "$tjson" ] && tjson="$tjson,"
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$tlog"
         [ "$ttime" -lt "$(cat $fname | wc -l)" ] && ttime=$(cat $fname | wc -l)
+
+        [ -n "$(echo $fname | grep "max")" ] && continue
+        local avg=$(cat $fname | awk '{sum+=$1}END{print sum/NR}')
+        local stddev=$(util_getStdDev "$(cat $fname)")
+        [ -n "$stjson" ] && stjson="$stjson,"
+        stjson="$stjson\"$(echo $fname| cut -d'.' -f1)\":{\"avg\":$avg,\"stddev\":$stddev}"
     done
     [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
     [ -n "$tjson" ] && json="$json,\"threads\":$tjson"
+    [ -n "$sjson" ] && sjson="$sjson,"
+    [ -n "$stjson" ] && sjson="$sjson\"threads\":{$stjson}" && stjson=
 
 
     # add MFS & GW cpu
@@ -3552,8 +3585,17 @@ function maprutil_publishMFSCPUUse(){
         [ -n "$tjson" ] && tjson="$tjson,"
         mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
+
+        local mavg=$(cat $fname | awk '{sum+=$3;}END{print sum/NR}')
+        local cavg=$(cat $fname | awk '{sum+=$4;}END{print sum/NR}')
+        local mstddev=$(util_getStdDev "$(cat $fname | awk '{print $3}')")
+        local cstddev=$(util_getStdDev "$(cat $fname | awk '{print $4}')")
+        [ -n "$stjson" ] && stjson="$stjson,"
+        stjson="$stjson\"$(echo $fname| cut -d'.' -f1)\":{\"mem\":{\"avg\":$mavg,\"stddev\":$mstddev},\"cpu\":{\"avg\":$mavg,\"stddev\":$mstddev}}"
     done
     [ -n "$tjson" ] && json="$json,$tjson"
+    [ -n "$sjson" ] && sjson="$sjson,"
+    [ -n "$stjson" ] && sjson="${sjson}${stjson}" && stjson=
 
     files="cpu.log"
     tjson=
@@ -3590,6 +3632,8 @@ function maprutil_publishMFSCPUUse(){
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
     done
     [ -n "$tjson" ] && json="$json,$tjson"
+    [ -n "$sjson" ] && sjson=$(echo "{$sjson}" | python -c 'import json,sys; print json.dumps(sys.stdin.read())') && sjson="\"stats\":$sjson"
+    [ -n "$sjson" ] && json="$json,$sjson"
 
     json="$json}"
     json="cpuuse=$json"

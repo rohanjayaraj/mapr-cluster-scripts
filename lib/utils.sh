@@ -932,7 +932,10 @@ function util_createExtractFile(){
 
     local delscriptfile="delextract.sh"
     echo -e '#!/bin/bash \n' > $delscriptfile
-    echo "for i in \$(ls | grep -v \"bz2\$\" | grep -v "extract.sh$");do rm -f \${i}; done" >> $delscriptfile
+    echo "deldirs=\"\$(ls *.bz2 | cut -d'_' -f2 | cut -d'.' -f1)\"" >> $delscriptfile
+    echo "deldirs2=\"\$(ls *.bz2 | cut -d'_' -f2)\"" >> $delscriptfile
+    echo "for i in \$deldirs;do rm -f \${i}; done" >> $delscriptfile
+    echo "for i in \$deldirs2;do rm -f \${i}; done" >> $delscriptfile
     chmod +x $delscriptfile
 }
 
@@ -1055,6 +1058,14 @@ function util_getIPfromHostName(){
     if [ "$(util_validip2 "$ip")" = "valid" ]; then
         echo $ip
     fi
+}
+
+# @param values in new lines
+function util_getStdDev(){
+    [ -z "$1" ] && return
+    local values="$1"
+    local stddev=$(echo "$values" | awk '{sum+=$1; sumsq+=$1*$1}END{printf("%.2f",sqrt(sumsq/NR - (sum/NR)**2))}')
+    [ -n "$stddev" ] && echo "$stddev"
 }
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
