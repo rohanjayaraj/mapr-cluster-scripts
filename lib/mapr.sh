@@ -20,10 +20,10 @@ function maprutil_getCLDBMasterNode() {
     local hostip=$(util_getHostIP)
     local usemaprcli=$2
     if [ -n "$2" ] && [ -n "$1" ]; then
-        master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster 2>/dev/null | grep HostName | cut -d' ' -f4" "10")
+        master=$(ssh_executeCommandWithTimeout "root" "$1" "timeout 30 maprcli node cldbmaster 2>/dev/null | grep HostName | cut -d' ' -f4" "10")
         master=$(util_getIPfromHostName $master)
     elif [ -n "$1" ] && [ "$hostip" != "$1" ]; then
-        #master=$(ssh_executeCommandWithTimeout "root" "$1" "maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
+        #master=$(ssh_executeCommandWithTimeout "root" "$1" "timeout 30 maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
         master=$(ssh_executeCommandasRoot "$1" "[ -e '/opt/mapr/conf/mapr-clusters.conf' ] && cat /opt/mapr/conf/mapr-clusters.conf | cut -d' ' -f3 | cut -d':' -f1")
     else
         #master=$(timeout 10 maprcli node cldbmaster | grep HostName | cut -d' ' -f4)
@@ -130,12 +130,12 @@ function maprutil_getMFSDataNodes() {
         local cldbnode=$(util_getFirstElement "$cldbnodes")
         local isCLDBUp=$(maprutil_waitForCLDBonNode "$cldbnode")
         if [ -n "$isCLDBUp" ]; then
-            local mfshosts="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep hostname | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
+            local mfshosts="$(ssh_executeCommandasRoot "$cldbnode" "timeout 30 maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep hostname | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
             for mfshost in $mfshosts
             do
                 mfsnodes="$mfsnodes $(util_getIPfromHostName $mfshost)"
             done
-            [ -z "$(echo $mfsnodes | grep [0-9])" ] && mfsnodes="$(ssh_executeCommandasRoot "$cldbnode" "timeout 50 maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep 'ip\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
+            [ -z "$(echo $mfsnodes | grep [0-9])" ] && mfsnodes="$(ssh_executeCommandasRoot "$cldbnode" "timeout 30 maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep 'ip\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
         else
             mfsnodes=$(grep mapr-fileserver $1 | grep '^[^#;]' | grep -v cldb | awk -F, '{print $1}')
         fi
@@ -556,6 +556,7 @@ function maprutil_cleanPrevClusterConfigOnNode(){
     else
         echo "ISCLIENT=0" >> $scriptpath
     fi
+    #echo "maprutil_checkIsBareMetal" >> $scriptpath
     echo "maprutil_cleanPrevClusterConfig" >> $scriptpath
 
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
@@ -790,7 +791,7 @@ function maprutil_postUpgrade(){
     local isCLDBUp=$(maprutil_waitForCLDBonNode "$node")
 
     if [ -n "$isCLDBUp" ]; then
-        ssh_executeCommandasRoot "$node" "timeout 50 maprcli config save -values {mapr.targetversion:\"\$(cat /opt/mapr/MapRBuildVersion)\"}" > /dev/null 2>&1
+        ssh_executeCommandasRoot "$node" "timeout 30 maprcli config save -values {mapr.targetversion:\"\$(cat /opt/mapr/MapRBuildVersion)\"}" > /dev/null 2>&1
         ssh_executeCommandasRoot "$node" "timeout 10 maprcli node list -columns hostname,csvc" 
     else
         log_warn "Timed out waiting for CLDB to come up. Please update 'mapr.targetversion' manually"
@@ -805,16 +806,16 @@ function maprutil_rollingUpgradeOnNode(){
     ## http://doc.mapr.com/display/MapR/Rolling+MapR+Core+Upgrade+Using+Manual+Steps
     
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
-    ssh_executeCommandasRoot "$node"  "maprcli node maintenance -nodes $host -timeoutminutes 30"
-    ssh_executeCommandasRoot "$node"  "maprcli notifyupgrade start -node $host"
+    ssh_executeCommandasRoot "$node"  "timeout 30 maprcli node maintenance -nodes $host -timeoutminutes 30"
+    ssh_executeCommandasRoot "$node"  "timeout 30 maprcli notifyupgrade start -node $host"
 
     maprutil_restartWardenOnNode "$node" "$rolefile" "stop" 
     maprutil_restartZKOnNode "$node" "$rolefile" "stop"
 
     maprutil_upgradeNode "$node"
 
-    ssh_executeCommandasRoot "$node"  "maprcli node maintenance -nodes $host -timeoutminutes 0"
-    ssh_executeCommandasRoot "$node"  "maprcli notifyupgrade finish –node $host"
+    ssh_executeCommandasRoot "$node"  "timeout 30 maprcli node maintenance -nodes $host -timeoutminutes 0"
+    ssh_executeCommandasRoot "$node"  "timeout 30 maprcli notifyupgrade finish –node $host"
 }
 
 # @param host ip
@@ -839,6 +840,7 @@ function maprutil_installBinariesOnNode(){
     fi
     echo "keyexists=\$(util_fileExists \"/root/.ssh/id_rsa\")" >> $scriptpath
     echo "[ -z \"\$keyexists\" ] && ssh_createkey \"/root/.ssh\"" >> $scriptpath
+    #echo "maprutil_checkIsBareMetal" >> $scriptpath
     echo "util_installprereq > /dev/null 2>&1" >> $scriptpath
     local bins="$2"
     local maprpatch=$(echo "$bins" | tr ' ' '\n' | grep mapr-patch)
@@ -868,6 +870,14 @@ function maprutil_installBinariesOnNode(){
     fi
 }
 
+function maprutil_checkIsBareMetal(){
+    local isbm=$(util_isBareMetal)
+    if [ -z "$isbm" ]; then
+        log_error "[$(util_getHostIP)] Trying to operate on a linux container. NOT SUPPORTED!"
+        exit 1    
+    fi
+}
+
 function maprutil_configureMultiMFS(){
      if [ -z "$1" ]; then
         return
@@ -883,7 +893,7 @@ function maprutil_configureMultiMFS(){
     local iterlimit=5
     while [ "$failcnt" -gt 0 ] && [ "$iter" -lt "$iterlimit" ]; do
         failcnt=0;
-        maprcli config load -json > /dev/null 2>&1
+        timeout 30 maprcli config load -json > /dev/null 2>&1
         let failcnt=$failcnt+`echo $?`
         [ "$failcnt" -gt "0" ] && sleep 30;
         let iter=$iter+1;
@@ -891,8 +901,8 @@ function maprutil_configureMultiMFS(){
     if [ "$iter" -lt "$iterlimit" ]; then
         local setnummfs=$(maprcli config load -json 2>/dev/null| grep multimfs.numinstances.pernode | tr -d '"' | tr -d ',' | cut -d':' -f2)
         if [ "$setnummfs" -lt "$nummfs" ]; then
-            maprcli  config save -values {multimfs.numinstances.pernode:${nummfs}}
-            maprcli  config save -values {multimfs.numsps.perinstance:${numspspermfs}}
+            timeout 30 maprcli  config save -values {multimfs.numinstances.pernode:${nummfs}}
+            timeout 30 maprcli  config save -values {multimfs.numsps.perinstance:${numspspermfs}}
         fi
     fi
 }
@@ -1088,12 +1098,12 @@ function maprutil_customConfigure(){
 # @param force move CLDB topology
 function maprutil_configureCLDBTopology(){
     log_info "[$(util_getHostIP)] Moving $GLB_CLUSTER_SIZE nodes to /data topology"
-    local datatopo=$(maprcli node list -columns racktopo -json 2>/dev/null | grep racktopo | grep "/data/" | wc -l)
-    local numdnodes=$(maprcli node list  -columns id,service | awk '{if ($2 ~ /fileserver/) print $4}' | wc -l) 
+    local datatopo=$(timeout 30 maprcli node list -columns racktopo -json 2>/dev/null | grep racktopo | grep "/data/" | wc -l)
+    local numdnodes=$(timeout 30 maprcli node list  -columns id,service | awk '{if ($2 ~ /fileserver/) print $4}' | wc -l) 
     local j=0
     local downnodes=
     while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ]; do
-        numdnodes=$(maprcli node list  -columns id,service | awk '{if ($2 ~ /fileserver/) print $4}' | wc -l) 
+        numdnodes=$(timeout 30 maprcli node list  -columns id,service | awk '{if ($2 ~ /fileserver/) print $4}' | wc -l) 
         let j=j+1
         if [ "$j" -gt 12 ]; then
             log_warn "[$(util_getHostIP)] Timeout reached waiting for nodes to be online"
@@ -1111,27 +1121,27 @@ function maprutil_configureCLDBTopology(){
         return
     fi
     ## Move all nodes under /data topology
-    local datanodes=$(maprcli node list  -columns id,configuredservice,racktopo -json 2>/dev/null | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ",")
-    maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
+    local datanodes=$(timeout 30 maprcli node list  -columns id,configuredservice,racktopo -json 2>/dev/null | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" ",")
+    timeout 30 maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
     
     ## Move CLDB if only forced or # of nodes > 5
     if [ "$GLB_CLUSTER_SIZE" -gt 5 ] || [ -n "$1" ]; then
         ### Moving CLDB Nodes to CLDB topology
         #local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
-        local cldbnodes=$(maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')
+        local cldbnodes=$(timeout 30 maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')
         local numcldbs=$(echo "$cldbnodes" | tr ',' '\n' | wc -l)
         [[ -z "$1" ]] && [[ "$numcldbs" -gt "1" ]] && log_info "[$(util_getHostIP)] Multiple CLDBs found; Not moving them to /cldb topology" && return
         log_info "[$(util_getHostIP)] Moving CLDB node(s) & cldb internal volume to /cldb topology"
-        maprcli node move -serverids "$cldbnodes" -topology /cldb 2>/dev/null
+        timeout 30 maprcli node move -serverids "$cldbnodes" -topology /cldb 2>/dev/null
         ### Moving CLDB Volume as well
-        maprcli volume move -name mapr.cldb.internal -topology /cldb 2>/dev/null
+        timeout 30 maprcli volume move -name mapr.cldb.internal -topology /cldb 2>/dev/null
     fi
 }
 
 function maprutil_moveTSDBVolumeToCLDBTopology(){
-    [ -n "$(maprcli volume info -name mapr.monitoring -json 2>/dev/null | grep rackpath | grep cldb)" ] && return
-    local tsdbexists=$(maprcli volume info -name mapr.monitoring -json 2>/dev/null| grep ERROR)
-    local cldbtopo=$(maprcli node topo -path /cldb 2>/dev/null)
+    [ -n "$(timeout 30 maprcli volume info -name mapr.monitoring -json 2>/dev/null | grep rackpath | grep cldb)" ] && return
+    local tsdbexists=$(timeout 30 maprcli volume info -name mapr.monitoring -json 2>/dev/null| grep ERROR)
+    local cldbtopo=$(timeout 30 maprcli node topo -path /cldb 2>/dev/null)
     if [ -n "$tsdbexists" ] || [ -z "$cldbtopo" ]; then
         log_warn "OpenTSDB not installed or CLDB not moved to /cldb topology"
         return
@@ -1139,8 +1149,8 @@ function maprutil_moveTSDBVolumeToCLDBTopology(){
 
     #maprcli volume modify -name mapr.monitoring -minreplication 1 2>/dev/null
     #maprcli volume modify -name mapr.monitoring -replication 1 2>/dev/null
-    maprcli volume move -name mapr.monitoring -topology /cldb 2>/dev/null
-    maprcli volume move -name mapr.monitoring.metricstreams -topology /cldb 2>/dev/null
+    timeout 30 maprcli volume move -name mapr.monitoring -topology /cldb 2>/dev/null
+    timeout 30 maprcli volume move -name mapr.monitoring.metricstreams -topology /cldb 2>/dev/null
 }
 
 # @param diskfile
@@ -1584,7 +1594,7 @@ function maprutil_postConfigure(){
 
 function maprutil_queryservice(){
     local drillname="${GLB_CLUSTER_NAME}-drillbits"
-    maprcli cluster queryservice setconfig -enabled true -clusterid ${drillname} -storageplugin dfs -znode /drill > /dev/null 2>&1
+    timeout 30 maprcli cluster queryservice setconfig -enabled true -clusterid ${drillname} -storageplugin dfs -znode /drill > /dev/null 2>&1
 }
 
 # @param cldbnode ip
@@ -2279,11 +2289,11 @@ function maprutil_runCommands(){
 
 function maprutil_enableClusterAudit () {
     log_msghead " *************** Enable cluster wide Audit **************** "
-    maprutil_runMapRCmd "maprcli audit cluster -enabled true"
-    maprutil_runMapRCmd "maprcli audit data -enabled true"
+    maprutil_runMapRCmd "timeout 30 maprcli audit cluster -enabled true"
+    maprutil_runMapRCmd "timeout 30 maprcli audit data -enabled true"
     if [[ "$GLB_ENABLE_AUDIT" -gt "1" ]]; then
-        maprutil_runMapRCmd "maprcli config save -values '{\"mfs.enable.audit.as.stream\":\"1\"}'"
-        maprutil_runMapRCmd "maprcli node services -name hoststats -action restart -filter '[csvc==hoststats]'"
+        maprutil_runMapRCmd "timeout 30 maprcli config save -values '{\"mfs.enable.audit.as.stream\":\"1\"}'"
+        maprutil_runMapRCmd "timeout 30 maprcli node services -name hoststats -action restart -filter '[csvc==hoststats]'"
     fi
 }
 
@@ -2293,33 +2303,33 @@ function maprutil_createVolume () {
     [ -z "$volname" ] || [ -z "$volpath" ] && return
 
     log_msghead " *************** Creating $volname Volume **************** "
-    maprutil_runMapRCmd "maprcli volume create -name $volname -path $volpath -replication 3 -topology /data"
+    maprutil_runMapRCmd "timeout 30 maprcli volume create -name $volname -path $volpath -replication 3 -topology /data"
     [[ "$volname" = "tables" ]] && maprutil_runMapRCmd "hadoop mfs -setcompression off /tables"
 }
 
 function maprutil_createTableWithCompression(){
     log_msghead " *************** Creating UserTable (/tables/usertable) with lz4 compression **************** "
     maprutil_createYCSBVolume
-    maprutil_runMapRCmd "maprcli table create -path /tables/usertable" 
-    maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1"
+    maprutil_runMapRCmd "timeout 30 maprcli table create -path /tables/usertable" 
+    maprutil_runMapRCmd "timeout 30 maprcli table cf create -path /tables/usertable -cfname family -compression lz4 -maxversions 1"
 }
 
 function maprutil_createTableWithCompressionOff(){
     log_msghead " *************** Creating UserTable (/tables/usertable) with compression off **************** "
     maprutil_createYCSBVolume
-    maprutil_runMapRCmd "maprcli table create -path /tables/usertable"
-    maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname family -compression off -maxversions 1"
+    maprutil_runMapRCmd "timeout 30 maprcli table create -path /tables/usertable"
+    maprutil_runMapRCmd "timeout 30 maprcli table cf create -path /tables/usertable -cfname family -compression off -maxversions 1"
 }
 
 function maprutil_createJSONTable(){
     log_msghead " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
     maprutil_createYCSBVolume
-    maprutil_runMapRCmd "maprcli table create -path /tables/usertable -tabletype json "
+    maprutil_runMapRCmd "timeout 30 maprcli table create -path /tables/usertable -tabletype json "
 }
 
 function maprutil_addCFtoJSONTable(){
     log_msghead " *************** Creating JSON UserTable (/tables/usertable) with compression off **************** "
-    maprutil_runMapRCmd "maprcli table cf create -path /tables/usertable -cfname cfother -jsonpath field0 -compression off -inmemory true"
+    maprutil_runMapRCmd "timeout 30 maprcli table cf create -path /tables/usertable -cfname cfother -jsonpath field0 -compression off -inmemory true"
 }
 
 function maprutil_checkDiskErrors(){
@@ -2366,7 +2376,7 @@ function maprutil_checkTabletDistribution(){
     local cntrlist=$(/opt/mapr/server/mrconfig info dumpcontainers 2>/dev/null |  grep cid: | awk '{print $1, $3}' | sed 's/:\/dev.*//g' | tr ':' ' ' | awk '{print $4,$2}')
     [ -z "$cntrlist" ] && return
 
-    local nodetablets=$(maprcli table region list -path $filepath -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/},/\n},/g' | sed 's/,"/,\n"/g' | sed 's/}]/\n}]/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 "mfs\":\"$hostnode" | tr -d '"' | tr -d ',')
+    local nodetablets=$(timeout 30 maprcli table region list -path $filepath -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/},/\n},/g' | sed 's/,"/,\n"/g' | sed 's/}]/\n}]/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 "mfs\":\"$hostnode" | tr -d '"' | tr -d ',')
     local tabletContainers=$(echo "$nodetablets" | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
     [ -z "$tabletContainers" ] && return
     
@@ -2412,12 +2422,12 @@ function maprutil_checkTabletDistribution2(){
     local hostip=$(util_getHostIP)
     local tablecid=$(echo "$GLB_TABLET_DIST" | cut -d'.' -f1)
 
-    local tablemapfid=$(maprcli debugdb dump -fid $GLB_TABLET_DIST -json 2>/dev/null | grep -A2 "tabletmap" | grep fid | grep -oh "<parentCID>\.[0-9]*\.[0-9]*" | cut -d'.' -f2-)
+    local tablemapfid=$(timeout 30 maprcli debugdb dump -fid $GLB_TABLET_DIST -json 2>/dev/null | grep -A2 "tabletmap" | grep fid | grep -oh "<parentCID>\.[0-9]*\.[0-9]*" | cut -d'.' -f2-)
     [ -z "$tablemapfid" ] && return
 
     tablemapfid="$tablecid.$tablemapfid"
 
-    local alltabletfids=$(maprcli debugdb dump -fid $tablemapfid -json 2>/dev/null | grep fid | cut -d':' -f2 | tr -d '"' | sort)
+    local alltabletfids=$(timeout 30 maprcli debugdb dump -fid $tablemapfid -json 2>/dev/null | grep fid | cut -d':' -f2 | tr -d '"' | sort)
     local allcids=$(echo "$alltabletfids" | cut -d'.' -f1 | sort | uniq | sed ':a;N;$!ba;s/\n/,/g')
 
     local localcids=$(timeout 10 maprcli dump containerinfo -ids $allcids -json 2>/dev/null | grep '\"ContainerId\"\|\"Master\"' | grep -B1 "$hostip" | grep ContainerId | cut -d':' -f2 | tr -d ',' | grep "^[0-9]*")
@@ -2451,7 +2461,7 @@ function maprutil_checkTabletDistribution2(){
 
         for tabletfid in $sptabletfids
         do
-            local tabletinfo=$(maprcli debugdb dump -fid $tabletfid -json 2>/dev/null | grep -w 'numPhysicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
+            local tabletinfo=$(timeout 30 maprcli debugdb dump -fid $tabletfid -json 2>/dev/null | grep -w 'numPhysicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
             local tabletsize=$(echo "$tabletinfo" |  grep -w numPhysicalBlocks | cut -d':' -f2 | awk '{sum+=$1}END{print sum*8192/1073741824}')
             tabletsize=$(printf "%.2f\n" $tabletsize)
             
@@ -2506,7 +2516,7 @@ function maprutil_checkIndexTabletDistribution(){
 
     local indexlist=
     if [ -z "$GLB_INDEX_NAME" ] || [ "$GLB_INDEX_NAME" = "all" ]; then
-        indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexName" | tr -d '"' | tr -d ',' | cut -d':' -f2 | sed 's/\n/ /g')
+        indexlist=$(timeout 30 maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexName" | tr -d '"' | tr -d ',' | cut -d':' -f2 | sed 's/\n/ /g')
     else
         indexlist="$GLB_INDEX_NAME"
     fi
@@ -2516,7 +2526,7 @@ function maprutil_checkIndexTabletDistribution(){
 
     for index in $indexlist
     do
-        local nodeindextablets=$(maprcli table region list -path $tablepath -index $index -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/,"/,\n"/g' | sed 's/},/\n},/g' | sed 's/}]/\n}]/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 "mfs\":\"$hostnode" | tr -d '"' | tr -d ',')
+        local nodeindextablets=$(timeout 30 maprcli table region list -path $tablepath -index $index -json 2>/dev/null | tr -d '\040\011\012\015' | sed 's/,{"/,\n{"/g' | sed 's/,"/,\n"/g' | sed 's/},/\n},/g' | sed 's/}]/\n}]/g' | sed 's/primarymfs/\nprimarymfs/g' | grep -v 'secondary' | grep -A11 "mfs\":\"$hostnode" | tr -d '"' | tr -d ',')
         local tabletContainers=$(echo "$nodeindextablets" | grep fid | cut -d":" -f2 | cut -d"." -f1 | tr -d '"')
         [ -z "$tabletContainers" ] && continue
         local numTablets=$(echo "$tabletContainers" | wc -l)
@@ -2571,22 +2581,22 @@ function maprutil_checkIndexTabletDistribution2(){
 
     local indexlist=
     if [ -z "$GLB_INDEX_NAME" ] || [ "$GLB_INDEX_NAME" = "all" ]; then
-        indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | tr -d '"' | tr -d ',' | tr -d "'")
+        indexlist=$(timeout 30 maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | tr -d '"' | tr -d ',' | tr -d "'")
     else
-        indexlist=$(maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | grep -iB1 "$GLB_INDEX_NAME" | tr -d '"' | tr -d ',' | tr -d "'")
+        indexlist=$(timeout 30 maprcli table index list -path $tablepath -json 2>/dev/null | grep "indexFid\|indexName" | grep -iB1 "$GLB_INDEX_NAME" | tr -d '"' | tr -d ',' | tr -d "'")
     fi
     [ -z "$indexlist" ] && return
 
-    local localcids=$(maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep 'ContainerId\|Master' | grep -B1 $hostip | grep ContainerId | tr -d '"' | tr -d ',' | tr -d "'" | cut -d':' -f2 | sed 's/^/\^/')
+    local localcids=$(timeout 30 maprcli dump containerinfo -ids $cids -json 2>/dev/null | grep 'ContainerId\|Master' | grep -B1 $hostip | grep ContainerId | tr -d '"' | tr -d ',' | tr -d "'" | cut -d':' -f2 | sed 's/^/\^/')
     local indexfids=$(echo "$indexlist" | grep indexFid | cut -d':' -f2)
     local tempdir=$(mktemp -d)
 
     for idxfid in $indexfids
     do
         local idxcntr=$(echo $idxfid | cut -d'.' -f1)
-        local tabletsubfid=$(maprcli debugdb dump -fid $idxfid -json 2>/dev/null | grep -A2 tabletmap | grep fid | cut -d'.' -f2- | tr -d '"')
+        local tabletsubfid=$(timeout 30 maprcli debugdb dump -fid $idxfid -json 2>/dev/null | grep -A2 tabletmap | grep fid | cut -d'.' -f2- | tr -d '"')
         local tabletmapfid="${idxcntr}.${tabletsubfid}"
-        local idxtabletfids=$(maprcli debugdb dump -fid $tabletmapfid -json 2>/dev/null | grep fid | cut -d':' -f2 | tr -d '"' | grep "$localcids")
+        local idxtabletfids=$(timeout 30 maprcli debugdb dump -fid $tabletmapfid -json 2>/dev/null | grep fid | cut -d':' -f2 | tr -d '"' | grep "$localcids")
 
         local totaltablets=$(echo "$idxtabletfids" | wc -w)
         [ "$totaltablets" -lt "1" ] && continue
@@ -2630,7 +2640,7 @@ function maprutil_printTabletStats2(){
     local tabletindex=$1
     local tabletfid=$2
 
-    local tabletinfo=$(maprcli debugdb dump -fid $tabletfid -json 2>/dev/null | grep -w 'numPhysicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
+    local tabletinfo=$(timeout 30 maprcli debugdb dump -fid $tabletfid -json 2>/dev/null | grep -w 'numPhysicalBlocks\|numRows\|numRowsWithDelete\|numSpills\|numSegments' | tr -d '"' | tr -d ',')
     local tabletsize=$(echo "$tabletinfo" |  grep -w numPhysicalBlocks | cut -d':' -f2 | awk '{sum+=$1}END{print sum*8192/1073741824}')
     tabletsize=$(printf "%.2f\n" $tabletsize)
     
@@ -2957,7 +2967,7 @@ function maprutil_applyLicense(){
     while [ "${jobs}" -ne "0" ]; do
         log_info "[$(util_getHostIP)] Waiting for CLDB to come up before applying license.... sleeping 10s"
         if [ "$jobs" -ne 0 ]; then
-            local licenseExists=`/opt/mapr/bin/maprcli license list 2>/dev/null | grep M7 | wc -l`
+            local licenseExists=`timeout 30 /opt/mapr/bin/maprcli license list 2>/dev/null | grep M7 | wc -l`
             if [ "$licenseExists" -ne 0 ]; then
                 jobs=0
             else
@@ -2966,7 +2976,7 @@ function maprutil_applyLicense(){
         fi
         ### Attempt using Downloaded License
         if [ "${jobs}" -ne "0" ]; then
-            jobs=$(/opt/mapr/bin/maprcli license add -license /tmp/LatestDemoLicense-M7.txt -is_file true > /dev/null;echo $?);
+            jobs=$(timeout 30 /opt/mapr/bin/maprcli license add -license /tmp/LatestDemoLicense-M7.txt -is_file true > /dev/null;echo $?);
         fi
         let i=i+1
         if [ "$i" -gt 30 ]; then
@@ -2981,12 +2991,12 @@ function maprutil_applyLicense(){
 
     if [[ "${jobs}" -eq "0" ]] && [[ -n "$GLB_HAS_FUSE" ]]; then
         mkdir -p /fusemnt > /dev/null 2>&1
-        local clusterid=$(maprcli dashboard info -json 2>/dev/null | grep -A5 cluster | grep id | tr -d '"' | tr -d ',' | cut -d':' -f2)
+        local clusterid=$(timeout 30 maprcli dashboard info -json 2>/dev/null | grep -A5 cluster | grep id | tr -d '"' | tr -d ',' | cut -d':' -f2)
         local expdate=$(date -d "+30 days" +%Y-%m-%d)
         local licfile="/tmp/LatestFuseLicensePlatinum.txt"
         curl -F 'username=maprmanager' -F 'password=maprmapr' -X POST --cookie-jar /tmp/tmpckfile https://apitest.mapr.com/license/authenticate/ 2>/dev/null
         curl --cookie /tmp/tmpckfile -X POST -F "license_type=additionalfeatures_posixclientplatinum" -F "cluster=${clusterid}" -F "customer_name=maprqa" -F "expiration_date=${expdate}" -F "number_of_nodes=${GLB_CLUSTER_SIZE}" -F "enforcement_type=HARD" https://apitest.mapr.com/license/licenses/createlicense/ -o ${licfile} 2>/dev/null
-        [ -e "$licfile" ] && /opt/mapr/bin/maprcli license add -license ${licfile} -is_file true > /dev/null
+        [ -e "$licfile" ] && timeout 30 /opt/mapr/bin/maprcli license add -license ${licfile} -is_file true > /dev/null
     fi
     [[ "${jobs}" -eq "0" ]] && log_info "[$(util_getHostIP)] License has been applied."
 }
@@ -4502,17 +4512,19 @@ function maprutil_analyzeCores(){
         log_msghead "[$(util_getHostIP)] Analyzing and copying $(echo $cores | wc -w) core file(s). This may take a while"
     fi
 
+    local i=1
     for core in $cores
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
-        maprutil_debugCore "/opt/cores/$core" $tracefile > /dev/null 2>&1 &
+        maprutil_debugCore "/opt/cores/$core" $tracefile $i > /dev/null 2>&1 &
         while [ "$(ps -ef | grep "[g]db -ex" | wc -l)" -gt "5" ]; do
             sleep 1
-        done 
+        done
+        let i=i+1 
     done
     wait
 
-    local i=1
+    i=1
     for core in $cores
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
@@ -4521,7 +4533,7 @@ function maprutil_analyzeCores(){
         [ -z "$cpfile" ] && cpfile="$tracefile"
         local ftime=$(date -r /opt/cores/$core +'%Y-%m-%d %H:%M:%S')
         log_msg "\n\t Core #${i} : [$ftime] $core ( $cpfile )"
-        local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile)
+        local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile $i)
 
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
             log_msg "\t\t Core file is truncated"
@@ -4550,6 +4562,7 @@ function maprutil_debugCore(){
 
     local corefile=$1
     local tracefile=$2
+    local coreidx=$3
     local newcore=
     local isjava=$(echo $corefile | grep "java.core")
     local iscollectd=$(echo $corefile | grep "reader\|writer\|collectd")
@@ -4590,7 +4603,7 @@ function maprutil_debugCore(){
         gdb -x $tmpfile -f -batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1
         rm -f $tmpfile >/dev/null 2>&1
     fi
-    if [ -n "$GLB_COPY_CORES" ] && [ -n "$GLB_COPY_DIR" ] && [ ! -f "$GLB_COPY_DIR/$(basename $corefile)" ]; then
+    if [[ -n "$GLB_COPY_CORES" ]] && [[ "$coreidx" -le "$GLB_COPY_CORES" ]] && [[ -n "$GLB_COPY_DIR" ]] && [[ ! -f "$GLB_COPY_DIR/$(basename $corefile)" ]]; then
         local sz=$(stat -c %s $corefile);
         log_info "[$(util_getHostIP)] Copying $corefile ($(echo $sz/1024/1024/1024|bc) GB) to $GLB_COPY_DIR directory"
         cp $corefile $GLB_COPY_DIR/ > /dev/null 2>&1

@@ -1274,7 +1274,7 @@ while [ "$2" != "" ]; do
 	    		elif [[ "$i" = "defaultguts" ]]; then
 	    			doGutsDef=1
 	    		elif [[ "$i" = "copycores" ]]; then
-    				GLB_COPY_CORES=1
+    				GLB_COPY_CORES=5
 	    		elif [[ "$i" = "slack" ]]; then
     				GLB_SLACK_TRACE=1
     			fi

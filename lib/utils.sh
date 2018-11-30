@@ -142,55 +142,64 @@ function util_installprereq(){
          yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
     fi
 
-    [ -z "$(getent passwd mapr)" ] && util_maprprereq
+    [ -z "$(getent passwd mapr)" ] && [ -n "$(util_isBareMetal)" ] && util_maprprereq
 
     util_checkAndInstall "ifconfig" "net-tools"
     util_checkAndInstall "bzip2" "bzip2"
-    util_checkAndInstall "screen" "screen"
     util_checkAndInstall "sshpass" "sshpass"
-    util_checkAndInstall "vim" "vim"
     util_checkAndInstall "dstat" "dstat"
-    util_checkAndInstall "iftop" "iftop"
-    util_checkAndInstall "lsof" "lsof"
     util_checkAndInstall "bc" "bc"
-    util_checkAndInstall "mpstat" "sysstat"
-    util_checkAndInstall "lynx" "lynx"
     util_checkAndInstall "pbzip2" "pbzip2"
-    util_checkAndInstall "fio" "fio"
-    util_checkAndInstall "pip" "python-pip"
-    util_checkAndInstall "lstopo" "hwloc"
-    util_checkAndInstall "iperf3" "iperf3"
     util_checkAndInstall "gawk" "gawk"
-    util_checkAndInstall "gdb" "gdb"
+    
+
+    if [ -n "$(util_isBareMetal)" ]; then
+        util_checkAndInstall "screen" "screen"
+        util_checkAndInstall "vim" "vim"
+        util_checkAndInstall "iftop" "iftop"
+        util_checkAndInstall "lsof" "lsof"
+        util_checkAndInstall "lynx" "lynx"
+        util_checkAndInstall "fio" "fio"
+        util_checkAndInstall "mpstat" "sysstat"
+        util_checkAndInstall "pip" "python-pip"
+        util_checkAndInstall "lstopo" "hwloc"
+        util_checkAndInstall "iperf3" "iperf3"
+        util_checkAndInstall "gdb" "gdb"
+        if [ "$(getOS)" = "centos" ]; then
+            util_checkAndInstall "yum-config-manager" "yum-utils"
+            util_checkAndInstall "lstopo" "hwloc-gui"
+            util_checkAndInstall "createrepo" "createrepo"
+            util_checkAndInstall "perf" "perf"
+            util_checkAndInstall "ethtool" "ethtool.x86_64"
+            util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
+            util_checkAndInstall "sendmail" "sendmail sendmail-cf m4"
+        elif [[ "$(getOS)" = "ubuntu" ]]; then
+            util_checkAndInstall "add-apt-repository" "python-software-properties"
+            util_checkAndInstall "add-apt-repository" "software-properties-common"
+            util_checkAndInstall "dpkg-scanpackages" "dpkg-dev"
+            util_checkAndInstall "sendmail" "sendmail"
+            util_checkAndInstall "ethtool" "ethtool"
+            util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "google-perftools"
+        elif [ "$(getOS)" = "suse" ]; then
+            util_checkAndInstall "createrepo" "createrepo"
+            util_checkAndInstall "perf" "perf"
+            util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
+        fi
+        util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf-c"
+        util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf"
+    fi
+
     if [ "$(getOS)" = "centos" ]; then
-        util_checkAndInstall "lstopo" "hwloc-gui"
-        util_checkAndInstall "createrepo" "createrepo"
         util_checkAndInstall "host" "bind-utils"
-        util_checkAndInstall "yum-config-manager" "yum-utils"
-        util_checkAndInstall "perf" "perf"
-        util_checkAndInstall "sendmail" "sendmail sendmail-cf m4"
-        util_checkAndInstall "ethtool" "ethtool.x86_64"
-        util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        util_checkAndInstall "add-apt-repository" "python-software-properties"
-        util_checkAndInstall "add-apt-repository" "software-properties-common"
-        util_checkAndInstall "dpkg-scanpackages" "dpkg-dev"
         util_checkAndInstall "gzip" "gzip"
         util_checkAndInstall "host" "dnsutils"
-        util_checkAndInstall "sendmail" "sendmail"
-        util_checkAndInstall "ethtool" "ethtool"
-        util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "google-perftools"
     elif [ "$(getOS)" = "suse" ]; then
-        util_checkAndInstall "createrepo" "createrepo"
         util_checkAndInstall "host" "bind-utils"
-        util_checkAndInstall "perf" "perf"
-        util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
         zypper -n --no-gpg-checks -q -p http://download.opensuse.org/distribution/leap/42.3/repo/oss/ install sshpass > /dev/null 2>&1
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
-    util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf-c"
-    util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf"
 
     if [ "$(getOS)" = "centos" ]; then
          yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1 && yum clean metadata > /dev/null 2>&1
@@ -1009,6 +1018,7 @@ function util_postToSlack(){
     
     local roles="$(cat $rolefile)"
     local mainnode=$(echo "$roles" | grep '^[^#;]' | grep cldb | head -1 | cut -d',' -f1)
+    [ -z "$mainnode" ] && mainnode=$(echo "$roles" | grep '^[^#;]' | head -1 | cut -d',' -f1)
     local text="$(echo -e "Cluster \`$mainnode\` *$(echo $optype | awk '{print toupper($0)}')* \n \`\`\`$roles\`\`\`")"
     if [ -n "$extrainfo" ]; then
         extrainfo="$(echo "$extrainfo" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')"
@@ -1066,6 +1076,11 @@ function util_getStdDev(){
     local values="$1"
     local stddev=$(echo "$values" | awk '{sum+=$1; sumsq+=$1*$1}END{printf("%.2f",sqrt(sumsq/NR - (sum/NR)**2))}')
     [ -n "$stddev" ] && echo "$stddev"
+}
+
+function util_isBareMetal(){
+    local iscont=$(cat /proc/1/cgroup | grep -w "1:name=systemd:/")
+    [ -n "$iscont" ] && echo "true"
 }
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
