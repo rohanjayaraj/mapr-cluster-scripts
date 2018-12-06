@@ -848,14 +848,17 @@ function maprutil_installBinariesOnNode(){
     
     ## Append MapR release version as there might be conflicts with mapr-patch-client with regex as 'mapr-patch*$VERSION*'
     local nodeos=$(getOSFromNode $node)
-    [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g')
+        [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
         echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""-$GLB_MAPR_VERSION"\"" >> $scriptpath
         if [ -n "$maprpatch" ]; then
             echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
             echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
         fi
     else
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g')
+        [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
         echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""$GLB_MAPR_VERSION"\"" >> $scriptpath
         if [ -n "$maprpatch" ]; then
             echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
