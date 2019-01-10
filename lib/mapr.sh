@@ -3083,7 +3083,8 @@ function maprutil_setGatewayNodes(){
 
 function maprutil_mountSelfHosting(){
     local ismounted=$(mount | grep -Fw "10.10.10.20:/mapr/selfhosting/")
-    [ -n "$ismounted" ] && return
+    # Force umount for a few days after selfhosting readonly change - 1/10/19 
+    #[ -n "$ismounted" ] && return
     for i in $(mount | grep "/mapr/selfhosting/" | cut -d' ' -f3)
     do
         timeout 20 umount -l $i > /dev/null 2>&1
