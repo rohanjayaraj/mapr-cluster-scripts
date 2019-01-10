@@ -1277,7 +1277,7 @@ function startClientTrace(){
     local cpids="\$1"
     for cpid in \$cpids
     do
-        nohup bash -c 'cpid=\$0; log="/opt/mapr/logs/clientresusage_\$cpid.log"; sleep 2; [ -e "/proc/\$cpid/cmdline" ] && tr -cd "\11\12\15\40-\176" < /proc/\$cpid/cmdline > \$log && echo >> \$log; while kill -0 \${cpid} 2>/dev/null; do st=\$(date +%s%N | cut -b1-13); curtime=\$(date "+%Y-%m-%d %H:%M:%S"); topline=\$(top -bn 1 -p \$cpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",\$6,\$9,\$10); }'"'"'); [ -n "\$topline" ] && echo -e "\$curtime\t\$topline" >> \$log; et=\$(date +%s%N | cut -b1-13); td=\$(echo "scale=2;1-((\$et-\$st)/1000)"| bc); sleep \$td; sz=\$(stat -c %s \$log); [ "\$sz" -gt "209715200" ] && tail -c 1048576 \$log > \$log.bkp && rm -rf \$log && mv \$log.bkp \$log; done' \$cpid > /dev/null 2>&1 &
+        nohup bash -c 'cpid=\$0; [[ "\$\$" -eq "\$cpid" ]] && exit 0; log="/opt/mapr/logs/clientresusage_\$cpid.log"; sleep 2; [ -e "/proc/\$cpid/cmdline" ] && tr -cd "\11\12\15\40-\176" < /proc/\$cpid/cmdline > \$log && echo >> \$log; while kill -0 \${cpid} 2>/dev/null; do st=\$(date +%s%N | cut -b1-13); curtime=\$(date "+%Y-%m-%d %H:%M:%S"); topline=\$(top -bn 1 -p \$cpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",\$6,\$9,\$10); }'"'"'); [ -n "\$topline" ] && echo -e "\$curtime\t\$topline" >> \$log; et=\$(date +%s%N | cut -b1-13); td=\$(echo "scale=2;1-((\$et-\$st)/1000)"| bc); sleep \$td; sz=\$(stat -c %s \$log); [ "\$sz" -gt "209715200" ] && tail -c 1048576 \$log > \$log.bkp && rm -rf \$log && mv \$log.bkp \$log; done' \$cpid > /dev/null 2>&1 &
     done
 }
 
@@ -2035,27 +2035,55 @@ function maprutil_addLocalRepo(){
     fi
 
     local repourl=$1
+    local meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.0/redhat/"
+    [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
+    [ -n "$(echo "$meprepo" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g')
+
     log_info "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
     if [ "$nodeos" = "centos" ]; then
-        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
+        echo "[QA-CustomOpensource]" > $repofile
+        echo "name=MapR Latest Build QA Repository" >> $repofile
+        echo "baseurl=$meprepo" >> $repofile
+        echo "enabled=1" >> $repofile
+        echo "gpgcheck=0" >> $repofile
+        echo "protect=1" >> $repofile
+        echo >> $repofile
+
+        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" >> $repofile
         echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
         echo "baseurl=file://$repourl" >> $repofile
         echo "enabled=1" >> $repofile
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
+
         cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
+
     elif [ "$nodeos" = "ubuntu" ]; then
+        [ -n "$(echo "$meprepo" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g')
+
         echo "deb file:$repourl ./" > $repofile
+        echo "deb $meprepo binary trusty" >> $repofile
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
         apt-get update > /dev/null 2>&1
+
     elif [ "$nodeos" = "suse" ]; then
-        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
+
+        echo "[QA-CustomOpensource]" > $repofile
+        echo "name=MapR Latest Build QA Repository" >> $repofile
+        echo "baseurl=$meprepo" >> $repofile
+        echo "enabled=1" >> $repofile
+        echo "gpgcheck=0" >> $repofile
+        echo "type=rpm-md" >> $repofile
+        echo >> $repofile
+
+        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" >> $repofile
         echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
         echo "baseurl=file://$repourl" >> $repofile
         echo "enabled=1" >> $repofile
         echo "gpgcheck=0" >> $repofile
         echo "type=rpm-md" >> $repofile
+
         cp $repofile /etc/zypp/repos.d/ > /dev/null 2>&1
         zypper clean > /dev/null 2>&1
         zypper refresh > /dev/null 2>&1
@@ -3062,8 +3090,10 @@ function maprutil_mountSelfHosting(){
     done
 
     [ ! -d "/home/MAPRTECH" ] && mkdir -p /home/MAPRTECH > /dev/null 2>&1
-    log_info "[$(util_getHostIP)] Mounting selfhosting on /home/MAPRTECH"
+    [ ! -d "/home/PERFSELFHOST" ] && mkdir -p /home/PERFSELFHOST > /dev/null 2>&1
+    log_info "[$(util_getHostIP)] Mounting selfhosting on /home/MAPRTECH (readonly) & selfhosting/qa/perfruns on /home/PERFSELFHOST"
     timeout 20 mount -t nfs 10.10.10.20:/mapr/selfhosting/ /home/MAPRTECH  > /dev/null 2>&1
+    timeout 20 mount -t nfs 10.10.10.20:/mapr/selfhosting/qa/perfruns /home/PERFSELFHOST  > /dev/null 2>&1
 }
 
 function maprutil_checkClusterSetup(){
