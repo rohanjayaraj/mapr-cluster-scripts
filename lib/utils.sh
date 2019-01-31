@@ -43,6 +43,15 @@ function getOSReleaseVersion(){
     echo "$osrel"
 }
 
+function getOSReleaseVersionOnNode(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local osver=$(ssh root@$1 lsb_release -a  2> /dev/null| grep 'Distributor\|Release' | tr -d ' ' | awk '{print $2}' | tr '\n' ' ')
+    local osrel=$(echo "osver" | awk '{print $2}' | awk -F'.' '{print $1}')
+    echo "$osrel"
+}
+
 function util_getHostIP(){
     command -v ifconfig >/dev/null 2>&1 || util_installprereq > /dev/null 2>&1
     local ipadd=$(ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1\|0.0.0.0" | head -n 1 | awk '{print $2}' | cut -c6-)
@@ -69,7 +78,7 @@ function util_checkAndInstall(){
         command -v $1 >/dev/null 2>&1 || yum --enablerepo=C6*,C7*,base,epel,epel-release install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts=
-        [[ "$(getOSWithVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+        [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
         command -v $1 >/dev/null 2>&1 || apt-get -y $opts install $2 2>/dev/null
     elif [[ "$(getOS)" = "suse" ]]; then
         command -v $1 >/dev/null 2>&1 || zypper --no-gpg-checks --non-interactive -q install -n $2 2>/dev/null
@@ -90,7 +99,7 @@ function util_checkAndInstall2(){
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         if [ ! -e "$1" ]; then
             local opts=
-            [[ "$(getOSWithVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+            [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
             apt-get install $opts -y $2  2>/dev/null
         fi
     elif [[ "$(getOS)" = "suse" ]]; then
@@ -121,7 +130,7 @@ function util_maprprereq(){
         yum -q -y install java-1.8.0-openjdk-devel --enablerepo=C6*,C7*,epel,epel-release 
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
-        [[ "$(getOSWithVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+        [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
         apt-get update -qq $opts
         apt-get -qq -y $opts install  ca-certificates
         apt-get -qq -y $opts install $DEPENDENCY_DEB
@@ -326,7 +335,7 @@ function util_installBinaries(){
         yum install ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
-        [[ "$(getOSWithVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+        [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
         apt-get $opts update > /dev/null 2>&1
         apt-get -y $opts install ${bins}
     elif [[ "$(getOS)" = "suse" ]]; then
@@ -350,7 +359,7 @@ function util_upgradeBinaries(){
         yum update ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
-        [[ "$(getOSWithVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+        [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
         apt-get $opts update
         apt-get -y $opts upgrade ${bins} 
     elif [[ "$(getOS)" = "suse" ]]; then

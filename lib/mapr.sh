@@ -1914,7 +1914,7 @@ function maprutil_buildRepoFile(){
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g')
         
         local istrusty=
-        [[ "$(getOSWithVersion)" -ge "18" ]] && istrusty="[trusted=yes]"
+        [[ "$(getOSReleaseVersionOnNode $node)" -ge "18" ]] && istrusty="[trusted=yes]"
 
         echo "deb $istrusty $meprepo binary trusty" > $repofile
         echo "deb $istrusty ${repourl} binary trusty" >> $repofile
@@ -2066,7 +2066,7 @@ function maprutil_addLocalRepo(){
         [ -n "$(echo "$meprepo" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g')
         local istrusty=
         local opts="--force-yes"
-        [[ "$(getOSWithVersion)" -ge "18" ]] && istrusty="[trusted=yes]" && opts="--allow-unauthenticated"
+        [[ "$(getOSReleaseVersion)" -ge "18" ]] && istrusty="[trusted=yes]" && opts="--allow-unauthenticated"
         echo "deb $istrusty file:$repourl ./" > $repofile
         echo "deb $istrusty $meprepo binary trusty" >> $repofile
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
