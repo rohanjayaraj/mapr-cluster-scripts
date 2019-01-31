@@ -1095,7 +1095,7 @@ function util_getStdDev(){
 }
 
 function util_isBareMetal(){
-    local iscont=$(cat /proc/1/cgroup | grep -w "1:name=systemd:/")
+    local iscont=$(cat /proc/1/cgroup | grep -w "1:name=systemd:/*")
     [ -n "$iscont" ] && echo "true"
 }
 
