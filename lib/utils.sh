@@ -39,7 +39,7 @@ function getOSWithVersion(){
 
 function getOSReleaseVersion(){
     local osver=$(getOSWithVersion)
-    local osrel=$(echo "osver" | awk '{print $2}' | awk -F'.' '{print $1}')
+    local osrel=$(echo "$osver" | awk '{print $2}' | awk -F'.' '{print $1}')
     echo "$osrel"
 }
 
@@ -48,7 +48,7 @@ function getOSReleaseVersionOnNode(){
         return
     fi
     local osver=$(ssh root@$1 lsb_release -a  2> /dev/null| grep 'Distributor\|Release' | tr -d ' ' | awk '{print $2}' | tr '\n' ' ')
-    local osrel=$(echo "osver" | awk '{print $2}' | awk -F'.' '{print $1}')
+    local osrel=$(echo "$osver" | awk '{print $2}' | awk -F'.' '{print $1}')
     echo "$osrel"
 }
 
