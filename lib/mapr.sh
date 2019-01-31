@@ -1912,10 +1912,13 @@ function maprutil_buildRepoFile(){
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g')
         [ -n "$(echo "$repourl" | grep redhat)" ] && repourl=$(echo $repourl | sed 's/redhat/ubuntu/g')
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g')
+        
+        local istrusty=
+        [[ "$(getOSWithVersion)" -ge "18" ]] && istrusty="[trusted=yes]"
 
-        echo "deb $meprepo binary trusty" > $repofile
-        echo "deb ${repourl} binary trusty" >> $repofile
-        [ -n "$GLB_PATCH_REPOFILE" ] && echo "deb ${GLB_PATCH_REPOFILE} binary trusty" >> $repofile
+        echo "deb $istrusty $meprepo binary trusty" > $repofile
+        echo "deb $istrusty ${repourl} binary trusty" >> $repofile
+        [ -n "$GLB_PATCH_REPOFILE" ] && echo "deb $istrusty ${GLB_PATCH_REPOFILE} binary trusty" >> $repofile
     fi
 }
 
@@ -2061,11 +2064,13 @@ function maprutil_addLocalRepo(){
 
     elif [ "$nodeos" = "ubuntu" ]; then
         [ -n "$(echo "$meprepo" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g')
-
-        echo "deb file:$repourl ./" > $repofile
-        echo "deb $meprepo binary trusty" >> $repofile
+        local istrusty=
+        local opts="--force-yes"
+        [[ "$(getOSWithVersion)" -ge "18" ]] && istrusty="[trusted=yes]" && opts="--allow-unauthenticated"
+        echo "deb $istrusty file:$repourl ./" > $repofile
+        echo "deb $istrusty $meprepo binary trusty" >> $repofile
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
-        apt-get update > /dev/null 2>&1
+        apt-get $opts update > /dev/null 2>&1
 
     elif [ "$nodeos" = "suse" ]; then
 

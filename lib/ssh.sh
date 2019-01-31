@@ -31,7 +31,7 @@ function ssh_checkSSHonNodes(){
 	fi
 	# Check if SSH is configured
 	local tempdir=$(mktemp -d)
-	local sshnodes=$1
+	local sshnodes="$1"
 	for node in ${sshnodes[@]}
 	do
 		local nodefile="$tempdir/$node.log"

@@ -37,6 +37,12 @@ function getOSWithVersion(){
     echo "$(lsb_release -a  2> /dev/null| grep 'Distributor\|Release' | tr -d ' ' | awk '{print $2}' | tr '\n' ' ')"
 }
 
+function getOSReleaseVersion(){
+    local osver=$(getOSWithVersion)
+    local osrel=$(echo "osver" | awk '{print $2}' | awk -F'.' '{print $1}')
+    echo "$osrel"
+}
+
 function util_getHostIP(){
     command -v ifconfig >/dev/null 2>&1 || util_installprereq > /dev/null 2>&1
     local ipadd=$(ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1\|0.0.0.0" | head -n 1 | awk '{print $2}' | cut -c6-)
@@ -62,7 +68,9 @@ function util_checkAndInstall(){
     if [ "$(getOS)" = "centos" ]; then
         command -v $1 >/dev/null 2>&1 || yum --enablerepo=C6*,C7*,base,epel,epel-release install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        command -v $1 >/dev/null 2>&1 || apt-get -y install $2 2>/dev/null
+        local opts=
+        [[ "$(getOSWithVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+        command -v $1 >/dev/null 2>&1 || apt-get -y $opts install $2 2>/dev/null
     elif [[ "$(getOS)" = "suse" ]]; then
         command -v $1 >/dev/null 2>&1 || zypper --no-gpg-checks --non-interactive -q install -n $2 2>/dev/null
     fi
@@ -81,7 +89,9 @@ function util_checkAndInstall2(){
         fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         if [ ! -e "$1" ]; then
-            apt-get install -y $2  2>/dev/null
+            local opts=
+            [[ "$(getOSWithVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+            apt-get install $opts -y $2  2>/dev/null
         fi
     elif [[ "$(getOS)" = "suse" ]]; then
         if [ ! -e "$1" ]; then
@@ -110,10 +120,12 @@ function util_maprprereq(){
         yum -q -y install $DEPENDENCY_RPM --enablerepo=C6*,C7*,epel,epel-release 
         yum -q -y install java-1.8.0-openjdk-devel --enablerepo=C6*,C7*,epel,epel-release 
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get update -qq 
-        apt-get -qq -y install  ca-certificates
-        apt-get -qq -y install $DEPENDENCY_DEB
-        apt-get -qq -y install --force-yes openjdk-8-jdk
+        local opts="--force-yes"
+        [[ "$(getOSWithVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+        apt-get update -qq $opts
+        apt-get -qq -y $opts install  ca-certificates
+        apt-get -qq -y $opts install $DEPENDENCY_DEB
+        apt-get -qq -y $opts install openjdk-8-jdk
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper --non-interactive -q refresh
         zypper --non-interactive -q --no-gpg-checks -p http://download.opensuse.org/distribution/leap/42.3/repo/oss/ install sshpass
@@ -313,8 +325,10 @@ function util_installBinaries(){
         yum clean all > /dev/null 2>&1
         yum install ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get update > /dev/null 2>&1
-        apt-get -y install ${bins} --force-yes
+        local opts="--force-yes"
+        [[ "$(getOSWithVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+        apt-get $opts update > /dev/null 2>&1
+        apt-get -y $opts install ${bins}
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper refresh > /dev/null 2>&1
         zypper --no-gpg-checks -n install ${bins}
@@ -335,8 +349,10 @@ function util_upgradeBinaries(){
         yum clean all
         yum update ${bins} -y --nogpgcheck
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get update
-        apt-get -y upgrade ${bins} --force-yes
+        local opts="--force-yes"
+        [[ "$(getOSWithVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+        apt-get $opts update
+        apt-get -y $opts upgrade ${bins} 
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper refresh
         zypper --no-gpg-checks -n update ${bins}
@@ -366,7 +382,7 @@ function util_removeBinaries(){
     if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
         rpm -ef $rembins > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-get -y --purge $rembins
+        apt-get -y remove --purge $rembins
         dpkg --purge $rembins > /dev/null 2>&1
     fi
 }
