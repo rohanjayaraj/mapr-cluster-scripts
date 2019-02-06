@@ -627,6 +627,55 @@ function maprutil_killSpyglass(){
     util_kill "kibana"
 }
 
+function maprutil_cleanDocker(){
+    local cleaned=
+
+    # stop kubernetes & kill any stale kube processes
+    if command -v kubelet > /dev/null 2>&1; then
+      systemctl stop kubelet > /dev/null 2>&1
+      util_kill "kube"
+    fi
+
+    ## delete  containers & stop docker
+    if command -v docker > /dev/null 2>&1; then
+        local contlist=$(docker ps -qa | awk '{if(NR==1) print $1}')
+        for i in $contlist
+        do 
+            docker rm -f $i > /dev/null 2>&1 
+        done
+        # stop docker if exists
+        systemctl stop docker > /dev/null 2>&1
+
+        #kill kube proceses once again
+        util_kill "kube"
+    fi
+
+    # remove virtual network interfaces
+    local vnics="$(ls -l /sys/class/net/ | grep virtual | awk '{print $9}')"
+    for i in $vnics
+    do 
+        local remove=$(ifconfig | grep UP | grep $i | grep -v LOOPBACK)
+        [ -z "$remove" ] && continue
+        if [ -n "$(echo $i | grep docker)" ]; then
+            ip link set $i down > /dev/null 2>&1
+        else
+            ip link delete $i > /dev/null 2>&1
+            [ -z "$cleaned" ] && cleaned=1
+        fi
+    done
+
+    # clean up iptables if needed
+    if [ -n "$cleaned" ]; then
+        iptables -P INPUT ACCEPT; 
+        iptables -P FORWARD ACCEPT; 
+        iptables -P OUTPUT ACCEPT; 
+        iptables -t nat -F; # remove all the rules 
+        iptables -t mangle -F; 
+        iptables -F; 
+        iptables -X; #remove user-defined chains
+    fi
+}
+
 function maprutil_uninstall(){
     
     # Kill Spyglass
@@ -678,6 +727,9 @@ function maprutil_uninstall(){
     util_kill "mfs"
     util_kill "java" "jenkins"
     util_kill "/opt/mapr"     
+
+    # Remove containers
+    maprutil_cleanDocker
 
     # Remove all directories
     maprutil_removedirs "all"
@@ -2778,7 +2830,7 @@ function maprutil_getMapRInfo(){
         bins=$(echo "$rpms" | grep mapr- | sort | sed 's/-[0-9].*//' | tr '\n' ' ')
     elif [ "$nodeos" = "ubuntu" ]; then
         local debs=$(dpkg -l | grep mapr)
-        patch=$(echo "$debs" | grep mapr-patch | awk '{print $3}' | cut -d'-' -f4 | cut -d'.' -f1)
+        patch=$(echo "$debs" | grep mapr-patch | awk '{print $3}' | cut -d'-' -f2)
         client=$(echo "$debs" | grep mapr-client | awk '{print $3}' | cut -d'-' -f1)
         bins=$(echo "$debs" | grep mapr- | awk '{print $2}' | sort | tr '\n' ' ')
     fi

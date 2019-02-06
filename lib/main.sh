@@ -1105,14 +1105,16 @@ function main_printURLs(){
 	local jtnode=$(cat "$rolefile" | grep mapr-jobtracker | head -1 | cut -d',' -f1)
 	local gfnode=$(cat "$rolefile" | grep mapr-grafana | head -1 | cut -d',' -f1)
 	local kbnode=$(cat "$rolefile" | grep mapr-kibana | head -1 | cut -d',' -f1)
+	local adds=
+	[ -n "$GLB_SECURE_CLUSTER" ] && adds="s"
 	
 	log_msghead "Cluster URLs : "
-	log_msg "\t MCS - https://$mcsnode:8443"
+	log_msg "\t MCS - http${adds}://$mcsnode:8443"
 	log_msg "\t CLDB - http://$cldbnode:7221"
-	[ -n "$rmnode" ] && log_msg "\t RM - http://$rmnode:8088"
-	[ -n "$jtnode" ] && log_msg "\t JT - http://$jtnode:50030"
-	[ -n "$gfnode" ] && log_msg "\t Grafana - http://$gfnode:3000"
-	[ -n "$kbnode" ] && log_msg "\t Kibana - http://$kbnode:5601"
+	[ -n "$rmnode" ] && log_msg "\t RM - http${adds}://$rmnode:8088"
+	[ -n "$jtnode" ] && log_msg "\t JT - http${adds}://$jtnode:50030"
+	[ -n "$gfnode" ] && log_msg "\t Grafana - http${adds}://$gfnode:3000"
+	[ -n "$kbnode" ] && log_msg "\t Kibana - http${adds}://$kbnode:5601"
 }
 
 function main_preSetup(){
