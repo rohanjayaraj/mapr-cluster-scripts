@@ -728,9 +728,6 @@ function maprutil_uninstall(){
     util_kill "java" "jenkins"
     util_kill "/opt/mapr"     
 
-    # Remove containers
-    maprutil_cleanDocker
-
     # Remove all directories
     maprutil_removedirs "all"
 
@@ -1162,6 +1159,7 @@ function maprutil_configureCLDBTopology(){
         let j=j+1
         if [ "$j" -gt 12 ]; then
             log_warn "[$(util_getHostIP)] Timeout reached waiting for nodes to be online"
+            [ -n "$1" ] && return 1
             break
         elif [[ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ]]; then
             downnodes=$(echo "$GLB_CLUSTER_SIZE-$numdnodes" | bc) 
@@ -1447,6 +1445,11 @@ function maprutil_configure(){
 
     if [ "$hostip" != "$cldbnode" ] && [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
         ssh_copyPublicKey "root" "$cldbnode"
+    fi
+
+    # Remove containers on server nodes
+    if [[ "$ISCLIENT" -eq "0" ]]; then
+        maprutil_cleanDocker
     fi
 
     local extops=
