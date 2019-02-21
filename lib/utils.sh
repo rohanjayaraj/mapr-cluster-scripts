@@ -126,19 +126,22 @@ function util_maprprereq(){
 
     if [ "$(getOS)" = "centos" ]; then
         yum --disablerepo=epel -q -y update ca-certificates 
+        yum -q -y install redhat-lsb-core --enablerepo=C6*,C7*,epel,epel-release 
         yum -q -y install $DEPENDENCY_RPM --enablerepo=C6*,C7*,epel,epel-release 
         yum -q -y install java-1.8.0-openjdk-devel --enablerepo=C6*,C7*,epel,epel-release 
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
         apt-get update -qq $opts
-        apt-get -qq -y $opts install  ca-certificates
+        apt-get -qq -y $opts install ca-certificates
+        apt-get -qq -y $opts install lsb-core
         apt-get -qq -y $opts install $DEPENDENCY_DEB
         apt-get -qq -y $opts install openjdk-8-jdk
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper --non-interactive -q refresh
         zypper --non-interactive -q --no-gpg-checks -p http://download.opensuse.org/distribution/leap/42.3/repo/oss/ install sshpass
         zypper --non-interactive -q install ca-certificates
+        zypper --non-interactive -q install lsb-release
         zypper --non-interactive -q install -n $DEPENDENCY_SUSE
         zypper --non-interactive -q install -n java-1_8_0-openjdk-devel
     fi

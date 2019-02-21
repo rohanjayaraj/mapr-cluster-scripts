@@ -638,7 +638,7 @@ function maprutil_cleanDocker(){
 
     ## delete  containers & stop docker
     if command -v docker > /dev/null 2>&1; then
-        local contlist=$(docker ps -qa | awk '{if(NR==1) print $1}')
+        local contlist=$(docker ps -qa 2>/dev/null | awk '{if(NR==1) print $1}')
         for i in $contlist
         do 
             docker rm -f $i > /dev/null 2>&1 
