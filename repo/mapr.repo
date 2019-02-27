@@ -19,19 +19,26 @@ enabled=0
 gpgcheck=0
 protect=1
 
-[QA-6.1.0-CORE-Artifactory]
-name=MapR v6.1.0 Core Artifactory Repository
-baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.1.0/redhat/
+[QA-6.2.0-CORE-Artifactory]
+name=MapR v6.2.0 Core Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.2.0/redhat/
 enabled=0
 gpgcheck=0
 protect=1
 
 ###################### MEP/Opensource Builds #####################################
 
+[QA-MEP-6.1.0-Artifactory]
+name=MapR MEP 6.1.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.1.0/redhat/
+enabled=1
+gpgcheck=0
+protect=1
+
 [QA-MEP-6.0.0-Artifactory]
 name=MapR MEP 6.0.0 Repository
 baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.0/redhat/
-enabled=1
+enabled=0
 gpgcheck=0
 protect=1
 

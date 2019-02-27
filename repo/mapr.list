@@ -1,12 +1,15 @@
 #################### Current Release Repositories #############
 
-# 6.1.0 Binaries
-deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.1.0/ubuntu/ binary trusty
+# 6.2.0 Binaries
+deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.2.0/ubuntu/ binary trusty
 
 #################### MEP Repositories ##########################
 
+# MEP 6.1.0
+deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.1.0/ubuntu/ binary trusty
+
 # MEP 6.0.0
-deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.0/ubuntu/ binary trusty
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.0/ubuntu/ binary trusty
 
 # MEP 5.0.0
 #deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0.0/ubuntu/ binary trusty
@@ -36,11 +39,17 @@ deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.
 
 #################### MapR Release - Core & Patch Repositories  #####################
 
+# 6.2.0 Binaries
+#deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.2.0/ubuntu/ binary trusty
+#dev http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v6.2.0/ubuntu/ binary trusty
+
 # 6.1.0 Binaries
 #deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.1.0/ubuntu/ binary trusty
+#dev http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v6.1.0/ubuntu/ binary trusty
 
 # 6.0.1 Binaries
 #deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.0.1/ubuntu/ binary trusty
+#dev http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v6.0.1/ubuntu/ binary trusty
 
 # 6.0 Binaries
 #deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.0.0/ubuntu/ binary trusty

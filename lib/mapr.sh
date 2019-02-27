@@ -176,8 +176,14 @@ function maprutil_getCoreNodeBinaries() {
                 newbinlist=$newbinlist"$bin "
             fi
         done
-        if [ -z "$(maprutil_isClientNode $1 $2)" ]; then
-            [ -n "$GLB_MAPR_PATCH" ] && [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
+        if [ -n "$GLB_MAPR_PATCH" ]; then
+            if [ -z "$(maprutil_isClientNode $1 $2)" ]; then
+                [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
+            elif [ -n "$(echo $newbinlist | grep mapr-core)" ]; then
+                newbinlist=$newbinlist"mapr-patch"
+            else
+                newbinlist=$newbinlist"mapr-patch-client"
+            fi
         fi
         echo $newbinlist
     fi
