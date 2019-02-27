@@ -1406,11 +1406,11 @@ function maprutil_configureSSH(){
     local nodehn=
     for node in ${nodes[@]}
     do
-        local hostname=$(ssh $node "\$(hostname -f)")
+        local hostname=$(ssh $node "echo \$(hostname -f)")
         nodehn="$nodehn $hostname"
     done
 
-    if [ -n $(ssh_checkSSHonNodes "$nodehn") ]; then
+    if [ -n "$(ssh_checkSSHonNodes "$nodehn")" ]; then
         for node in ${nodehn[@]}
         do
             local isEnabled=$(ssh_check "root" "$node")
