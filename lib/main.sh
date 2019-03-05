@@ -847,7 +847,7 @@ function main_runCommandExec(){
 	if [ -z "$1" ]; then
         return
     fi
-    local cmds=$1
+    local cmds="$1"
 
     local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
 	local cldbnode=$(util_getFirstElement "$cldbnodes")

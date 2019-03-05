@@ -638,23 +638,27 @@ function maprutil_cleanDocker(){
 
     # stop kubernetes & kill any stale kube processes
     if command -v kubelet > /dev/null 2>&1; then
-      systemctl stop kubelet > /dev/null 2>&1
-      util_kill "kube"
+        log_info "[$(util_getHostIP)] Stopping 'kubelet' and killing all k8s processes"
+        systemctl stop kubelet > /dev/null 2>&1 || service kubelet stop > /dev/null 2>&1
+        util_kill "kube"
     fi
 
     ## delete  containers & stop docker
     if command -v docker > /dev/null 2>&1; then
+        log_info "[$(util_getHostIP)] Removing all docker containers & shutting down docker daemon"
         local contlist=$(docker ps -qa 2>/dev/null | awk '{if(NR==1) print $1}')
         for i in $contlist
         do 
             docker rm -f $i > /dev/null 2>&1 
         done
         # stop docker if exists
-        systemctl stop docker > /dev/null 2>&1
+        systemctl stop docker > /dev/null 2>&1 || service docker stop > /dev/null 2>&1
 
         #kill kube proceses once again
         util_kill "kube"
     fi
+
+    sleep 10
 
     # remove virtual network interfaces
     local vnics="$(ls -l /sys/class/net/ | grep virtual | awk '{print $9}')"
@@ -663,8 +667,10 @@ function maprutil_cleanDocker(){
         local remove=$(ifconfig | grep UP | grep $i | grep -v LOOPBACK)
         [ -z "$remove" ] && continue
         if [ -n "$(echo $i | grep docker)" ]; then
-            ip link set $i down > /dev/null 2>&1
+            log_info "[$(util_getHostIP)] Shutting down '$i' network interface"
+            ip link set $i down > /dev/null 2>&1 || ifconfig $i down > /dev/null 2>&1
         else
+            log_info "[$(util_getHostIP)] Deleting '$i' network interface"
             ip link delete $i > /dev/null 2>&1
             [ -z "$cleaned" ] && cleaned=1
         fi
@@ -672,6 +678,7 @@ function maprutil_cleanDocker(){
 
     # clean up iptables if needed
     if [ -n "$cleaned" ]; then
+        log_info "[$(util_getHostIP)] Cleaning up 'iptables'"
         iptables -P INPUT ACCEPT; 
         iptables -P FORWARD ACCEPT; 
         iptables -P OUTPUT ACCEPT; 
