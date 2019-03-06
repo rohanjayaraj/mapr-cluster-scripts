@@ -145,6 +145,7 @@ GLB_TRACE_PNAME=
 GLB_SECURE_CLUSTER=
 GLB_ENABLE_DARE=
 GLB_ENABLE_QS=
+GLB_ATS_USERTICKETS=
 GLB_FS_THREADS=
 GLB_GW_THREADS=
 GLB_PERF_URL=
@@ -1234,6 +1235,8 @@ while [ "$2" != "" ]; do
     				main_addSpyglass "addkibana"
     			elif [[ "$i" = "queryservice" ]]; then
     				GLB_ENABLE_QS=1
+    			elif [[ "$i" = "atstickets" ]]; then
+    				GLB_ATS_USERTICKETS=1
     			elif [[ "$i" = "ssdonly" ]]; then
     				GLB_DISK_TYPE="ssd"
     			elif [[ "$i" = "hddonly" ]]; then

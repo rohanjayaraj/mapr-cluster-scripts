@@ -150,6 +150,8 @@ function usage () {
     echo -e "\t\t - Disable trace processes on all nodes (Can be run post install as well)"
     echo -e "\t -ig | --instanceguts"
     echo -e "\t\t - Enable instance level guts trace on all nodes"
+    echo -e "\t -aut | --atsusertickets" 
+    echo -e "\t\t - Create ATS user(m7user[1-4],mapruser[1-2]) tickets"
     
     echo 
 	echo " Post install Options : "
@@ -278,6 +280,9 @@ while [ "$1" != "" ]; do
         ;;
         -qs | --queryservice)
             extraarg=$extraarg"queryservice "
+        ;;
+        -aut | --atsusertickets)
+            extraarg=$extraarg"atstickets "
         ;;
         -sp | --storagepool)
             numsps=$VALUE
