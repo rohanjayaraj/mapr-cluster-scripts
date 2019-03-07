@@ -1432,10 +1432,12 @@ function maprutil_configureSSH(){
 
 function maprutil_fixTempBuildIssues() {
     # 6.2 disksetup issue
-    local fsize=$(stat /opt/mapr/server/disksetup | grep Size | awk '{print $2}')
-    local hasimport=$(cat /opt/mapr/server/disksetup | grep -A4 "def __del__" | grep "import os")
-    if [[ "$fsize" -eq "45557" ]] && [[ -z "$hasimport" ]]; then
-        sed -i '1507i\     import os;' /opt/mapr/server/disksetup
+    if [ -f "/opt/mapr/server/disksetup" ]; then
+        local fsize=$(stat /opt/mapr/server/disksetup | grep Size | awk '{print $2}')
+        local hasimport=$(cat /opt/mapr/server/disksetup | grep -A4 "def __del__" | grep "import os")
+        if [[ "$fsize" -eq "45557" ]] && [[ -z "$hasimport" ]]; then
+            sed -i '1507i\     import os;' /opt/mapr/server/disksetup
+        fi
     fi
 }
 
