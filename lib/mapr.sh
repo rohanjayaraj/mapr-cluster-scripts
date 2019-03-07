@@ -1430,6 +1430,15 @@ function maprutil_configureSSH(){
 
 }
 
+function maprutil_fixTempBuildIssues() {
+    # 6.2 disksetup issue
+    local fsize=$(stat /opt/mapr/server/disksetup | grep Size | awk '{print $2}')
+    local hasimport=$(cat /opt/mapr/server/disksetup | grep -A4 "def __del__" | grep "import os")
+    if [[ "$fsize" -eq "45557" ]] && [[ -z "$hasimport" ]]; then
+        sed -i '1507i\     import os;' /opt/mapr/server/disksetup
+    fi
+}
+
 function maprutil_configure(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
@@ -1442,6 +1451,9 @@ function maprutil_configure(){
         log_warn "Configuration skipped as no MapR binaries are installed "
         return 1
     fi
+
+    # Workaround for any intermittent builds issues
+    maprutil_fixTempBuildIssues
     
     local diskfile="/tmp/disklist"
     local hostip=$(util_getHostIP)
