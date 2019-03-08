@@ -108,7 +108,7 @@ function maprutil_buildRolesList(){
      if [ -z "$1" ]; then
         return 1
     fi
-    echo "$(cat $1 2>/dev/null| grep '^[^#;]' | tr '\n' '#' | sed 's/#$//')"
+    echo "$(cat $1 2>/dev/null| sed 's/^[[:space:]]*//g' | grep '^[^#;/]' | grep '^[0-9]' | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | tr '\n' '#' | sed 's/#$//')"
 }
 
 function maprutil_getRolesList(){
@@ -287,7 +287,7 @@ function maprutil_getNodesFromRole() {
             echo "Invalid IP [$node]. Scooting"
             exit 1
         fi
-    done <<< "$(cat $1 | grep '^[^#;]')"
+    done <<< "$(cat $1 | sed 's/^[[:space:]]*//g' | grep '^[^#;/]' | grep '^[0-9]')"
     echo $nodes | tr ' ' '\n' | sort -t . -k 3,3n -k 4,4n | tr '\n' ' ' | sed 's/[[:space:]]*$//'
 }
 
@@ -651,7 +651,8 @@ function maprutil_cleanDocker(){
         do 
             docker rm -f $i > /dev/null 2>&1 
         done
-        # stop docker if exists
+        # disable & stop docker if exists
+        systemctl disable docker > /dev/null 2>&1
         systemctl stop docker > /dev/null 2>&1 || service docker stop > /dev/null 2>&1
 
         #kill kube proceses once again
