@@ -38,10 +38,7 @@ function maprutil_getCLDBMasterNode() {
 
 ## @param path to config
 function maprutil_getCLDBNodes() {
-    if [ -z "$1" ]; then
-        return 1
-    fi
-    local cldbnodes=$(grep cldb $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local cldbnodes=$(maprutil_getNodesForService "cldb")
     if [ ! -z "$cldbnodes" ]; then
             echo $cldbnodes | sed 's/[[:space:]]*$//'
     fi
@@ -49,10 +46,7 @@ function maprutil_getCLDBNodes() {
 
 ## @param path to config
 function maprutil_getGatewayNodes() {
-    if [ -z "$1" ]; then
-        return 1
-    fi
-    local gwnodes=$(grep mapr-gateway $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local gwnodes=$(maprutil_getNodesForService "mapr-gateway")
     if [ ! -z "$gwnodes" ]; then
         echo $gwnodes | sed 's/[[:space:]]*$//'
     fi
@@ -60,10 +54,7 @@ function maprutil_getGatewayNodes() {
 
 ## @param path to config
 function maprutil_getESNodes() {
-    if [ -z "$1" ]; then
-        return 1
-    fi
-    local esnodes=$(grep elastic $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local esnodes=$(maprutil_getNodesForService  "elastic")
     if [ ! -z "$esnodes" ]; then
             echo $esnodes | sed 's/[[:space:]]*$//'
     fi
@@ -71,10 +62,7 @@ function maprutil_getESNodes() {
 
 ## @param path to config
 function maprutil_getOTSDBNodes() {
-    if [ -z "$1" ]; then
-        return 1
-    fi
-    local otnodes=$(grep opentsdb $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local otnodes=$(maprutil_getNodesForService "opentsdb")
     if [ ! -z "$otnodes" ]; then
             echo $otnodes | sed 's/[[:space:]]*$//'
     fi
@@ -82,12 +70,17 @@ function maprutil_getOTSDBNodes() {
 
 ## @param path to config
 function maprutil_getDrillNodes() {
-    if [ -z "$1" ]; then
-        return 1
-    fi
-    local drillnodes=$(grep drill $1 2>/dev/null| grep '^[^#;]' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local drillnodes=$(maprutil_getNodesForService "drill")
     if [ ! -z "$drillnodes" ]; then
         echo $drillnodes | sed 's/[[:space:]]*$//'
+    fi
+}
+
+## @param path to config
+function maprutil_getZKNodes() {
+    local zknodes=$(maprutil_getNodesForService "zoo")
+    if [ ! -z "$zknodes" ]; then
+        echo $zknodes
     fi
 }
 
@@ -120,27 +113,21 @@ function maprutil_getRolesList(){
 
 ## @param path to config
 function maprutil_getMFSDataNodes() {
-    if [ -z "$1" ]; then
-        return 1
-    fi
-    local mfsnodes=
-    local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+    local cldbnodes=$(maprutil_getCLDBNodes)
+    [ -z "$cldbnodes" ] && return 1
     
-    if [ -n "$cldbnodes" ]; then
-        local cldbnode=$(util_getFirstElement "$cldbnodes")
-        local isCLDBUp=$(maprutil_waitForCLDBonNode "$cldbnode")
-        if [ -n "$isCLDBUp" ]; then
-            local mfshosts="$(ssh_executeCommandasRoot "$cldbnode" "timeout 30 maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep hostname | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
-            for mfshost in $mfshosts
-            do
-                mfsnodes="$mfsnodes $(util_getIPfromHostName $mfshost)"
-            done
-            [ -z "$(echo $mfsnodes | grep [0-9])" ] && mfsnodes="$(ssh_executeCommandasRoot "$cldbnode" "timeout 30 maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep 'ip\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
-        else
-            mfsnodes=$(grep mapr-fileserver $1 | grep '^[^#;]' | grep -v cldb | awk -F, '{print $1}')
-        fi
+    local mfsnodes=
+    local cldbnode=$(util_getFirstElement "$cldbnodes")
+    local isCLDBUp=$(maprutil_waitForCLDBonNode "$cldbnode")
+    if [ -n "$isCLDBUp" ]; then
+        local mfshosts="$(ssh_executeCommandasRoot "$cldbnode" "timeout 30 maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep 'hostname\|racktopo' | grep -B1 '/data/' | grep hostname | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
+        for mfshost in $mfshosts
+        do
+            mfsnodes="$mfsnodes $(util_getIPfromHostName $mfshost)"
+        done
+        [ -z "$(echo $mfsnodes | grep [0-9])" ] && mfsnodes="$(ssh_executeCommandasRoot "$cldbnode" "timeout 30 maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep 'ip\|racktopo' | grep -B1 '/data/' | grep ip | tr -d '\"' | cut -d':' -f2 | tr -d ','")"
     else
-        mfsnodes=$(cat $rolefile | grep '^[^#;]' | awk -F, '{print $1}')
+        mfsnodes=$(echo  "$(maprutil_getNodesForService "mapr-fileserver")" | grep '^[^#;]' | grep -v cldb | awk -F, '{print $1}')
     fi
     
     [ -n "$mfsnodes" ] && echo "$mfsnodes" | sed ':a;N;$!ba;s/\n/ /g' | sed 's/[[:space:]]*$//'
@@ -149,11 +136,9 @@ function maprutil_getMFSDataNodes() {
 ## @param path to config
 ## @param host ip
 function maprutil_getNodeBinaries() {
-    if [ -z "$1" ] || [ -z "$2" ]; then
-        return 1
-    fi
+    [ -z "$1" ] &&  return 1
     
-    local binlist=$(grep $2 $1 | grep '^[^#;]' | cut -d, -f 2- | sed 's/,/ /g')
+    local binlist=$(echo "$(maprutil_getRolesList)" | grep $1 | grep '^[^#;]' | cut -d, -f 2- | sed 's/,/ /g')
     if [ ! -z "$binlist" ]; then
         echo $binlist
     fi
@@ -162,11 +147,9 @@ function maprutil_getNodeBinaries() {
 ## @param path to config
 ## @param host ip
 function maprutil_getCoreNodeBinaries() {
-    if [ -z "$1" ] || [ -z "$2" ]; then
-        return 1
-    fi
+    [ -z "$1" ] && return 1
     
-    local binlist=$(grep $2 $1 | grep '^[^#;]' | cut -d, -f 2- | sed 's/,/ /g')
+    local binlist=$(echo "$(maprutil_getRolesList)" | grep $1 | grep '^[^#;]' | cut -d, -f 2- | sed 's/,/ /g')
     if [ -n "$binlist" ]; then
         # Remove collectd,fluentd,opentsdb,kibana,grafana
         local newbinlist=
@@ -177,7 +160,7 @@ function maprutil_getCoreNodeBinaries() {
             fi
         done
         if [ -n "$GLB_MAPR_PATCH" ]; then
-            if [ -z "$(maprutil_isClientNode $1 $2)" ]; then
+            if [ -z "$(maprutil_isClientNode $1)" ]; then
                 [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
             elif [ -n "$(echo $newbinlist | grep mapr-core)" ]; then
                 newbinlist=$newbinlist"mapr-patch"
@@ -189,9 +172,7 @@ function maprutil_getCoreNodeBinaries() {
     fi
 }
 
-# @param rolefile
 function maprutil_getPostInstallNodes(){
-    [ -z "$1" ] && return
     local nodelist=
     while read -r line
     do
@@ -204,7 +185,7 @@ function maprutil_getPostInstallNodes(){
                 break
             fi
         done
-    done <<<"$(cat $1 2>/dev/null | grep '^[^#;]')"
+    done <<<"$(echo "$(maprutil_getRolesList)")"
     if [ -n "$nodelist" ]; then
         echo $nodelist
     fi
@@ -229,26 +210,13 @@ function maprutil_hasSpyglass() {
 }
 
 ## @param path to config
-function maprutil_getZKNodes() {
-    if [ -z "$1" ]; then
-        return 1
-    fi
-    
-    local zknodes=$(grep zoo $1 | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
-    if [ ! -z "$zknodes" ]; then
-        echo $zknodes
-    fi
-}
-
-## @param path to config
 ## @param host ip
 function maprutil_isClientNode() {
-    if [ -z "$1" ] || [ -z "$2" ]; then
-        return 1
-    fi
-    [ -n "$(grep $2 $1 | grep mapr-fileserver)" ] && return
+    [ -z "$1" ] && return 1
+    [ -n "$(echo "$(maprutil_getRolesList)" | grep $1 | grep mapr-fileserver)" ] && return
+    
     local isclient=$(grep $2 $1 | grep -v 'mapr-fileserver' | grep 'mapr-client\|mapr-loopbacknfs\|mapr-posix' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
-    [ -z "$isclient" ] && isclient=$(grep $2 $1 | cut -d',' -f2 | grep -v 'mapr-fileserver' | grep mapr-core)
+    [ -z "$isclient" ] && isclient=$(echo "$(maprutil_getRolesList)" | grep $1 | cut -d',' -f2 | grep -v 'mapr-fileserver' | grep mapr-core)
     if [ -n "$isclient" ]; then
         echo $isclient
     fi
@@ -543,13 +511,11 @@ function maprutil_unmountNFS(){
 
 # @param host ip
 function maprutil_cleanPrevClusterConfigOnNode(){
-    if [ -z "$1" ] || [ -z "$2" ]; then
-        return
-    fi
+    [ -z "$1" ] && return
     
     # build full script for node
     local hostnode=$1
-    local client=$(maprutil_isClientNode "$2" "$hostnode")
+    local client=$(maprutil_isClientNode "$hostnode")
     local scriptpath="$RUNTEMPDIR/cleanupnode_${hostnode}.sh"
     maprutil_buildSingleScript "$scriptpath" "$hostnode"
     local retval=$?
@@ -847,9 +813,8 @@ function maprutil_upgradeNode(){
 
 # @param cldbnode
 function maprutil_postUpgrade(){
-    if [ -z "$1" ]; then
-        return
-    fi
+    [ -z "$1" ] && return
+    
     local node=$1
     local isCLDBUp=$(maprutil_waitForCLDBonNode "$node")
 
@@ -862,18 +827,18 @@ function maprutil_postUpgrade(){
 }
 
 # @param host ip
-# @param rolefile
 function maprutil_rollingUpgradeOnNode(){
+    [ -z "$1" ] && return
+
     local node="$1"
-    local rolefile="$2"
     ## http://doc.mapr.com/display/MapR/Rolling+MapR+Core+Upgrade+Using+Manual+Steps
     
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     ssh_executeCommandasRoot "$node"  "timeout 30 maprcli node maintenance -nodes $host -timeoutminutes 30"
     ssh_executeCommandasRoot "$node"  "timeout 30 maprcli notifyupgrade start -node $host"
 
-    maprutil_restartWardenOnNode "$node" "$rolefile" "stop" 
-    maprutil_restartZKOnNode "$node" "$rolefile" "stop"
+    maprutil_restartWardenOnNode "$node" "stop" 
+    maprutil_restartZKOnNode "$node" "stop"
 
     maprutil_upgradeNode "$node"
 
@@ -1600,11 +1565,10 @@ function maprutil_configure(){
 }
 
 # @param host ip
-# @param config file path
 # @param cluster name
 # @param don't wait
 function maprutil_configureNode(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
      # build full script for node
@@ -1617,12 +1581,12 @@ function maprutil_configureNode(){
     fi
 
     local hostip=$(util_getHostIP)
-    local allnodes=$(maprutil_getNodesFromRole "$2")
-    local cldbnodes=$(maprutil_getCLDBNodes "$2")
+    local allnodes=$(maprutil_getRolesList)
+    local cldbnodes=$(maprutil_getCLDBNodes)
     local cldbnode=$(util_getFirstElement "$cldbnodes")
-    local zknodes=$(maprutil_getZKNodes "$2")
-    local client=$(maprutil_isClientNode "$2" "$hostnode")
-    local gwnodes=$(maprutil_getGatewayNodes "$2")
+    local zknodes=$(maprutil_getZKNodes)
+    local client=$(maprutil_isClientNode "$hostnode")
+    local gwnodes=$(maprutil_getGatewayNodes)
     
     if [ -n "$client" ]; then
          echo "ISCLIENT=1" >> $scriptpath
@@ -1632,14 +1596,14 @@ function maprutil_configureNode(){
     fi
     
     if [ "$hostip" != "$cldbnode" ] && [ "$hostnode" = "$cldbnode" ]; then
-        echo "maprutil_configureSSH \""$allnodes"\" && maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$3"\" || exit 1" >> $scriptpath
+        echo "maprutil_configureSSH \""$allnodes"\" && maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$2"\" || exit 1" >> $scriptpath
     else
-        echo "maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$3"\" || exit 1" >> $scriptpath
+        echo "maprutil_configure \""$cldbnodes"\" \""$zknodes"\" \""$2"\" || exit 1" >> $scriptpath
     fi
    
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
     maprutil_addToPIDList "$!"
-    if [ -z "$4" ]; then
+    if [ -z "$3" ]; then
         maprutil_wait
     fi
 }
@@ -2279,7 +2243,7 @@ function maprutil_runCommandsOnNode(){
         return
     fi
 
-    local client=$(maprutil_isClientNode "$2" "$hostnode")
+    local client=$(maprutil_isClientNode "$hostnode")
     local hostip=$(util_getHostIP)
     
     echo "maprutil_runCommands \"$2\"" >> $scriptpath
@@ -3314,15 +3278,11 @@ function maprutil_checkClusterSetupOnNode(){
 }
 
 # @param nodelist
-# @param rolefile
 function maprutil_checkClusterSetupOnNodes(){
-    if [ -z "$1" ] || [ -z "$2" ]; then
-        return
-    fi
-
+    [ -z "$1" ] && return
+    
     local maprnodes=$1
-    local rfile=$2
-    local cldbnodes=$(maprutil_getCLDBNodes "$rfile")
+    local cldbnodes=$(maprutil_getCLDBNodes)
     local cldbnode=$(util_getFirstElement "$cldbnodes")
 
     local tmpdir="$RUNTEMPDIR/setupcheck"
@@ -3330,7 +3290,7 @@ function maprutil_checkClusterSetupOnNodes(){
     for node in ${maprnodes[@]}
     do
         local nodelog="$tmpdir/$node.log"
-        local bins=$(maprutil_getNodeBinaries "$rfile" "$node")
+        local bins=$(maprutil_getNodeBinaries "$node")
         maprutil_checkClusterSetupOnNode "$node" "$cldbnode" "$bins" > $nodelog 2>&1 &
         maprutil_addToPIDList "$!"
     done
@@ -3352,14 +3312,12 @@ function maprutil_checkClusterSetupOnNodes(){
 }
 
 ## @param optional hostip
-## @param rolefile
+## @param stop/start/restart
 function maprutil_restartWardenOnNode() {
-    if [ -z "$1" ] || [ -z "$2" ]; then
-        return
-    fi
+    [ -z "$1" ] && return
+    
     local node=$1
-    local rolefile=$2
-    local stopstart=$3
+    local stopstart=$2
 
      # build full script for node
     local scriptpath="$RUNTEMPDIR/restartonnode_${node}.sh"
@@ -3369,7 +3327,7 @@ function maprutil_restartWardenOnNode() {
         return
     fi
 
-    if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+    if [ -n "$(maprutil_isClientNode $node)" ]; then
         return
     fi
     
@@ -3408,14 +3366,10 @@ function maprutil_restartWarden() {
 }
 
 ## @param optional hostip
-## @param rolefile
 function maprutil_restartZKOnNode() {
-    if [ -z "$1" ] || [ -z "$2" ]; then
-        return
-    fi
-    local rolefile=$2
-    local stopstart=$3
-    if [ -n "$(maprutil_isClientNode $rolefile $1)" ]; then
+    [ -z "$1" ] && return
+    local stopstart=$2
+    if [ -n "$(maprutil_isClientNode $1)" ]; then
         return
     fi
     if [ -z "$stopstart" ]; then

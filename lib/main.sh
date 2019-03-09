@@ -215,7 +215,7 @@ function main_install(){
 				exit 1
 			fi
 		fi
-		local nodebins=$(maprutil_getCoreNodeBinaries "$rolefile" "$node")
+		local nodebins=$(maprutil_getCoreNodeBinaries "$node")
 		log_info "****** Installing binaries on node -> $node ****** "
 		maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
 	done
@@ -228,16 +228,16 @@ function main_install(){
 	for node in ${nodes[@]}
 	do
 		log_info "****** Running configure on node -> $node ****** "
-		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
+		maprutil_configureNode "$node" "$clustername" "bg"
 	done
 	maprutil_wait
 
 	# Check and install any binaries(ex: drill) post core binary installation
-	local postinstnodes=$(maprutil_getPostInstallNodes $rolefile)
+	local postinstnodes=$(maprutil_getPostInstallNodes)
 	if [ -n "$postinstnodes" ]; then
 		for node in ${postinstnodes[@]}
 		do
-			local nodebins=$(maprutil_getNodeBinaries "$rolefile" "$node")
+			local nodebins=$(maprutil_getNodeBinaries "$node")
 			maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
 		done
 		maprutil_wait
@@ -253,7 +253,7 @@ function main_install(){
 	# Configure all nodes
 	for node in ${nodes[@]}
 	do
-		maprutil_restartWardenOnNode "$node" "$rolefile"
+		maprutil_restartWardenOnNode "$node"
 	done
 	maprutil_wait
 
@@ -264,7 +264,7 @@ function main_install(){
 
 	# Post to SLACK
 	local cs="$(maprutil_getClusterSpec "$nodes")"
-	util_postToSlack "$rolefile" "INSTALLED" "$cs"
+	util_postToSlack "$(maprutil_getRolesList)" "INSTALLED" "$cs"
 
 	#set +x
 	log_msghead "[$(util_getCurDate)] Install is complete! [ RunTime - $(main_timetaken) ]"
@@ -313,7 +313,7 @@ function main_reconfigure(){
 	log_info "Erasing files/directories from previous configurations"
 	for node in ${nodes[@]}
 	do
-		maprutil_cleanPrevClusterConfigOnNode "$node" "$rolefile"
+		maprutil_cleanPrevClusterConfigOnNode "$node"
 	done
 	maprutil_wait
 
@@ -327,12 +327,12 @@ function main_reconfigure(){
 	for node in ${nodes[@]}
 	do
 		log_info "****** Running configure on node -> $node ****** "
-		maprutil_configureNode "$node" "$rolefile" "$clustername" "bg"
+		maprutil_configureNode "$node" "$clustername" "bg"
 	done
 	maprutil_wait
 
 	# Check and install any binaries(ex: drill) post core binary installation
-	local postinstnodes=$(maprutil_getPostInstallNodes $rolefile)
+	local postinstnodes=$(maprutil_getPostInstallNodes)
 	if [ -n "$postinstnodes" ]; then
 		for node in ${postinstnodes[@]}
 		do
@@ -346,7 +346,7 @@ function main_reconfigure(){
 	# Restart all nodes
 	for node in ${nodes[@]}
 	do
-		maprutil_restartWardenOnNode "$node" "$rolefile"
+		maprutil_restartWardenOnNode "$node"
 	done
 	maprutil_wait
 
@@ -355,7 +355,7 @@ function main_reconfigure(){
 
 	# Post to SLACK
 	local cs="$(maprutil_getClusterSpec "$nodes")"
-	util_postToSlack "$rolefile" "RECONFIGURED" "$cs"
+	util_postToSlack "$(maprutil_getRolesList)" "RECONFIGURED" "$cs"
 
 	log_msghead "[$(util_getCurDate)] Reconfiguration is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -437,9 +437,9 @@ function main_upgrade(){
 		log_info "CLDB Master : $cldbnode"
 	fi
 
-	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	local cldbnodes=$(maprutil_getCLDBNodes)
 	local cldbmaster=
-    local zknodes=$(maprutil_getZKNodes "$rolefile")
+    local zknodes=$(maprutil_getZKNodes)
     local buildexists=
     local sleeptime=60
 
@@ -477,14 +477,14 @@ function main_upgrade(){
 		# First stop warden on all nodes
 		for node in ${nodes[@]}
 		do
-			maprutil_restartWardenOnNode "$node" "$rolefile" "stop" 
+			maprutil_restartWardenOnNode "$node" "stop" 
 		done
 
 		log_info "Stopping zookeeper..."
 		# Stop ZK on ZK nodes
 		for node in ${zknodes[@]}
 		do
-			maprutil_restartZKOnNode "$node" "$rolefile" "stop"
+			maprutil_restartZKOnNode "$node" "stop"
 		done
 		maprutil_wait
 
@@ -500,14 +500,14 @@ function main_upgrade(){
 
 		for node in ${nodes[@]}
 		do
-			maprutil_restartWardenOnNode "$node" "$rolefile"
+			maprutil_restartWardenOnNode "$node"
 		done
 		maprutil_wait
 	else
 		for node in ${zknodes[@]}
 		do
 			[ -n "$(echo $cldbnodes | grep $node)" ] && continue
-			maprutil_rollingUpgradeOnNode "$node" "$rolefile"
+			maprutil_rollingUpgradeOnNode "$node"
 			sleep $sleeptime
 		done
 		for node in ${nodes[@]}
@@ -515,16 +515,16 @@ function main_upgrade(){
 			[ -n "$(echo $zknodes | grep $node)" ] && continue
 			[ -n "$(echo $cldbnodes | grep $node)" ] && continue
 			[ -z "$cldbmaster" ] && cldbmaster=$(maprutil_getCLDBMasterNode "$node" "maprcli")
-			maprutil_rollingUpgradeOnNode "$node" "$rolefile"
+			maprutil_rollingUpgradeOnNode "$node"
 			sleep $sleeptime
 		done
 		for node in ${cldbnodes[@]}
 		do
 			[ -n "$(echo $cldbmaster | grep $node)" ] && continue 
-			maprutil_rollingUpgradeOnNode "$node" "$rolefile"
+			maprutil_rollingUpgradeOnNode "$node"
 			sleep $sleeptime
 		done
-		maprutil_rollingUpgradeOnNode "$cldbmaster" "$rolefile"
+		maprutil_rollingUpgradeOnNode "$cldbmaster"
 	fi
 
 	# update upgraded mapr version
@@ -535,7 +535,7 @@ function main_upgrade(){
 
 	# Post to SLACK
 	local cs="$(maprutil_getClusterSpec "$nodes")"
-	util_postToSlack "$rolefile" "UPGRADED" "$cs"
+	util_postToSlack "$(maprutil_getRolesList)" "UPGRADED" "$cs"
 
 	log_msghead "[$(util_getCurDate)] Upgrade is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -637,7 +637,7 @@ function main_uninstall(){
 	maprutil_wait
 
 	# Post to SLACK
-	util_postToSlack "$rolefile" "UNINSTALLED"
+	util_postToSlack "$(maprutil_getRolesList)" "UNINSTALLED"
 
 	log_msghead "[$(util_getCurDate)] Uninstall is complete! [ RunTime - $(main_timetaken) ]"
 }
@@ -733,7 +733,7 @@ function main_getmfscpuuse(){
 		maprutil_copymfscpuuse "$node" "$timestamp" "$copydir" &
 	done
 	wait
-	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
+	local mfsnodes=$(maprutil_getMFSDataNodes)
 	log_info "Aggregating stats from all nodes [ $nodes ]"
 	maprutil_mfsCPUUseOnCluster "$nodes" "$mfsnodes" "$copydir" "$timestamp" "$doPublish"
 }
@@ -743,8 +743,8 @@ function main_getgutsstats(){
 	
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start/End time not specified. Using entire time range available"
 	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=
-	local mfsnodes=$(maprutil_getMFSDataNodes "$rolefile")
-	[ "$doGutsType" = "gw" ] && mfsnodes=$(maprutil_getGatewayNodes "$rolefile")
+	local mfsnodes=$(maprutil_getMFSDataNodes)
+	[ "$doGutsType" = "gw" ] && mfsnodes=$(maprutil_getGatewayNodes)
 	local node=$(util_getFirstElement "$mfsnodes")
 
 	local collist=$(marutil_getGutsSample "$node" "$doGutsType" )
@@ -807,14 +807,14 @@ function main_getgutsstats(){
 	local timestamp=$(date +%s)
 	for node in ${nodes[@]}
 	do	
-		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
+		[ -n "$(maprutil_isClientNode $node)" ] && continue
 		log_info "Building guts stats on node $node"
 		maprutil_gutsStatsOnNode "$node" "$timestamp" "$doGutsType" "$colids" "$startstr" "$endstr"
 	done
 	maprutil_wait
 	for node in ${nodes[@]}
 	do	
-		[ -n "$(maprutil_isClientNode $rolefile $node)" ] && continue
+		[ -n "$(maprutil_isClientNode $node)" ] && continue
 		maprutil_copygutsstats "$node" "$timestamp" "$copydir" &
 	done
 	wait
@@ -850,7 +850,7 @@ function main_runCommandExec(){
     fi
     local cmds="$1"
 
-    local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+    local cldbnodes=$(maprutil_getCLDBNodes)
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
 	local isInstalled=$(maprutil_isMapRInstalledOnNode "$cldbnode")
 	if [ "$isInstalled" = "false" ]; then
@@ -887,7 +887,7 @@ function main_runLogDoctor(){
 
 	for node in ${nodes[@]}
 	do	
-		if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+		if [ -n "$(maprutil_isClientNode $node)" ]; then
 			continue
 		fi
 		nodelist=$nodelist"$node "
@@ -938,7 +938,7 @@ function main_runLogDoctor(){
         	;;
         	setupcheck)
 				log_msghead "[$(util_getCurDate)] Checking cluster services"
-				maprutil_checkClusterSetupOnNodes "$nodelist" "$rolefile"
+				maprutil_checkClusterSetupOnNodes "$nodelist"
         	;;
         	analyzecores)
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
@@ -1028,8 +1028,8 @@ function main_stopall() {
 }
 
 function main_getRepoFile(){
-	#local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
-	#local cldbnode=$(util_getFirstElement "$cldbnodes")
+	#local cldbnodes=$(maprutil_getCLDBNodes)
+	#local cldbnode=$(util_getFirstElement)
 	local node="$1"
 	local maprrepo=
 	local repofile=
@@ -1047,8 +1047,8 @@ function main_getRepoFile(){
 		echo "$maprrepo"
 		return
 	fi
-	#local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
-	#local cldbnode=$(util_getFirstElement "$cldbnodes")
+	#local cldbnodes=$(maprutil_getCLDBNodes)
+	#local cldbnode=$(util_getFirstElement)
 
 	#[ -z "$(echo $rolefile | grep mapr-patch)" ] && [ -z "$GLB_MAPR_PATCH" ] && GLB_PATCH_REPOFILE=
 	maprutil_buildRepoFile "$repofile" "$useRepoURL" "$node"
@@ -1079,13 +1079,13 @@ function main_timetaken(){
 
 function main_addSpyglass(){
 	local addkibana="$1"
-	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	local cldbnodes=$(maprutil_getCLDBNodes)
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
 	local newrolefile=$(mktemp -p $RUNTEMPDIR)
 	cat $rolefile > $newrolefile
 	for node in ${nodes[@]}
 	do	
-    	if [ -n "$(maprutil_isClientNode $rolefile $node)" ]; then
+    	if [ -n "$(maprutil_isClientNode $node)" ]; then
 			continue
 		elif [ "$node" = "$cldbnode" ]; then
     		sed -i "/$node/ s/$/,mapr-opentsdb,mapr-grafana,mapr-collectd/" $newrolefile
@@ -1099,13 +1099,14 @@ function main_addSpyglass(){
 }
 
 function main_printURLs(){
-	local cldbnodes=$(maprutil_getCLDBNodes "$rolefile")
+	local roles="$(maprutil_getRolesList)"
+	local cldbnodes=$(maprutil_getCLDBNodes)
 	local cldbnode=$(util_getFirstElement "$cldbnodes")
-	local mcsnode=$(cat "$rolefile" | grep mapr-webserver | head -1 | cut -d',' -f1)
-	local rmnode=$(cat "$rolefile" | grep mapr-resourcemanager | head -1 | cut -d',' -f1)
-	local jtnode=$(cat "$rolefile" | grep mapr-jobtracker | head -1 | cut -d',' -f1)
-	local gfnode=$(cat "$rolefile" | grep mapr-grafana | head -1 | cut -d',' -f1)
-	local kbnode=$(cat "$rolefile" | grep mapr-kibana | head -1 | cut -d',' -f1)
+	local mcsnode=$(echo "$roles" | grep mapr-webserver | head -1 | cut -d',' -f1)
+	local rmnode=$(echo "$roles" | grep mapr-resourcemanager | head -1 | cut -d',' -f1)
+	local jtnode=$(echo "$roles" | grep mapr-jobtracker | head -1 | cut -d',' -f1)
+	local gfnode=$(echo "$roles" | grep mapr-grafana | head -1 | cut -d',' -f1)
+	local kbnode=$(echo "$roles" | grep mapr-kibana | head -1 | cut -d',' -f1)
 	local adds=
 	[ -n "$GLB_SECURE_CLUSTER" ] && adds="s"
 	
@@ -1119,10 +1120,11 @@ function main_printURLs(){
 }
 
 function main_preSetup(){
-	[ -z "$GLB_HAS_FUSE" ] && [ -n "$(cat $rolefile | grep mapr-posix)" ] && GLB_HAS_FUSE=1
 	[ -z "$GLB_ROLE_LIST" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
+	local roles="$(maprutil_getRolesList)"
+	[ -z "$GLB_HAS_FUSE" ] && [ -n "$(echo "$roles" | grep mapr-posix)" ] && GLB_HAS_FUSE=1
 	[ -n "$copydir" ] && GLB_COPY_DIR="$copydir" && mkdir -p $GLB_COPY_DIR > /dev/null 2>&1
-	GLB_CLUSTER_SIZE=$(cat $rolefile |  grep "^[^#;]" | grep 'mapr-fileserver' | wc -l)
+	GLB_CLUSTER_SIZE=$(echo "$roles" |  grep "^[^#;]" | grep 'mapr-fileserver' | wc -l)
 }
 
 function main_extractMapRVersion(){

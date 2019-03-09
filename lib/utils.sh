@@ -1040,11 +1040,10 @@ function util_postToSlack(){
      [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
 
     local SLACK_URL="https://hooks.slack.com/services/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"
-    local rolefile="$1"
+    local roles="$1"
     local optype="$2"
     local extrainfo="$3"
     
-    local roles="$(cat $rolefile)"
     local mainnode=$(echo "$roles" | grep '^[^#;]' | grep cldb | head -1 | cut -d',' -f1)
     [ -z "$mainnode" ] && mainnode=$(echo "$roles" | grep '^[^#;]' | head -1 | cut -d',' -f1)
     local text="$(echo -e "Cluster \`$mainnode\` *$(echo $optype | awk '{print toupper($0)}')* \n \`\`\`$roles\`\`\`")"
