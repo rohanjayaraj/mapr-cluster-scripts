@@ -1581,7 +1581,7 @@ function maprutil_configureNode(){
     fi
 
     local hostip=$(util_getHostIP)
-    local allnodes=$(maprutil_getRolesList)
+    local allnodes=$(echo "$(maprutil_getRolesList)" | cut -d',' -f1 | tr '\n' ' ')
     local cldbnodes=$(maprutil_getCLDBNodes)
     local cldbnode=$(util_getFirstElement "$cldbnodes")
     local zknodes=$(maprutil_getZKNodes)
