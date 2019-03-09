@@ -1120,7 +1120,12 @@ function main_printURLs(){
 }
 
 function main_preSetup(){
-	[ -z "$GLB_ROLE_LIST" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
+	if [[ "$addSpy" = "1" ]]; then 
+		main_addSpyglass
+	elif [[ "$addSpy" = "2" ]]; then
+		main_addSpyglass "addkibana"
+	fi
+	 -z "$GLB_ROLE_LIST" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
 	local roles="$(maprutil_getRolesList)"
 	[ -z "$GLB_HAS_FUSE" ] && [ -n "$(echo "$roles" | grep mapr-posix)" ] && GLB_HAS_FUSE=1
 	[ -n "$copydir" ] && GLB_COPY_DIR="$copydir" && mkdir -p $GLB_COPY_DIR > /dev/null 2>&1
@@ -1160,6 +1165,7 @@ doGutsDef=
 doGutsCol=
 doGutsType=
 doSkip=
+addSpy=
 startstr=
 endstr=
 copydir=
@@ -1232,9 +1238,9 @@ while [ "$2" != "" ]; do
     			elif [[ "$i" = "patch" ]]; then
     				GLB_MAPR_PATCH=1
     			elif [[ "$i" = "spy" ]]; then
-    				main_addSpyglass
+    				addSpy=1
     			elif [[ "$i" = "spy2" ]]; then
-    				main_addSpyglass "addkibana"
+    				addSpy=2
     			elif [[ "$i" = "queryservice" ]]; then
     				GLB_ENABLE_QS=1
     			elif [[ "$i" = "atstickets" ]]; then
