@@ -1120,12 +1120,15 @@ function main_printURLs(){
 }
 
 function main_preSetup(){
+	# build roles list
+	[ -z "$GLB_ROLE_LIST" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
 	if [[ "$addSpy" = "1" ]]; then 
 		main_addSpyglass
 	elif [[ "$addSpy" = "2" ]]; then
 		main_addSpyglass "addkibana"
 	fi
-	 -z "$GLB_ROLE_LIST" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
+	# update roles list if spyglass was added
+	[ -n "$addSpy" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
 	local roles="$(maprutil_getRolesList)"
 	[ -z "$GLB_HAS_FUSE" ] && [ -n "$(echo "$roles" | grep mapr-posix)" ] && GLB_HAS_FUSE=1
 	[ -n "$copydir" ] && GLB_COPY_DIR="$copydir" && mkdir -p $GLB_COPY_DIR > /dev/null 2>&1
