@@ -213,9 +213,10 @@ function maprutil_hasSpyglass() {
 ## @param host ip
 function maprutil_isClientNode() {
     [ -z "$1" ] && return 1
-    [ -n "$(echo "$(maprutil_getRolesList)" | grep $1 | grep mapr-fileserver)" ] && return
+    local roles="$(maprutil_getRolesList)"
+    [ -n "$(echo "$roles" | grep $1 | grep mapr-fileserver)" ] && return
     
-    local isclient=$(grep $2 $1 | grep -v 'mapr-fileserver' | grep 'mapr-client\|mapr-loopbacknfs\|mapr-posix' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    local isclient=$(echo "$roles" | grep $1 | grep -v 'mapr-fileserver' | grep 'mapr-client\|mapr-loopbacknfs\|mapr-posix' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
     [ -z "$isclient" ] && isclient=$(echo "$(maprutil_getRolesList)" | grep $1 | cut -d',' -f2 | grep -v 'mapr-fileserver' | grep mapr-core)
     if [ -n "$isclient" ]; then
         echo $isclient
