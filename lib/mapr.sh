@@ -1629,7 +1629,7 @@ function maprutil_postConfigure(){
         cmd=$cmd" -QS"
     fi
     log_info "$cmd"
-    timeout 180 bash -c "$cmd"
+    timeout 300 bash -c "$cmd"
     
     [ -n "$otnodes" ] || [ -n "$esnodes" ] && sleep 30
     [ -n "$otnodes" ] && /opt/mapr/collectd/collectd-*/etc/init.d/collectd restart > /dev/null 2>&1 
