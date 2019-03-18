@@ -1629,7 +1629,7 @@ function maprutil_postConfigure(){
         cmd=$cmd" -QS"
     fi
     log_info "$cmd"
-    bash -c "$cmd"
+    timeout 180 bash -c "$cmd"
     
     [ -n "$otnodes" ] || [ -n "$esnodes" ] && sleep 30
     [ -n "$otnodes" ] && /opt/mapr/collectd/collectd-*/etc/init.d/collectd restart > /dev/null 2>&1 
@@ -1826,16 +1826,16 @@ function maprutil_checkNewBuildExists(){
     fi
     local node=$1
     local buildid=$(maprutil_getMapRVersionOnNode $node)
-    local curchangeset=$(echo $buildid | cut -d'.' -f4)
+    local curchangeset=$(echo $buildid | awk -F'.' '{print $(NF-1)}')
     local newchangeset=
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
         #ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
-        newchangeset=$(ssh_executeCommandasRoot "$node" "yum clean all > /dev/null 2>&1; yum --showduplicates list mapr-core | grep -v '$curchangeset' | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$2}' | cut -d'.' -f4")
+        newchangeset=$(ssh_executeCommandasRoot "$node" "yum clean all > /dev/null 2>&1; yum --showduplicates list mapr-core | grep -v '$curchangeset' | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$2}' | awk -F'.' '{print \$(NF-1)}'")
     elif [ "$nodeos" = "ubuntu" ]; then
-        newchangeset=$(ssh_executeCommandasRoot "$node" "apt-get update > /dev/null 2>&1; apt-cache policy mapr-core | grep Candidate | grep -v '$curchangeset' | awk '{print \$2}' | cut -d'.' -f4")
+        newchangeset=$(ssh_executeCommandasRoot "$node" "apt-get update > /dev/null 2>&1; apt-cache policy mapr-core | grep Candidate | grep -v '$curchangeset' | awk '{print \$2}' | awk -F'.' '{print \$(NF-1)}'")
     elif [ "$nodeos" = "suse" ]; then
-        newchangeset=$(ssh_executeCommandasRoot "$node" "zypper refresh > /dev/null 2>&1; zypper search -s mapr-core | grep -v '$curchangeset' | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$7}' | cut -d'.' -f4")
+        newchangeset=$(ssh_executeCommandasRoot "$node" "zypper refresh > /dev/null 2>&1; zypper search -s mapr-core | grep -v '$curchangeset' | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$7}' | awk -F'.' '{print \$(NF-1)}'")
     fi
 
     if [[ -n "$newchangeset" ]] && [[ "$(util_isNumber $newchangeset)" = "true" ]] && [[ "$newchangeset" -gt "$curchangeset" ]]; then
