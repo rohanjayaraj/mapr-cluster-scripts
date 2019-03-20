@@ -293,6 +293,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/mrdisk*core*")
     dirlist+=("/opt/cores/hoststat*core*")
     dirlist+=("/opt/cores/posix*core*")
+    dirlist+=("/opt/cores/maprStreamstest.core.*")
     echo ${dirlist[*]}
 }
 
@@ -1612,6 +1613,9 @@ function maprutil_configureNode(){
 function maprutil_postConfigure(){
     local hostip=$(util_getHostIP)
 
+    # Pre-setup before calling configure
+    maprutil_prePostConfigure
+
     local esnodes="$(maprutil_getNodesForService "elastic")"
     local otnodes="$(maprutil_getNodesForService "opentsdb")"
     [ -n "$esnodes" ] && esnodes="$(util_getCommaSeparated "$esnodes")"
@@ -1641,6 +1645,16 @@ function maprutil_postConfigure(){
     #    echo "service.command.mfs.heapsize.percent=85" >> /opt/mapr/conf/warden.conf
     #fi
     #maprutil_restartWarden
+}
+
+function maprutil_prePostConfigure(){
+    # Temp workaround for hadoop decouple and drillbit 1.15 with hardcoded hadoop common jar
+    if [ -f "/opt/mapr/drill/drill-1.15.0/jars/3rdparty/hadoop-common-2.7.0-mapr-1808.jar" ]; then
+        rm -rf /opt/mapr/drill/drill-1.15.0/jars/3rdparty/hadoop-common*.jar  > /dev/null 2>&1 
+        cp /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop-common-*-SNAPSHOT.jar /opt/mapr/drill/drill-1.15.0/jars/3rdparty/  > /dev/null 2>&1 
+        cp /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop-maprfs-client-*-SNAPSHOT.jar /opt/mapr/drill/drill-1.15.0/jars/3rdparty/  > /dev/null 2>&1 
+        chown mapr:mapr /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop*.jar > /dev/null 2>&1 
+    fi
 }
 
 function maprutil_queryservice(){
