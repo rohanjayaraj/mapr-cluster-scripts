@@ -1649,7 +1649,7 @@ function maprutil_postConfigure(){
 
 function maprutil_prePostConfigure(){
     # Temp workaround for hadoop decouple and drillbit 1.15 with hardcoded hadoop common jar
-    if [ -f "/opt/mapr/drill/drill-1.15.0/jars/3rdparty/hadoop-common-2.7.0-mapr-1808.jar" ]; then
+    if [ -f "/opt/mapr/drill/drill-1.15.0/jars/3rdparty/hadoop-common-2.7.0-mapr-1808.jar" ] && [ -d "/opt/mapr/hadoop/hadoop-2.7.4" ]; then
         rm -rf /opt/mapr/drill/drill-1.15.0/jars/3rdparty/hadoop-common*.jar  > /dev/null 2>&1 
         cp /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop-common-*-SNAPSHOT.jar /opt/mapr/drill/drill-1.15.0/jars/3rdparty/  > /dev/null 2>&1 
         cp /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop-maprfs-client-*-SNAPSHOT.jar /opt/mapr/drill/drill-1.15.0/jars/3rdparty/  > /dev/null 2>&1 
