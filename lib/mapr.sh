@@ -1131,8 +1131,8 @@ function maprutil_customConfigure(){
     # workaround for hadoop not configured on client does after hadoop 2.7.4 decoupling
     local hadoopdir=$(ls -d /opt/mapr/hadoop/hadoop-[0-9.]* 2>/dev/null)
     if [ "$ISCLIENT" -eq 1 ] && [ -n "$hadoopdir" ]; then
-        local yarnsite=$(find $hadoopdir -name "yarn-site.xml" | grep -v sample-conf | grep template)
-        if [ -n "$yarnsite" ]; then
+        local yarnsite=$(find $hadoopdir -name "yarn-site.xml" | grep -v sample-conf)
+        if [ -z "$yarnsite" ]; then
             local cmd="$hadoopdir/bin/configure.sh -R"
             bash -c "$cmd"
         fi
