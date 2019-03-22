@@ -1074,7 +1074,9 @@ function maprutil_updateConfigs(){
     for i in $execfilelist; do
         local present=$(cat $i | grep "allowed.system.users" | grep -v root)
         if [ -n "$present" ]; then
-            sed -i '/^allowed.system.users/ s/$/,root/' $i
+            sed -i 's/^yarn.nodemanager.linux-container-executor.group=.*/yarn.nodemanager.linux-container-executor.group=mapr/' $i
+            sed -i 's/^allowed.system.users=.*/allowed.system.users=mapr,root/' $i
+            sed -i 's/^min.user.id=.*/min.user.id=0/' $i
         fi
     done
 
@@ -1124,6 +1126,15 @@ function maprutil_customConfigure(){
         if [ -n "$applyfix" ]; then
             wget http://package.mapr.com/scripts/mcs/fixssl -O /tmp/fixssl > /dev/null 2>&1
             chmod 755 /tmp/fixssl && /tmp/fixssl > /dev/null 2>&1
+        fi
+    fi
+    # workaround for hadoop not configured on client does after hadoop 2.7.4 decoupling
+    local hadoopdir=$(ls -d /opt/mapr/hadoop/hadoop-[0-9.]* 2>/dev/null)
+    if [ "$ISCLIENT" -eq 1 ] && [ -n "$hadoopdir" ]; then
+        local yarnsite=$(find $hadoopdir -name "yarn-site.xml" | grep -v sample-conf | grep template)
+        if [ -n "$yarnsite" ]; then
+            local cmd="$hadoopdir/bin/configure.sh -R"
+            bash -c "$cmd"
         fi
     fi
 }
