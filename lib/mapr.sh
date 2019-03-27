@@ -3368,6 +3368,7 @@ function maprutil_restartWardenOnNode() {
 ## @param stop/start/restart
 function maprutil_restartWarden() {
     local stopstart=$1
+    local hostip=$(util_getHostIP)
     local execcmd=
     if [[ -e "/etc/systemd/system/mapr-warden.service" ]]; then
         execcmd="service mapr-warden"
@@ -3389,7 +3390,7 @@ function maprutil_restartWarden() {
         execcmd=$execcmd" restart"
     fi
 
-    bash -c "$execcmd"
+    bash -c "$execcmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
 }
 
 ## @param optional hostip
