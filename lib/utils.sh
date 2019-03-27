@@ -334,6 +334,7 @@ function util_checkInstallAndRetry(){
     if [[ "$actbins" -lt "$numbins" ]]; then
         log_info "[$hostip] Not all binaries were installed [Expected: $numbins, Actual: $actbins]. Retrying one more time after sleeping for 60s"
         sleep 60
+        log_info "[$hostip] Retry: Installing packages : $bins"
         if [ "$(getOS)" = "centos" ]; then
             stdbuf -o0 yum install ${bins} -y --nogpgcheck 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         elif [[ "$(getOS)" = "ubuntu" ]]; then
