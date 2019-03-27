@@ -330,7 +330,7 @@ function util_checkInstallAndRetry(){
     local numbins=${#bins[@]}
     local actbins=0
     for (( i=0; i<$numbins; i++ )); do
-        [ -n "$(util_getInstalledBinaries "$bins[$i]")" ] && let actbins=actbins+1
+        [ -n "$(util_getInstalledBinaries "${bins[i]}")" ] && let actbins=actbins+1
     done
 
     if [[ "$actbins" -lt "$numbins" ]]; then
