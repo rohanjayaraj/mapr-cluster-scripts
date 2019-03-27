@@ -336,15 +336,15 @@ function util_installBinaries(){
     log_info "[$hostip] Installing packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
         yum clean all > /dev/null 2>&1
-        yum install ${bins} -y --nogpgcheck | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        yum install ${bins} -y --nogpgcheck 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
         apt-get $opts update > /dev/null 2>&1
-        apt-get -y $opts install ${bins} | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        apt-get -y $opts install ${bins} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper refresh > /dev/null 2>&1
-        zypper --no-gpg-checks -n install ${bins} | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        zypper --no-gpg-checks -n install ${bins} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     fi
 }
 
@@ -354,21 +354,22 @@ function util_upgradeBinaries(){
         return
     fi
     local bins="$1"
-    log_info "[$(util_getHostIP)] Upgrading packages : $bins"
+    local hostip=$(util_getHostIP)
+    log_info "[$hostip] Upgrading packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
         if [ -n "$2" ]; then
             bins=$(util_appendVersionToPackage "$1" "$2")
         fi
-        yum clean all
-        yum update ${bins} -y --nogpgcheck
+        yum clean all 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        yum update ${bins} -y --nogpgcheck 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
-        apt-get $opts update
-        apt-get -y $opts upgrade ${bins} 
+        apt-get $opts update 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        apt-get -y $opts upgrade ${bins} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     elif [[ "$(getOS)" = "suse" ]]; then
-        zypper refresh
-        zypper --no-gpg-checks -n update ${bins}
+        zypper refresh 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        zypper --no-gpg-checks -n update ${bins} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     fi
 }
 

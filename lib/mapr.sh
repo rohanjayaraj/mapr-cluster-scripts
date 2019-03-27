@@ -775,7 +775,7 @@ function maprutil_upgrade(){
         cmd=$cmd" -QS"
     fi
     log_info "$cmd"
-    bash -c "$cmd"
+    bash -c "$cmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
 
     # Start zookeeper if if exists
     service mapr-zookeeper start 2>/dev/null
@@ -1134,7 +1134,7 @@ function maprutil_customConfigure(){
         local yarnsite=$(find $hadoopdir -name "yarn-site.xml" | grep -v sample-conf)
         if [ -z "$yarnsite" ]; then
             local cmd="$hadoopdir/bin/configure.sh -R"
-            bash -c "$cmd"
+            bash -c "$cmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         fi
     fi
 }
@@ -1485,7 +1485,7 @@ function maprutil_configure(){
 
     # Run configure.sh on the node
     log_info "[$hostip] $configurecmd"
-    bash -c "$configurecmd" |  awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+    bash -c "$configurecmd" 2>&1 |  awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     
     # Perform series of custom configuration based on selected options
     maprutil_customConfigure
@@ -1519,7 +1519,7 @@ function maprutil_configure(){
             numsps=
         fi
         # SSH session exits after running for few seconds with error "Write failed: Broken pipe"; Running in background and waiting
-        /opt/mapr/server/disksetup -FW $numstripe $diskfile | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
+        /opt/mapr/server/disksetup -FW $numstripe $diskfile 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
         dspid=$!
     elif [[ -n "$numsps" ]] &&  [[ "$numsps" -le "$numdisks" ]]; then
         [ $((numdisks%2)) -eq 1 ] && numdisks=$(echo "$numdisks+1" | bc)
@@ -1527,10 +1527,10 @@ function maprutil_configure(){
         if [[ "$(echo "$numstripe*$numsps" | bc)" -lt "$numdisks" ]]; then
             numstripe=$(echo "$numstripe+1" | bc)
         fi
-        /opt/mapr/server/disksetup -FW $numstripe $diskfile | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
+        /opt/mapr/server/disksetup -FW $numstripe $diskfile 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
         dspid=$!
     else
-        /opt/mapr/server/disksetup -FM $diskfile | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
+        /opt/mapr/server/disksetup -FM $diskfile 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
         dspid=$!
     fi
     while kill -0 ${dspid} 2>/dev/null; do echo -ne "."; sleep 1; done
@@ -1645,7 +1645,7 @@ function maprutil_postConfigure(){
         cmd=$cmd" -QS"
     fi
     log_info "$cmd"
-    timeout 300 bash -c "$cmd"
+    timeout 300 bash -c "$cmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     
     [ -n "$otnodes" ] || [ -n "$esnodes" ] && sleep 30
     [ -n "$otnodes" ] && /opt/mapr/collectd/collectd-*/etc/init.d/collectd restart > /dev/null 2>&1 
