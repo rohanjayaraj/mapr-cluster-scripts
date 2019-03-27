@@ -329,21 +329,22 @@ function util_installBinaries(){
     fi
     local bins="$1"
     local prefix=$3
+    local hostip=$(util_getHostIP)
     if [ -n "$2" ]; then
         bins=$(util_appendVersionToPackage "$1" "$2" "$3")
     fi
-    log_info "[$(util_getHostIP)] Installing packages : $bins"
+    log_info "[$hostip] Installing packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
         yum clean all > /dev/null 2>&1
-        yum install ${bins} -y --nogpgcheck
+        yum install ${bins} -y --nogpgcheck | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
         apt-get $opts update > /dev/null 2>&1
-        apt-get -y $opts install ${bins}
+        apt-get -y $opts install ${bins} | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper refresh > /dev/null 2>&1
-        zypper --no-gpg-checks -n install ${bins}
+        zypper --no-gpg-checks -n install ${bins} | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     fi
 }
 

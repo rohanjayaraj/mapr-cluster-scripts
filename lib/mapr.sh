@@ -1443,18 +1443,19 @@ function maprutil_configure(){
     local zknodes=$(util_getCommaSeparated "$2")
     local hsnodes=$(maprutil_getNodesForService "historyserver")
     local rmnodes=$(maprutil_getNodesForService "resourcemanager")
-    local ignoredisks=/root/baddisks
-    maprutil_buildDiskList "$diskfile" "$ignoredisks"
-
-    local disklist="$(cat $diskfile)"
-    [ -n "$(maprutil_isSSDOnlyInstall "$disklist")" ] && maprutil_configureSSD
-
+    
     if [ "$hostip" != "$cldbnode" ] && [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
         ssh_copyPublicKey "root" "$cldbnode"
     fi
 
-    # Remove containers on server nodes
     if [[ "$ISCLIENT" -eq "0" ]]; then
+        local ignoredisks=/root/baddisks
+        # build disk list
+        maprutil_buildDiskList "$diskfile" "$ignoredisks"
+        local disklist="$(cat $diskfile)"
+        [ -n "$(maprutil_isSSDOnlyInstall "$disklist")" ] && maprutil_configureSSD
+    
+        # Remove containers on server nodes
         maprutil_cleanDocker
     fi
 
@@ -1484,7 +1485,7 @@ function maprutil_configure(){
 
     # Run configure.sh on the node
     log_info "[$hostip] $configurecmd"
-    bash -c "$configurecmd"
+    bash -c "$configurecmd" |  awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     
     # Perform series of custom configuration based on selected options
     maprutil_customConfigure
@@ -1518,7 +1519,7 @@ function maprutil_configure(){
             numsps=
         fi
         # SSH session exits after running for few seconds with error "Write failed: Broken pipe"; Running in background and waiting
-        /opt/mapr/server/disksetup -FW $numstripe $diskfile &
+        /opt/mapr/server/disksetup -FW $numstripe $diskfile | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
         dspid=$!
     elif [[ -n "$numsps" ]] &&  [[ "$numsps" -le "$numdisks" ]]; then
         [ $((numdisks%2)) -eq 1 ] && numdisks=$(echo "$numdisks+1" | bc)
@@ -1526,10 +1527,10 @@ function maprutil_configure(){
         if [[ "$(echo "$numstripe*$numsps" | bc)" -lt "$numdisks" ]]; then
             numstripe=$(echo "$numstripe+1" | bc)
         fi
-        /opt/mapr/server/disksetup -FW $numstripe $diskfile &
+        /opt/mapr/server/disksetup -FW $numstripe $diskfile | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
         dspid=$!
     else
-        /opt/mapr/server/disksetup -FM $diskfile &
+        /opt/mapr/server/disksetup -FM $diskfile | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
         dspid=$!
     fi
     while kill -0 ${dspid} 2>/dev/null; do echo -ne "."; sleep 1; done
