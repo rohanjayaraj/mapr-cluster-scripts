@@ -277,11 +277,12 @@ function util_getInstalledBinaries(){
     if [ -z "$1" ]; then
         return
     fi
+    local bin=$(echo "$1" | sed 's/*/.*/g')
 
     if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
-        echo $(rpm -qa | grep "$1" | awk '{split ($0, a, "-0"); print a[1]}' | sed ':a;N;$!ba;s/\n/ /g')
+        echo $(rpm -qa | grep "$bin" | awk '{split ($0, a, "-0"); print a[1]}' | sed ':a;N;$!ba;s/\n/ /g')
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        echo $(dpkg -l | grep "$1" | awk '{print $2}' | sed ':a;N;$!ba;s/\n/ /g')
+        echo $(dpkg -l | grep "$bin" | awk '{print $2}' | sed ':a;N;$!ba;s/\n/ /g')
     fi
 }
 
@@ -324,7 +325,8 @@ function util_appendVersionToPackage(){
 
 # @param list of binaries
 function util_checkInstallAndRetry(){
-    local bins=( "$1" )
+    [ -z "$1" ] && return
+    local bins=($1)
     local numbins=${#bins[@]}
     local actbins=0
     for (( i=0; i<$numbins; i++ )); do
