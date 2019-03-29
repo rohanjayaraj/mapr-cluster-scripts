@@ -1207,9 +1207,11 @@ while [ "$2" != "" ]; do
     	-e)
 			for i in ${VALUE}; do
 				#echo " extra option : $i"
-				if [[ "$i" = "createvol" ]] || [[ "$i" = "enableaudit" ]] || [[ "$i" = "auditstream" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]] || [[ "$i" = "traceon" ]] || [[ "$i" = "traceoff" ]] || [[ "$i" = "insttrace" ]]; then
+				if [[ "$i" = "createvol" ]] || [[ "$i" = "enableaudit" ]] || [[ "$i" = "auditstream" ]] || [[ "$i" = "tablecreate" ]] || [[ "$i" = "tablelz4" ]] || [[ "$i" = "jsontable" ]] || [[ "$i" = "nocldbtopo" ]] || [[ "$i" = "cldbtopo" ]] || [[ "$i" = "jsontablecf" ]] || [[ "$i" = "tsdbtopo" ]] || [[ "$i" = "traceon" ]] || [[ "$i" = "traceoff" ]] || [[ "$i" = "insttrace" ]]; then
 					if [[ "$i" = "cldbtopo" ]]; then
     					GLB_CLDB_TOPO=1
+    				elif [[ "$i" = "nocldbtopo" ]]; then
+    					GLB_CLDB_TOPO=0
     				elif [[ "$i" = "traceoff" ]]; then
     					GLB_TRACE_ON=
     				elif [[ "$i" = "tsdbtopo" ]]; then

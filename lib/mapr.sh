@@ -1170,7 +1170,7 @@ function maprutil_configureCLDBTopology(){
     timeout 30 maprcli node move -serverids "$datanodes" -topology /data 2>/dev/null
     
     ## Move CLDB if only forced or # of nodes > 5
-    if [ "$GLB_CLUSTER_SIZE" -gt 5 ] || [ -n "$1" ]; then
+    if [[ "$GLB_CLDB_TOPO" -gt "0" ]] && [[ "$GLB_CLUSTER_SIZE" -gt 5 ]] || [[ -n "$1" ]]; then
         ### Moving CLDB Nodes to CLDB topology
         #local cldbnode=`maprcli node cldbmaster | grep ServerID | awk {'print $2'}`
         local cldbnodes=$(timeout 30 maprcli node list -columns id,configuredservice,racktopo -json 2>/dev/null | grep -e configuredservice -e id | grep -B1 cldb | grep id | sed 's/:/ /' | sed 's/\"/ /g' | awk '{print $2}' | tr "\n" "," | sed 's/\,$//')

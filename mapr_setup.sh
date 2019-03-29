@@ -156,7 +156,9 @@ function usage () {
     echo 
 	echo " Post install Options : "
     echo -e "\t -ct | --cldbtopo" 
-    echo -e "\t\t - Move CLDB node & volume to /cldb topology"
+    echo -e "\t\t - Move CLDB node & volume to /cldb topology (enabled by default if cluster size > 5)"
+    echo -e "\t -nct | --nocldbtopo" 
+    echo -e "\t\t - Disable moving of CLDB node and volume to /cldb topology by default"
     echo -e "\t -vol=<NAME,VOLUMEPATH> | -y=<NAME,VOLUMEPATH>  | --volume=<NAME,VOLUMEPATH>" 
     echo -e "\t\t - Create volume NAME with VOLUMEPATH"
     echo -e "\t -tc | --tsdbtocldb" 
@@ -230,6 +232,9 @@ while [ "$1" != "" ]; do
         ;;
         -ct | --cldbtopo)
             extraarg=$extraarg"cldbtopo "
+        ;;
+        -nct | --nocldbtopo)
+            extraarg=$extraarg"nocldbtopo "
         ;;
         -tc | --tsdbtocldb)
             extraarg=$extraarg"tsdbtopo "
