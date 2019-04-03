@@ -384,7 +384,7 @@ if [ -z "$rolefile" ]; then
 	>&2 echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	exit 1
 else
-    $libdir/main.sh "$rolefile" "-e=$extraarg" "-s=$setupop" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
+    $libdir/main.sh "$rolefile" "-s=$setupop" "-e=$extraarg" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
     "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-ft=$fsthreads" "-gt=$gwthreads" "-repo=$repourl" \
     "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid" "-maxm=$maxmfsmem" "-vol=$volname"
     returncode=$?
