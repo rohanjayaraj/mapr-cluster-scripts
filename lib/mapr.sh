@@ -1418,6 +1418,10 @@ function maprutil_fixTempBuildIssues() {
             sed -i '1507i\     import os;' /opt/mapr/server/disksetup
         fi
     fi
+    local apiscript="/opt/mapr/apiserver/bin/mapr-apiserver.sh"
+    if [ -d "/opt/mapr/apiserver" ] && [ -z "$(cat $apiscript | grep "db.mapr.recentlist)" ]; then
+        sed -i "s|fs.mapr.hardmount=true|fs.mapr.hardmount=true -Ddb.mapr.recentlist=true|g" $apiscript
+    fi
 }
 
 function maprutil_configure(){
