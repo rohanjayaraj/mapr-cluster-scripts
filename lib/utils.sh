@@ -1058,7 +1058,7 @@ function util_sendJSONMail(){
     local json="$1"
     local useurl="$2"
 
-    curl -L -X POST --data @- ${useurl} < $json > /dev/null 2>&1
+    timeout 300 curl -L -X POST --data @- ${useurl} < $json > /dev/null 2>&1
 }
 
 function util_removeXterm(){
@@ -1086,7 +1086,7 @@ function util_postToSlack(){
     local json="{\"text\":$text}"
     local tmpfile=$(mktemp)
     echo "$json" > $tmpfile
-    curl -L -X POST -H 'Content-type: application/json' --data @-  $SLACK_URL  < $tmpfile > /dev/null 2>&1
+    timeout 300 curl -L -X POST -H 'Content-type: application/json' --data @-  $SLACK_URL  < $tmpfile > /dev/null 2>&1
     rm -f $tmpfile > /dev/null 2>&1
 }
 
@@ -1108,7 +1108,7 @@ function util_postToSlack2(){
         local json="{\"text\":\"\`\`\`$ptext\`\`\`\"}"
         local tmpfile=$(mktemp)
         echo "$json" > $tmpfile
-        curl -L -X POST -H 'Content-type: application/json' --data @-  $SLACK_URL  < $tmpfile > /dev/null 2>&1
+        timeout 300 curl -L -X POST -H 'Content-type: application/json' --data @-  $SLACK_URL  < $tmpfile > /dev/null 2>&1
         rm -f $tmpfile > /dev/null 2>&1
         #let nlpos=nlpos+1
         posttext="${posttext:$nlpos:$textlen}"

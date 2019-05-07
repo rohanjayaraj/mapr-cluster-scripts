@@ -3480,7 +3480,7 @@ function maprutil_zipDirectory(){
     fi
     local dirstotar=$(echo $(ls -d */))
     #tar -cjf $tarfile $dirstotar > /dev/null 2>&1
-    tar -cf $tarfile --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
+    timeout 600 tar -cf $tarfile --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
     rm -rf $dirstotar > /dev/null 2>&1
 }
 
@@ -3773,7 +3773,7 @@ function maprutil_publishMFSCPUUse(){
     echo "$json" > $tmpfile
     local fsize=$(echo "$(stat -c %s $tmpfile)/(1024*1024)" | bc )
     [[ "$fsize" -ge "20" ]] && log_warn "Publish may fail as aggregated log file size (${fsize}MB) is >20MB. Reduce the size by limiting the time range"
-    curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
+    timeout 30 curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
     # TODO : Print URL
     rm -f $tmpfile > /dev/null 2>&1
     popd > /dev/null 2>&1
@@ -3896,7 +3896,7 @@ function maprutil_mfsCPUUseOnCluster(){
     if [ "$2" != "/tmp" ] || [ "$2" != "/tmp/" ]; then
         dirstotar=$(echo $(ls -d */))
     fi        
-    tar -cf maprcpuuse_$timestamp.tar.bz2 --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
+    timeout 600 tar -cf maprcpuuse_$timestamp.tar.bz2 --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
 
     util_createExtractFile
 
@@ -4331,7 +4331,7 @@ function maprutil_publishGutsStats(){
     echo "$json" > $tmpfile
     local fsize=$(echo "$(stat -c %s $tmpfile)/(1024*1024)" | bc )
     [[ "$fsize" -ge "20" ]] && log_warn "Publish may fail as aggregated log file size (${fsize}MB) is >20MB. Reduce the size by limiting the time range"
-    curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
+    timeout 30 curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
     # TODO : Print URL
     rm -f $tmpfile > /dev/null 2>&1
     popd > /dev/null 2>&1
@@ -4399,7 +4399,7 @@ function maprutil_gutstatsOnCluster(){
     if [ "$2" != "/tmp" ] || [ "$2" != "/tmp/" ]; then
         dirstotar=$(echo $(ls -d */))
     fi        
-    tar -cf maprgutsstats_$timestamp.tar.bz2 --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
+    timeout 600 tar -cf maprgutsstats_$timestamp.tar.bz2 --use-compress-prog=pbzip2 $dirstotar > /dev/null 2>&1
 
     util_createExtractFile
 
@@ -4622,7 +4622,7 @@ function maprutil_perftool(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java.core\|reader\|writer\|collectd' | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd' | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
 
@@ -4685,7 +4685,7 @@ function maprutil_debugCore(){
     local tracefile=$2
     local coreidx=$3
     local newcore=
-    local isjava=$(echo $corefile | grep "java.core")
+    local isjava=$(echo $corefile | grep "java[A-Za-z0-9]*.core")
     local iscollectd=$(echo $corefile | grep "reader\|writer\|collectd")
     local ismfs=$(echo $corefile | grep "mfs.core")
     local colbin=
