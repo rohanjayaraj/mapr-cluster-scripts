@@ -439,13 +439,13 @@ function maprutil_isMapRInstalledOnNodes(){
         if [ "$nodelog" = "true" ]; then
             if [ -n "$maprversion" ]; then
                 local nodevlog=$(cat $tmpdir/$node_ver.log)
-                yeslist=$yeslist"$node $nodevlog""\n"
+                yeslist=$yeslist"$node $nodevlog""#"
             else
                 yeslist=$yeslist"$node"" "
             fi
         fi
     done
-    echo -e "$yeslist"
+    echo "$yeslist" | sed 's/#/\n/g'
 }
 
 # @param host ip
