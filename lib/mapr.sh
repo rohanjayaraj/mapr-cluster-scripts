@@ -1134,7 +1134,9 @@ function maprutil_customConfigure(){
         local yarnsite=$(find $hadoopdir -name "yarn-site.xml" | grep -v sample-conf)
         if [ -z "$yarnsite" ]; then
             local hostip=$(util_getHostIP)
-            local cmd="$hadoopdir/bin/configure.sh -R"
+            local cmd="$hadoopdir/bin/configure.sh"
+            [ -n "$GLB_SECURE_CLUSTER" ] && cmd="$cmd -secure"
+            log_info "[$hostip] $cmd"
             bash -c "$cmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         fi
     fi
