@@ -1133,6 +1133,7 @@ function maprutil_customConfigure(){
     if [ "$ISCLIENT" -eq 1 ] && [ -n "$hadoopdir" ]; then
         local yarnsite=$(find $hadoopdir -name "yarn-site.xml" | grep -v sample-conf)
         if [ -z "$yarnsite" ]; then
+            local hostip=$(util_getHostIP)
             local cmd="$hadoopdir/bin/configure.sh -R"
             bash -c "$cmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         fi
