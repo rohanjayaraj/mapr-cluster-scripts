@@ -159,6 +159,12 @@ function maprutil_getCoreNodeBinaries() {
                 newbinlist=$newbinlist"$bin "
             fi
         done
+        if [ -n "$GLB_MAPR_VERSION" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+            if [ -n "$(echo $newbinlist | grep mapr-core)" ] && [ -z "$(echo $newbinlist | grep "mapr-hadoop-client")" ]; then
+                newbinlist="$newbinlist mapr-hadoop-client"
+            fi 
+        fi
+        #GLB_MAPR_VERSION
         if [ -n "$GLB_MAPR_PATCH" ]; then
             if [ -z "$(maprutil_isClientNode $1)" ]; then
                 [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
@@ -474,7 +480,9 @@ function maprutil_isMapRVersionSameOrNewer(){
         return
     fi
 
+    local usever="$2"
     local curver=$(cat /opt/mapr/MapRBuildVersion)
+    [ -n "$usever" ] && curver="$usever"
     local ismaprv=($(echo $1 | tr '.' ' ' | awk '{print $1,$2,$3}'))
 
     if [ -n "$curver" ]; then
