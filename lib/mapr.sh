@@ -476,13 +476,20 @@ function maprutil_getMapRVersionOnNode(){
 
 # @param version to check "x.y.z"
 function maprutil_isMapRVersionSameOrNewer(){
-    if [ -z "$1" ] ; then
+    if [ -z "$1" ]; then
         return
     fi
 
     local usever="$2"
-    local curver=$(cat /opt/mapr/MapRBuildVersion)
-    [ -n "$usever" ] && curver="$usever"
+    local curver=
+    if [ -n "$usever" ]; then
+        curver="$usever"
+    elif [ ! -s "/opt/mapr/MapRBuildVersion" ]; then
+        return
+    else
+        curver=$(cat /opt/mapr/MapRBuildVersion)
+    fi
+
     local ismaprv=($(echo $1 | tr '.' ' ' | awk '{print $1,$2,$3}'))
 
     if [ -n "$curver" ]; then
