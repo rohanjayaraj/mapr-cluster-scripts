@@ -34,6 +34,7 @@ perftool=
 perfinterval=
 maillist=
 mailsub=
+logfile=
 backupregex=
 verbose=
 doNoFormat=
@@ -77,6 +78,9 @@ function usage () {
 
     echo -e "\t -fl | --noformat" 
     echo -e "\t\t - Remove output formatting (ANSI color)"
+
+    echo -e "\t -log=</path/to/file>  | --logfile=</path/to/file> " 
+    echo -e "\t\t - Log output of each command into the file specified (empty if no output)"
 
     echo -e "\t -d | --diskerror" 
     echo -e "\t\t - Find any disk errors on nodes"
@@ -220,6 +224,9 @@ while [ "$1" != "" ]; do
         -cc | --copycores)
             args=$args"copycores "
             [ -n "$VALUE" ] && copydir="$VALUE"
+        ;;
+        -log | --logfile)
+            [ -n "$VALUE" ] && logfile="$VALUE"
         ;;
         -dt | --disktest)
             args=$args"disktest "
@@ -374,7 +381,7 @@ if [ -z "$rolefile" ]; then
 	returncode=1
 else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
-    \"-dir=$copydir\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
+    \"-dir=$copydir\" \"-ldrlog=$logfile\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
     \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\" \"-mail=$maillist\" \"-sub=$mailsub\" \
     \"-pn=$pname\" \"-pt=$perftool\" \"-pi=$perfinterval\" \"-extarg=$extarg\""
     if [ -z "$doNoFormat" ]; then

@@ -883,7 +883,8 @@ function main_runLogDoctor(){
 	[ -z "$doLogAnalyze" ] && return
 	local nodelist=
 	local rc=0
-	local mailfile=$(mktemp)
+	local mailfile=$logdrfile
+	[ -z "$mailfile" ] && mailfile=$(mktemp)
 
 	for node in ${nodes[@]}
 	do	
@@ -987,7 +988,7 @@ function main_runLogDoctor(){
         util_sendMail "$GLB_MAIL_LIST" "$mailsub" "$tmpfile"
         rm -f $tmpfile > /dev/null 2>&1
     fi
-    rm -f $mailfile > /dev/null 2>&1
+    [ -z "$logdrfile" ] && rm -f $mailfile > /dev/null 2>&1
 	return $rc
 }
 
@@ -1172,6 +1173,7 @@ addSpy=
 startstr=
 endstr=
 copydir=
+logdrfile=
 bkpRegex=
 useBuildID=
 useRepoURL=
@@ -1300,6 +1302,9 @@ while [ "$2" != "" ]; do
 		;;
 		-dir)
 			[ -n "$VALUE" ] && copydir="$VALUE"
+		;;
+		-ldrlog)
+			[ -n "$VALUE" ] && logdrfile="$VALUE"
 		;;
 		-si)
 			if [ -n "$VALUE" ]; then
