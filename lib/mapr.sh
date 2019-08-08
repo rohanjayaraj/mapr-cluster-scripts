@@ -4083,10 +4083,15 @@ maprutil_getMFSThreadUseFromGuts(){
     [ -z "$el" ] || [ -z "$sl" ] && log_error "[$(util_getHostIP)] Start or End time not found in the tguts.log. Specify newer time range" && return
     [ "$sl" -gt "$el" ] && el=$(cat $gutsfile | wc -l)
 
-    local gheader=$(grep '^[a-z]' $gutsfile | grep time | head -1 | sed 's/ \+/ /g' | tr ' ' '\n' | awk 'BEGIN{i=2}{ print i,$0; i++}' | grep "\[")
-    local nummfsinst="$(echo "$gheader" | grep Rpc | awk '{print $2}' | cut -d ']' -f1 | sort | uniq | wc -l)"
+    local gheader=$(grep '^[a-z]' $gutsfile | grep time | tail -1 | sed 's/ \+/ /g' | tr ' ' '\n' | awk 'BEGIN{i=2}{ print i,$0; i++}')
+    local nummfsinst="$(echo "$gheader" | grep -w 'Rpc\|[0-9]*Rpc' | awk '{print $2}' | cut -d ']' -f1 | sort | uniq | wc -l)"
 
     local threadtypes="Rpc IOMgr FS DBMain DBHelper DBFlush Compress SysCalls ExtInstance"
+    declare -A altthreadtypes
+    altthreadtypes["DBHelper"]="DBH"
+    altthreadtypes["DBFlush"]="DBF"
+    altthreadtypes["Compress"]="Comp"
+    altthreadtypes["ExtInstance"]="ExtIns"
 
     for ((j=0; j < $nummfsinst ; j++))
     do
@@ -4095,7 +4100,9 @@ maprutil_getMFSThreadUseFromGuts(){
         for type in $threadtypes    
         do
             local logfile="$tempdir/mfs${j}_${type}.log"
-            local colids="$(echo "$gheader" | grep $type | grep "\[$ji]" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/ /g')"
+            local alttype=${altthreadtypes[$type]}
+            [ -z "$alttype" ] && alttype=$type
+            local colids="$(echo "$gheader" | grep -e $type -e $alttype | grep -e "\[$ji]$type" -e "$ji$type" -e "$j$alttype" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/ /g')"
             sed -n ${sl},${el}p $gutsfile | grep "^2" | awk -v var="$colids" 'BEGIN{split(var,cids," "); ncols=length(cids)} {for (i=1;i<=length(cids);i++) { sum+=$cids[i]; if($cids[i]>max) max=$cids[i] } printf("%d %d\n",sum/ncols, max); sum=0; max=0}' > $logfile 2>&1 &
         done
     done
