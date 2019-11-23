@@ -928,9 +928,6 @@ function maprutil_reinstallApiserver(){
     [ -z "$hasapi" ] && [ -z "$haswebserver" ] && return
     
     log_info "[$hostip] Removing and installed EBF builds for apiserver/webserver"
-    
-    # Remove the binaries first
-    util_removeBinaries "mapr-apiserver,mapr-webserver"
 
     local nodeos=$(getOS)
     local tempdir=$(mktemp -d)
@@ -947,6 +944,10 @@ function maprutil_reinstallApiserver(){
     repourl="${repourl}${buildid}/"
     wget -r -np -nH -nd --cut-dirs=1 --accept "*.${ext}" ${repourl} > /dev/null 2>&1
     local apibins=$(ls *.${ext} 2>/dev/null)
+    [ -z "$apibins" ] && log_warn "[$hostip] No apiserver/webserver packages found" && return
+
+    # Remove the binaries first
+    util_removeBinaries "mapr-apiserver,mapr-webserver"
 
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         [ -n "$hasapi" ] && rpm -ivh $(echo ${apibins} | grep apiserver)
