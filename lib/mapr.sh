@@ -898,14 +898,17 @@ function maprutil_installBinariesOnNode(){
         [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
         echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""-$GLB_MAPR_VERSION"\"" >> $scriptpath
         if [ -n "$maprpatch" ]; then
+            echo "maprutil_reinstallApiserver" >> $scriptpath
             echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
             echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
+            
         fi
     else
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g')
         [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
         echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""$GLB_MAPR_VERSION"\"" >> $scriptpath
         if [ -n "$maprpatch" ]; then
+            echo "maprutil_reinstallApiserver" >> $scriptpath
             echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
             echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
         fi
@@ -916,6 +919,44 @@ function maprutil_installBinariesOnNode(){
     if [ -z "$3" ]; then
         maprutil_wait
     fi
+}
+
+function maprutil_reinstallApiserver(){
+    local hostip=$(util_getHostIP)
+    local hasapi=$(echo $(maprutil_getNodesForService "mapr-apiserver") | grep "$hostip")
+    local haswebserver=$(echo $(maprutil_getNodesForService "mapr-webserver") | grep "$hostip")
+    [ -z "$hasapi" ] && [ -z "$haswebserver" ] && return
+    
+    log_info "[$hostip] Removing and installed EBF builds for apiserver/webserver"
+    
+    # Remove the binaries first
+    util_removeBinaries "mapr-apiserver,mapr-webserver"
+
+    local nodeos=$(getOS)
+    local tempdir=$(mktemp -d)
+    local repourl="http://artifactory.devops.lab/artifactory/list/eco-rpm/releases/opensource/redhat/mapr-admin-${GLB_MAPR_VERSION}-EBF/"
+    local ext="rpm"
+    
+    if [ "$nodeos" = "ubuntu" ]; then
+        repourl="$(echo $repourl | sed 's/eco-rpm/eco-deb/g' | sed 's/redhat/ubuntu/g')"
+        ext="deb"
+    fi
+    pushd $tempdir
+    wget -q -O test.html ${repourl}
+    local buildid=$(cat test.html | grep -o "href=\"[0-9]*" | cut -d '"' -f2 | sort -n -r | head -1)
+    repourl="${repourl}${buildid}/"
+    wget -r -np -nH -nd --cut-dirs=1 --accept "*.${ext}" ${repourl} > /dev/null 2>&1
+    local apibins=$(ls *.${ext} 2>/dev/null)
+
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+        [ -n "$hasapi" ] && rpm -ivh $(echo ${apibins} | grep apiserver)
+        [ -n "$haswebserver" ] && rpm -ivh $(echo ${apibins} | grep webserver)
+    else
+        [ -n "$hasapi" ] && dpkg -i $(echo ${apibins} | grep apiserver)
+        [ -n "$haswebserver" ] && dpkg -i $(echo ${apibins} | grep webserver)
+    fi
+    popd
+    rm -rf $tempdir > /dev/null 2>&1
 }
 
 function maprutil_checkIsBareMetal(){
