@@ -938,7 +938,7 @@ function maprutil_reinstallApiserver(){
         repourl="$(echo $repourl | sed 's/eco-rpm/eco-deb/g' | sed 's/redhat/ubuntu/g')"
         ext="deb"
     fi
-    pushd $tempdir
+    pushd $tempdir > /dev/null 2>&1
     wget -q -O test.html ${repourl}
     local buildid=$(cat test.html | grep -o "href=\"[0-9]*" | cut -d '"' -f2 | sort -n -r | head -1)
     repourl="${repourl}${buildid}/"
@@ -956,7 +956,7 @@ function maprutil_reinstallApiserver(){
         [ -n "$hasapi" ] && dpkg -i $(echo ${apibins} | grep apiserver)
         [ -n "$haswebserver" ] && dpkg -i $(echo ${apibins} | grep webserver)
     fi
-    popd
+    popd > /dev/null 2>&1
     rm -rf $tempdir > /dev/null 2>&1
 }
 
