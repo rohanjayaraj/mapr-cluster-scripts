@@ -206,7 +206,7 @@ function main_install(){
 		local maprrepo=$(main_getRepoFile $node)
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
-		[ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
+		[ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node" "$maprrepo"
 		if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$buildexists" ]; then
 			main_isValidBuildVersion
 			buildexists=$(maprutil_checkBuildExists "$node" "$GLB_BUILD_VERSION")
@@ -1133,6 +1133,7 @@ function main_preSetup(){
 	local roles="$(maprutil_getRolesList)"
 	[ -z "$GLB_HAS_FUSE" ] && [ -n "$(echo "$roles" | grep mapr-posix)" ] && GLB_HAS_FUSE=1
 	[ -n "$copydir" ] && GLB_COPY_DIR="$copydir" && mkdir -p $GLB_COPY_DIR > /dev/null 2>&1
+	[ -z "$GLB_MAPR_PATCH" ] && [ -n "$(echo "$roles" | grep mapr-patch)" ] && GLB_MAPR_PATCH=1
 	GLB_CLUSTER_SIZE=$(echo "$roles" |  grep "^[^#;]" | grep 'mapr-fileserver' | wc -l)
 }
 

@@ -901,7 +901,6 @@ function maprutil_installBinariesOnNode(){
             echo "maprutil_reinstallApiserver" >> $scriptpath
             echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
             echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
-            
         fi
     else
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g')
@@ -1984,15 +1983,29 @@ function maprutil_copyRepoFile(){
 }
 
 function maprutil_buildPatchRepoURL(){
-    if [ -z "$1" ]; then
+    if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
+    [ -n "$GLB_PATCH_REPOFILE" ] && return
+
     local node=$1
+    local repofile=$2
+    local repopatch=
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
+        repopatch=$(cat $repofile 2>/dev/null | grep -B2 -A2 d=1 | grep patch | grep baseurl | cut -d '=' -f2)
+        if [ -n "$repopatch" ]; then
+            GLB_PATCH_REPOFILE=${repopatch}
+        else
+            [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
+        fi
     elif [ "$nodeos" = "ubuntu" ]; then
-        [ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/ubuntu/"
+        repopatch=$(cat $repofile 2>/dev/null | grep -v "^#" | grep patch | awk '{print $2}')
+        if [ -n "$repopatch" ]; then
+            GLB_PATCH_REPOFILE=${repopatch}
+        else
+            [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/ubuntu/"
+        fi
     fi
     #echo "$GLB_PATCH_REPOFILE"
 }
