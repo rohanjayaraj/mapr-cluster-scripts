@@ -457,8 +457,8 @@ function util_getRawDisks(){
         [ -z "$sizestr" ] && cmd="$cmd | grep -v \"$disk\"" && continue
         local size=$(printf "%.0f" $(echo "$sizestr" | awk '{print $1}'))
         local rep=$(echo "$sizestr" | awk '{print $2}')
-        [ "$rep" = "MB" ] && [ "$size" -lt "100000" ] && cmd="$cmd | grep -v \"$disk\""
-        [ "$rep" = "GB" ] && [ "$size" -lt "100" ] &&  cmd="$cmd | grep -v \"$disk\""
+        [ "$rep" = "MB" ] && [ "$size" -lt "200000" ] && cmd="$cmd | grep -v \"$disk\""
+        [ "$rep" = "GB" ] && [ "$size" -lt "200" ] &&  cmd="$cmd | grep -v \"$disk\""
     done
     local disks=$(bash -c  "$cmd | sort")
     if [ -n "$disktype" ]; then
