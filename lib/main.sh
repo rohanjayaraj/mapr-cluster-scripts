@@ -734,6 +734,7 @@ function main_getmfscpuuse(){
 	done
 	wait
 	local mfsnodes=$(maprutil_getMFSDataNodes)
+	[ -z "$mfsnodes" ] && mfsnodes="$nodes"
 	log_info "Aggregating stats from all nodes [ $nodes ]"
 	maprutil_mfsCPUUseOnCluster "$nodes" "$mfsnodes" "$copydir" "$timestamp" "$doPublish"
 }
@@ -748,6 +749,14 @@ function main_getgutsstats(){
 	local node=$(util_getFirstElement "$mfsnodes")
 
 	local collist=$(marutil_getGutsSample "$node" "$doGutsType" )
+	if [ -z "$collist" ]; then
+		mfsnodes="$nodes"
+		for node in ${nodes[@]}
+		do
+			collist=$(marutil_getGutsSample "$node" "$doGutsType" )
+			[ -n "$collist" ] && break
+		done
+	fi
 	[ -z "$collist" ] && log_error "Guts column list is empty!" && return
 	local defaultcols="$(maprutil_getGutsDefCols "$collist" "$doGutsCol")"
 	local usedefcols=
