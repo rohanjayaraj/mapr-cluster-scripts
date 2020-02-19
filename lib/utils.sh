@@ -1069,7 +1069,7 @@ function util_removeXterm(){
 function util_postToSlack(){
      [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
 
-    local SLACK_URL="https://hooks.slack.com/services/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"
+    local SLACK_URL="https://hooks.slack.com/services/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"
     local roles="$1"
     local optype="$2"
     local extrainfo="$3"
@@ -1093,7 +1093,7 @@ function util_postToSlack(){
 function util_postToSlack2(){
      [ -z "$1" ] && echo "Missing arguments" && return
 
-    local SLACK_URL="https://hooks.slack.com/services/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"
+    local SLACK_URL="https://hooks.slack.com/services/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"
     local filetopost="$1"
     
     local posttext="$(cat $filetopost)"

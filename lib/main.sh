@@ -1449,7 +1449,8 @@ while [ "$2" != "" ]; do
     	-repo)
 			if [ -n "$VALUE" ]; then
 				useRepoURL="$VALUE" && main_extractMapRVersion "$useRepoURL"
-				[ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$(echo ${useRepoURL} | grep "releases-dev")" ] && GLB_PATCH_REPOFILE="$(echo ${useRepoURL} | sed 's/\(\/v[0-9].[0-9].[0-9]\)/\/patches\1/g')"
+				[ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$(echo ${useRepoURL} | grep "releases")" ] && GLB_PATCH_REPOFILE="$(echo ${useRepoURL} | sed 's/\(\/v[0-9].[0-9].[0-9]\)/\/patches\1/g')"
+				[ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(echo ${GLB_PATCH_REPOFILE} | grep "releases-dev")" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/\/releases\//\/releases-dev\//')
 				#[ -z "$GLB_PATCH_REPOFILE" ] && GLB_PATCH_REPOFILE="${useRepoURL%?}-patch-EBF"
 				[ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE=
 			fi
