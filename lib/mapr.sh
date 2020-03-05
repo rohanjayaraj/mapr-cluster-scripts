@@ -3682,8 +3682,8 @@ function maprutil_processtrace(){
     for i in $(seq $iter)
     do
         local tracefile="$tmpdir/${pname}_trace_$(date '+%Y-%m-%d-%H-%M-%S')"
-        command -v gstack >/dev/null 2>&1 && gstack $ppid > $tracefile || gdb -ex "t a a bt" --batch -p $ppid  | grep -v "^\[New" > $tracefile
-        [ -n "$isjava" ] && jstack $ppid > ${tracefile}_jstack
+        command -v gstack >/dev/null 2>&1 && timeout 120 gstack $ppid > $tracefile || timeout 120 gdb -ex "t a a bt" --batch -p $ppid  | grep -v "^\[New" > $tracefile
+        [ -n "$isjava" ] && timeout 120 jstack $ppid > ${tracefile}_jstack
         sleep 1
     done
 }
@@ -3702,7 +3702,7 @@ function maprutil_mfsthreads(){
         mfstrace=$(cat $mfsgstack) 
     else
         #mfstrace=$(gstack $mfspid | sed '1!G;h;$!d')
-        mfstrace=$(command -v gstack >/dev/null 2>&1 && gstack $mfspid | sed '1!G;h;$!d' || gdb -ex "t a a bt" --batch -p $mfspid  | grep -v "^\[New" | sed '1!G;h;$!d')
+        mfstrace=$(command -v gstack >/dev/null 2>&1 && gstack $mfspid | sed '1!G;h;$!d' || timeout 120 gdb -ex "t a a bt" --batch -p $mfspid  | grep -v "^\[New" | sed '1!G;h;$!d')
         echo "$mfstrace" > $mfsgstack
     fi
     echo
@@ -4772,14 +4772,14 @@ function maprutil_debugCore(){
 
     if [ -z "$(find $tracefile -type f -size +15k 2> /dev/null)" ]; then
         if [ -n "$isjava" ]; then
-            gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
+            timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
             newcore=1
         elif [ -n "$iscollectd" ]; then
             colbin=$(find /opt/mapr/collectd -type f -name collectd  -exec file -i '{}' \; 2> /dev/null | tr -d ':' | grep 'x-executable' | awk {'print $1'})
-            gdb -ex "thread apply all bt" --batch -c ${corefile} $colbin > $tracefile 2>&1    
+            timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} $colbin > $tracefile 2>&1    
             newcore=1
         elif [ -n "$ismfs" ]; then
-            gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
+            timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
             newcore=1
         fi
     fi
@@ -4801,7 +4801,7 @@ function maprutil_debugCore(){
             echo "info args" >> $tmpfile
             echo "info locals" >> $tmpfile
         done
-        gdb -x $tmpfile -f -batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1
+        timeout 120 gdb -x $tmpfile -f -batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1
         rm -f $tmpfile >/dev/null 2>&1
     fi
     if [[ -n "$GLB_COPY_CORES" ]] && [[ "$coreidx" -le "$GLB_COPY_CORES" ]] && [[ -n "$GLB_COPY_DIR" ]] && [[ ! -f "$GLB_COPY_DIR/$(basename $corefile)" ]]; then
