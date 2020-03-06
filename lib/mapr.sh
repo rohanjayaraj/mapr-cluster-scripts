@@ -4702,7 +4702,7 @@ function maprutil_perftool(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd' | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[0-9]*.[a-Z0-9]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd' | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
 
@@ -4767,7 +4767,7 @@ function maprutil_debugCore(){
     local newcore=
     local isjava=$(echo $corefile | grep "java[A-Za-z0-9]*.core")
     local iscollectd=$(echo $corefile | grep "reader\|writer\|collectd")
-    local ismfs=$(echo $corefile | grep "mfs.core")
+    local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[0-9]*.[a-Z0-9]*.core")
     local colbin=
 
     if [ -z "$(find $tracefile -type f -size +15k 2> /dev/null)" ]; then
