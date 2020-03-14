@@ -74,10 +74,12 @@ function util_checkAndInstall(){
     if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
+    local opts=
     if [ "$(getOS)" = "centos" ]; then
-        command -v $1 >/dev/null 2>&1 || yum --enablerepo=C6*,C7*,base,epel,epel-release install $2 -y -q 2>/dev/null
+        opts="C6*,C7*,base,epel,epel-release"
+        [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras"
+        command -v $1 >/dev/null 2>&1 || yum --enablerepo=${opts} install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        local opts=
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
         command -v $1 >/dev/null 2>&1 || apt-get -y $opts install $2 2>/dev/null
     elif [[ "$(getOS)" = "suse" ]]; then
@@ -94,7 +96,9 @@ function util_checkAndInstall2(){
     fi
     if [ "$(getOS)" = "centos" ]; then
         if [ ! -e "$1" ]; then
-            yum install $2 -y -q --enablerepo=C6*,C7*,base,epel,epel-release 2>/dev/null
+            local opts="C6*,C7*,base,epel,epel-release"
+            [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras"
+            yum install $2 -y -q --enablerepo=${opts} 2>/dev/null
         fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         if [ ! -e "$1" ]; then
@@ -125,10 +129,12 @@ function util_maprprereq(){
     device-mapper iputils lvm2 mozilla-nss ntp sdparm sysfsutils sysstat util-linux python-pycurl"
 
     if [ "$(getOS)" = "centos" ]; then
+        local opts="C6*,C7*,base,epel,epel-release"
+        [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras"
         yum --disablerepo=epel -q -y update ca-certificates 
-        yum -q -y install redhat-lsb-core --enablerepo=C6*,C7*,epel,epel-release 
-        yum -q -y install $DEPENDENCY_RPM --enablerepo=C6*,C7*,epel,epel-release 
-        yum -q -y install java-1.8.0-openjdk-devel --enablerepo=C6*,C7*,epel,epel-release 
+        yum -q -y install redhat-lsb-core --enablerepo=${opts}
+        yum -q -y install $DEPENDENCY_RPM --enablerepo=${opts}
+        yum -q -y install java-1.8.0-openjdk-devel --enablerepo=${opts}
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
@@ -162,8 +168,8 @@ EOM
 
 function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
-         yum repolist all 2>&1 | grep "epel/" || yum install epel-release -y --enablerepo=C6*,C7* > /dev/null 2>&1
-         yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
+        yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install epel-release -y > /dev/null 2>&1
+        yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
     fi
 
     [ -z "$(getent passwd mapr)" ] && [ -n "$(util_isBareMetal)" ] && util_maprprereq
