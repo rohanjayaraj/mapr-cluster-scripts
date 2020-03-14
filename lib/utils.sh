@@ -168,7 +168,7 @@ EOM
 
 function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
-        yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install epel-release -y > /dev/null 2>&1
+        yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install epel-release redhat-lsb-core -y > /dev/null 2>&1
         yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
     fi
 
