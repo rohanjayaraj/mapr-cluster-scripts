@@ -3743,7 +3743,7 @@ function maprutil_publishMFSCPUUse(){
         [ ! -s "$fname" ] && continue
         local tlog=$(cat $fname | awk 'BEGIN{printf("["); i=1} { if(i!=1) printf(","); printf("%s",$1); i++} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
-        # tlog=$(echo $tlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        # tlog=$(echo $tlog | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$tlog"
         [ "$ttime" -lt "$(cat $fname | wc -l)" ] && ttime=$(cat $fname | wc -l)
 
@@ -3753,7 +3753,7 @@ function maprutil_publishMFSCPUUse(){
         [ -n "$stjson" ] && stjson="$stjson,"
         stjson="$stjson\"$(echo $fname| cut -d'.' -f1)\":{\"avg\":$avg,\"stddev\":$stddev}"
     done
-    [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+    [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')
     [ -n "$tjson" ] && json="$json,\"threads\":$tjson"
     [ -n "$stjson" ] && sjson="\"threads\":{$stjson}" && stjson=
 
@@ -3773,7 +3773,7 @@ function maprutil_publishMFSCPUUse(){
         [ -n "$stjson" ] && stjson="$stjson,"
         stjson="$stjson\"$(echo $fname| cut -d'.' -f1)\":{\"avg\":$avg,\"stddev\":$stddev}"
     done
-    [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+    [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')
     [ -n "$tjson" ] && json="$json,\"threads\":$tjson"
     [ -n "$sjson" ] && sjson="$sjson,"
     [ -n "$stjson" ] && sjson="$sjson\"threads\":{$stjson}" && stjson=
@@ -3787,7 +3787,7 @@ function maprutil_publishMFSCPUUse(){
         [ ! -s "$fname" ] && continue
         local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0) printf("{\"ts\":\"%s %s\",\"mem\":%s,\"cpu\":%s}",$1,$2,$3,$4); else printf(",{\"mem\":%s,\"cpu\":%s}",$3,$4); i++; } END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
-        mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        mlog=$(echo $mlog | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
 
         local mavg=$(cat $fname | awk '{sum+=$3;}END{print sum/NR}')
@@ -3808,7 +3808,7 @@ function maprutil_publishMFSCPUUse(){
         [ ! -s "$fname" ] && continue
         local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0) { cmd="date \"+%Y-%m-%d %H:%M:%S\" -d \""$1" "$2"\""; cmd | getline var; close(cmd); printf("{\"ts\":\"%s\",\"pcpu\":%s}",var,$3) } else printf(",{\"pcpu\":%s}",$3);  i++;} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
-        mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        mlog=$(echo $mlog | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
     done
     [ -n "$tjson" ] && json="$json,$tjson"
@@ -3820,7 +3820,7 @@ function maprutil_publishMFSCPUUse(){
         [ ! -s "$fname" ] && continue
         local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0) { cmd="date \"+%Y-%m-%d %H:%M:%S\" -d \""$1" "$2"\""; cmd | getline var; close(cmd); printf("{\"ts\":\"%s\",\"pcpu\":%s,\"max\":%s}",var,$3,$4) } else printf(",{\"pcpu\":%s,\"max\":%s}",$3,$4);  i++;} END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
-        mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        mlog=$(echo $mlog | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
     done
     [ -n "$tjson" ] && json="$json,$tjson"
@@ -3832,11 +3832,11 @@ function maprutil_publishMFSCPUUse(){
         [ ! -s "$fname" ] && continue
         local mlog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0) printf("{\"ts\":\"%s %s\",\"rx\":%s,\"tx\":%s}",$1,$2,$3,$4); else { printf(",{\"rx\":%s,\"tx\":%s}",$3,$4); }  i++; } END{printf("]")}')
         [ -n "$tjson" ] && tjson="$tjson,"
-        mlog=$(echo $mlog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+        mlog=$(echo $mlog | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')
         tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$mlog"
     done
     [ -n "$tjson" ] && json="$json,$tjson"
-    [ -n "$sjson" ] && sjson=$(echo "{$sjson}" | python -c 'import json,sys; print json.dumps(sys.stdin.read())') && sjson="\"stats\":$sjson"
+    [ -n "$sjson" ] && sjson=$(echo "{$sjson}" | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))') && sjson="\"stats\":$sjson"
     [ -n "$sjson" ] && json="$json,$sjson"
 
     json="$json}"
@@ -4396,12 +4396,12 @@ function maprutil_publishGutsStats(){
     done
     fieldarr=$(echo $fieldarr | sed 's/,$//')
     fieldarr="$fieldarr]"
-    fieldarr=$(echo $fieldarr | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+    fieldarr=$(echo $fieldarr | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')
 
     json="$json,\"columns\":$fieldarr"
 
     local glog=$(cat $fname | awk 'BEGIN{printf("["); i=0} { if(i==0) printf("{\"ts\":\"%s %s\",\"val\":[",$1,$2); else  printf(",{\"val\":["); for(j=3;j<=NF;j++) { printf("%s", $j); if(j!=NF) printf(",");} printf("]}"); i++} END{printf("]")}')
-    glog=$(echo $glog | python -c 'import json,sys; print json.dumps(sys.stdin.read())')
+    glog=$(echo $glog | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')
     json="$json,\"data\":$glog"
     json="$json}"
 

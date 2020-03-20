@@ -1087,7 +1087,7 @@ function util_postToSlack(){
         extrainfo="$(echo "$extrainfo" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')"
         text="$(echo -e "$text \n\n \`\`\`$extrainfo\`\`\`")"
     fi
-    text="$(echo "$text" | python -c 'import json,sys; print json.dumps(sys.stdin.read())')"
+    text="$(echo "$text" | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')"
     
     local json="{\"text\":$text}"
     local tmpfile=$(mktemp)
@@ -1103,7 +1103,7 @@ function util_postToSlack2(){
     local filetopost="$1"
     
     local posttext="$(cat $filetopost)"
-    posttext="$(echo "$posttext" | python -c 'import json,sys; print json.dumps(sys.stdin.read())' | sed 's/^.\(.*\).$/\1/')"
+    posttext="$(echo "$posttext" | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))' | sed 's/^.\(.*\).$/\1/')"
 
     # Slack per message size limit
     local charlimit=3800
