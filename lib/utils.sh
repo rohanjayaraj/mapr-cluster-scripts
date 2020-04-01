@@ -139,7 +139,13 @@ function util_maprprereq(){
 
     if [ "$(getOS)" = "centos" ]; then
         local opts="C6*,C7*,base,epel,epel-release"
-        [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras"
+        if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
+            opts="epel,Base*,extras"
+            DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ ntp / chrony /')
+            DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ python-devel / /')
+            DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ python-pycurl / libcurl libcurl-devel /')
+            DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ nss / nss.x86_64 nss-util nss-softokn nss-tools /')
+        fi
         yum --disablerepo=epel -q -y update ca-certificates 
         yum -q -y install redhat-lsb-core --enablerepo=${opts}
         yum -q -y install $DEPENDENCY_RPM --enablerepo=${opts}
@@ -247,6 +253,8 @@ function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
          yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1 && yum clean metadata > /dev/null 2>&1
     fi
+
+    [[ -s "/usr/bin/python3" ]] && [[ ! -s "/usr/bin/python" ]] && alternatives --set python /usr/bin/python3 > /dev/null 2>&1
 }
 
 # @param ip_address_string
