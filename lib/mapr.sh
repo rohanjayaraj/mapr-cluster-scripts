@@ -3175,6 +3175,7 @@ function maprutil_applyLicense(){
             echo 'mapr' | su mapr -c 'maprlogin password' 2>/dev/null
             if [ -n "$GLB_ATS_USERTICKETS" ]; then
                 echo 'mapr' | maprlogin generateticket -type servicewithimpersonation -out /tmp/maprticket_0 -user root 2>/dev/null &
+                [ -z "$(id -u m7user1 2>/dev/null)" ] && maprutil_createATSUsers 2>/dev/null
                 for i in {1..4}; do 
                     local user="m7user$i"
                     id $user > /dev/null 2>&1 && echo 'mapr' | su $user -c 'maprlogin password' 2>/dev/null & 
@@ -3199,6 +3200,45 @@ function maprutil_applyLicense(){
         [ -e "$licfile" ] && timeout 30 /opt/mapr/bin/maprcli license add -license ${licfile} -is_file true > /dev/null
     fi
     [[ "${jobs}" -eq "0" ]] && log_info "[$(util_getHostIP)] License has been applied."
+}
+
+
+function maprutil_createATSUsers()
+{
+    userdel m7user1
+    userdel m7user2
+    userdel m7user3
+    userdel m7user4
+    userdel mapruser1
+    userdel mapruser2
+    groupdel m7group1
+    groupdel m7group2
+    groupdel mapruser1
+    groupdel mapruser2
+
+
+    groupadd -g 7001 m7group1
+    groupadd -g 7002 m7group2
+    groupadd -g 7003 mapruser1
+    groupadd -g 7004 mapruser2
+
+
+    useradd -m -u 7001 -gm7group1 m7user1
+    useradd -m -u 7002 -gm7group1 m7user2
+    useradd -m -u 7003 -gm7group2 m7user3
+    useradd -m -u 7004 -gm7group1 m7user4
+    usermod -G m7group2 m7user4
+
+    useradd -m -u 7005 -gmapruser1 mapruser1
+    useradd -m -u 7006 -gmapruser2 mapruser2
+
+
+    echo -e 'mapruser1\nmapruser1\n' | sudo passwd mapruser1
+    echo -e 'mapruser2\nmapruser2\n' | sudo passwd mapruser2
+    echo -e 'm7user1\nm7user1\n' | sudo passwd m7user1
+    echo -e 'm7user2\nm7user2\n' | sudo passwd m7user2
+    echo -e 'm7user3\nm7user3\n' | sudo passwd m7user3
+    echo -e 'm7user4\nm7user4\n' | sudo passwd m7user4
 }
 
 function maprutil_waitForCLDBonNode(){

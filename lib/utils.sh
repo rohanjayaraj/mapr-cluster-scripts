@@ -128,13 +128,26 @@ function util_maprprereq(){
     netcat-openbsd nfs-client openssl syslinux tar util-linux vim openssh \
     device-mapper iputils lvm2 mozilla-nss ntp sdparm sysfsutils sysstat util-linux python-pycurl"
 
+    local CENTOS8_RPM="http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/java-1.8.0-openjdk-devel-1.8.0.242.b08-0.el8_1.x86_64.rpm \
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/java-1.8.0-openjdk-headless-1.8.0.242.b08-0.el8_1.x86_64.rpm \
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/java-1.8.0-openjdk-1.8.0.242.b08-0.el8_1.x86_64.rpm \
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/libXtst-1.2.3-7.el8.x86_64.rpm \
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/alsa-lib-1.1.9-4.el8.x86_64.rpm \
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/giflib-5.1.4-3.el8.x86_64.rpm \
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/xorg-x11-fonts-Type1-7.5-19.el8.noarch.rpm \
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/ttmkfdir-3.0.9-54.el8.x86_64.rpm"
+
     if [ "$(getOS)" = "centos" ]; then
         local opts="C6*,C7*,base,epel,epel-release"
         [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras"
         yum --disablerepo=epel -q -y update ca-certificates 
         yum -q -y install redhat-lsb-core --enablerepo=${opts}
         yum -q -y install $DEPENDENCY_RPM --enablerepo=${opts}
-        yum -q -y install java-1.8.0-openjdk-devel --enablerepo=${opts}
+        if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
+            yum -q -y install ${CENTOS8_RPM} --enablerepo=${opts}
+        else
+            yum -q -y install java-1.8.0-openjdk-devel --enablerepo=${opts}
+        fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"

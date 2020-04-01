@@ -180,7 +180,7 @@ function ssh_createkey(){
 		if [ ! -d "$keydir" ]; then
 			mkdir $keydir
 		fi
-		ssh-keygen -t rsa -N "" -f $key > /dev/null 2>&1
+		ssh-keygen -t rsa -N "" -f $key -m PEM -b 2048 > /dev/null 2>&1
 	fi
 }
 
