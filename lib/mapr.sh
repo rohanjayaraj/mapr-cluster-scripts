@@ -1616,7 +1616,9 @@ function maprutil_configure(){
     # Mount self-hosting on all nodes
     maprutil_mountSelfHosting
 
-   if [ "$hostip" = "$cldbnode" ]; then
+    [[ -n "$GLB_ATS_USERTICKETS" ]] && maprutil_createATSUsers 2>/dev/null
+
+    if [ "$hostip" = "$cldbnode" ]; then
         maprutil_applyLicense
         if [ -n "$multimfs" ] && [ "$multimfs" -gt 0 ]; then
             maprutil_configureMultiMFS "$multimfs" "$numsps"
@@ -3175,7 +3177,6 @@ function maprutil_applyLicense(){
             echo 'mapr' | su mapr -c 'maprlogin password' 2>/dev/null
             if [ -n "$GLB_ATS_USERTICKETS" ]; then
                 echo 'mapr' | maprlogin generateticket -type servicewithimpersonation -out /tmp/maprticket_0 -user root 2>/dev/null &
-                [ -z "$(id -u m7user1 2>/dev/null)" ] && maprutil_createATSUsers 2>/dev/null
                 for i in {1..4}; do 
                     local user="m7user$i"
                     id $user > /dev/null 2>&1 && echo 'mapr' | su $user -c 'maprlogin password' 2>/dev/null & 
@@ -3205,6 +3206,8 @@ function maprutil_applyLicense(){
 
 function maprutil_createATSUsers()
 {
+    [[ -n "$(id -u m7user1 2>/dev/null)" ]] && return
+
     userdel m7user1
     userdel m7user2
     userdel m7user3
