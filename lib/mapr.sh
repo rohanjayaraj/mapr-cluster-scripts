@@ -1553,6 +1553,9 @@ function maprutil_configure(){
     # Perform series of custom configuration based on selected options
     maprutil_customConfigure
 
+    # Create ATS Users
+    [[ -n "$GLB_ATS_USERTICKETS" ]] && maprutil_createATSUsers 2>/dev/null
+
     # Return if configuring client node after this
     if [ "$ISCLIENT" -eq 1 ]; then
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
@@ -1615,8 +1618,6 @@ function maprutil_configure(){
 
     # Mount self-hosting on all nodes
     maprutil_mountSelfHosting
-
-    [[ -n "$GLB_ATS_USERTICKETS" ]] && maprutil_createATSUsers 2>/dev/null
 
     if [ "$hostip" = "$cldbnode" ]; then
         maprutil_applyLicense
