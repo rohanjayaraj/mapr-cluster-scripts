@@ -3243,6 +3243,71 @@ function maprutil_createATSUsers()
     echo -e 'm7user2\nm7user2\n' | sudo passwd m7user2
     echo -e 'm7user3\nm7user3\n' | sudo passwd m7user3
     echo -e 'm7user4\nm7user4\n' | sudo passwd m7user4
+
+    maprutil_setupATSClientNode
+}
+
+function maprutil_setupATSClientNode() {
+
+    local nodeos=$(getOS $node)
+    if [ "$nodeos" = "centos" ]; then
+        local opts="C6*,C7*,base,epel,epel-release"
+        [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras"
+
+        if ! command -v docker > /dev/null 2>&1; then 
+            yum install -y yum-utils device-mapper-persistent-data lvm2 --enablerepo=${opts} -q 2>/dev/null
+            yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+            if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
+                yum install http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/container-selinux-2.124.0-1.module_el8.1.0+272+3e64ee36.noarch.rpm -y -q 2>/dev/null
+                yum install -y policycoreutils-python-utils libcgroup --enablerepo=${opts} -q 2>/dev/null
+                yum install docker-ce docker-ce-cli containerd.io -y -q 2>/dev/null
+            else
+                yum install docker -y -q 2>/dev/null
+            fi
+            systemctl enable docker
+        fi
+
+        
+        if ! command -v git > /dev/null 2>&1; then 
+            if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
+                yum groupinstall "Development Tools" --enablerepo=${opts} -y
+                yum install wget unzip gettext-devel openssl-devel perl-CPAN perl-devel zlib-devel libcurl-devel expat-devel --enablerepo=${opts} -q 2>/dev/null
+                cd /tmp && wget https://github.com/git/git/archive/v2.26.0.tar.gz -O git.tar.gz
+                cd /tmp && tar -xf git.tar.gz && cd git-* && make prefix=/usr/local all install
+            else
+                yum install -y git --enablerepo=${opts} -q 2>/dev/null
+            fi
+        fi
+        
+        if ! command -v mvn > /dev/null 2>&1; then 
+            cd /tmp && wget http://www-us.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz && tar -zxvf apache-maven-3.5.4-bin.tar.gz 
+        
+            mv /tmp/apache-maven-3.5.4/ /opt/apache-maven > /dev/null 2>&1
+
+        cat <<EOF > /etc/profile.d/maven.sh
+export M2_HOME=/opt/apache-maven
+export PATH=${M2_HOME}/bin:${PATH}
+EOF
+        fi
+        mkdir -p ~/.m2 > /dev/null 2>&1
+        
+
+        if [ -s "/etc/docker/daemon.json" ]; then
+        cat <<EOF > /etc/docker/daemon.json
+{
+    "insecure-registries": ["docker.artifactory.lab", "docker.artifactory"]
+}
+EOF
+        systemctl restart docker > /dev/null 2>&1
+        fi
+
+        if [ -z "$(grep docker.artifactory /etc/hosts)" ]; then
+            echo "10.10.11.33         docker.artifactory docker.artifactory.lab" >> /etc/hosts
+        fi
+
+        
+    fi
+
 }
 
 function maprutil_waitForCLDBonNode(){
@@ -4746,7 +4811,7 @@ function maprutil_perftool(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[0-9]*.[a-Z0-9]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd' | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd' | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
 
@@ -4811,7 +4876,7 @@ function maprutil_debugCore(){
     local newcore=
     local isjava=$(echo $corefile | grep "java[A-Za-z0-9]*.core")
     local iscollectd=$(echo $corefile | grep "reader\|writer\|collectd")
-    local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[0-9]*.[a-Z0-9]*.core")
+    local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[A-Za-z0-9.]*.core")
     local colbin=
 
     if [ -z "$(find $tracefile -type f -size +15k 2> /dev/null)" ]; then

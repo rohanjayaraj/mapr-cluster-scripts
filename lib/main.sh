@@ -785,8 +785,8 @@ function main_getgutsstats(){
 	else
 		local tmpfile=$(mktemp)
 		local ncollist=$(echo "$collist" | sed 's/\([0-9]*=\)/\\033\[95m\1/g' | sed 's/\(=[a-z]*\)/\\033\[0m\1/g')
-		ncollist=$(echo "$ncollist" | sed '1~2 s/\(=[a-Z0-9_]*\)/\\033\[36m\1/g' | sed '1~2 s/\(=[a-Z0-9_]*\)/\1\\033\[0m/g')
-		ncollist=$(echo "$ncollist" | sed '2~2 s/\(=[a-Z0-9_]*\)/\\033\[32m\1/g' | sed '2~2 s/\(=[a-Z0-9_]*\)/\1\\033\[0m/g')
+		ncollist=$(echo "$ncollist" | sed '1~2 s/\(=[A-Za-z0-9_]*\)/\\033\[36m\1/g' | sed '1~2 s/\(=[A-Za-z0-9_]*\)/\1\\033\[0m/g')
+		ncollist=$(echo "$ncollist" | sed '2~2 s/\(=[A-Za-z0-9_]*\)/\\033\[32m\1/g' | sed '2~2 s/\(=[A-Za-z0-9_]*\)/\1\\033\[0m/g')
 		echo "$ncollist" > $tmpfile
 		log_msghead "Guts column list : "
 		log_msghead "------------------ "
@@ -807,8 +807,8 @@ function main_getgutsstats(){
 	for colid in $colids
 	do
 		[ "$(util_isNumber "$colid")" = "false" ] && log_error "Invalid column id specified" && return
-		[ -z "$(echo $collist | grep -o -w "$colid=[a-Z0-9_]*")" ] && log_error "Column id '$colid' doesn't exist" && return
-		colnames="$colnames $(echo $collist | grep -o -w "$colid=[a-Z0-9_]*" | cut -d'=' -f2)"
+		[ -z "$(echo $collist | grep -o -w "$colid=[A-Za-z0-9_]*")" ] && log_error "Column id '$colid' doesn't exist" && return
+		colnames="$colnames $(echo $collist | grep -o -w "$colid=[A-Za-z0-9_]*" | cut -d'=' -f2)"
 	done
 
 	[ -z "$doGutsType" ] && doGutsType="mfs"
