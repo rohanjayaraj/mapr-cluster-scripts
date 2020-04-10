@@ -2082,13 +2082,18 @@ function maprutil_buildRepoFile(){
 
 function maprutil_getRepoURL(){
     local nodeos=$(getOS)
+    
     if [ "$nodeos" = "centos" ]; then
+        yum clean all > /dev/null 2>&1
+        yum-complete-transaction --cleanup-only > /dev/null 2>&1
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv 'mep\|opensource\|file://\|ebf' | grep Repo-baseurl | cut -d':' -f2- | tr -d " " | head -1)
         echo "$repolist"
     elif [ "$nodeos" = "ubuntu" ]; then
+        apt-get update > /dev/null 2>&1
         local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv 'mep\|opensource\|file://\|ebf' | head -1)
         echo "$repolist"
     elif [ "$nodeos" = "suse" ]; then
+        zypper clean > /dev/null 2>&1
         local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://\|ebf' | head -1)
         echo "$repolist"
     fi
