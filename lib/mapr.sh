@@ -2108,7 +2108,7 @@ function maprutil_getPatchRepoURL(){
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv 'mep\|opensource\|file://' | grep Repo-baseurl | grep -i EBF | cut -d':' -f2- | tr -d " " | head -1)
         echo "$repolist"
     elif [ "$nodeos" = "ubuntu" ]; then
-        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv 'mep\|opensource\|file://' | grep -i EBF| head -1)
+        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' |  tr ' ' '\n' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| grep -iv 'mep\|opensource\|file://' | grep -i EBF| head -1)
         echo "$repolist"
     elif [ "$nodeos" = "suse" ]; then
         local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://' | grep -i EBF | head -1)
@@ -2126,7 +2126,7 @@ function maprutil_disableAllRepo(){
             yum-config-manager --disable $repo > /dev/null 2>&1
         done
     elif [ "$nodeos" = "ubuntu" ]; then
-        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv opensource | cut -d '/' -f3)
+        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' |  tr ' ' '\n' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| grep -iv opensource)
         for repo in $repolist
         do
            local repof=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep $repo | cut -d":" -f1)
@@ -2291,15 +2291,20 @@ function maprutil_downloadBinaries(){
     fi
 
     local mversion=$(ls ${dlddir} | grep mapr-core-internal | grep -o "[0-9.]*.GA" | cut -d'.' -f1-3 | head -1)
-    local relrepo=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v${mversion}/redhat/
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        [ "$nodeos" = "suse" ] && relrepo=$(echo "$relrepo" | sed 's/redhat/suse/g')
-        wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-apiserver*.rpm" ${relrepo} > /dev/null 2>&1
-        wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-webserver*.rpm" ${relrepo} > /dev/null 2>&1
-    elif [ "$nodeos" = "ubuntu" ]; then
-        relrepo=$(echo "$relrepo" | sed 's/redhat/ubuntu/g')
-        wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-apiserver*.deb" ${relrepo} > /dev/null 2>&1
-        wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-webserver*.deb" ${relrepo} > /dev/null 2>&1
+    if [[ -z "$(ls ${dlddir} | grep mapr-apiserver)" ]] || [[ -z "$(ls ${dlddir} | grep mapr-webserver)" ]]; then
+        rm -rf mapr-apiserver* mapr-webserver* > /dev/null 2>&1
+
+        local relrepo=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v${mversion}/redhat/
+
+        if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+            [ "$nodeos" = "suse" ] && relrepo=$(echo "$relrepo" | sed 's/redhat/suse/g')
+            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-apiserver*.rpm" ${relrepo} > /dev/null 2>&1
+            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-webserver*.rpm" ${relrepo} > /dev/null 2>&1
+        elif [ "$nodeos" = "ubuntu" ]; then
+            relrepo=$(echo "$relrepo" | sed 's/redhat/ubuntu/g')
+            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-apiserver*.deb" ${relrepo} > /dev/null 2>&1
+            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-webserver*.deb" ${relrepo} > /dev/null 2>&1
+        fi
     fi
 
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
