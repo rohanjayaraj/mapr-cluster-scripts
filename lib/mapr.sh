@@ -1902,7 +1902,10 @@ function maprutil_checkBuildExists(){
     local buildid=$2
     local retval=
     local nodeos=$(getOSFromNode $node)
-    if [ "$nodeos" = "centos" ]; then
+    if [ "$buildid" = "latest" ]; then
+        local repourl=$(maprutil_getRepoURL)
+        retval=$(maprutil_getLatestBuildID "$repourl")
+    elif [ "$nodeos" = "centos" ]; then
         retval=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep $buildid")
     elif [ "$nodeos" = "ubuntu" ]; then
         retval=$(ssh_executeCommandasRoot "$node" "apt-get update >/dev/null 2>&1 && apt-cache policy mapr-core | grep $buildid")
@@ -2264,9 +2267,8 @@ function maprutil_downloadBinaries(){
     local searchkey=$3
     if [[ "$searchkey" = "latest" ]]; then
         # get the latest binary version
-        local result=$(wget -qO- test.html ${repourl})
-        searchkey=$(echo "$result" | grep -o "href=\"[0-9]*" | cut -d '"' -f2 | sort -n -r | head -1)
-        [ -z "$searchkey" ] && searchkey=$3
+        local latestbuild=$(maprutil_getLatestBuildID "$repourl")
+        [ -n "$latestbuild" ] && searchkey=$latestbuild
     fi
     log_info "[$(util_getHostIP)] Downloading binaries for version [$searchkey]"
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
@@ -2280,6 +2282,14 @@ function maprutil_downloadBinaries(){
         dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz
         popd > /dev/null 2>&1
     fi
+}
+
+function maprutil_getLatestBuildID(){
+    [ -z "$1" ] && return
+    local repourl=$1
+    local result=$(wget -qO- ${repourl})
+    local buildid=$(echo "$result" | grep -o "href=\"[0-9]*" | cut -d '"' -f2 | sort -n -r | head -1)
+    [ -n "$buildid" ] && echo "$buildid"
 }
 
 function maprutil_setupLocalRepo(){
