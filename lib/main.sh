@@ -1003,7 +1003,7 @@ function main_runLogDoctor(){
 }
 
 function main_isValidBuildVersion(){
-    if [[ -z "$GLB_BUILD_VERSION" ]] || [[ "$$GLB_BUILD_VERSION" = "latest" ]]; then
+    if [[ -z "$GLB_BUILD_VERSION" ]] || [[ "$GLB_BUILD_VERSION" = "latest" ]]; then
         return
     fi
     local vlen=${#GLB_BUILD_VERSION}
