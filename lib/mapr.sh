@@ -1916,7 +1916,7 @@ function maprutil_checkBuildExists(){
         repolist=$(ssh_executeCommandasRoot "$node" "zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
         retval=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep $buildid")
     fi
-    [[ "$buildid" = "latest" ]] && retval=$(maprutil_getLatestBuildID "$repolist"
+    [[ "$buildid" = "latest" ]] && retval=$(maprutil_getLatestBuildID "$repolist")
     echo "$retval"
 }
 
