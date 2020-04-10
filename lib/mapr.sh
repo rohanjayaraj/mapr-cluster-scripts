@@ -1909,11 +1909,11 @@ function maprutil_checkBuildExists(){
         retval=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep $buildid")
     elif [ "$nodeos" = "ubuntu" ]; then
         ssh_executeCommandasRoot "$node" "apt-get update" > /dev/null 2>&1
-        repolist=$(ssh_executeCommandasRoot "$node" "grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
+        repolist=$(ssh_executeCommandasRoot "$node" "grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | tr ' ' '\n' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
         retval=$(ssh_executeCommandasRoot "$node" "apt-get update >/dev/null 2>&1 && apt-cache policy mapr-core | grep $buildid")
     elif [ "$nodeos" = "suse" ]; then
         ssh_executeCommandasRoot "$node" "zypper clean" > /dev/null 2>&1
-        repolist=$(ssh_executeCommandasRoot "$node" "zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
+        repolist=$(ssh_executeCommandasRoot "$node" "zypper lr -u | awk '{if(\$7~"Yes") print \$NF}' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
         retval=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep $buildid")
     fi
     [[ "$buildid" = "latest" ]] && retval=$(maprutil_getLatestBuildID "$repolist")
@@ -1955,7 +1955,7 @@ function maprutil_getMapRVersionFromRepo(){
         #ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
         maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$2}' | cut -d'.' -f1-3")
     elif [ "$nodeos" = "ubuntu" ]; then
-        maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | awk '{print \$2}' | cut -d'.' -f1-3")
+        maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | grep -v none | awk '{print \$2}' | cut -d'.' -f1-3")
     elif [ "$nodeos" = "suse" ]; then
         maprversion=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep -v '$curchangeset' | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$7}' | cut -d'.' -f1-3")
     fi
@@ -2094,7 +2094,7 @@ function maprutil_getRepoURL(){
         echo "$repolist"
     elif [ "$nodeos" = "ubuntu" ]; then
         apt-get update > /dev/null 2>&1
-        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv 'mep\|opensource\|file://\|ebf' | head -1)
+        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | tr ' ' '\n' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com|  grep -iv 'mep\|opensource\|file://\|ebf' | head -1)
         echo "$repolist"
     elif [ "$nodeos" = "suse" ]; then
         zypper clean > /dev/null 2>&1
