@@ -1096,7 +1096,7 @@ function util_removeXterm(){
 function util_postToSlack(){
      [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
 
-    local SLACK_URL=$(wget https://bit.ly/2vPLzrO 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    local SLACK_URL=$(wget https://bit.ly/37JEaaV 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
     local roles="$1"
     local optype="$2"
     local extrainfo="$3"

@@ -3278,6 +3278,10 @@ function maprutil_setupATSClientNode() {
                 yum install -y git --enablerepo=${opts} -q 2>/dev/null
             fi
         fi
+
+        if ! command -v rsync > /dev/null 2>&1; then 
+            yum install -y rsync --enablerepo=${opts} -q 2>/dev/null
+        fi
         
         if ! command -v mvn > /dev/null 2>&1; then 
             cd /tmp && wget http://www-us.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz && tar -zxvf apache-maven-3.5.4-bin.tar.gz 
