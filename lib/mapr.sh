@@ -1901,17 +1901,22 @@ function maprutil_checkBuildExists(){
     local node=$1
     local buildid=$2
     local retval=
+    local repolist=
     local nodeos=$(getOSFromNode $node)
-    if [ "$buildid" = "latest" ]; then
-        local repourl=$(maprutil_getRepoURL)
-        retval=$(maprutil_getLatestBuildID "$repourl")
-    elif [ "$nodeos" = "centos" ]; then
+    if [ "$nodeos" = "centos" ]; then
+        ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
+        repolist=$(ssh_executeCommandasRoot "$node" "yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv 'mep\|opensource\|file://\|ebf' | grep Repo-baseurl | cut -d':' -f2- | tr -d " " | head -1")
         retval=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep $buildid")
     elif [ "$nodeos" = "ubuntu" ]; then
+        ssh_executeCommandasRoot "$node" "apt-get update" > /dev/null 2>&1
+        repolist=$(ssh_executeCommandasRoot "$node" "grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $2}' | grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
         retval=$(ssh_executeCommandasRoot "$node" "apt-get update >/dev/null 2>&1 && apt-cache policy mapr-core | grep $buildid")
     elif [ "$nodeos" = "suse" ]; then
+        ssh_executeCommandasRoot "$node" "zypper clean" > /dev/null 2>&1
+        repolist=$(ssh_executeCommandasRoot "$node" "zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
         retval=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep $buildid")
     fi
+    [[ "$buildid" = "latest" ]] && retval=$(maprutil_getLatestBuildID "$repolist"
     echo "$retval"
 }
 
@@ -2085,7 +2090,6 @@ function maprutil_getRepoURL(){
     
     if [ "$nodeos" = "centos" ]; then
         yum clean all > /dev/null 2>&1
-        yum-complete-transaction --cleanup-only > /dev/null 2>&1
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv 'mep\|opensource\|file://\|ebf' | grep Repo-baseurl | cut -d':' -f2- | tr -d " " | head -1)
         echo "$repolist"
     elif [ "$nodeos" = "ubuntu" ]; then
