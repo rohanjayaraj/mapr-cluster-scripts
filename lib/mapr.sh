@@ -1560,6 +1560,7 @@ function maprutil_configure(){
     if [ "$ISCLIENT" -eq 1 ]; then
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
         [ -n "$GLB_TRACE_ON" ] && maprutil_startTraces
+        [ -n "$GLB_ATS_CLIENTSETUP" ] && maprutil_setupATSClientNode
         log_info "[$hostip] Done configuring client node"
         return 
     fi
@@ -3244,7 +3245,6 @@ function maprutil_createATSUsers()
     echo -e 'm7user3\nm7user3\n' | sudo passwd m7user3
     echo -e 'm7user4\nm7user4\n' | sudo passwd m7user4
 
-    maprutil_setupATSClientNode
 }
 
 function maprutil_setupATSClientNode() {

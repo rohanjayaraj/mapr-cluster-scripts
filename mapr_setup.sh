@@ -152,6 +152,8 @@ function usage () {
     echo -e "\t\t - Enable instance level guts trace on all nodes"
     echo -e "\t -aut | --atsusertickets" 
     echo -e "\t\t - Create ATS user(m7user[1-4],mapruser[1-2]) tickets"
+    echo -e "\t -acs | --atsnodesetup" 
+    echo -e "\t\t - Setup ATS client nodes w/ maven/git/docker etc"
     
     echo 
 	echo " Post install Options : "
@@ -288,6 +290,9 @@ while [ "$1" != "" ]; do
         ;;
         -aut | --atsusertickets)
             extraarg=$extraarg"atstickets "
+        ;;
+        -acs | --atsnodesetup)
+            extraarg=$extraarg"atssetup "
         ;;
         -sp | --storagepool)
             numsps=$VALUE
