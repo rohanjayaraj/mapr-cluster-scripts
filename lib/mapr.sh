@@ -1952,7 +1952,6 @@ function maprutil_getMapRVersionFromRepo(){
     local nodeos=$(getOSFromNode $node)
     local maprversion=
     if [ "$nodeos" = "centos" ]; then
-        #ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
         maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$2}' | cut -d'.' -f1-3")
     elif [ "$nodeos" = "ubuntu" ]; then
         maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | grep -v none | awk '{print \$2}' | cut -d'.' -f1-3")
@@ -2274,20 +2273,39 @@ function maprutil_downloadBinaries(){
     mkdir -p $dlddir > /dev/null 2>&1
     local repourl=$2
     local searchkey=$3
+    
     if [[ "$searchkey" = "latest" ]]; then
         # get the latest binary version
         local latestbuild=$(maprutil_getLatestBuildID "$repourl")
         [ -n "$latestbuild" ] && searchkey=$latestbuild
     fi
+
     log_info "[$(util_getHostIP)] Downloading binaries for version [$searchkey]"
+    
+    pushd $dlddir > /dev/null 2>&1
+    
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        pushd $dlddir > /dev/null 2>&1
         wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
+    elif [ "$nodeos" = "ubuntu" ]; then
+        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.deb" ${repourl} > /dev/null 2>&1
+    fi
+
+    local mversion=$(ls ${dlddir} | grep mapr-core-internal | grep -o "[0-9.]*.GA" | cut -d'.' -f1-3 | head -1)
+    local relrepo=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v${mversion}/redhat/
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+        [ "$nodeos" = "suse" ] && relrepo=$(echo "$relrepo" | sed 's/redhat/suse/g')
+        wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-apiserver*.rpm" ${relrepo} > /dev/null 2>&1
+        wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-webserver*.rpm" ${relrepo} > /dev/null 2>&1
+    elif [ "$nodeos" = "ubuntu" ]; then
+        relrepo=$(echo "$relrepo" | sed 's/redhat/ubuntu/g')
+        wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-apiserver*.deb" ${relrepo} > /dev/null 2>&1
+        wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-webserver*.deb" ${relrepo} > /dev/null 2>&1
+    fi
+
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         popd > /dev/null 2>&1
         createrepo $dlddir > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
-        pushd $dlddir > /dev/null 2>&1
-        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.deb" ${repourl} > /dev/null 2>&1
         dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz
         popd > /dev/null 2>&1
     fi
@@ -2304,8 +2322,9 @@ function maprutil_getLatestBuildID(){
 function maprutil_setupLocalRepo(){
     local repourl=$(maprutil_getRepoURL)
     local patchrepo=$(maprutil_getPatchRepoURL)
+    local repodir="/tmp/maprbuilds/$GLB_BUILD_VERSION"
     maprutil_disableAllRepo
-    maprutil_downloadBinaries "/tmp/maprbuilds/$GLB_BUILD_VERSION" "$repourl" "$GLB_BUILD_VERSION"
+    maprutil_downloadBinaries "$repodir" "$repourl" "$GLB_BUILD_VERSION"
     if [ -n "$patchrepo" ]; then
         local patchkey=
         if [ -z "$GLB_PATCH_VERSION" ]; then
@@ -2313,9 +2332,10 @@ function maprutil_setupLocalRepo(){
         else
             patchkey="mapr-patch*$GLB_BUILD_VERSION*$GLB_PATCH_VERSION"
         fi
-        maprutil_downloadBinaries "/tmp/maprbuilds/$GLB_BUILD_VERSION" "$patchrepo" "$patchkey"
+        maprutil_downloadBinaries "$repodir" "$patchrepo" "$patchkey"
     fi
-    maprutil_addLocalRepo "/tmp/maprbuilds/$GLB_BUILD_VERSION"
+    maprutil_addLocalRepo "$repodir"
+    [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(ls ${repodir} | grep mapr-core-internal | grep -o "[0-9.]*.GA" | cut -d'.' -f1-3 | head -1)
 }
 
 function maprutil_runCommandsOnNodesInParallel(){
