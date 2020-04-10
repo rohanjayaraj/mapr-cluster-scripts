@@ -2262,6 +2262,12 @@ function maprutil_downloadBinaries(){
     mkdir -p $dlddir > /dev/null 2>&1
     local repourl=$2
     local searchkey=$3
+    if [[ "$searchkey" = "latest" ]]; then
+        # get the latest binary version
+        local result=$(wget -qO- test.html ${repourl})
+        searchkey=$(echo "$result" | grep -o "href=\"[0-9]*" | cut -d '"' -f2 | sort -n -r | head -1)
+        [ -z "$searchkey" ] && searchkey=$3
+    fi
     log_info "[$(util_getHostIP)] Downloading binaries for version [$searchkey]"
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         pushd $dlddir > /dev/null 2>&1

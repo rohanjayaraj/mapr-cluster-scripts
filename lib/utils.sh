@@ -384,7 +384,7 @@ function util_installBinaries(){
     local bins="$1"
     local prefix=$3
     local hostip=$(util_getHostIP)
-    if [ -n "$2" ]; then
+    if [[ -n "$2" ]] && [[ -z "$(echo $2 | grep -i latest)" ]]; then
         bins=$(util_appendVersionToPackage "$1" "$2" "$3")
     fi
     log_info "[$hostip] Installing packages : $bins"
