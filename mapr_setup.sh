@@ -126,7 +126,7 @@ function usage () {
     echo -e "\t\t - Use only HDD disks if the node(s) have mix of HDD & SSD"
     echo -e "\t -s | --secure" 
     echo -e "\t\t - Enable wire-level security on the cluster nodes"
-     echo -e "\t -dare" 
+    echo -e "\t -dare" 
     echo -e "\t\t - Generate dare master key if security is enabled"
     echo -e "\t -f | --force" 
     echo -e "\t\t - Force uninstall a node/cluster"
@@ -150,10 +150,13 @@ function usage () {
     echo -e "\t\t - Disable trace processes on all nodes (Can be run post install as well)"
     echo -e "\t -ig | --instanceguts"
     echo -e "\t\t - Enable instance level guts trace on all nodes"
+    echo 
     echo -e "\t -aut | --atsusertickets" 
     echo -e "\t\t - Create ATS user(m7user[1-4],mapruser[1-2]) tickets"
     echo -e "\t -acs | --atsnodesetup" 
     echo -e "\t\t - Setup ATS client nodes w/ maven/git/docker etc"
+    echo -e "\t -asan | --asanmfs" 
+    echo -e "\t\t - Replace MFS binary w/ ASAN MFS binary"
     
     echo 
 	echo " Post install Options : "
@@ -293,6 +296,9 @@ while [ "$1" != "" ]; do
         ;;
         -acs | --atsnodesetup)
             extraarg=$extraarg"atssetup "
+        ;;
+        -asan | --asanmfs)
+            extraarg=$extraarg"asan "
         ;;
         -sp | --storagepool)
             numsps=$VALUE

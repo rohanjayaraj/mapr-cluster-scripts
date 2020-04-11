@@ -239,7 +239,7 @@ function main_install(){
 		for node in ${postinstnodes[@]}
 		do
 			local nodebins=$(maprutil_getNodeBinaries "$node")
-			maprutil_installBinariesOnNode "$node" "$nodebins" "bg"
+			maprutil_installBinariesOnNode "$node" "$nodebins" "bg" "rerun"
 		done
 		maprutil_wait
 		for node in ${postinstnodes[@]}
@@ -251,12 +251,17 @@ function main_install(){
 		[ -n "$GLB_TSDB_TOPO" ] && main_runCommandExec "tsdbtopo"
 	fi
 
-	# Configure all nodes
-	for node in ${nodes[@]}
-	do
-		maprutil_restartWardenOnNode "$node"
-	done
-	maprutil_wait
+	if [ -n "$doASAN" ]; then 
+		log_info "Installing ASAN MFS binary on all the MFS nodes"
+		maprutil_runCommandsOnNodesInParallel "$nodes" "asanmfs"
+	else
+		# Configure all nodes
+		for node in ${nodes[@]}
+		do
+			maprutil_restartWardenOnNode "$node"
+		done
+		maprutil_wait
+	fi
 
 	# Perform custom executions
 
@@ -1181,6 +1186,7 @@ doGutsCol=
 doGutsType=
 doSkip=
 addSpy=
+doASAN=
 startstr=
 endstr=
 copydir=
@@ -1269,6 +1275,8 @@ while [ "$2" != "" ]; do
     				GLB_DISK_TYPE="ssd"
     			elif [[ "$i" = "hddonly" ]]; then
     				GLB_DISK_TYPE="hdd"
+    			elif [[ "$i" = "asan" ]]; then
+    				doASAN=1
     			fi
     		done
     	;;

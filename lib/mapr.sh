@@ -880,7 +880,7 @@ function maprutil_installBinariesOnNode(){
         return
     fi
 
-    if [ -n "$GLB_BUILD_VERSION" ]; then
+    if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$4" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
     echo "keyexists=\$(util_fileExists \"/root/.ssh/id_rsa\")" >> $scriptpath
@@ -2261,6 +2261,39 @@ function maprutil_addLocalRepo(){
     fi
 }
 
+function maprutil_setupasanmfs(){
+    [[ ! -e "/opt/mapr/roles/fileserver" ]] && return
+
+    local nodeos=$(getOS)
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+        log_warn "[$(util_getHostIP)] Unsupported OS '$nodeos'. ASAN is currently supported on Ubuntu only"
+        return
+    fi
+
+    # stop warden
+    maprutil_restartWarden "stop" 2>/dev/null
+
+    # download latest asan mfs binary
+    local asanrepo="http://artifactory.devops.lab/artifactory/core-deb/master-asan/"
+    local latestbuild=$(maprutil_getLatestBuildID "$asanrepo")
+    local tempdir=$(mktemp -d)
+    pushd $tempdir  > /dev/null 2>&1
+    wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.rpm" ${asanrepo} > /dev/null 2>&1
+    ar vx mapr-core-internal*.deb > /dev/null 2>&1
+    tar xJf data.tar.xz ./opt/mapr/server/mfs > /dev/null 2>&1
+
+    # replace mfs binary
+    if [ -s "opt/mapr/server/mfs" ]; then
+        mv /opt/mapr/server/mfs /opt/mapr/server/mfs.original > /dev/null 2>&1
+        cp opt/mapr/server/mfs /opt/mapr/server/mfs > /dev/null 2>&1
+    fi 
+    popd  > /dev/null 2>&1
+    rm -rf $tempdir  > /dev/null 2>&1
+
+    # start warden
+    maprutil_restartWarden "start" 2>/dev/null
+}
+
 # @param directory to download
 # @param url to download
 # @param filter keywork
@@ -2520,6 +2553,9 @@ function maprutil_runCommands(){
             ;;
             queryservice)
                 maprutil_queryservice
+            ;;
+            asanmfs)
+                maprutil_setupasanmfs
             ;;
             *)
             echo "Nothing to do!!"
