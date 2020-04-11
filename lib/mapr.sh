@@ -2278,7 +2278,7 @@ function maprutil_setupasanmfs(){
     local latestbuild=$(maprutil_getLatestBuildID "$asanrepo")
     local tempdir=$(mktemp -d)
     pushd $tempdir  > /dev/null 2>&1
-    wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.rpm" ${asanrepo} > /dev/null 2>&1
+    wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
     ar vx mapr-core-internal*.deb > /dev/null 2>&1
     tar xJf data.tar.xz ./opt/mapr/server/mfs > /dev/null 2>&1
 
