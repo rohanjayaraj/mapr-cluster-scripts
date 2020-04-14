@@ -156,7 +156,10 @@ function util_maprprereq(){
         fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
-        [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+        if [[ "$(getOSReleaseVersion)" -ge "18" ]]; then
+            opts="--allow-unauthenticated"
+            DEPENDENCY_DEB=$(echo $DEPENDENCY_DEB | sed 's/ sysv-rc-conf / /')
+        fi
         apt-get update -qq $opts
         apt-get -qq -y $opts install ca-certificates
         apt-get -qq -y $opts install lsb-core

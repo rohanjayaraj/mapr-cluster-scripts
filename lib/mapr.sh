@@ -3298,6 +3298,7 @@ function maprutil_createATSUsers()
 {
     [[ -n "$(id -u m7user1 2>/dev/null)" ]] && return
 
+    log_info "[$(util_getHostIP)] Creating ATS Groups & Users on the node"
     userdel m7user1
     userdel m7user2
     userdel m7user3
@@ -3337,6 +3338,7 @@ function maprutil_createATSUsers()
 
 function maprutil_setupATSClientNode() {
 
+    log_info "[$(util_getHostIP)] Setting up ATS Client w/ Docker, Git, Maven etc"
     local nodeos=$(getOS $node)
     if [ "$nodeos" = "centos" ]; then
         local opts="C6*,C7*,base,epel,epel-release"
@@ -3417,6 +3419,11 @@ EOF
         # Install Git
         if ! command -v git > /dev/null 2>&1; then 
             apt-get install $opts -y git 2>/dev/null
+        fi
+
+         # Install rsync
+        if ! command -v rsync > /dev/null 2>&1; then 
+            apt-get install $opts -y rsync 2>/dev/null
         fi
 
          # Install maven
