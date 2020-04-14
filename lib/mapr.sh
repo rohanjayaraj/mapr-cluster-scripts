@@ -5072,7 +5072,7 @@ function maprutil_debugCore(){
 function maprutil_analyzeASAN(){
     local mfserr="/opt/mapr/logs/mfs.err"
     [ ! -s "${mfserr}" ] && return
-    local asan=$(grep -n "ASAN:" ${mfserr} | cut -d':' -f1)
+    local asan=$(grep -n "^==[0-9].*AddressSanitizer:" ${mfserr} | cut -d':' -f1)
     [ -z "${asan}" ] && return
 
     echo
@@ -5082,10 +5082,8 @@ function maprutil_analyzeASAN(){
     local i=1
     for sl in $asan; 
     do  
-        local p=$sl
-        let p=p+2; 
-        local l=$(sed -n ${p}p ${mfserr} | cut -d '=' -f1-3); 
-        local el=$(grep -n "${l}" ${mfserr} | tail -n 1 | cut -d':' -f1); 
+        local p=$(sed -n ${sl}p ${mfserr} | cut -d '=' -f1-3); 
+        local el=$(grep -n "${p}" ${mfserr} | tail -n 1 | cut -d':' -f1); 
         local trace=$(sed -n "${sl},${el}p" ${mfserr})
         local filelineno=$(echo "$trace" | grep "#0" | head -n 1 | awk '{print $NF}')
         local isnew=$(echo -e "$asanstack" | grep "$filelineno")
