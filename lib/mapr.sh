@@ -2277,6 +2277,7 @@ function maprutil_setupasanmfs(){
     local asanrepo="http://artifactory.devops.lab/artifactory/core-deb/master-asan/"
     local latestbuild=$(maprutil_getLatestBuildID "$asanrepo")
     local tempdir=$(mktemp -d)
+    log_info "[$(util_getHostIP)] Downloading and extracting MFS from ASAN buildid '${latestbuild}'"
     pushd $tempdir  > /dev/null 2>&1
     wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
     ar vx mapr-core-internal*.deb > /dev/null 2>&1
@@ -2286,6 +2287,7 @@ function maprutil_setupasanmfs(){
     if [ -s "opt/mapr/server/mfs" ]; then
         mv /opt/mapr/server/mfs /opt/mapr/server/mfs.original > /dev/null 2>&1
         cp opt/mapr/server/mfs /opt/mapr/server/mfs > /dev/null 2>&1
+        log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
     fi 
     popd  > /dev/null 2>&1
     rm -rf $tempdir  > /dev/null 2>&1
@@ -3340,6 +3342,7 @@ function maprutil_setupATSClientNode() {
         local opts="C6*,C7*,base,epel,epel-release"
         [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras"
 
+        # Install docker
         if ! command -v docker > /dev/null 2>&1; then 
             yum install -y yum-utils device-mapper-persistent-data lvm2 --enablerepo=${opts} -q 2>/dev/null
             yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
@@ -3354,6 +3357,7 @@ function maprutil_setupATSClientNode() {
         fi
 
         
+        # Install Git
         if ! command -v git > /dev/null 2>&1; then 
             if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
                 yum groupinstall "Development Tools" --enablerepo=${opts} -y
@@ -3365,10 +3369,12 @@ function maprutil_setupATSClientNode() {
             fi
         fi
 
+        # Install rsync
         if ! command -v rsync > /dev/null 2>&1; then 
             yum install -y rsync --enablerepo=${opts} -q 2>/dev/null
         fi
         
+        # Install maven
         if ! command -v mvn > /dev/null 2>&1; then 
             cd /tmp && wget http://www-us.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz && tar -zxvf apache-maven-3.5.4-bin.tar.gz 
         
@@ -3395,7 +3401,44 @@ EOF
             echo "10.10.11.33         docker.artifactory docker.artifactory.lab" >> /etc/hosts
         fi
 
+    elif [ "$nodeos" = "ubuntu" ]; then
+        local opts=
+        [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+
+        # Install docker
+        if ! command -v docker > /dev/null 2>&1; then 
+            apt-get install $opts -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common 2>/dev/null
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - > /dev/null 2>&1
+            add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /dev/null 2>&1
+            apt-get update > /dev/null 2>&1
+            apt-get install $opts -y docker-ce docker-ce-cli containerd.io 2>/dev/null
+        fi
+
+        # Install Git
+        if ! command -v git > /dev/null 2>&1; then 
+            apt-get install $opts -y git 2>/dev/null
+        fi
+
+         # Install maven
+        if ! command -v mvn > /dev/null 2>&1; then 
+            apt-get install $opts -y maven 2>/dev/null
+        fi
         
+         mkdir -p ~/.m2 > /dev/null 2>&1
+
+        if [ -s "/etc/docker/daemon.json" ]; then
+            cat <<EOF > /etc/docker/daemon.json
+{
+    "insecure-registries": ["docker.artifactory.lab", "docker.artifactory"]
+}
+EOF
+            systemctl restart docker > /dev/null 2>&1
+        fi
+
+        if [ -z "$(grep docker.artifactory /etc/hosts)" ]; then
+            echo "10.10.11.33         docker.artifactory docker.artifactory.lab" >> /etc/hosts
+        fi
+
     fi
 
 }
