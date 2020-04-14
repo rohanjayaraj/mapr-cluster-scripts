@@ -5089,7 +5089,7 @@ function maprutil_analyzeASAN(){
         local isnew=$(echo -e "$asanstack" | grep "$filelineno")
         if [ -z "$isnew" ]; then
             asanstack="$asanstack \n $trace"
-            log_msg "\n\t Eror #${i} : "
+            log_msg "\n\t Issue #${i} : "
             echo -e "$trace" | sed 's/^/\t\t/' 
             let i=i+1
         fi
