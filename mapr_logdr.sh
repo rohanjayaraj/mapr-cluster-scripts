@@ -88,6 +88,9 @@ function usage () {
     echo -e "\t -ac | --analyzecores | -ac=<core> | --analyzecores=<core>" 
     echo -e "\t\t - Analyze core(s) present"
 
+    echo -e "\t -aa | --analyzeasan" 
+    echo -e "\t\t - Analyze ASAN errors in mfs.err (if any)"
+
     echo -e "\t -cc=<COPYTODIR>  | --copycores=<COPYTODIR> " 
     echo -e "\t\t - Copy core files to <COPYTODIR> directory on respective node when run with -ac option"
  
@@ -219,6 +222,10 @@ while [ "$1" != "" ]; do
     	;;
         -ac | --analyzecores)
             args=$args"analyzecores "
+            [ -n "$VALUE" ] && extarg="$VALUE"
+        ;;
+        -aa | --analyzeasan)
+            args=$args"analyzeasan "
             [ -n "$VALUE" ] && extarg="$VALUE"
         ;;
         -cc | --copycores)

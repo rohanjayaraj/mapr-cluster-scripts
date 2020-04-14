@@ -1121,9 +1121,10 @@ function util_postToSlack(){
 }
 
 function util_postToSlack2(){
-     [ -z "$1" ] && echo "Missing arguments" && return
+    [ -z "$1" ] && echo "Missing arguments" && return
+    [ -z "$2" ] && echo "Slack URL not specified" && return
 
-    local SLACK_URL=$(wget https://bit.ly/2vPLzrO 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    local SLACK_URL=$(wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
     local filetopost="$1"
     
     local posttext="$(cat $filetopost)"

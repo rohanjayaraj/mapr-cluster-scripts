@@ -959,6 +959,11 @@ function main_runLogDoctor(){
         	analyzecores)
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzecores" "$mailfile"
+				[ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ] && util_postToSlack2 "$mailfile" "https://bit.ly/2vPLzrO"
+        	;;
+        	analyzeasan)
+				log_msghead "[$(util_getCurDate)] Analyzing ASAN errors reported in mfs.err, if any"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzeasan" "$mailfile"
 				[ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ] && util_postToSlack2 "$mailfile"
         	;;
         	mrinfo)
@@ -1296,6 +1301,8 @@ while [ "$2" != "" ]; do
 	    			doLogAnalyze="$doLogAnalyze setupcheck"
 	    		elif [[ "$i" = "analyzecores" ]]; then
 	    			doLogAnalyze="$doLogAnalyze analyzecores"
+	    		elif [[ "$i" = "analyzeasan" ]]; then
+	    			doLogAnalyze="$doLogAnalyze analyzeasan"
 	    		elif [[ "$i" = "mfstrace" ]]; then
 	    			doLogAnalyze="$doLogAnalyze mfstrace"
 	    		elif [[ "$i" = "mfscpuuse" ]]; then

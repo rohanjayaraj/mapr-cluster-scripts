@@ -2550,6 +2550,9 @@ function maprutil_runCommands(){
             analyzecores)
                 maprutil_analyzeCores
             ;;
+            analyzeasan)
+                maprutil_analyzeASAN
+            ;;
             mfsthreads)
                 maprutil_mfsthreads
             ;;
@@ -3390,7 +3393,7 @@ EOF
         mkdir -p ~/.m2 > /dev/null 2>&1
         
 
-        if [ -s "/etc/docker/daemon.json" ]; then
+        if [ ! -s "/etc/docker/daemon.json" ]; then
         cat <<EOF > /etc/docker/daemon.json
 {
     "insecure-registries": ["docker.artifactory.lab", "docker.artifactory"]
@@ -3433,7 +3436,7 @@ EOF
         
          mkdir -p ~/.m2 > /dev/null 2>&1
 
-        if [ -s "/etc/docker/daemon.json" ]; then
+        if [ ! -s "/etc/docker/daemon.json" ]; then
             cat <<EOF > /etc/docker/daemon.json
 {
     "insecure-registries": ["docker.artifactory.lab", "docker.artifactory"]
@@ -5064,6 +5067,36 @@ function maprutil_debugCore(){
         [ "$sz" -gt "10737418240" ] && log_warn "[$(util_getHostIP)] Disk may get full with large(>10GB) core file(s)"
     fi
     [ -n "$backtrace" ] && echo "$backtrace" | sed  -n '/Switching to thread/q;p'
+}
+
+function maprutil_analyzeASAN(){
+    local mfserr="/opt/mapr/logs/mfs.err"
+    [ ! -s "${mfserr}" ] && return
+    local asan=$(grep -n "ASAN:" ${mfserr} | cut -d':' -f1)
+    [ -z "${asan}" ] && return
+
+    echo
+    log_msghead "[$(util_getHostIP)] Analyzing $(echo $asan | wc -l) ASAN msgs in ${mfserr}"
+
+    local asanstack=
+    local i=1
+    for sl in $asan; 
+    do  
+        local p=$sl
+        let p=p+2; 
+        local l=$(sed -n ${p}p ${mfserr} | cut -d '=' -f1-3); 
+        local el=$(grep -n "${l}" ${mfserr} | tail -n 1 | cut -d':' -f1); 
+        local trace=$(sed -n "${sl},${el}p" ${mfserr})
+        local filelineno=$(echo "$trace" | grep "#0" | head -n 1 | awk '{print $NF}')
+        local isnew=$(echo -e "$asanstack" | grep "$filelineno")
+        if [ -z "$isnew" ]; then
+            asanstack="$asanstack \n $trace"
+            log_msg "\n\t Eror #${i} : "
+            echo -e "$trace" | sed 's/^/\t\t/' 
+            let i=i+1
+        fi
+    done
+    
 }
 
 function maprutil_runmrconfig_info(){
