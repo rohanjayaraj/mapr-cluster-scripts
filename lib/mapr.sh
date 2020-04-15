@@ -5076,7 +5076,7 @@ function maprutil_analyzeASAN(){
     [ -z "${asan}" ] && return
 
     echo
-    log_msghead "[$(util_getHostIP)] Analyzing $(echo $asan | wc -l) ASAN msgs in ${mfserr}"
+    log_msghead "[$(util_getHostIP)] Analyzing $(echo "$asan" | wc -l) ASAN msgs in ${mfserr}"
 
     local asanstack=
     local i=1
