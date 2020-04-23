@@ -289,6 +289,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/guts*")
     dirlist+=("/opt/cores/mfs*")
     dirlist+=("/opt/cores/java.core.*")
+    dirlist+=("/opt/cores/java*.core.*")
     dirlist+=("/opt/cores/collectd.core.*")
     dirlist+=("/opt/cores/reader*core*")
     dirlist+=("/opt/cores/writer*core*")
@@ -3352,8 +3353,8 @@ function maprutil_setupATSClientNode() {
             yum install -y yum-utils device-mapper-persistent-data lvm2 --enablerepo=${opts} -q 2>/dev/null
             yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
             if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
-                yum install http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/container-selinux-2.124.0-1.module_el8.1.0+272+3e64ee36.noarch.rpm -y -q 2>/dev/null
                 yum install -y policycoreutils-python-utils libcgroup --enablerepo=${opts} -q 2>/dev/null
+                yum install http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/container-selinux-2.124.0-1.module_el8.1.0+272+3e64ee36.noarch.rpm -y -q 2>/dev/null
                 yum install docker-ce docker-ce-cli containerd.io -y -q 2>/dev/null
             else
                 yum install docker -y -q 2>/dev/null
@@ -3366,7 +3367,7 @@ function maprutil_setupATSClientNode() {
         if ! command -v git > /dev/null 2>&1; then 
             if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
                 yum groupinstall "Development Tools" --enablerepo=${opts} -y
-                yum install wget unzip gettext-devel openssl-devel perl-CPAN perl-devel zlib-devel libcurl-devel expat-devel --enablerepo=${opts} -q 2>/dev/null
+                yum install -y wget unzip gettext-devel openssl-devel perl-CPAN perl-devel zlib-devel libcurl-devel expat-devel --enablerepo=${opts} -q 2>/dev/null
                 cd /tmp && wget https://github.com/git/git/archive/v2.26.0.tar.gz -O git.tar.gz
                 cd /tmp && tar -xf git.tar.gz && cd git-* && make prefix=/usr/local all install
             else
