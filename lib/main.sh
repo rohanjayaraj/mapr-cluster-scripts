@@ -963,7 +963,7 @@ function main_runLogDoctor(){
         	;;
         	analyzeasan)
 				log_msghead "[$(util_getCurDate)] Analyzing ASAN errors reported in mfs.err, if any"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzeasan" "$mailfile"
+				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzeasan" "$mailfile" "nodups"
 				[ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ] && util_postToSlack2 "$mailfile"
         	;;
         	mrinfo)

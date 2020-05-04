@@ -237,8 +237,8 @@ function util_installprereq(){
             util_checkAndInstall "perf" "perf"
             util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
         fi
-        util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf-c"
-        util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf"
+        #util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf-c"
+        #util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf"
     fi
 
     if [ "$(getOS)" = "centos" ]; then

@@ -3355,10 +3355,10 @@ function maprutil_setupATSClientNode() {
             if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
                 yum install -y policycoreutils-python-utils libcgroup --enablerepo=${opts} -q 2>/dev/null
                 yum install http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/container-selinux-2.124.0-1.module_el8.1.0+272+3e64ee36.noarch.rpm -y -q 2>/dev/null
-                yum install docker-ce docker-ce-cli containerd.io -y -q 2>/dev/null
-            else
-                yum install docker -y -q 2>/dev/null
+                
             fi
+            yum install docker-ce docker-ce-cli containerd.io -y -q 2>/dev/null
+            #yum install docker -y -q 2>/dev/null
             systemctl enable docker
         fi
 
