@@ -366,15 +366,15 @@ function util_checkInstallAndRetry(){
     if [[ "$actbins" -lt "$numbins" ]]; then
         log_info "[$hostip] Not all binaries were installed [Expected: $numbins, Installed: $actbins]. Retrying after sleeping for 60s"
         sleep 60
-        log_info "[$hostip] Retry: Installing packages : $bins"
+        log_info "[$hostip] Retry: Installing packages : $1"
         if [ "$(getOS)" = "centos" ]; then
-            yum install ${bins} -y --nogpgcheck 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+            yum install ${1} -y --nogpgcheck 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         elif [[ "$(getOS)" = "ubuntu" ]]; then
             local opts="--force-yes"
             [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
-            apt-get -y $opts install ${bins} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+            apt-get -y $opts install ${1} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         elif [[ "$(getOS)" = "suse" ]]; then
-            zypper --no-gpg-checks -n install ${bins} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+            zypper --no-gpg-checks -n install ${1} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         fi
     fi
 }
@@ -386,6 +386,7 @@ function util_installBinaries(){
     fi
     local bins="$1"
     local prefix=$3
+    local actbins=
     local hostip=$(util_getHostIP)
     if [[ -n "$2" ]] && [[ -z "$(echo $2 | grep -i latest)" ]]; then
         bins=$(util_appendVersionToPackage "$1" "$2" "$3")
@@ -393,17 +394,34 @@ function util_installBinaries(){
     log_info "[$hostip] Installing packages : $bins"
     if [ "$(getOS)" = "centos" ]; then
         yum clean all > /dev/null 2>&1
-        yum install ${bins} -y --nogpgcheck 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        actbins="$(util_getExistingBinaries "$bins")"
+        yum install ${actbins} -y --nogpgcheck 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
         apt-get $opts update > /dev/null 2>&1
-        apt-get -y $opts install ${bins} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        actbins="$(util_getExistingBinaries "$bins")"
+        apt-get -y $opts install ${actbins} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper refresh > /dev/null 2>&1
-        zypper --no-gpg-checks -n install ${bins} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        actbins="$(util_getExistingBinaries "$bins")"
+        zypper --no-gpg-checks -n install ${actbins} 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     fi
     util_checkInstallAndRetry "$bins"
+}
+
+function util_getExistingBinaries(){
+    [ -z "$1" ] && return
+    local bins="$1"
+    local newbins=
+    if [ "$(getOS)" = "centos" ]; then
+        newbins=$(for i in $bins; do k=$(yum search ${i} 2> /dev/null| grep "^${i}" | cut -d'.' -f1 | grep "${i}$"); [ -n "$k" ] && echo ${i}; done | tr '\n' ' ')
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        newbins=$(for i in $bins; do k=$(apt-cache search ${i} 2> /dev/null| awk '{print $1}' | grep "^${i}$"); [ -n "$k" ] && echo ${i}; done | tr '\n' ' ')
+    elif [[ "$(getOS)" = "suse" ]]; then
+        newbins=$(for i in $bins; do k=$(zypper search ${i} 2>/dev/null| grep -o "${i} "); [ -n "$k" ] && echo ${i}; done | tr '\n' ' ')
+    fi
+    echo "$newbins"
 }
 
 # @param list of binaries

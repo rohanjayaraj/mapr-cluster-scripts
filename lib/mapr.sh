@@ -902,6 +902,8 @@ function maprutil_installBinariesOnNode(){
             echo "maprutil_reinstallApiserver" >> $scriptpath
             echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
             echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
+        elif [ -n "$(echo "$bins" | grep -e mapr-webserver -e mapr-apiserver)" ]; then
+            echo "maprutil_installApiserverIfAbsent" >> $scriptpath
         fi
     else
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g')
@@ -911,6 +913,8 @@ function maprutil_installBinariesOnNode(){
             echo "maprutil_reinstallApiserver" >> $scriptpath
             echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
             echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
+        elif [ -n "$(echo "$bins" | grep -e mapr-webserver -e mapr-apiserver)" ]; then
+            echo "maprutil_installApiserverIfAbsent" >> $scriptpath
         fi
     fi
     
@@ -919,6 +923,20 @@ function maprutil_installBinariesOnNode(){
     if [ -z "$3" ]; then
         maprutil_wait
     fi
+}
+
+function maprutil_installApiserverIfAbsent(){
+    local hostip=$(util_getHostIP)
+    local hasapi=$(echo $(maprutil_getNodesForService "mapr-apiserver") | grep "$hostip")
+    local hasweb=$(echo $(maprutil_getNodesForService "mapr-webserver") | grep "$hostip")
+
+    local webinst=$(util_getInstalledBinaries "mapr-webserver")
+    local apiinst=$(util_getInstalledBinaries "mapr-apiserver")
+    local notok=
+    [ -n "$hasapi" ] && [ -z "$apiinst" ] && notok=1
+    [ -n "$hasweb" ] && [ -z "$webinst" ] && notok=1
+
+    [ -n "$notok" ] && maprutil_reinstallApiserver "http://artifactory.devops.lab/artifactory/list/eco-rpm/releases/opensource/redhat/mapr-admin-${GLB_MAPR_VERSION}/"
 }
 
 function maprutil_reinstallApiserver(){
@@ -931,8 +949,10 @@ function maprutil_reinstallApiserver(){
 
     local nodeos=$(getOS)
     local tempdir=$(mktemp -d)
-    local repourl="http://artifactory.devops.lab/artifactory/list/eco-rpm/releases/opensource/redhat/mapr-admin-${GLB_MAPR_VERSION}-EBF/"
+    local repourl="$1"
     local ext="rpm"
+
+    [ -z "$repourl" ] && repourl="http://artifactory.devops.lab/artifactory/list/eco-rpm/releases/opensource/redhat/mapr-admin-${GLB_MAPR_VERSION}-EBF/"
     
     if [ "$nodeos" = "ubuntu" ]; then
         repourl="$(echo $repourl | sed 's/eco-rpm/eco-deb/g' | sed 's/redhat/ubuntu/g')"
