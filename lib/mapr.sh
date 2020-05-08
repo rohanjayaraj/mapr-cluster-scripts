@@ -961,6 +961,7 @@ function maprutil_reinstallApiserver(){
     pushd $tempdir > /dev/null 2>&1
     wget -q -O test.html ${repourl}
     local buildid=$(cat test.html | grep -o "href=\"[0-9]*" | cut -d '"' -f2 | sort -n -r | head -1)
+    [ -z "$buildid" ] && buildid=$(cat test.html | grep -o "href=\"[a-z0-9-]*" | cut -d '"' -f2 | sort -n -r -t '-' -k2 | head -1)
     repourl="${repourl}${buildid}/"
     wget -r -np -nH -nd --cut-dirs=1 --accept "*.${ext}" ${repourl} > /dev/null 2>&1
     local apibins=$(ls *.${ext} 2>/dev/null)
