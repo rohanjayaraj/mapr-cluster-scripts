@@ -2311,12 +2311,14 @@ function maprutil_setupasanmfs(){
         cp opt/mapr/server/mfs /opt/mapr/server/mfs > /dev/null 2>&1
         log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
     fi
+
     if [ -s "opt/mapr/lib/libGatewayNative.so" ]; then
         mv /opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so.original > /dev/null 2>&1
         cp opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so > /dev/null 2>&1
         local asanso=$(ldd /opt/mapr/lib/libGatewayNative.so 2>/dev/null| grep "libasan.so" | awk '{print $3}')
         # update gateway initscripts w/ LD_PRELOAD
         if [ -n "$asanso" ] && [ -e "/opt/mapr/roles/gateway" ]; then
+            sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=handle_segv=0" /opt/mapr/initscripts/mapr-gateway
             sed -i "s| \$JAVA \\\| LD_PRELOAD=${asanso} \$JAVA \\\|" /opt/mapr/initscripts/mapr-gateway
             log_info "[$(util_getHostIP)] Replaced libGatewayNative w/ ASAN binary"
         fi
@@ -2328,6 +2330,7 @@ function maprutil_setupasanmfs(){
         local asanso=$(ldd /opt/mapr/lib/libMASTGatewayNative.so 2>/dev/null| grep "libasan.so" | awk '{print $3}')
         # update gateway initscripts w/ LD_PRELOAD
         if [[ -e "/opt/mapr/roles/mastgateway" ]]; then
+            sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=handle_segv=0" /opt/mapr/initscripts/mapr-mastgateway
             sed -i "s| \$JAVA \\\| LD_PRELOAD=${asanso} \$JAVA \\\|" /opt/mapr/initscripts/mapr-mastgateway
             log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
         fi
@@ -5114,7 +5117,7 @@ function maprutil_debugCore(){
 }
 
 function maprutil_analyzeASAN(){
-    local asanlogs="/opt/mapr/logs/mfs.err /opt/mapr/logs/gatewayinit.log"
+    local asanlogs="/opt/mapr/logs/mfs.err /opt/mapr/logs/gatewayinit.log /opt/mapr/logs/mastgateway.err"
 
     local haslogs=
     for log in $asanlogs; 
