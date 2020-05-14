@@ -5124,7 +5124,7 @@ function maprutil_analyzeASAN(){
     do
         [ ! -s "${log}" ] && continue
         local asan=$(grep -n "^==[0-9].*AddressSanitizer:" ${log} | cut -d':' -f1)
-        [ -z "${asan}" ] && haslogs="$haslogs $log"
+        [ -n "${asan}" ] && haslogs="$haslogs $log"
     done
 
     [ -z "$haslogs" ] && return
