@@ -2317,7 +2317,7 @@ function maprutil_setupasanmfs(){
         local asanso=$(ldd /opt/mapr/lib/libGatewayNative.so 2>/dev/null| grep "libasan.so" | awk '{print $3}')
         # update gateway initscripts w/ LD_PRELOAD
         if [ -n "$asanso" ] && [ -e "/opt/mapr/roles/gateway" ]; then
-            sed -i "s/^[[:space:]]*\$JAVA/LD_PRELOAD=${asanso} \$JAVA/" /opt/mapr/initscripts/mapr-gateway
+            sed -i "s| \$JAVA \\\| LD_PRELOAD=${asanso} \$JAVA \\\|" /opt/mapr/initscripts/mapr-gateway
             log_info "[$(util_getHostIP)] Replaced libGatewayNative w/ ASAN binary"
         fi
         
@@ -2328,7 +2328,7 @@ function maprutil_setupasanmfs(){
         local asanso=$(ldd /opt/mapr/lib/libMASTGatewayNative.so 2>/dev/null| grep "libasan.so" | awk '{print $3}')
         # update gateway initscripts w/ LD_PRELOAD
         if [[ -e "/opt/mapr/roles/mastgateway" ]]; then
-            sed -i "s/^[[:space:]]*\$JAVA/LD_PRELOAD=${asanso} \$JAVA/" /opt/mapr/initscripts/mapr-mastgateway
+            sed -i "s| \$JAVA \\\| LD_PRELOAD=${asanso} \$JAVA \\\|" /opt/mapr/initscripts/mapr-mastgateway
             log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
         fi
     fi

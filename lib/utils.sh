@@ -153,8 +153,8 @@ function util_maprprereq(){
         yum -q -y install redhat-lsb-core --enablerepo=${opts}
         yum -q -y install $DEPENDENCY_RPM --enablerepo=${opts}
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
-            #yum -q -y install ${CENTOS8_RPM} --enablerepo=${opts}
-            yum -q -y install java-11-openjdk-devel --enablerepo=${opts}
+            yum -q -y install ${CENTOS8_RPM} --enablerepo=${opts}
+            #yum -q -y install java-11-openjdk-devel --enablerepo=${opts}
         else
             yum -q -y install java-1.8.0-openjdk-devel --enablerepo=${opts}
         fi
