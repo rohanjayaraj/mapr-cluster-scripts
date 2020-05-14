@@ -5134,16 +5134,43 @@ function maprutil_analyzeASAN(){
     local asanstack=
     local i=1
 
-    for errlog in $haslogs; 
+
+
+    for errlog in $haslogs;
     do
-        local asan=$(grep -n "^==[0-9].*AddressSanitizer:" ${errlog} | cut -d':' -f1)
-        log_msghead "[$(util_getHostIP)] Analyzing $(echo "$asan" | wc -l) ASAN msgs in ${errlog}"
-        for sl in $asan; 
-        do  
-            local p=$(sed -n ${sl}p ${errlog} | cut -d '=' -f1-3); 
-            local el=$(grep -n "${p}" ${errlog} | tail -n 1 | cut -d':' -f1); 
-            local trace=$(sed -n "${sl},${el}p" ${errlog})
-            local filelineno=$(echo "$trace" | grep "#0" | head -n 1 | awk '{print $NF}')
+        local asan=$(grep -n  -e "^==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" -e "SUMMARY:" ${errlog})
+        local numasan=$(echo $(echo "$asan" | wc -l) | bc)
+        log_msghead "[$(util_getHostIP)] Analyzing $numasan ASAN msgs in ${errlog}"
+        while read -r fline; do
+            [ -n "$(echo "$fline" | grep SUMMARY)" ] && continue
+            local isleak=$(echo "$fline" | grep LeakSanitizer)
+            fline=$(echo "$fline" | cut -d':' -f1)
+            read -r sline
+            [ -z "$(echo "$sline" | grep SUMMARY)" ] && continue
+            sline=$(echo "$sline" | cut -d':' -f1)
+
+            local trace=$(sed -n "${fline},${sline}p" ${errlog})
+            local filelineno=
+            if [ -n "$isleak" ]; then
+                local newtrace=
+                local leakasan=$(echo "$trace" | grep -n -e "leak " -e "#1 " -e "^$")
+                 while read -r lfl; do
+                    [ -z "$(echo "$lfl" | grep "leak ")" ] && continue
+                    read -r lsl
+                    read -r ltl
+                    [ -n "$(echo "$lsl" | grep -e libz -e libjvm -e openjdk -e java)" ] && continue
+                    lfl=$(echo "$lfl" | cut -d':' -f1)
+                    ltl=$(echo "$ltl" | cut -d':' -f1)
+
+                    local leaktrace=$(echo "$trace" | sed -n "${lfl},${ltl}p")
+                    [ -n "$newtrace" ] && newtrace="$newtrace \n"
+                    newtrace="$newtrace $leaktrace"
+                done <<< "$leakasan"
+                trace="$newtrace"
+            else
+                filelineno=$(echo "$trace" | grep "#0" | head -n 1 | awk '{print $NF}')
+            fi
+
             local isnew=$(echo -e "$asanstack" | grep "$filelineno")
             if [ -z "$isnew" ]; then
                 asanstack="$asanstack \n $trace"
@@ -5151,9 +5178,8 @@ function maprutil_analyzeASAN(){
                 echo -e "$trace" | sed 's/^/\t\t/' 
                 let i=i+1
             fi
-        done
+        done <<< "$asan"
     done
-    
 }
 
 function maprutil_runmrconfig_info(){
