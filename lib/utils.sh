@@ -77,7 +77,7 @@ function util_checkAndInstall(){
     local opts=
     if [ "$(getOS)" = "centos" ]; then
         opts="C6*,C7*,base,epel,epel-release"
-        [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras"
+        [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras,AppStream*"
         command -v $1 >/dev/null 2>&1 || yum --enablerepo=${opts} install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
@@ -97,7 +97,7 @@ function util_checkAndInstall2(){
     if [ "$(getOS)" = "centos" ]; then
         if [ ! -e "$1" ]; then
             local opts="C6*,C7*,base,epel,epel-release"
-            [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras"
+            [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras,AppStream*"
             yum install $2 -y -q --enablerepo=${opts} 2>/dev/null
         fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
@@ -123,7 +123,7 @@ function util_maprprereq(){
     syslinux sysstat"
     local DEPENDENCY_RPM="$DEPENDENCY_BASE_RPM device-mapper iputils \
     libsysfs lvm2 nc nfs-utils nss ntp openssh-clients openssh-server \
-    python-devel python-pycurl rpcbind sdparm sshpass sysstat"
+    python-devel python-pycurl rpcbind sdparm sshpass sysstat libasan"
     local DEPENDENCY_SUSE="$DEPENDENCY_BASE_SUSE libopenssl1_0_0 \
     netcat-openbsd nfs-client openssl syslinux tar util-linux vim openssh \
     device-mapper iputils lvm2 mozilla-nss ntp sdparm sysfsutils sysstat util-linux python-pycurl"
@@ -135,12 +135,15 @@ function util_maprprereq(){
     http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/alsa-lib-1.1.9-4.el8.x86_64.rpm \
     http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/giflib-5.1.4-3.el8.x86_64.rpm \
     http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/xorg-x11-fonts-Type1-7.5-19.el8.noarch.rpm \
-    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/ttmkfdir-3.0.9-54.el8.x86_64.rpm"
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/ttmkfdir-3.0.9-54.el8.x86_64.rpm \
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/javapackages-filesystem-5.3.0-1.module_el8.0.0+11+5b8c10bd.noarch.rpm \
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/copy-jdk-configs-3.7-1.el8.noarch.rpm \
+    http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/tzdata-java-2019c-1.el8.noarch.rpm"
 
     if [ "$(getOS)" = "centos" ]; then
         local opts="C6*,C7*,base,epel,epel-release"
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
-            opts="epel,Base*,extras"
+            opts="epel,Base*,extras,AppStream*"
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ ntp / chrony /')
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ python-devel / /')
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ python-pycurl / libcurl libcurl-devel /')
@@ -150,7 +153,8 @@ function util_maprprereq(){
         yum -q -y install redhat-lsb-core --enablerepo=${opts}
         yum -q -y install $DEPENDENCY_RPM --enablerepo=${opts}
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
-            yum -q -y install ${CENTOS8_RPM} --enablerepo=${opts}
+            #yum -q -y install ${CENTOS8_RPM} --enablerepo=${opts}
+            yum -q -y install java-11-openjdk-devel --enablerepo=${opts}
         else
             yum -q -y install java-1.8.0-openjdk-devel --enablerepo=${opts}
         fi

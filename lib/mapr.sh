@@ -2303,14 +2303,36 @@ function maprutil_setupasanmfs(){
     pushd $tempdir  > /dev/null 2>&1
     wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
     ar vx mapr-core-internal*.deb > /dev/null 2>&1
-    tar xJf data.tar.xz ./opt/mapr/server/mfs > /dev/null 2>&1
+    tar xJf data.tar.xz ./opt/mapr/server/mfs ./opt/mapr/lib/libGatewayNative.so ./opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
 
     # replace mfs binary
     if [ -s "opt/mapr/server/mfs" ]; then
         mv /opt/mapr/server/mfs /opt/mapr/server/mfs.original > /dev/null 2>&1
         cp opt/mapr/server/mfs /opt/mapr/server/mfs > /dev/null 2>&1
         log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
-    fi 
+    fi
+    if [ -s "opt/mapr/lib/libGatewayNative.so" ]; then
+        mv /opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so.original > /dev/null 2>&1
+        cp opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so > /dev/null 2>&1
+        local asanso=$(ldd /opt/mapr/lib/libGatewayNative.so 2>/dev/null| grep "libasan.so" | awk '{print $3}')
+        # update gateway initscripts w/ LD_PRELOAD
+        if [ -n "$asanso" ] && [ -e "/opt/mapr/roles/gateway" ]; then
+            sed -i "s/^[[:space:]]*\$JAVA/LD_PRELOAD=${asanso} \$JAVA/" /opt/mapr/initscripts/mapr-gateway
+            log_info "[$(util_getHostIP)] Replaced libGatewayNative w/ ASAN binary"
+        fi
+        
+    fi
+    if [ -s "opt/mapr/lib/libMASTGatewayNative.so" ]; then
+        mv /opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so.original > /dev/null 2>&1
+        cp opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
+        local asanso=$(ldd /opt/mapr/lib/libMASTGatewayNative.so 2>/dev/null| grep "libasan.so" | awk '{print $3}')
+        # update gateway initscripts w/ LD_PRELOAD
+        if [[ -e "/opt/mapr/roles/mastgateway" ]]; then
+            sed -i "s/^[[:space:]]*\$JAVA/LD_PRELOAD=${asanso} \$JAVA/" /opt/mapr/initscripts/mapr-mastgateway
+            log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
+        fi
+    fi
+
     popd  > /dev/null 2>&1
     rm -rf $tempdir  > /dev/null 2>&1
 
@@ -3367,7 +3389,7 @@ function maprutil_setupATSClientNode() {
     local nodeos=$(getOS $node)
     if [ "$nodeos" = "centos" ]; then
         local opts="C6*,C7*,base,epel,epel-release"
-        [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras"
+        [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras,AppStream*"
 
         # Install docker
         if ! command -v docker > /dev/null 2>&1; then 
@@ -5092,29 +5114,41 @@ function maprutil_debugCore(){
 }
 
 function maprutil_analyzeASAN(){
-    local mfserr="/opt/mapr/logs/mfs.err"
-    [ ! -s "${mfserr}" ] && return
-    local asan=$(grep -n "^==[0-9].*AddressSanitizer:" ${mfserr} | cut -d':' -f1)
-    [ -z "${asan}" ] && return
+    local asanlogs="/opt/mapr/logs/mfs.err /opt/mapr/logs/gatewayinit.log"
+
+    local haslogs=
+    for log in $asanlogs; 
+    do
+        [ ! -s "${log}" ] && continue
+        local asan=$(grep -n "^==[0-9].*AddressSanitizer:" ${log} | cut -d':' -f1)
+        [ -z "${asan}" ] && haslogs="$haslogs $log"
+    done
+
+    [ -z "$haslogs" ] && return
 
     echo
-    log_msghead "[$(util_getHostIP)] Analyzing $(echo "$asan" | wc -l) ASAN msgs in ${mfserr}"
-
+    
     local asanstack=
     local i=1
-    for sl in $asan; 
-    do  
-        local p=$(sed -n ${sl}p ${mfserr} | cut -d '=' -f1-3); 
-        local el=$(grep -n "${p}" ${mfserr} | tail -n 1 | cut -d':' -f1); 
-        local trace=$(sed -n "${sl},${el}p" ${mfserr})
-        local filelineno=$(echo "$trace" | grep "#0" | head -n 1 | awk '{print $NF}')
-        local isnew=$(echo -e "$asanstack" | grep "$filelineno")
-        if [ -z "$isnew" ]; then
-            asanstack="$asanstack \n $trace"
-            log_msg "\n\t Issue #${i} : "
-            echo -e "$trace" | sed 's/^/\t\t/' 
-            let i=i+1
-        fi
+
+    for errlog in $haslogs; 
+    do
+        local asan=$(grep -n "^==[0-9].*AddressSanitizer:" ${errlog} | cut -d':' -f1)
+        log_msghead "[$(util_getHostIP)] Analyzing $(echo "$asan" | wc -l) ASAN msgs in ${errlog}"
+        for sl in $asan; 
+        do  
+            local p=$(sed -n ${sl}p ${errlog} | cut -d '=' -f1-3); 
+            local el=$(grep -n "${p}" ${errlog} | tail -n 1 | cut -d':' -f1); 
+            local trace=$(sed -n "${sl},${el}p" ${errlog})
+            local filelineno=$(echo "$trace" | grep "#0" | head -n 1 | awk '{print $NF}')
+            local isnew=$(echo -e "$asanstack" | grep "$filelineno")
+            if [ -z "$isnew" ]; then
+                asanstack="$asanstack \n $trace"
+                log_msg "\n\t Issue #${i} : "
+                echo -e "$trace" | sed 's/^/\t\t/' 
+                let i=i+1
+            fi
+        done
     done
     
 }
