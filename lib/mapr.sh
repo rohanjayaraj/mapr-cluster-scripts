@@ -431,21 +431,21 @@ function maprutil_isMapRInstalledOnNodes(){
     for node in ${maprnodes[@]}
     do
         local nodelog="$tmpdir/$node.log"
-        maprutil_isMapRInstalledOnNode "$node" > $nodelog &
+        maprutil_isMapRInstalledOnNode "${node}" > $nodelog &
         maprutil_addToPIDList "$!"
         if [ -n "$maprversion" ]; then
-            local nodevlog="$tmpdir/$node_ver.log"
-            maprutil_getMapRVersionOnNode "$node" > $nodevlog &
+            local nodevlog="$tmpdir/${node}_ver.log"
+            maprutil_getMapRVersionOnNode "${node}" > $nodevlog &
             maprutil_addToPIDList "$!"
         fi
     done
     maprutil_wait > /dev/null 2>&1
     for node in ${maprnodes[@]}
     do
-        local nodelog=$(cat $tmpdir/$node.log)
+        local nodelog=$(cat $tmpdir/${node}.log)
         if [ "$nodelog" = "true" ]; then
             if [ -n "$maprversion" ]; then
-                local nodevlog=$(cat $tmpdir/$node_ver.log)
+                local nodevlog=$(cat $tmpdir/${node}_ver.log)
                 yeslist=$yeslist"$node $nodevlog""#"
             else
                 yeslist=$yeslist"$node"" "
@@ -2247,7 +2247,7 @@ function maprutil_addLocalRepo(){
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
 
-        #rm -rf /etc/yum.repos.d/mapr.repo /etc/yum.repos.d/mapr2.repo /etc/yum.repos.d/mapr-[0-9]*.repo > /dev/null 2>&1
+        rm -rf /etc/yum.repos.d/mapr-[0-9]*.repo > /dev/null 2>&1
         cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
 
@@ -2258,7 +2258,7 @@ function maprutil_addLocalRepo(){
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && istrusty="[trusted=yes]" && opts="--allow-unauthenticated"
         echo "deb $istrusty file:$repourl ./" > $repofile
         echo "deb $istrusty $meprepo binary trusty" >> $repofile
-        #rm -rf /etc/apt/sources.list.d/mapr.list /etc/apt/sources.list.d/mapr2.list /etc/apt/sources.list.d/mapr-[0-9]*.list > /dev/null 2>&1
+        rm -rf /etc/apt/sources.list.d/mapr-[0-9]*.list > /dev/null 2>&1
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
         apt-get $opts update > /dev/null 2>&1
 
@@ -2279,7 +2279,7 @@ function maprutil_addLocalRepo(){
         echo "gpgcheck=0" >> $repofile
         echo "type=rpm-md" >> $repofile
 
-        #rm -rf /etc/zypp/repos.d/mapr.repo /etc/zypp/repos.d/mapr2.repo /etc/zypp/repos.d/mapr-[0-9]*.repo > /dev/null 2>&1
+        rm -rf /etc/zypp/repos.d/mapr-[0-9]*.repo > /dev/null 2>&1
         cp $repofile /etc/zypp/repos.d/ > /dev/null 2>&1
         zypper clean > /dev/null 2>&1
         zypper refresh > /dev/null 2>&1
@@ -2369,10 +2369,11 @@ function maprutil_downloadBinaries(){
     
     pushd $dlddir > /dev/null 2>&1
     
+    local ignorelist="mapr-cisco*,mapr-apple*,mapr-azure*,mapr-amadeus*,mapr-awsmp*,mapr-compat*,mapr-emc*,mapr-ericsson*,mapr-philips*,mapr-sap*,mapr-uber*,mapr-genericgolden*,mapr-cloudpartner*,mapr-single-node*,mapr-creditagricole*,mapr-upgrade*"
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
+        wget -r -np -nH -nd --cut-dirs=1 -R "${ignorelist}" --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
-        wget -r -np -nH -nd --cut-dirs=1 --accept "*${searchkey}*.deb" ${repourl} > /dev/null 2>&1
+        wget -r -np -nH -nd --cut-dirs=1 -R "${ignorelist}" --accept "*${searchkey}*.deb" ${repourl} > /dev/null 2>&1
     fi
 
     local mversion=$(ls ${dlddir} | grep mapr-core-internal | grep -o "[0-9.]*.GA" | cut -d'.' -f1-3 | head -1)
