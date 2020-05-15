@@ -3306,15 +3306,13 @@ function maprutil_applyLicense(){
         ### Attempt using Downloaded License
         if [[ "${jobs}" -ne "0" ]]; then
             jobs=$(timeout 30 /opt/mapr/bin/maprcli license add -license /tmp/LatestDemoLicense-M7.txt -is_file true > /dev/null;echo $?);
-        
-            let i=i+1
-            if [[ "$i" -gt "12" ]] && [[ "${jobs}" -ne "0" ]]; then
-                log_error "Failed to apply license. Node may not be configured correctly"
-                exit 1
-            fi
         fi
-
-        if [[ "${jobs}" -eq "0" ]] && [[ -n "$GLB_SECURE_CLUSTER" ]] && [[ ! -e "/tmp/maprticket_0" ]]; then
+        let i=i+1
+        if [[ "$i" -gt "12" ]] && [[ "${jobs}" -ne "0" ]]; then
+            log_error "Failed to apply license. Node may not be configured correctly"
+            exit 1
+        fi
+        if [[ -n "$GLB_SECURE_CLUSTER" ]] && [[ ! -e "/tmp/maprticket_0" ]]; then
             echo 'mapr' | maprlogin password  2>/dev/null
             echo 'mapr' | su mapr -c 'maprlogin password' 2>/dev/null
             if [ -n "$GLB_ATS_USERTICKETS" ]; then
@@ -3333,7 +3331,7 @@ function maprutil_applyLicense(){
         fi
     done
 
-    if [[ -n "$GLB_HAS_FUSE" ]]; then
+    if [[ "${jobs}" -eq "0" ]] && [[ -n "$GLB_HAS_FUSE" ]]; then
         mkdir -p /fusemnt > /dev/null 2>&1
         local clusterid=$(timeout 30 maprcli dashboard info -json 2>/dev/null | grep -A5 cluster | grep id | tr -d '"' | tr -d ',' | cut -d':' -f2)
         local expdate=$(date -d "+30 days" +%Y-%m-%d)
@@ -3342,7 +3340,7 @@ function maprutil_applyLicense(){
         curl --cookie /tmp/tmpckfile -X POST -F "license_type=additionalfeatures_posixclientplatinum" -F "cluster=${clusterid}" -F "customer_name=maprqa" -F "expiration_date=${expdate}" -F "number_of_nodes=${GLB_CLUSTER_SIZE}" -F "enforcement_type=HARD" https://apitest.mapr.com/license/licenses/createlicense/ -o ${licfile} 2>/dev/null
         [ -e "$licfile" ] && timeout 30 /opt/mapr/bin/maprcli license add -license ${licfile} -is_file true > /dev/null
     fi
-    log_info "[$(util_getHostIP)] License has been applied."
+    [[ "${jobs}" -eq "0" ]] && log_info "[$(util_getHostIP)] License has been applied."
 }
 
 
