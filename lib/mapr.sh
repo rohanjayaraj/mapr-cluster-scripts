@@ -2232,7 +2232,7 @@ function maprutil_addLocalRepo(){
 
     log_info "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
     if [ "$nodeos" = "centos" ]; then
-        echo "[QA-CustomOpensource]" > $repofile
+        echo "[QA-CustomOpensource-$GLB_BUILD_VERSION]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
         echo "baseurl=$meprepo" >> $repofile
         echo "enabled=1" >> $repofile
@@ -2247,6 +2247,7 @@ function maprutil_addLocalRepo(){
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
 
+        rm -rf /etc/yum.repos.d/mapr.repo /etc/yum.repos.d/mapr2.repo /etc/yum.repos.d/mapr-[0-9]*.repo > /dev/null 2>&1
         cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
 
@@ -2257,12 +2258,13 @@ function maprutil_addLocalRepo(){
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && istrusty="[trusted=yes]" && opts="--allow-unauthenticated"
         echo "deb $istrusty file:$repourl ./" > $repofile
         echo "deb $istrusty $meprepo binary trusty" >> $repofile
+        rm -rf /etc/apt/sources.list.d/mapr.list /etc/apt/sources.list.d/mapr2.list /etc/apt/sources.list.d/mapr-[0-9]*.list > /dev/null 2>&1
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
         apt-get $opts update > /dev/null 2>&1
 
     elif [ "$nodeos" = "suse" ]; then
 
-        echo "[QA-CustomOpensource]" > $repofile
+        echo "[QA-CustomOpensource-$GLB_BUILD_VERSION]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
         echo "baseurl=$meprepo" >> $repofile
         echo "enabled=1" >> $repofile
@@ -2277,6 +2279,7 @@ function maprutil_addLocalRepo(){
         echo "gpgcheck=0" >> $repofile
         echo "type=rpm-md" >> $repofile
 
+        rm -rf /etc/zypp/repos.d/mapr.repo /etc/zypp/repos.d/mapr2.repo /etc/zypp/repos.d/mapr-[0-9]*.repo > /dev/null 2>&1
         cp $repofile /etc/zypp/repos.d/ > /dev/null 2>&1
         zypper clean > /dev/null 2>&1
         zypper refresh > /dev/null 2>&1
