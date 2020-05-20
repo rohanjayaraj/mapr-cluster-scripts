@@ -299,7 +299,7 @@ function util_checkPackageExists(){
      if [ "$(getOS)" = "centos" ]; then
         yum --showduplicates list $1 | grep "^$1" | awk '{print $2}' | grep $2 1> /dev/null && echo "true" || echo "false"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-cache policy $1 | grep $2 1> /dev/null && echo "true" || echo "false"
+        apt-cache policy $1 | grep -v "file://" | grep $2 1> /dev/null && echo "true" || echo "false"
     elif [[ "$(getOS)" = "suse" ]]; then
         zypper search -s $1 | grep $2 1> /dev/null && echo "true" || echo "false"
     fi

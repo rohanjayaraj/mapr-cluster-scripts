@@ -163,6 +163,9 @@ function maprutil_getCoreNodeBinaries() {
             if [ -n "$(echo $newbinlist | grep mapr-core)" ] && [ -z "$(echo $newbinlist | grep "mapr-hadoop-client")" ]; then
                 newbinlist="$newbinlist mapr-hadoop-client"
             fi 
+            if [ -n "$(echo $newbinlist | grep mapr-gateway)" ] && [ -z "$(echo $newbinlist | grep "mapr-hbase")" ]; then
+                newbinlist="$newbinlist mapr-hbase"
+            fi
         fi
         #GLB_MAPR_VERSION
         if [ -n "$GLB_MAPR_PATCH" ]; then
@@ -2053,7 +2056,7 @@ function maprutil_buildRepoFile(){
     local nodeos=$(getOSFromNode $node)
     local meprepo=
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.0/redhat/"
+        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-rpm/"
@@ -2088,7 +2091,7 @@ function maprutil_buildRepoFile(){
         fi
         echo >> $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.0/ubuntu/"
+        meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/ubuntu/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-deb/"
@@ -2226,7 +2229,7 @@ function maprutil_addLocalRepo(){
     fi
 
     local repourl=$1
-    local meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.0/redhat/"
+    local meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
     [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
     [ -n "$(echo "$meprepo" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g')
 
@@ -5136,6 +5139,7 @@ function maprutil_analyzeASAN(){
     echo
     
     local asanstack=
+    local asanleakstack=
     local i=1
 
 
@@ -5158,7 +5162,7 @@ function maprutil_analyzeASAN(){
             if [ -n "$isleak" ]; then
                 local newtrace=
                 local leakasan=$(echo "$trace" | grep -n -e "leak " -e "#1 " -e "^$")
-                 while read -r lfl; do
+                while read -r lfl; do
                     [ -z "$(echo "$lfl" | grep "leak ")" ] && continue
                     read -r lsl
                     read -r ltl
@@ -5167,13 +5171,33 @@ function maprutil_analyzeASAN(){
                     ltl=$(echo "$ltl" | cut -d':' -f1)
 
                     local leaktrace=$(echo "$trace" | sed -n "${lfl},${ltl}p")
-                    [ -n "$newtrace" ] && newtrace="$newtrace \n"
-                    newtrace="$newtrace $leaktrace"
+                    # Remove duplicate stacks
+                    filelineno=$(echo "$lsl" | awk '{print $NF}')
+                    local isnew=$(echo -e "$asanleakstack" | grep "$filelineno")
+                    if [ -z "$isnew" ]; then
+                        [ -n "$newtrace" ] && newtrace="$newtrace \n"
+                        newtrace="$newtrace $leaktrace"
+                        asanleakstack="$asanleakstack \n $leaktrace"
+                    fi
                 done <<< "$leakasan"
                 trace="$newtrace"
             else
-                filelineno=$(echo "$trace" | grep "#0" | head -n 1 | awk '{print $NF}')
+                local tracethreads=$(echo "$trace" | grep -n -e "Thread T" -e "#1 " -e "^$")
+                local ilines=
+                while read -r tfl; do
+                    [ -z "$(echo "$tfl" | grep "Thread")" ] && continue
+                    read -r tsl
+                    read -r ttl
+                    if [ -n "$(echo "${tsl}" | grep -e libz -e libjvm -e openjdk -e java)" ]; then
+                        tfl=$(echo "$tfl" | cut -d':' -f1)
+                        ttl=$(echo "$ttl" | cut -d':' -f1)
+                        ilines="${ilines} ${tfl},${ttl}d;"
+                    fi
+                done <<< "${tracethreads}"
+                [ -n "${ilines}" ] && trace="$(echo "$trace" | sed "${ilines}")"
+                filelineno=$(echo "$trace" | grep "#[0-9]* " | grep "mapr" | head -n 1 | awk '{print $NF}')
             fi
+            trace="$(echo "${trace}" | grep -v -e "unknown module" -e "libjvm.so" -e "libjli.so")"
 
             local isnew=$(echo -e "$asanstack" | grep "$filelineno")
             if [ -z "$isnew" ]; then
