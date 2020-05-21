@@ -153,8 +153,8 @@ function util_maprprereq(){
         yum -q -y install redhat-lsb-core --enablerepo=${opts}
         yum -q -y install $DEPENDENCY_RPM --enablerepo=${opts}
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
-            #yum -q -y install ${CENTOS8_RPM} --enablerepo=${opts}
-            yum -q -y install java-11-openjdk-devel --enablerepo=${opts}
+            yum -q -y install ${CENTOS8_RPM} --enablerepo=${opts}
+            #yum -q -y install java-11-openjdk-devel --enablerepo=${opts}
         else
             yum -q -y install java-1.8.0-openjdk-devel --enablerepo=${opts}
         fi
@@ -175,11 +175,7 @@ function util_maprprereq(){
         zypper --non-interactive -q install ca-certificates
         zypper --non-interactive -q install lsb-release
         zypper --non-interactive -q install -n $DEPENDENCY_SUSE
-        if [[ "$(getOSReleaseVersion)" -ge "15" ]]; then
-            zypper --non-interactive -q install -n java-11-openjdk
-        else
-            zypper --non-interactive -q install -n java-1_8_0-openjdk-devel
-        fi
+        zypper --non-interactive -q install -n java-1_8_0-openjdk-devel
     fi
 
     local MAPR_UID=${MAPR_UID:-5000}
@@ -280,7 +276,7 @@ function util_checkAndInstallJDK11(){
             local opts="C6*,C7*,base,epel,epel-release"
             [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras,AppStream*"
             yum -q -y install java-11-openjdk-devel --enablerepo=${opts}
-        elif [[ "${nodeos}" = "ubuntu" ]] && [[ "$(getOSReleaseVersion)" -ge "16" ]];; then
+        elif [[ "${nodeos}" = "ubuntu" ]] && [[ "$(getOSReleaseVersion)" -ge "16" ]]; then
             local opts="--force-yes"
             [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
             apt-get -qq -y $opts install openjdk-11-jdk
