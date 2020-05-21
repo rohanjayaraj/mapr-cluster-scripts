@@ -300,25 +300,36 @@ function util_getJavaVersion(){
 
 function util_isJavaVersionInstalled(){
     [ -z "$1" ] && return
+    local nodeos="$(getOS)"
+    
     local jver=$1
     [[ "${jver}" = "8" ]] && jver="1.8"
+    [[ "${jver}" = "1.8" ]] && [[ "${nodeos}" = "ubuntu" ]] && jver="8"
     local searchkey="java-${jver}"
+    local isinstalled=
 
-    local isinstalled="$(update-alternatives --list 2>/dev/null| grep "${searchkey}" | awk '{print $3}' | sort | uniq | head -n 1)"
+    
+    if [[ "${nodeos}" = "ubuntu" ]]; then
+        isinstalled="$(update-alternatives --list java 2>/dev/null| grep "${searchkey}" | awk '{print $1}') | sed 's/bin\/java//g'"
+    else
+        isinstalled="$(update-alternatives --list 2>/dev/null| grep "${searchkey}" | awk '{print $3}' | sort | uniq | head -n 1)"
+    fi
     [ -n "${isinstalled}" ] && echo "${isinstalled}"
 }
 
 function util_switchJavaVersion(){
     [ -z "$1" ] && return
 
+    local nodeos="$(getOS)"
     local changeto="$1"
     [[ "${changeto}" = "8" ]] && changeto="1.8"
+    [[ "${changeto}" = "1.8" ]] && [[ "${nodeos}" = "ubuntu" ]] && changeto="8"
 
     local jver=$(util_getJavaVersion)
     # Check if java version is already on the requested version
     [[ -n "$(echo "$jver" | grep "^${changeto}")" ]] && return
 
-    local switchidx=$(echo "0" | update-alternatives --config java 2>/dev/null | grep "java-${changeto}" | tr -d '*' | tr -d '+' | sort -u -k3 | uniq | awk '{print $1}')
+    local switchidx=$(echo "-1" | update-alternatives --config java 2>/dev/null | grep "java-${changeto}" | tr -d '*' | tr -d '+' | sort -u -k3 | uniq | awk '{print $1}' | tail -n)
     echo "${switchidx}" | update-alternatives --config java > /dev/null 2>&1
     jver=$(util_getJavaVersion)
 
