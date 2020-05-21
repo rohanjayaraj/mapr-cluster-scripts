@@ -288,7 +288,7 @@ function util_checkAndInstallJDK11(){
     # Workarounds to make MapR work on JDK11
     local securityfile=$(find ${isInstalled} -name "java.security" | head -n 1)
     local isjks=$(grep "^keystore.type=jks" ${securityfile})
-    [[ -z "${isjks}" ]] && sed -i "s/^keystore.type=.*/keystore.type=jks/g" $securityfile
+    [[ -s "${securityfile})" ]] && [[ -z "${isjks}" ]] && sed -i "s/^keystore.type=.*/keystore.type=jks/g" $securityfile
 }
 
 function util_getJavaVersion(){
@@ -301,7 +301,7 @@ function util_getJavaVersion(){
 function util_isJavaVersionInstalled(){
     [ -z "$1" ] && return
     local nodeos="$(getOS)"
-    
+
     local jver=$1
     [[ "${jver}" = "8" ]] && jver="1.8"
     [[ "${jver}" = "1.8" ]] && [[ "${nodeos}" = "ubuntu" ]] && jver="8"
@@ -310,7 +310,7 @@ function util_isJavaVersionInstalled(){
 
     
     if [[ "${nodeos}" = "ubuntu" ]]; then
-        isinstalled="$(update-alternatives --list java 2>/dev/null| grep "${searchkey}" | awk '{print $1}') | sed 's/bin\/java//g'"
+        isinstalled="$(update-alternatives --list java 2>/dev/null| grep "${searchkey}" | awk '{print $1}' | sed 's/bin\/java//g')"
     else
         isinstalled="$(update-alternatives --list 2>/dev/null| grep "${searchkey}" | awk '{print $3}' | sort | uniq | head -n 1)"
     fi
