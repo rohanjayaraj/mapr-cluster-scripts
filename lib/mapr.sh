@@ -891,6 +891,13 @@ function maprutil_installBinariesOnNode(){
     echo "[ -z \"\$keyexists\" ] && ssh_createkey \"/root/.ssh\"" >> $scriptpath
     #echo "maprutil_checkIsBareMetal" >> $scriptpath
     echo "util_installprereq > /dev/null 2>&1" >> $scriptpath
+    if [ -n "$GLB_MAPR_VERSION" ]; then
+        if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+            echo "util_switchJavaVersion \"11\" > /dev/null 2>&1" >> $scriptpath
+        else
+            echo "util_switchJavaVersion \"1.8\" > /dev/null 2>&1" >> $scriptpath
+        fi
+    fi
     local bins="$2"
     local maprpatch=$(echo "$bins" | tr ' ' '\n' | grep mapr-patch)
     [ -n "$maprpatch" ] && bins=$(echo "$bins" | tr ' ' '\n' | grep -v mapr-patch | tr '\n' ' ')

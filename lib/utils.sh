@@ -153,8 +153,8 @@ function util_maprprereq(){
         yum -q -y install redhat-lsb-core --enablerepo=${opts}
         yum -q -y install $DEPENDENCY_RPM --enablerepo=${opts}
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
-            yum -q -y install ${CENTOS8_RPM} --enablerepo=${opts}
-            #yum -q -y install java-11-openjdk-devel --enablerepo=${opts}
+            #yum -q -y install ${CENTOS8_RPM} --enablerepo=${opts}
+            yum -q -y install java-11-openjdk-devel --enablerepo=${opts}
         else
             yum -q -y install java-1.8.0-openjdk-devel --enablerepo=${opts}
         fi
@@ -175,7 +175,11 @@ function util_maprprereq(){
         zypper --non-interactive -q install ca-certificates
         zypper --non-interactive -q install lsb-release
         zypper --non-interactive -q install -n $DEPENDENCY_SUSE
-        zypper --non-interactive -q install -n java-1_8_0-openjdk-devel
+        if [[ "$(getOSReleaseVersion)" -ge "15" ]]; then
+            zypper --non-interactive -q install -n java-11-openjdk
+        else
+            zypper --non-interactive -q install -n java-1_8_0-openjdk-devel
+        fi
     fi
 
     local MAPR_UID=${MAPR_UID:-5000}
@@ -262,6 +266,67 @@ function util_installprereq(){
     fi
 
     [[ -s "/usr/bin/python3" ]] && [[ ! -s "/usr/bin/python" ]] && alternatives --set python /usr/bin/python3 > /dev/null 2>&1
+
+    util_checkAndInstallJDK11
+}
+
+function util_checkAndInstallJDK11(){
+    local nodeos="$(getOS)"
+
+    local isInstalled=$(util_isJavaVersionInstalled "11")
+    local opts=
+    if [ -z "${isInstalled}" ]; then
+        if [[ "${nodeos}" = "centos" ]] && [[ "$(getOSReleaseVersion)" -ge "7" ]]; then     
+            local opts="C6*,C7*,base,epel,epel-release"
+            [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras,AppStream*"
+            yum -q -y install java-11-openjdk-devel --enablerepo=${opts}
+        elif [[ "${nodeos}" = "ubuntu" ]] && [[ "$(getOSReleaseVersion)" -ge "16" ]];; then
+            local opts="--force-yes"
+            [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+            apt-get -qq -y $opts install openjdk-11-jdk
+        elif [[ "${nodeos}" = "suse" ]] && [[ "$(getOSReleaseVersion)" -ge "15" ]]; then
+            zypper --non-interactive -q install -n java-11-openjdk
+        fi
+        isInstalled=$(util_isJavaVersionInstalled "11")
+    fi
+    # Workarounds to make MapR work on JDK11
+    local securityfile=$(find ${isInstalled} -name "java.security" | head -n 1)
+    local isjks=$(grep "^keystore.type=jks" ${securityfile})
+    [[ -z "${isjks}" ]] && sed -i "s/^keystore.type=.*/keystore.type=jks/g" $securityfile
+}
+
+function util_getJavaVersion(){
+    command -v java >/dev/null 2>&1 || return
+
+    local jver=$(java -version 2>&1 | head -n 1 | awk '{print $3}' | tr -d '"' | cut -d'_' -f1 | cut -d'.' -f1-2)
+    echo "$jver"
+}
+
+function util_isJavaVersionInstalled(){
+    [ -z "$1" ] && return
+    local jver=$1
+    [[ "${jver}" = "8" ]] && jver="1.8"
+    local searchkey="java-${jver}"
+
+    local isinstalled="$(update-alternatives --list 2>/dev/null| grep "${searchkey}" | awk '{print $3}' | sort | uniq | head -n 1)"
+    [ -n "${isinstalled}" ] && echo "${isinstalled}"
+}
+
+function util_switchJavaVersion(){
+    [ -z "$1" ] && return
+
+    local changeto="$1"
+    [[ "${changeto}" = "8" ]] && changeto="1.8"
+
+    local jver=$(util_getJavaVersion)
+    # Check if java version is already on the requested version
+    [[ -n "$(echo "$jver" | grep "^${changeto}")" ]] && return
+
+    local switchidx=$(echo "0" | update-alternatives --config java 2>/dev/null | grep "java-${changeto}" | tr -d '*' | tr -d '+' | sort -u -k3 | uniq | awk '{print $1}')
+    echo "${switchidx}" | update-alternatives --config java > /dev/null 2>&1
+    jver=$(util_getJavaVersion)
+
+    echo "${jver}"
 }
 
 # @param ip_address_string
