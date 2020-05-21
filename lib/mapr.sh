@@ -2300,8 +2300,8 @@ function maprutil_setupasanmfs(){
     [[ ! -e "/opt/mapr/roles/fileserver" ]] && return
 
     local nodeos=$(getOS)
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        log_warn "[$(util_getHostIP)] Unsupported OS '$nodeos'. ASAN is currently supported on Ubuntu only"
+    if [ "$nodeos" = "suse" ]; then
+        log_warn "[$(util_getHostIP)] ASAN is currently NOT supported on SUSE"
         return
     fi
 
@@ -2310,14 +2310,23 @@ function maprutil_setupasanmfs(){
 
     # download latest asan mfs binary
     local asanrepo="http://artifactory.devops.lab/artifactory/core-deb/master-asan/"
+    if [ "$nodeos" = "centos" ]; then 
+        asanrepo="http://artifactory.devops.lab/artifactory/core-rpm/master-centos7-asan/"
+        [[ "$(getOSReleaseVersion)" -ge "8" ]] && asanrepo="http://artifactory.devops.lab/artifactory/core-rpm/master-centos8-asan/"
+    fi
+
     local latestbuild=$(maprutil_getLatestBuildID "$asanrepo")
     local tempdir=$(mktemp -d)
     log_info "[$(util_getHostIP)] Downloading and extracting MFS from ASAN buildid '${latestbuild}'"
     pushd $tempdir  > /dev/null 2>&1
-    wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
-    ar vx mapr-core-internal*.deb > /dev/null 2>&1
-    tar xJf data.tar.xz ./opt/mapr/server/mfs ./opt/mapr/lib/libGatewayNative.so ./opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
-
+    if [ "$nodeos" = "centos" ]; then
+        wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.rpm" ${asanrepo} > /dev/null 2>&1
+        rpm2cpio mapr-core-internal*${latestbuild}*nonstrip*.rpm | cpio -idmv > /dev/null 2>&1
+    else
+        wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
+        ar vx mapr-core-internal*.deb > /dev/null 2>&1
+        tar xJf data.tar.xz ./opt/mapr/server/mfs ./opt/mapr/lib/libMapRClient.so.1 ./opt/mapr/lib/libGatewayNative.so ./opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
+    fi
     # replace mfs binary
     if [ -s "opt/mapr/server/mfs" ]; then
         mv /opt/mapr/server/mfs /opt/mapr/server/mfs.original > /dev/null 2>&1
@@ -2347,6 +2356,12 @@ function maprutil_setupasanmfs(){
             sed -i "s| \$JAVA \\\| LD_PRELOAD=${asanso} \$JAVA \\\|" /opt/mapr/initscripts/mapr-mastgateway
             log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
         fi
+    fi
+
+    # replace client binary but do not replace
+    if [ -s "opt/mapr/lib/libMapRClient.so.1" ]; then
+        cp /opt/mapr/lib/libMapRClient.so.1 /opt/mapr/lib/libMapRClient.so.1.original > /dev/null 2>&1
+        cp opt/mapr/lib/libMapRClient.so.1 /opt/mapr/lib/libMapRClient.so.1.asan > /dev/null 2>&1
     fi
 
     popd  > /dev/null 2>&1
