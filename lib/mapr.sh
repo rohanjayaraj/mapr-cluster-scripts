@@ -2362,7 +2362,7 @@ function maprutil_setupasanmfs(){
     else
         wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
         ar vx mapr-core-internal*.deb > /dev/null 2>&1
-        tar xJf data.tar.xz ./opt/mapr/server/mfs ./opt/mapr/lib/libGatewayNative.so ./opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
+        tar xJf data.tar.xz > /dev/null 2>&1
         if [ -n "${setupclient}" ]; then
             pushd $ctempdir  > /dev/null 2>&1
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-client*${latestbuild}*.deb" ${asanrepo} > /dev/null 2>&1
@@ -2426,7 +2426,7 @@ function maprutil_setupasanmfs(){
             fi
 
             # Update all start scripts to have asan options
-            local files=$(find /opt/mapr/ -type f -exec grep -Hl "exec \"\$JAVA\"" {} \;)
+            local files=$(find /opt/mapr/ -type f -exec grep -H " \"\$JAVA\"" {} \; | grep -v "if \[" | cut -d':' -f1 | sort -u)
             for file in $files; do
                 [ -n "$(grep ASAN_OPTIONS $file)" ] && continue
                 sed -i "/exec \"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
@@ -2449,11 +2449,11 @@ function maprutil_setupasanmfs(){
     popd  > /dev/null 2>&1
 
     # Export ASAN_OPTIONs to /opt/mapr/conf/env.sh
-    local envfile="/opt/mapr/conf/env.sh"
-    if [ -n "$asanso" ] && [ -s "${envfile}" ] && [ -z "$(grep ASAN_OPTIONS ${envfile})" ]; then
-        echo "export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" >> $envfile
-        echo "export LD_PRELOAD=${asanso}" >> $envfile
-    fi
+    #local envfile="/opt/mapr/conf/env.sh"
+    #if [ -n "$asanso" ] && [ -s "${envfile}" ] && [ -z "$(grep ASAN_OPTIONS ${envfile})" ]; then
+        #echo "export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" >> $envfile
+        #echo "export LD_PRELOAD=${asanso}" >> $envfile
+    #fi
 
     popd  > /dev/null 2>&1
     rm -rf $tempdir  > /dev/null 2>&1
