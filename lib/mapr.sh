@@ -2389,7 +2389,7 @@ function maprutil_setupasanmfs(){
 
     # Copy client asan libraries
     if  [ -s "opt/mapr/lib/libMapRClient.so.1" ] && [ -s "/opt/mapr/lib/libMapRClient.so.1" ]; then
-        local binlist="libMapRClient.so.1 libMapRClient_c.so.1 librdkafka.so.1"
+        local asanbinlist="libMapRClient.so.1 libMapRClient_c.so.1 librdkafka.so.1"
         for asanbin in $asanbinlist; do
             cp opt/mapr/lib/${asanbin} /opt/mapr/lib/${asanbin}.asan > /dev/null 2>&1
         done
@@ -2403,7 +2403,7 @@ function maprutil_setupasanmfs(){
                 cp /opt/mapr/lib/${asanbin}.asan /opt/mapr/lib/${asanbin} > /dev/null 2>&1
             done
             local asanfsjar=$(ls /opt/mapr/lib/maprfs-[0-9].*.jar.asan | grep -v tests)
-            if [ -n "" ]; then
+            if [ -n "${asanfsjar}" ]; then
                 asanfsjar=$(basename ${asanfsjar})
                 cp /opt/mapr/lib/${fsjar} /opt/mapr/lib/${fsjar}.original > /dev/null 2>&1
                 cp /opt/mapr/lib/${asanfsjar} /opt/mapr/lib/${fsjar} > /dev/null 2>&1
