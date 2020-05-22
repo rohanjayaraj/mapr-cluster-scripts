@@ -2468,11 +2468,11 @@ function maprutil_setupasanmfs(){
                 [ -n "$(grep -B2 "\/mrconfig" $file | grep LD_PRELOAD)" ] && continue
                 sed -i "/\/mrconfig/i  LD_PRELOAD=" $file
             done
-            files=$(grep "start$" /opt/mapr/conf/warden.conf | awk '{print $(NF-1)}' | cut -d'=' -f2)
+            files=$(grep "start$" /opt/mapr/conf/warden.conf 2>/dev/null| awk '{print $(NF-1)}' | cut -d'=' -f2)
             for file in $files; do
                 [ ! -s "$file" ] && continue
                 [ -n "$(grep -B2 "^BASEMAPR=" $file | grep LD_PRELOAD)" ] && continue
-                sed -i "//^BASEMAPR=/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
+                sed -i "/^BASEMAPR=/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
                 sed -i "/^BASEMAPR=/i  export LD_PRELOAD=" $file
             done
         fi
