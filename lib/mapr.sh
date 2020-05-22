@@ -907,18 +907,18 @@ function maprutil_installBinariesOnNode(){
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g')
         [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
-        echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""-$GLB_MAPR_VERSION"\"" >> $scriptpath
+        echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""-${GLB_MAPR_VERSION}"\"" >> $scriptpath
         if [ -n "$maprpatch" ]; then
             echo "maprutil_reinstallApiserver" >> $scriptpath
             echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
-            echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-$GLB_MAPR_VERSION"\" || exit 1" >> $scriptpath
+            echo "util_installBinaries \""$maprpatch"\" \""$GLB_PATCH_VERSION"\" \""-${GLB_MAPR_VERSION}"\" || exit 1" >> $scriptpath
         elif [ -n "$(echo "$bins" | grep -e mapr-webserver -e mapr-apiserver)" ]; then
             echo "maprutil_installApiserverIfAbsent" >> $scriptpath
         fi
     else
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g')
         [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
-        echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""$GLB_MAPR_VERSION"\"" >> $scriptpath
+        echo "util_installBinaries \""$bins"\" \""${GLB_BUILD_VERSION}"\" \""${GLB_MAPR_VERSION}"\"" >> $scriptpath
         if [ -n "$maprpatch" ]; then
             echo "maprutil_reinstallApiserver" >> $scriptpath
             echo "maprutil_enableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
@@ -1949,6 +1949,35 @@ function maprutil_checkBuildExists(){
         retval=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep $buildid")
     fi
     [[ "$buildid" = "latest" ]] && retval=$(maprutil_getLatestBuildID "$repolist")
+    [[ -z "$retval" ]] && retval=$(maprutil_checkBuildExists2 "${node}" "${buildid}" "${repolist}")
+    echo "$retval"
+}
+
+function maprutil_checkBuildExists2(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+        return
+    fi
+
+    local node=$1
+    local buildid=$2
+    local repourl=$3
+    local retval=
+
+    local searchkey="mapr-fileserver*${buildid}*"
+    local nodeos=$(getOSFromNode $node)
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+        searchkey="${searchkey}.rpm"
+    elif [ "$nodeos" = "ubuntu" ]; then
+        searchkey="${searchkey}.deb"
+    fi
+
+    local tempdir=$(mktemp -d)
+    pushd $tempdir > /dev/null 2>&1
+    wget -r -np -nH -nd --cut-dirs=1 --accept "${searchkey}" ${repourl} > /dev/null 2>&1
+    [[ "$(ls ${searchkey} | wc -l)" = "1" ]] && retval="$buildid"
+    popd > /dev/null 2>&1
+    rm -rf ${tempdir} > /dev/null 2>&1
+    
     echo "$retval"
 }
 
@@ -2162,7 +2191,7 @@ function maprutil_disableAllRepo(){
         for repo in $repolist
         do
            local repof=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep $repo | cut -d":" -f1)
-           sed -i "/${repo}/s/^/#/" ${repof}
+           sed -i "/${repo//\//\\/}/s/^/#/" ${repof}
         done
     elif [ "$nodeos" = "suse" ]; then
         local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $0}' | grep -e apt.qa.lab -e artifactory.devops.lab -e package.mapr.com| awk '{print $3}' | grep -iv opensource)
