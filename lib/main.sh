@@ -252,8 +252,13 @@ function main_install(){
 	fi
 
 	if [ -n "$doASAN" ]; then 
-		log_info "Installing ASAN MFS binary on all the MFS nodes"
-		maprutil_runCommandsOnNodesInParallel "$nodes" "asanmfs"
+		if [[ "$doASAN" = "1" ]]; then 
+			log_info "Installing ASAN MFS & Gateway binaries on all the MFS nodes"
+			maprutil_runCommandsOnNodesInParallel "$nodes" "asanmfs"
+		else
+			log_info "Installing ASAN MFS, Gateway & Client binaries on all the MFS nodes"
+			maprutil_runCommandsOnNodesInParallel "$nodes" "asanclient"
+		fi
 	else
 		# Configure all nodes
 		for node in ${nodes[@]}
@@ -1282,6 +1287,8 @@ while [ "$2" != "" ]; do
     				GLB_DISK_TYPE="hdd"
     			elif [[ "$i" = "asan" ]]; then
     				doASAN=1
+    			elif [[ "$i" = "asanall" ]]; then
+    				doASAN=2
     			fi
     		done
     	;;

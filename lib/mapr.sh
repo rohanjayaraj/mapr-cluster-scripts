@@ -2326,8 +2326,7 @@ function maprutil_addLocalRepo(){
 }
 
 function maprutil_setupasanmfs(){
-    [[ ! -e "/opt/mapr/roles/fileserver" ]] && return
-
+    local setupclient="$1"
     local nodeos=$(getOS)
     if [ "$nodeos" = "suse" ]; then
         log_warn "[$(util_getHostIP)] ASAN is currently NOT supported on SUSE"
@@ -2354,19 +2353,21 @@ function maprutil_setupasanmfs(){
     else
         wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
         ar vx mapr-core-internal*.deb > /dev/null 2>&1
-        tar xJf data.tar.xz ./opt/mapr/server/mfs ./opt/mapr/lib/libMapRClient.so.1 ./opt/mapr/lib/libGatewayNative.so ./opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
+        #tar xJf data.tar.xz ./opt/mapr/server/mfs ./opt/mapr/lib/libMapRClient.so.1 ./opt/mapr/lib/libGatewayNative.so ./opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
+        tar xJf data.tar.xz > /dev/null 2>&1
     fi
     # replace mfs binary
-    if [ -s "opt/mapr/server/mfs" ]; then
+    if [ -s "/opt/mapr/server/mfs" ] && [ -s "opt/mapr/server/mfs" ]; then
         mv /opt/mapr/server/mfs /opt/mapr/server/mfs.original > /dev/null 2>&1
         cp opt/mapr/server/mfs /opt/mapr/server/mfs > /dev/null 2>&1
         log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
     fi
 
-    if [ -s "opt/mapr/lib/libGatewayNative.so" ]; then
+    local asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null| grep "libasan.so" | awk '{print $3}')
+
+    if [ -s "opt/mapr/lib/libGatewayNative.so" ] && [ -s "/opt/mapr/lib/libGatewayNative.so" ]; then
         mv /opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so.original > /dev/null 2>&1
         cp opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so > /dev/null 2>&1
-        local asanso=$(ldd /opt/mapr/lib/libGatewayNative.so 2>/dev/null| grep "libasan.so" | awk '{print $3}')
         # update gateway initscripts w/ LD_PRELOAD
         if [ -n "$asanso" ] && [ -e "/opt/mapr/roles/gateway" ]; then
             sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=handle_segv=0" /opt/mapr/initscripts/mapr-gateway
@@ -2375,41 +2376,66 @@ function maprutil_setupasanmfs(){
         fi
         
     fi
-    if [ -s "opt/mapr/lib/libMASTGatewayNative.so" ]; then
+    if [ -s "opt/mapr/lib/libMASTGatewayNative.so" ] && [ -s "/opt/mapr/lib/libMASTGatewayNative.so" ]; then
         mv /opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so.original > /dev/null 2>&1
         cp opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
-        local asanso=$(ldd /opt/mapr/lib/libMASTGatewayNative.so 2>/dev/null| grep "libasan.so" | awk '{print $3}')
         # update gateway initscripts w/ LD_PRELOAD
-        if [[ -e "/opt/mapr/roles/mastgateway" ]]; then
+        if [[ -n "$asanso" ]] && [[ -e "/opt/mapr/roles/mastgateway" ]]; then
             sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=handle_segv=0" /opt/mapr/initscripts/mapr-mastgateway
             sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-mastgateway
             log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
         fi
     fi
 
-    # replace client binary but do not replace
-    if [ -s "opt/mapr/lib/libMapRClient.so.1" ]; then
-        cp /opt/mapr/lib/libMapRClient.so.1 /opt/mapr/lib/libMapRClient.so.1.original > /dev/null 2>&1
-        cp opt/mapr/lib/libMapRClient.so.1 /opt/mapr/lib/libMapRClient.so.1.asan > /dev/null 2>&1
-        local asanso=$(ldd /opt/mapr/lib/libMapRClient.so.1 2>/dev/null| grep "libasan.so" | awk '{print $3}')
+    # Copy client asan libraries
+    if  [ -s "opt/mapr/lib/libMapRClient.so.1" ] && [ -s "/opt/mapr/lib/libMapRClient.so.1" ]; then
+        local binlist="libMapRClient.so.1 libMapRClient_c.so.1 librdkafka.so.1"
+        for asanbin in $asanbinlist; do
+            cp opt/mapr/lib/${asanbin} /opt/mapr/lib/${asanbin}.asan > /dev/null 2>&1
+        done
+        local fsjar=$(ls opt/mapr/lib/maprfs-[0-9].*.jar | grep -v tests)
+        [ -n "$fsjar" ] && fsjar=$(basename ${fsjar}) && cp opt/mapr/lib/${fsjar} /opt/mapr/lib/${fsjar}.asan > /dev/null 2>&1
 
-        # export ASAN_OPTIONS="handle_segv=0 handle_sigill=0 detect_leaks=0"
-        # export LD_PRELOAD=${asanso}
-        # local files=$(find /opt/mapr/ -type f -exec grep -Hl "exec \"\$JAVA\"" {} \;)
-        # for file in $files; do
-        #   sed -i "/exec \"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
-        #   sed -i "/exec \"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
-        # done
-        # local files=$(find /opt/mapr/ -type f -exec grep -Hl "^[[:space:]]*\"\$JAVA\" -D" {} \;)
-        # for file in $files; do
-        #   sed -i "/^[[:space:]]*\"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
-        #   sed -i "/^[[:space:]]*\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
-        # done
-        # local files=$(find /opt/mapr/ -type f -exec grep -Hl "^java -" {} \; | grep -v -e README -e roles-controller)
-        # for file in $files; do
-        #   sed -i "/^java -/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
-        #   sed -i "/^java -/i  export LD_PRELOAD=${asanso}" $file
-        # done
+        # Replace client libraries 
+        if [ -n "$asanso" ] && [ -n "$setupclient" ]; then
+            for asanbin in $asanbinlist; do
+                cp /opt/mapr/lib/${asanbin} /opt/mapr/lib/${asanbin}.original > /dev/null 2>&1
+                cp /opt/mapr/lib/${asanbin}.asan /opt/mapr/lib/${asanbin} > /dev/null 2>&1
+            done
+            local asanfsjar=$(ls /opt/mapr/lib/maprfs-[0-9].*.jar.asan | grep -v tests)
+            if [ -n "" ]; then
+                asanfsjar=$(basename ${asanfsjar})
+                cp /opt/mapr/lib/${fsjar} /opt/mapr/lib/${fsjar}.original > /dev/null 2>&1
+                cp /opt/mapr/lib/${asanfsjar} /opt/mapr/lib/${fsjar} > /dev/null 2>&1
+            fi
+
+            # Update all start scripts to have asan options
+            local files=$(find /opt/mapr/ -type f -exec grep -Hl "exec \"\$JAVA\"" {} \;)
+            for file in $files; do
+                [ -n "$(grep ASAN_OPTIONS $file)" ] && continue
+                sed -i "/exec \"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/exec \"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
+            done
+            files=$(find /opt/mapr/ -type f -exec grep -Hl "^[[:space:]]*\"\$JAVA\" -D" {} \;)
+            for file in $files; do
+                [ -n "$(grep ASAN_OPTIONS $file)" ] && continue
+                sed -i "/^[[:space:]]*\"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/^[[:space:]]*\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
+            done
+            files=$(find /opt/mapr/ -type f -exec grep -Hl "^java -" {} \; | grep -v -e README -e roles-controller)
+            for file in $files; do
+                [ -n "$(grep ASAN_OPTIONS $file)" ] && continue
+                sed -i "/^java -/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/^java -/i  export LD_PRELOAD=${asanso}" $file
+            done
+        fi
+    fi
+
+    # Export ASAN_OPTIONs to /opt/mapr/conf/env.sh
+    local envfile="/opt/mapr/conf/env.sh"
+    if [ -n "$asanso" ] && [ -s "${envfile}" ] && [ -z "$(grep ASAN_OPTIONS ${envfile})" ]; then
+        echo "export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" >> $envfile
+        echo "export LD_PRELOAD=${asanso}" >> $envfile
     fi
 
     popd  > /dev/null 2>&1
@@ -2685,6 +2711,9 @@ function maprutil_runCommands(){
             ;;
             asanmfs)
                 maprutil_setupasanmfs
+            ;;
+            asanclient)
+                maprutil_setupasanmfs "client"
             ;;
             *)
             echo "Nothing to do!!"

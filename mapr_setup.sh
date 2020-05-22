@@ -156,7 +156,9 @@ function usage () {
     echo -e "\t -acs | --atsnodesetup" 
     echo -e "\t\t - Setup ATS client nodes w/ maven/git/docker etc"
     echo -e "\t -asan | --asanmfs" 
-    echo -e "\t\t - Replace MFS binary w/ ASAN MFS binary"
+    echo -e "\t\t - Replace MFS  & Gateway binaries w/ ASAN binaries"
+    echo -e "\t -asanall | --asanclient" 
+    echo -e "\t\t - Replace ASAN binaries of MFS,Gateway, Client & maprfs jar"
     
     echo 
 	echo " Post install Options : "
@@ -299,6 +301,9 @@ while [ "$1" != "" ]; do
         ;;
         -asan | --asanmfs)
             extraarg=$extraarg"asan "
+        ;;
+        -asanall | --asanclient)
+            extraarg=$extraarg"asanall "
         ;;
         -sp | --storagepool)
             numsps=$VALUE
