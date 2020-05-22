@@ -329,7 +329,7 @@ function util_switchJavaVersion(){
     # Check if java version is already on the requested version
     [[ -n "$(echo "$jver" | grep "^${changeto}")" ]] && return
 
-    local switchidx=$(echo "-1" | update-alternatives --config java 2>/dev/null | grep "java-${changeto}" | tr -d '*' | tr -d '+' | sort -u -k3 | uniq | awk '{print $1}' | tail -n)
+    local switchidx=$(echo "-1" | update-alternatives --config java 2>/dev/null | grep "java-${changeto}" | tr -d '*' | tr -d '+' | sort -u -k3 | uniq | awk '{print $1}' | tail -n 1)
     echo "${switchidx}" | update-alternatives --config java > /dev/null 2>&1
     jver=$(util_getJavaVersion)
 

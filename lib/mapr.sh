@@ -905,7 +905,7 @@ function maprutil_installBinariesOnNode(){
     ## Append MapR release version as there might be conflicts with mapr-patch-client with regex as 'mapr-patch*$VERSION*'
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
         [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
         echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""-${GLB_MAPR_VERSION}"\"" >> $scriptpath
         if [ -n "$maprpatch" ]; then
@@ -916,7 +916,7 @@ function maprutil_installBinariesOnNode(){
             echo "maprutil_installApiserverIfAbsent" >> $scriptpath
         fi
     else
-        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g' | sed 's/core-rpm/core-deb/g')
         [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
         echo "util_installBinaries \""$bins"\" \""${GLB_BUILD_VERSION}"\" \""${GLB_MAPR_VERSION}"\"" >> $scriptpath
         if [ -n "$maprpatch" ]; then
@@ -2097,9 +2097,9 @@ function maprutil_buildRepoFile(){
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-rpm/"
         
-        [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g')
-        [ -n "$(echo "$repourl" | grep ubuntu)" ] && repourl=$(echo $repourl | sed 's/ubuntu/redhat/g')
-        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g')
+        [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | | sed 's/eco-deb/eco-rpm/g')
+        [ -n "$(echo "$repourl" | grep ubuntu)" ] && repourl=$(echo $repourl | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
 
         echo "[QA-CustomOpensource]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
@@ -2132,9 +2132,9 @@ function maprutil_buildRepoFile(){
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://artifactory.devops.lab/artifactory/list/ebf-deb/"
 
-        [ -n "$(echo "$GLB_MEP_REPOURL" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g')
-        [ -n "$(echo "$repourl" | grep redhat)" ] && repourl=$(echo $repourl | sed 's/redhat/ubuntu/g')
-        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g')
+        [ -n "$(echo "$GLB_MEP_REPOURL" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g' | sed 's/eco-rpm/eco-deb/g')
+        [ -n "$(echo "$repourl" | grep redhat)" ] && repourl=$(echo $repourl | sed 's/redhat/ubuntu/g' | sed 's/core-rpm/core-deb/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g' | sed 's/core-rpm/core-deb/g')
         
         local istrusty=
         [[ "$(getOSReleaseVersionOnNode $node)" -ge "18" ]] && istrusty="[trusted=yes]"
@@ -2267,7 +2267,7 @@ function maprutil_addLocalRepo(){
     local repourl=$1
     local meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
     [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
-    [ -n "$(echo "$meprepo" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g')
+    [ -n "$(echo "$meprepo" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | sed 's/eco-deb/eco-rpm/g')
 
     log_info "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
     if [ "$nodeos" = "centos" ]; then
@@ -2291,7 +2291,7 @@ function maprutil_addLocalRepo(){
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
 
     elif [ "$nodeos" = "ubuntu" ]; then
-        [ -n "$(echo "$meprepo" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g')
+        [ -n "$(echo "$meprepo" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g' | sed 's/eco-rpm/eco-deb/g')
         local istrusty=
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && istrusty="[trusted=yes]" && opts="--allow-unauthenticated"
@@ -2370,7 +2370,7 @@ function maprutil_setupasanmfs(){
         # update gateway initscripts w/ LD_PRELOAD
         if [ -n "$asanso" ] && [ -e "/opt/mapr/roles/gateway" ]; then
             sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=handle_segv=0" /opt/mapr/initscripts/mapr-gateway
-            sed -i "s| \$JAVA \\\| LD_PRELOAD=${asanso} \$JAVA \\\|" /opt/mapr/initscripts/mapr-gateway
+            sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-gateway
             log_info "[$(util_getHostIP)] Replaced libGatewayNative w/ ASAN binary"
         fi
         
@@ -2382,7 +2382,7 @@ function maprutil_setupasanmfs(){
         # update gateway initscripts w/ LD_PRELOAD
         if [[ -e "/opt/mapr/roles/mastgateway" ]]; then
             sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=handle_segv=0" /opt/mapr/initscripts/mapr-mastgateway
-            sed -i "s| \$JAVA \\\| LD_PRELOAD=${asanso} \$JAVA \\\|" /opt/mapr/initscripts/mapr-mastgateway
+            sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-mastgateway
             log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
         fi
     fi
@@ -2391,6 +2391,25 @@ function maprutil_setupasanmfs(){
     if [ -s "opt/mapr/lib/libMapRClient.so.1" ]; then
         cp /opt/mapr/lib/libMapRClient.so.1 /opt/mapr/lib/libMapRClient.so.1.original > /dev/null 2>&1
         cp opt/mapr/lib/libMapRClient.so.1 /opt/mapr/lib/libMapRClient.so.1.asan > /dev/null 2>&1
+        local asanso=$(ldd /opt/mapr/lib/libMapRClient.so.1 2>/dev/null| grep "libasan.so" | awk '{print $3}')
+
+        # export ASAN_OPTIONS="handle_segv=0 handle_sigill=0 detect_leaks=0"
+        # export LD_PRELOAD=${asanso}
+        # local files=$(find /opt/mapr/ -type f -exec grep -Hl "exec \"\$JAVA\"" {} \;)
+        # for file in $files; do
+        #   sed -i "/exec \"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+        #   sed -i "/exec \"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
+        # done
+        # local files=$(find /opt/mapr/ -type f -exec grep -Hl "^[[:space:]]*\"\$JAVA\" -D" {} \;)
+        # for file in $files; do
+        #   sed -i "/^[[:space:]]*\"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+        #   sed -i "/^[[:space:]]*\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
+        # done
+        # local files=$(find /opt/mapr/ -type f -exec grep -Hl "^java -" {} \; | grep -v -e README -e roles-controller)
+        # for file in $files; do
+        #   sed -i "/^java -/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+        #   sed -i "/^java -/i  export LD_PRELOAD=${asanso}" $file
+        # done
     fi
 
     popd  > /dev/null 2>&1
