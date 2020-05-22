@@ -370,11 +370,11 @@ function util_checkPackageExists(){
     fi
     local retval=
     if [ "$(getOS)" = "centos" ]; then
-        retval=$(yum --showduplicates list $1 | grep "^$1" | awk '{print $2}' | grep -who "[0-9.]*${2}[0-9.-GA]*" | head -n 1 | tr -d ' ')
+        retval=$(yum --showduplicates list $1 | grep "^$1" | awk '{print $2}' | grep -who "[0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        retval=$(apt-cache policy $1 | grep -v "file://" | grep -who " [0-9.]*${2}[0-9.-GA]*" | head -n 1 | tr -d ' ')
+        retval=$(apt-cache policy $1 | grep -v "file://" | grep -who " [0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
     elif [[ "$(getOS)" = "suse" ]]; then
-        retval=$(zypper search -s $1 | grep -who " [0-9.]*${2}[0-9.-GA]*" | head -n 1 | tr -d ' ')
+        retval=$(zypper search -s $1 | grep -who " [0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
     fi
     [ -n "$retval" ] && echo "$retval"
 }
@@ -406,18 +406,18 @@ function util_appendVersionToPackage(){
     do
         local binexists=$(util_checkPackageExists $bin $version)
         if [ -n "$binexists" ]; then
-            [ -z "${prefix}" ] && prefix=$(echo "${binexists}" | cut -d'.' -f1-3 )
+            [ -z "${prefix}" ] && prefix="-$(echo "${binexists}" | cut -d'.' -f1-3 )"
             if [ -z "$newbins" ]; then
                 if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
                     newbins="$bin$prefix*$version*"
                 elif [[ "$(getOS)" = "ubuntu" ]]; then
-                    newbins="$bin=$prefix*$version*"
+                    newbins="$bin=${binexists}"
                 fi
             else
                 if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
                     newbins=$newbins" $bin$prefix*$version*"
                 elif [[ "$(getOS)" = "ubuntu" ]]; then
-                    newbins=$newbins" $bin=$prefix*$version*"
+                    newbins=$newbins" $bin=${binexists}"
                 fi
             fi
         else
