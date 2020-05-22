@@ -2345,16 +2345,31 @@ function maprutil_setupasanmfs(){
 
     local latestbuild=$(maprutil_getLatestBuildID "$asanrepo")
     local tempdir=$(mktemp -d)
+    local ctempdir=
+    [ -n "${setupclient}" ] && ctempdir=$(mktemp -d)
+
     log_info "[$(util_getHostIP)] Downloading and extracting MFS from ASAN buildid '${latestbuild}'"
     pushd $tempdir  > /dev/null 2>&1
     if [ "$nodeos" = "centos" ]; then
         wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.rpm" ${asanrepo} > /dev/null 2>&1
         rpm2cpio mapr-core-internal*${latestbuild}*nonstrip*.rpm | cpio -idmv > /dev/null 2>&1
+        if [ -n "${setupclient}" ]; then
+            pushd $ctempdir  > /dev/null 2>&1
+            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-client*${latestbuild}*nonstrip*.rpm" ${asanrepo} > /dev/null 2>&1
+            rpm2cpio mapr-client*${latestbuild}*nonstrip*.rpm | cpio -idmv > /dev/null 2>&1
+            popd  > /dev/null 2>&1
+        fi
     else
         wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
         ar vx mapr-core-internal*.deb > /dev/null 2>&1
-        #tar xJf data.tar.xz ./opt/mapr/server/mfs ./opt/mapr/lib/libMapRClient.so.1 ./opt/mapr/lib/libGatewayNative.so ./opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
-        tar xJf data.tar.xz > /dev/null 2>&1
+        tar xJf data.tar.xz ./opt/mapr/server/mfs ./opt/mapr/lib/libGatewayNative.so ./opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
+        if [ -n "${setupclient}" ]; then
+            pushd $ctempdir  > /dev/null 2>&1
+            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-client*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
+            ar vx mapr-client*.deb > /dev/null 2>&1
+            tar xJf data.tar.xz > /dev/null 2>&1
+            popd  > /dev/null 2>&1
+        fi
     fi
     # replace mfs binary
     if [ -s "/opt/mapr/server/mfs" ] && [ -s "opt/mapr/server/mfs" ]; then
@@ -2388,8 +2403,9 @@ function maprutil_setupasanmfs(){
     fi
 
     # Copy client asan libraries
+    pushd $ctempdir  > /dev/null 2>&1
     if  [ -s "opt/mapr/lib/libMapRClient.so.1" ] && [ -s "/opt/mapr/lib/libMapRClient.so.1" ]; then
-        local asanbinlist="libMapRClient.so.1 libMapRClient_c.so.1 librdkafka.so.1"
+        local asanbinlist="libMapRClient.so.1 libMapRClient_c.so.1"
         for asanbin in $asanbinlist; do
             cp opt/mapr/lib/${asanbin} /opt/mapr/lib/${asanbin}.asan > /dev/null 2>&1
         done
@@ -2430,6 +2446,7 @@ function maprutil_setupasanmfs(){
             done
         fi
     fi
+    popd  > /dev/null 2>&1
 
     # Export ASAN_OPTIONs to /opt/mapr/conf/env.sh
     local envfile="/opt/mapr/conf/env.sh"
@@ -2440,7 +2457,8 @@ function maprutil_setupasanmfs(){
 
     popd  > /dev/null 2>&1
     rm -rf $tempdir  > /dev/null 2>&1
-
+    [ -n "${setupclient}" ] && rm -rf $ctempdir  > /dev/null 2>&1
+    
     # start warden
     maprutil_restartWarden "start" 2>/dev/null
 }
@@ -2586,9 +2604,6 @@ function maprutil_runCommandsOnNode(){
         return
     fi
 
-    local client=$(maprutil_isClientNode "$hostnode")
-    local hostip=$(util_getHostIP)
-    
     echo "maprutil_runCommands \"$2\"" >> $scriptpath
    
 
