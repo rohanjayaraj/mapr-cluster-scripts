@@ -2425,36 +2425,49 @@ function maprutil_setupasanmfs(){
                 cp /opt/mapr/lib/${asanfsjar} /opt/mapr/lib/${fsjar} > /dev/null 2>&1
             fi
 
+            local asanoptions="handle_segv=0 handle_sigill=0 detect_leaks=0 alloc_dealloc_mismatch=0"
             # Update all start scripts to have asan options
             local files=$(find /opt/mapr/ -type f -exec grep -H " \"\$JAVA\"" {} \; | grep -v "if \[" | cut -d':' -f1 | sort -u)
             for file in $files; do
-                sed -i "/ \"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/ \"\$JAVA\"/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
                 sed -i "/ \"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -H "^[[:space:]]*\$JAVA " {} \; | grep -v -e "-version" | cut -d':' -f1 | sort -u)
             for file in $files; do
                 [ -n "$(grep -B2 "^[[:space:]]*\$JAVA " $file | grep ASAN_OPTIONS)" ] && continue
-                sed -i "/^[[:space:]]*\$JAVA /i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/^[[:space:]]*\$JAVA /i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
                 sed -i "/^[[:space:]]*\$JAVA /i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -Hl "^[[:space:]]*\"\$JAVA\" -D" {} \;)
             for file in $files; do
                 [ -n "$(grep -B2 "^[[:space:]]*\"\$JAVA\"" $file | grep ASAN_OPTIONS)" ] && continue
-                sed -i "/^[[:space:]]*\"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/^[[:space:]]*\"\$JAVA\"/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
                 sed -i "/^[[:space:]]*\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -Hl "^java -" {} \; | grep -v -e README -e roles-controller)
             for file in $files; do
                 [ -n "$(grep -B2 "^java -" $file | grep ASAN_OPTIONS)" ] && continue
-                sed -i "/^java -/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/^java -/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
                 sed -i "/^java -/i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -Hl "\`\"\$JAVA\"" {} \;)
             for file in $files; do
                 [ -n "$(grep -B2 "\`\"\$JAVA\"" $file | grep ASAN_OPTIONS)" ] && continue
-                sed -i "/\`\"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/\`\"\$JAVA\"/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
                 sed -i "/\`\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
             done
+            files=$(find /opt/mapr/ -type f -exec grep -Hl "=\"\$JAVA " {} \;)
+            for file in $files; do
+                [ -n "$(grep -B2 "=\"\$JAVA " $file | grep ASAN_OPTIONS)" ] && continue
+                sed -i "/=\"\$JAVA /i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
+                sed -i "/=\"\$JAVA /i  export LD_PRELOAD=${asanso}" $file
+            done
+            files="/opt/mapr/server/createsystemvolumes.sh /opt/mapr/server/initaudit.sh /opt/mapr/server/createTTVolume.sh /opt/mapr/server/mrdiagnostics"
+            for file in $files; do
+                [ -n "$(grep -B2 "\\\mrconfig" $file | grep LD_PRELOAD)" ] && continue
+                sed -i "/\\\mrconfig/i  LD_PRELOAD=" $file
+            done
+
         fi
     fi
     popd  > /dev/null 2>&1
