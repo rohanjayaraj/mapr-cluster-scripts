@@ -2355,7 +2355,7 @@ function maprutil_setupasanmfs(){
         rpm2cpio mapr-core-internal*${latestbuild}*nonstrip*.rpm | cpio -idmv > /dev/null 2>&1
         if [ -n "${setupclient}" ]; then
             pushd $ctempdir  > /dev/null 2>&1
-            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-client*${latestbuild}*nonstrip*.rpm" ${asanrepo} > /dev/null 2>&1
+            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-client*${latestbuild}*.rpm" ${asanrepo} > /dev/null 2>&1
             rpm2cpio mapr-client*${latestbuild}*nonstrip*.rpm | cpio -idmv > /dev/null 2>&1
             popd  > /dev/null 2>&1
         fi
@@ -2365,7 +2365,7 @@ function maprutil_setupasanmfs(){
         tar xJf data.tar.xz ./opt/mapr/server/mfs ./opt/mapr/lib/libGatewayNative.so ./opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
         if [ -n "${setupclient}" ]; then
             pushd $ctempdir  > /dev/null 2>&1
-            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-client*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
+            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-client*${latestbuild}*.deb" ${asanrepo} > /dev/null 2>&1
             ar vx mapr-client*.deb > /dev/null 2>&1
             tar xJf data.tar.xz > /dev/null 2>&1
             popd  > /dev/null 2>&1
@@ -2458,7 +2458,7 @@ function maprutil_setupasanmfs(){
     popd  > /dev/null 2>&1
     rm -rf $tempdir  > /dev/null 2>&1
     [ -n "${setupclient}" ] && rm -rf $ctempdir  > /dev/null 2>&1
-    
+
     # start warden
     maprutil_restartWarden "start" 2>/dev/null
 }
