@@ -2431,6 +2431,12 @@ function maprutil_setupasanmfs(){
                 sed -i "/ \"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
                 sed -i "/ \"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
             done
+            files=$(find /opt/mapr/ -type f -exec grep -H "^[[:space:]]*\$JAVA " {} \; | grep -v -e "-version" | cut -d':' -f1 | sort -u)
+            for file in $files; do
+                [ -n "$(grep -B2 "^[[:space:]]*\$JAVA " $file | grep ASAN_OPTIONS)" ] && continue
+                sed -i "/^[[:space:]]*\$JAVA /i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/^[[:space:]]*\$JAVA /i  export LD_PRELOAD=${asanso}" $file
+            done
             files=$(find /opt/mapr/ -type f -exec grep -Hl "^[[:space:]]*\"\$JAVA\" -D" {} \;)
             for file in $files; do
                 [ -n "$(grep -B2 "^[[:space:]]*\"\$JAVA\"" $file | grep ASAN_OPTIONS)" ] && continue
