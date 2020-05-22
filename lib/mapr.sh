@@ -2428,21 +2428,26 @@ function maprutil_setupasanmfs(){
             # Update all start scripts to have asan options
             local files=$(find /opt/mapr/ -type f -exec grep -H " \"\$JAVA\"" {} \; | grep -v "if \[" | cut -d':' -f1 | sort -u)
             for file in $files; do
-                [ -n "$(grep ASAN_OPTIONS $file)" ] && continue
-                sed -i "/exec \"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
-                sed -i "/exec \"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
+                sed -i "/ \"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/ \"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -Hl "^[[:space:]]*\"\$JAVA\" -D" {} \;)
             for file in $files; do
-                [ -n "$(grep ASAN_OPTIONS $file)" ] && continue
+                [ -n "$(grep -B2 "^[[:space:]]*\"\$JAVA\"" $file | grep ASAN_OPTIONS)" ] && continue
                 sed -i "/^[[:space:]]*\"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
                 sed -i "/^[[:space:]]*\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -Hl "^java -" {} \; | grep -v -e README -e roles-controller)
             for file in $files; do
-                [ -n "$(grep ASAN_OPTIONS $file)" ] && continue
+                [ -n "$(grep -B2 "^java -" $file | grep ASAN_OPTIONS)" ] && continue
                 sed -i "/^java -/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
                 sed -i "/^java -/i  export LD_PRELOAD=${asanso}" $file
+            done
+            files=$(find /opt/mapr/ -type f -exec grep -Hl "\`\"\$JAVA\"" {} \;)
+            for file in $files; do
+                [ -n "$(grep -B2 "\`\"\$JAVA\"" $file | grep ASAN_OPTIONS)" ] && continue
+                sed -i "/\`\"\$JAVA\"/i  export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"" $file
+                sed -i "/\`\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
             done
         fi
     fi
