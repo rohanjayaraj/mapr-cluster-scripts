@@ -2464,10 +2464,17 @@ function maprutil_setupasanmfs(){
             done
             files="/opt/mapr/server/createsystemvolumes.sh /opt/mapr/server/initaudit.sh /opt/mapr/server/createTTVolume.sh /opt/mapr/server/mrdiagnostics"
             for file in $files; do
-                [ -n "$(grep -B2 "\\\mrconfig" $file | grep LD_PRELOAD)" ] && continue
-                sed -i "/\\\mrconfig/i  LD_PRELOAD=" $file
+                [ ! -s "$file" ] && continue
+                [ -n "$(grep -B2 "\/mrconfig" $file | grep LD_PRELOAD)" ] && continue
+                sed -i "/\/mrconfig/i  LD_PRELOAD=" $file
             done
-
+            files=$(grep "start$" /opt/mapr/conf/warden.conf | awk '{print $(NF-1)}' | cut -d'=' -f2)
+            for file in $files; do
+                [ ! -s "$file" ] && continue
+                [ -n "$(grep -B2 "^BASEMAPR=" $file | grep LD_PRELOAD)" ] && continue
+                sed -i "//^BASEMAPR=/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
+                sed -i "/^BASEMAPR=/i  export LD_PRELOAD=" $file
+            done
         fi
     fi
     popd  > /dev/null 2>&1
@@ -5262,7 +5269,10 @@ function maprutil_debugCore(){
 }
 
 function maprutil_analyzeASAN(){
-    local asanlogs="/opt/mapr/logs/mfs.err /opt/mapr/logs/gatewayinit.log /opt/mapr/logs/mastgateway.err"
+    local asanlogs="/opt/mapr/logs/mfs.err \
+    /opt/mapr/logs/gatewayinit.log \
+    /opt/mapr/logs/mastgateway.err \
+    /opt/mapr/logs/cldb.out"
 
     local haslogs=
     for log in $asanlogs; 
