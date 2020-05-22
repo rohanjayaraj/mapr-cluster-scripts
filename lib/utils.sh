@@ -365,17 +365,18 @@ function util_validip2()
 # @param packagename
 # @param verion number
 function util_checkPackageExists(){
-     if [ -z "$1" ] || [ -z "$2" ] ; then
+    if [ -z "$1" ] || [ -z "$2" ] ; then
         return
     fi
-     if [ "$(getOS)" = "centos" ]; then
-        yum --showduplicates list $1 | grep "^$1" | awk '{print $2}' | grep $2 1> /dev/null && echo "true" || echo "false"
+    local retval=
+    if [ "$(getOS)" = "centos" ]; then
+        retval=$(yum --showduplicates list $1 | grep "^$1" | awk '{print $2}' | grep -who "[0-9.]*${2}[0-9.-GA]*" | head -n 1)
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        apt-cache policy $1 | grep -v "file://" | grep $2 1> /dev/null && echo "true" || echo "false"
+        retval=$(apt-cache policy $1 | grep -v "file://" | grep -who " [0-9.]*${2}[0-9.-GA]*" | head -n 1)
     elif [[ "$(getOS)" = "suse" ]]; then
-        zypper search -s $1 | grep $2 1> /dev/null && echo "true" || echo "false"
+        retval=$(zypper search -s $1 | grep -who " [0-9.]*${2}[0-9.-GA]*" | head -n 1)
     fi
-   
+    [ -n "$retval" ] && echo "$retval"
 }
 
 # @param searchkey
@@ -404,7 +405,8 @@ function util_appendVersionToPackage(){
     for bin in $bins
     do
         local binexists=$(util_checkPackageExists $bin $version)
-        if [ "$binexists" = "true" ]; then
+        if [ -n "$binexists" ]; then
+            [ -z "${prefix}" ] && prefix=$(echo "${binexists}" | cut -d'.' -f1-3)
             if [ -z "$newbins" ]; then
                 if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
                     newbins="$bin$prefix*$version*"
