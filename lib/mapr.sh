@@ -2405,6 +2405,7 @@ function maprutil_setupasanmfs(){
     # Copy client asan libraries
     pushd $ctempdir  > /dev/null 2>&1
     if  [ -s "opt/mapr/lib/libMapRClient.so.1" ] && [ -s "/opt/mapr/lib/libMapRClient.so.1" ]; then
+        [ -z "$asanso" ] && asanso=$(ldd opt/mapr/lib/libMapRClient.so.1 2>/dev/null| grep "libasan.so" | awk '{print $3}')
         local asanbinlist="libMapRClient.so.1 libMapRClient_c.so.1"
         for asanbin in $asanbinlist; do
             cp opt/mapr/lib/${asanbin} /opt/mapr/lib/${asanbin}.asan > /dev/null 2>&1
