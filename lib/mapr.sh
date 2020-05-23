@@ -2378,7 +2378,7 @@ function maprutil_setupasanmfs(){
         log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
     fi
 
-    local asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null | grep -oh "[-a-z0-9_/]*libasan.so.[0-9]*")
+    local asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null | grep -oh "/[-a-z0-9_/]*libasan.so.[0-9]*")
 
     if [ -s "opt/mapr/lib/libGatewayNative.so" ] && [ -s "/opt/mapr/lib/libGatewayNative.so" ]; then
         mv /opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so.original > /dev/null 2>&1
@@ -2405,7 +2405,7 @@ function maprutil_setupasanmfs(){
     # Copy client asan libraries
     pushd $ctempdir  > /dev/null 2>&1
     if  [ -s "opt/mapr/lib/libMapRClient.so.1" ] && [ -s "/opt/mapr/lib/libMapRClient.so.1" ]; then
-        [ -z "$asanso" ] && asanso=$(ldd opt/mapr/lib/libMapRClient.so.1 2>/dev/null| grep -oh "[-a-z0-9_/]*libasan.so.[0-9]*")
+        [ -z "$asanso" ] && asanso=$(ldd opt/mapr/lib/libMapRClient.so.1 2>/dev/null| grep -oh "/[-a-z0-9_/]*libasan.so.[0-9]*")
         local asanbinlist="libMapRClient.so.1 libMapRClient_c.so.1"
         for asanbin in $asanbinlist; do
             cp opt/mapr/lib/${asanbin} /opt/mapr/lib/${asanbin}.asan > /dev/null 2>&1
@@ -5196,18 +5196,21 @@ function maprutil_analyzeCores(){
         local ftime=$(date -r /opt/cores/$core +'%Y-%m-%d %H:%M:%S')
         log_msg "\n\t Core #${i} : [$ftime] $core ( $cpfile )"
         local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile $i)
-        [ -z "${backtrace}" ] && continue
 
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
             log_msg "\t\t Core file is truncated"
         elif [ -n "$backtrace" ]; then
-            if [ -z "$GLB_LOG_VERBOSE" ]; then
-                local btlen=$(echo -e "$backtrace" | wc -l)
-                echo -e "$backtrace" | awk -v l=$btlen 'BEGIN{i=0; j=0;}{i++; if(i<40||i>l-10){print $0;}else if(j<3){j++;printf("...\n")}}' | sed 's/^/\t\t/' 
+            if [ -n "$(echo "$backtrace" | head -n 4 |  grep -e "libz.so$" -e "libjvm.so$")" ]; then
+                log_msg "\t\t Ignoring JVM only backtrace"
             else
-                cat $tracefile | sed -e '1,/Thread debugging using/d' | sed 's/^/\t\t/'
+                if [ -z "$GLB_LOG_VERBOSE" ]; then
+                    local btlen=$(echo -e "$backtrace" | wc -l)
+                    echo -e "$backtrace" | awk -v l=$btlen 'BEGIN{i=0; j=0;}{i++; if(i<40||i>l-10){print $0;}else if(j<3){j++;printf("...\n")}}' | sed 's/^/\t\t/' 
+                else
+                    cat $tracefile | sed -e '1,/Thread debugging using/d' | sed 's/^/\t\t/'
+                fi
+                [ -n "$GLB_COPY_DIR" ] && cp $tracefile $cpfile > /dev/null 2>&1
             fi
-            [ -n "$GLB_COPY_DIR" ] && cp $tracefile $cpfile > /dev/null 2>&1
         else
             log_msg "\t\t Unable to fetch the backtrace"
         fi
@@ -5276,8 +5279,6 @@ function maprutil_debugCore(){
         [ -n "$colbin" ] && [ ! -f "$GLB_COPY_DIR/collectd" ] && cp $colbin $GLB_COPY_DIR/ > /dev/null 2>&1
         [ "$sz" -gt "10737418240" ] && log_warn "[$(util_getHostIP)] Disk may get full with large(>10GB) core file(s)"
     fi
-    # ignore jvm crashes
-    [ -n "$backtrace" ] && [ -n "$(echo "$backtrace" | head -n 4 |  grep -e "libz.so$" -e "libjvm.so$")" ] && backtrace=
     [ -n "$backtrace" ] && echo "$backtrace" | sed  -n '/Switching to thread/q;p'
 }
 
