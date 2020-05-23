@@ -2378,7 +2378,7 @@ function maprutil_setupasanmfs(){
         log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
     fi
 
-    local asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null| grep "libasan.so" | awk '{print $3}')
+    local asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null | grep -oh "[-a-z0-9_/]*libasan.so.[0-9]*")
 
     if [ -s "opt/mapr/lib/libGatewayNative.so" ] && [ -s "/opt/mapr/lib/libGatewayNative.so" ]; then
         mv /opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so.original > /dev/null 2>&1
@@ -2405,7 +2405,7 @@ function maprutil_setupasanmfs(){
     # Copy client asan libraries
     pushd $ctempdir  > /dev/null 2>&1
     if  [ -s "opt/mapr/lib/libMapRClient.so.1" ] && [ -s "/opt/mapr/lib/libMapRClient.so.1" ]; then
-        [ -z "$asanso" ] && asanso=$(ldd opt/mapr/lib/libMapRClient.so.1 2>/dev/null| grep "libasan.so" | awk '{print $3}')
+        [ -z "$asanso" ] && asanso=$(ldd opt/mapr/lib/libMapRClient.so.1 2>/dev/null| grep -oh "[-a-z0-9_/]*libasan.so.[0-9]*")
         local asanbinlist="libMapRClient.so.1 libMapRClient_c.so.1"
         for asanbin in $asanbinlist; do
             cp opt/mapr/lib/${asanbin} /opt/mapr/lib/${asanbin}.asan > /dev/null 2>&1
@@ -2475,6 +2475,15 @@ function maprutil_setupasanmfs(){
                 [ -n "$(grep -B2 "^BASEMAPR=" $file | grep LD_PRELOAD)" ] && continue
                 sed -i "/^BASEMAPR=/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
                 sed -i "/^BASEMAPR=/i  export LD_PRELOAD=" $file
+            done
+            files=$(find /opt/mapr/bin -type f -executable -exec grep -HIl -e '^[[:space:]]*[nohup]*[[:space:]]*java ' -e 'bin/java ' {} \;)
+            for file in $files; do
+                [ -n "$(grep -B2 "java " $file | grep ASAN_OPTIONS)" ] && continue
+                sed -i "/^[[:space:]]*[nohup]*[[:space:]]*java /i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
+                sed -i "/^[[:space:]]*[nohup]*[[:space:]]*java /i  export LD_PRELOAD=${asanso}" $file
+
+                sed -i "/bin\/java /i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
+                sed -i "/bin\/java /i  export LD_PRELOAD=${asanso}" $file
             done
         fi
     fi
@@ -5187,6 +5196,7 @@ function maprutil_analyzeCores(){
         local ftime=$(date -r /opt/cores/$core +'%Y-%m-%d %H:%M:%S')
         log_msg "\n\t Core #${i} : [$ftime] $core ( $cpfile )"
         local backtrace=$(maprutil_debugCore "/opt/cores/$core" $tracefile $i)
+        [ -z "${backtrace}" ] && continue
 
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
             log_msg "\t\t Core file is truncated"
@@ -5266,6 +5276,8 @@ function maprutil_debugCore(){
         [ -n "$colbin" ] && [ ! -f "$GLB_COPY_DIR/collectd" ] && cp $colbin $GLB_COPY_DIR/ > /dev/null 2>&1
         [ "$sz" -gt "10737418240" ] && log_warn "[$(util_getHostIP)] Disk may get full with large(>10GB) core file(s)"
     fi
+    # ignore jvm crashes
+    [ -n "$backtrace" ] && [ -n "$(echo "$backtrace" | head -n 4 |  grep -e "libz.so$" -e "libjvm.so$")" ] && backtrace=
     [ -n "$backtrace" ] && echo "$backtrace" | sed  -n '/Switching to thread/q;p'
 }
 
