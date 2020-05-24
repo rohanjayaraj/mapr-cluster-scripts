@@ -2356,7 +2356,7 @@ function maprutil_setupasanmfs(){
         if [ -n "${setupclient}" ]; then
             pushd $ctempdir  > /dev/null 2>&1
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-client*${latestbuild}*.rpm" ${asanrepo} > /dev/null 2>&1
-            rpm2cpio mapr-client*${latestbuild}*nonstrip*.rpm | cpio -idmv > /dev/null 2>&1
+            rpm2cpio mapr-client*.rpm | cpio -idmv > /dev/null 2>&1
             popd  > /dev/null 2>&1
         fi
     else
