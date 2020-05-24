@@ -287,7 +287,7 @@ function util_checkAndInstallJDK11(){
     fi
     # Workarounds to make MapR work on JDK11
     local securityfile=$(find -L ${isInstalled} -name "java.security" | head -n 1)
-    if [[ -s "${securityfile})" ]] && [[ -z "$(grep "^keystore.type=jks" ${securityfile})" ]]; then
+    if [[ -s "${securityfile}" ]] && [[ -z "$(grep "^keystore.type=jks" ${securityfile})" ]]; then
          sed -i "s/^keystore.type=.*/keystore.type=jks/g" $securityfile
     fi
 }
