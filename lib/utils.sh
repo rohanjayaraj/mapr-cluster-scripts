@@ -1244,6 +1244,33 @@ function util_postToSlack2(){
     done
 }
 
+function util_postToMSTeams(){
+    [ -z "$1" ] && echo "Missing arguments" && return
+    [ -z "$2" ] && echo "Teams URL not specified" && return
+
+    local TEAMS_URL=$(wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    local filetopost="$1"
+    
+    local posttext="$(cat $filetopost)"
+    posttext="$(echo "$posttext" | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))' | sed 's/^.\(.*\).$/\1/')"
+
+    # Slack per message size limit
+    local charlimit=20000
+    local textlen=${#posttext}
+    while [[ "$textlen" -gt "2" ]]; do
+        local nlpos=$(echo "$posttext" | grep -aob '\\n' | cut -d ':' -f1 | awk -v sl=$charlimit '{if($1<=sl)l=$1}END{print l+2}')
+        local ptext="${posttext:0:$nlpos}"
+        local json="{\"@context\":\"http://schema.org/extensions\",\"@type\":\"MessageCard\",\"text\":\"<pre>$ptext</pre>\"}"
+        local tmpfile=$(mktemp)
+        echo "$json" > $tmpfile
+        timeout 300 curl -L -X POST -H 'Content-type: application/json' --data @-  $TEAMS_URL  < $tmpfile > /dev/null 2>&1
+        rm -f $tmpfile > /dev/null 2>&1
+        #let nlpos=nlpos+1
+        posttext="${posttext:$nlpos:$textlen}"
+        textlen=${#posttext}
+    done
+}
+
 # @param host name with domin
 function util_getIPfromHostName(){
     if [ -z "$1" ]; then

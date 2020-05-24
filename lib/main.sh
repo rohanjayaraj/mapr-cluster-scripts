@@ -970,6 +970,7 @@ function main_runLogDoctor(){
 				log_msghead "[$(util_getCurDate)] Analyzing ASAN errors reported in logs, if any"
 				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzeasan" "$mailfile" "nodups"
 				[ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ] && util_postToSlack2 "$mailfile" "https://bit.ly/3bYkfY2"
+				[ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ] && util_postToMSTeams "$mailfile" "https://bit.ly/2TBRKJ9"
         	;;
         	mrinfo)
 				log_msghead "[$(util_getCurDate)] Running mrconfig info "
