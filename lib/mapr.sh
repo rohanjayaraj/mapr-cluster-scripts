@@ -5383,6 +5383,33 @@ function maprutil_analyzeASAN(){
     done
 }
 
+function maprutil_dedupASANErrors() {
+    [ -z "$1" ] && return
+    local asanfile="$1"
+
+    local asanstack=
+    local asanaddr=
+    local i=1
+
+    local lines=$(cat ${asanfile} | grep -n -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY")
+    while read -r fl; do
+        read -r sl
+        local fln=$(echo "$fl" | cut -d':' -f1)
+        local sln=$(echo "$sl" | cut -d':' -f1)
+
+        local trace=$(cat ${asanfile} | sed -n "${fln},${sln}p")
+
+        local tfn=$(echo "$trace" | head -n 15 | grep "mapr" | head -n 1 | awk '{print $NF}')
+        if [ -z "$(echo "${asanaddr}" | grep "${tfn}" )" ]; then
+            asanaddr="${asanaddr} ${tfn}"
+            asanstack="${asanstack} Issue #${i}: \n"
+            asanstack="${asanstack} $(echo -e "$trace" | sed 's/\t\t/\t/g') \n\n"
+            let i=i+1
+        fi
+    done <<< "$lines"
+    [ -n "${asanstack}" ] && truncate -s 0 ${asanfile} && echo -e "${asanstack}" > ${asanfile}
+}
+
 function maprutil_runmrconfig_info(){
     [ ! -e "/opt/mapr/roles/fileserver" ] && return
     local info="$1"
