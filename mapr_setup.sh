@@ -38,6 +38,7 @@ repourl=
 meprepourl=
 patchrepourl=
 patchid=
+asanoptions=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -159,6 +160,8 @@ function usage () {
     echo -e "\t\t - Replace MFS  & Gateway binaries w/ ASAN binaries"
     echo -e "\t -asanall | --asanclient" 
     echo -e "\t\t - Replace ASAN binaries of MFS,Gateway, Client & maprfs jar"
+    echo -e "\t -asanop=<ASAN_OPTIONS> | --asanoptions=<ASAN_OPTIONS>" 
+    echo -e "\t\t - Comma separated ASAN Options to be appended"
     
     echo 
 	echo " Post install Options : "
@@ -305,6 +308,11 @@ while [ "$1" != "" ]; do
         -asanall | --asanclient)
             extraarg=$extraarg"asanall "
         ;;
+        -asanop | --asanoptions)
+            if [ -n "$VALUE" ]; then
+                asanoptions="$VALUE"
+            fi
+        ;;
         -sp | --storagepool)
             numsps=$VALUE
         ;;
@@ -402,7 +410,7 @@ if [ -z "$rolefile" ]; then
 else
     $libdir/main.sh "$rolefile" "-s=$setupop" "-e=$extraarg" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
     "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-ft=$fsthreads" "-gt=$gwthreads" "-repo=$repourl" \
-    "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid" "-maxm=$maxmfsmem" "-vol=$volname"
+    "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid" "-aop=$asanoptions" "-maxm=$maxmfsmem" "-vol=$volname"
     returncode=$?
     [ "$returncode" -ne "0" ] && exit $returncode
 fi

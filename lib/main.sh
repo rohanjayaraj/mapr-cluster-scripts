@@ -160,6 +160,7 @@ GLB_MAIL_SUB=
 GLB_SLACK_TRACE=
 GLB_PERF_OPTION=
 GLB_PERF_INTERVAL=
+GLB_ASAN_OPTIONS=
 GLB_EXT_ARGS=
 GLB_EXIT_ERRCODE=
 
@@ -1512,6 +1513,11 @@ while [ "$2" != "" ]; do
  				GLB_MAPR_PATCH=1
  			fi
  		;;
+ 		-aop)
+			if [ -n "$VALUE" ]; then
+ 				GLB_ASAN_OPTIONS="$VALUE"
+ 			fi
+		;;
  		-extarg)
 			if [ -n "$VALUE" ]; then
 				GLB_EXT_ARGS=$VALUE

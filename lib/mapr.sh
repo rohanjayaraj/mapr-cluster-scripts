@@ -2335,7 +2335,7 @@ function maprutil_setupasanmfs(){
 
     # stop warden
     maprutil_restartWarden "stop" 2>/dev/null
-
+    [ -n "$GLB_ASAN_OPTIONS" ] && GLB_ASAN_OPTIONS="$(echo "$GLB_ASAN_OPTIONS" | tr ',' ' ')"
     # download latest asan mfs binary
     local asanrepo="http://artifactory.devops.lab/artifactory/core-deb/master-asan/"
     if [ "$nodeos" = "centos" ]; then 
@@ -2375,17 +2375,22 @@ function maprutil_setupasanmfs(){
     if [ -s "/opt/mapr/server/mfs" ] && [ -s "opt/mapr/server/mfs" ]; then
         mv /opt/mapr/server/mfs /opt/mapr/server/mfs.original > /dev/null 2>&1
         cp opt/mapr/server/mfs /opt/mapr/server/mfs > /dev/null 2>&1
+        if [ -n "${GLB_ASAN_OPTIONS}" ]; then
+            sed -i "/start-stop-daemon --start/i export ASAN_OPTIONS=\"${GLB_ASAN_OPTIONS}\"" /opt/mapr/initscripts/mapr-mfs
+        fi
         log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
     fi
 
     local asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null | grep -oh "/[-a-z0-9_/]*libasan.so.[0-9]*")
+    local asanoptions="handle_segv=0"
+    [ -n "$GLB_ASAN_OPTIONS" ] && asanoptions="${asanoptions} ${GLB_ASAN_OPTIONS}"
 
     if [ -s "opt/mapr/lib/libGatewayNative.so" ] && [ -s "/opt/mapr/lib/libGatewayNative.so" ]; then
         mv /opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so.original > /dev/null 2>&1
         cp opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so > /dev/null 2>&1
         # update gateway initscripts w/ LD_PRELOAD
         if [ -n "$asanso" ] && [ -e "/opt/mapr/roles/gateway" ]; then
-            sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=handle_segv=0" /opt/mapr/initscripts/mapr-gateway
+            sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"" /opt/mapr/initscripts/mapr-gateway
             sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-gateway
             log_info "[$(util_getHostIP)] Replaced libGatewayNative w/ ASAN binary"
         fi
@@ -2396,7 +2401,7 @@ function maprutil_setupasanmfs(){
         cp opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
         # update gateway initscripts w/ LD_PRELOAD
         if [[ -n "$asanso" ]] && [[ -e "/opt/mapr/roles/mastgateway" ]]; then
-            sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=handle_segv=0" /opt/mapr/initscripts/mapr-mastgateway
+            sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"" /opt/mapr/initscripts/mapr-mastgateway
             sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-mastgateway
             log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
         fi
@@ -2426,7 +2431,9 @@ function maprutil_setupasanmfs(){
                 cp /opt/mapr/lib/${asanfsjar} /opt/mapr/lib/${fsjar} > /dev/null 2>&1
             fi
 
-            local asanoptions="handle_segv=0 handle_sigill=0 detect_leaks=0 alloc_dealloc_mismatch=0"
+            asanoptions="handle_segv=0 handle_sigill=0 detect_leaks=0"
+            [ -n "$GLB_ASAN_OPTIONS" ] && asanoptions="${asanoptions} ${GLB_ASAN_OPTIONS}"
+
             # Update all start scripts to have asan options
             local files=$(find /opt/mapr/ -type f -exec grep -H " \"\$JAVA\"" {} \; | grep -v "if \[" | cut -d':' -f1 | sort -u)
             for file in $files; do
@@ -3592,7 +3599,7 @@ function maprutil_setupATSClientNode() {
         if ! command -v mvn > /dev/null 2>&1; then 
             cd /tmp && wget http://www-us.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz && tar -zxvf apache-maven-3.5.4-bin.tar.gz 
         
-            mv /tmp/apache-maven-3.5.4/ /opt/apache-maven > /dev/null 2>&1
+            mv /tmp/apache-maven-3.5.4 /opt/apache-maven > /dev/null 2>&1
 
         cat <<EOF > /etc/profile.d/maven.sh
 export M2_HOME=/opt/apache-maven
