@@ -88,8 +88,8 @@ function usage () {
     echo -e "\t -ac | --analyzecores | -ac=<core> | --analyzecores=<core>" 
     echo -e "\t\t - Analyze core(s) present"
 
-    echo -e "\t -aa | --analyzeasan" 
-    echo -e "\t\t - Analyze ASAN errors in mfs.err (if any)"
+    echo -e "\t -aa | --analyzeasan | -aa=<DIRPATH:FILEPREFIX> | --analyzeasan=<DIRPATH:FILEPREFIX>" 
+    echo -e "\t\t - Analyze ASAN errors in default (MFS, Gateway, CLDB etc) or files starting w/ FILEPREFIX in DIRPATH (if any)"
 
     echo -e "\t -cc=<COPYTODIR>  | --copycores=<COPYTODIR> " 
     echo -e "\t\t - Copy core files to <COPYTODIR> directory on respective node when run with -ac option"
