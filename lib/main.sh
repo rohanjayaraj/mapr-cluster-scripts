@@ -973,7 +973,10 @@ function main_runLogDoctor(){
 				if [ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ]; then
 					local nodupfile=$(mktemp)
 					cp ${mailfile} ${nodupfile} > /dev/null 2>&1
+					
 					maprutil_dedupASANErrors "${nodupfile}"
+					sed -i "1s/^/\nNodelist : ${nodelist}\n\n/" ${nodupfile}  > /dev/null 2>&1
+
 				 	util_postToSlack2 "${nodupfile}" "https://bit.ly/3bYkfY2"
 					util_postToMSTeams "${nodupfile}" "https://bit.ly/2TBRKJ9"
 					rm -rf ${nodupfile} > /dev/null 2>&1
