@@ -2335,7 +2335,7 @@ function maprutil_setupasanmfs(){
 
     # stop warden
     maprutil_restartWarden "stop" 2>/dev/null
-    [ -n "$GLB_ASAN_OPTIONS" ] && GLB_ASAN_OPTIONS="$(echo "$GLB_ASAN_OPTIONS" | tr ',' ' ')"
+    [ -n "$GLB_ASAN_OPTIONS" ] && GLB_ASAN_OPTIONS="$(echo "$GLB_ASAN_OPTIONS" | tr ',' ' ' | tr ':' '=')"
     # download latest asan mfs binary
     local asanrepo="http://artifactory.devops.lab/artifactory/core-deb/master-asan/"
     if [ "$nodeos" = "centos" ]; then 
@@ -2376,7 +2376,11 @@ function maprutil_setupasanmfs(){
         mv /opt/mapr/server/mfs /opt/mapr/server/mfs.original > /dev/null 2>&1
         cp opt/mapr/server/mfs /opt/mapr/server/mfs > /dev/null 2>&1
         if [ -n "${GLB_ASAN_OPTIONS}" ]; then
-            sed -i "/start-stop-daemon --start/i export ASAN_OPTIONS=\"${GLB_ASAN_OPTIONS}\"" /opt/mapr/initscripts/mapr-mfs
+            if [ "$nodeos" = "ubuntu" ]; then
+                sed -i "/start-stop-daemon --start/i export ASAN_OPTIONS=\"${GLB_ASAN_OPTIONS}\"" /opt/mapr/initscripts/mapr-mfs
+            else
+                sed -i "/daemon \$USER_ARG/i export ASAN_OPTIONS=\"${GLB_ASAN_OPTIONS}\"" /opt/mapr/initscripts/mapr-mfs
+            fi
         fi
         log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
     fi

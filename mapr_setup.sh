@@ -161,7 +161,7 @@ function usage () {
     echo -e "\t -asanall | --asanclient" 
     echo -e "\t\t - Replace ASAN binaries of MFS,Gateway, Client & maprfs jar"
     echo -e "\t -asanop=<ASAN_OPTIONS> | --asanoptions=<ASAN_OPTIONS>" 
-    echo -e "\t\t - Comma separated ASAN Options to be appended"
+    echo -e "\t\t - Comma separated ASAN Options to be appended. Replace '=' w/ ':' in the <ASAN_OPTIONS>"
     
     echo 
 	echo " Post install Options : "
