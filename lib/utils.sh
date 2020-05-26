@@ -1255,7 +1255,7 @@ function util_postToMSTeams(){
     posttext="$(echo "$posttext" | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))' | sed 's/^.\(.*\).$/\1/')"
 
     # Slack per message size limit
-    local charlimit=20000
+    local charlimit=15000
     local textlen=${#posttext}
     while [[ "$textlen" -gt "2" ]]; do
         local nlpos=$(echo "$posttext" | grep -aob '\\n' | cut -d ':' -f1 | awk -v sl=$charlimit '{if($1<=sl)l=$1}END{print l+2}')
