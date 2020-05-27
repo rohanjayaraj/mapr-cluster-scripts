@@ -5302,7 +5302,7 @@ function maprutil_analyzeASAN(){
     if [ -n "$GLB_EXT_ARGS" ] && [ -n "$(echo "${GLB_EXT_ARGS}" | grep ":")" ]; then
         local dirpath=$(echo "${GLB_EXT_ARGS}" | cut -d':' -f1)
         local fileprefix=$(echo "${GLB_EXT_ARGS}" | cut -d':' -f2)
-        [ ! -s "${dirpath}" ] && log_warn "[$(util_getHostIP)] Specified directory '${dirpath}' doesn't exist" && return
+        [ ! -s "${dirpath}" ] && return
         asanlogs=$(find ${dirpath} -name "${fileprefix}*")
     fi
 
@@ -5400,6 +5400,7 @@ function maprutil_dedupASANErrors() {
 
     local lines=$(cat ${asanfile} | grep -n -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY")
     while read -r fl; do
+        [ -z "$(echo "$fl" | grep Sanitizer)" ] && continue
         read -r sl
         local fln=$(echo "$fl" | cut -d':' -f1)
         local sln=$(echo "$sl" | cut -d':' -f1)
