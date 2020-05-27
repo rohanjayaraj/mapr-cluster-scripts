@@ -924,7 +924,7 @@ function main_runLogDoctor(){
         	;;
         	disktest)
 				log_msghead "[$(util_getCurDate)] Running disk tests on all nodes"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "disktest" "$mailfile"
+				maprutil_runCommandsOnNodesInParallel "$nodes" "disktest" "$mailfile"
         	;;
         	mfsgrep)
 				log_msghead "[$(util_getCurDate)] Grepping MFS logs on all nodes"
@@ -940,7 +940,7 @@ function main_runLogDoctor(){
         	;;
         	greplogs)
 				log_msghead "[$(util_getCurDate)] Grepping MapR logs on all nodes for key [ \"$GLB_GREP_MAPRLOGS\" ]"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "grepmapr"
+				maprutil_runCommandsOnNodesInParallel "$nodes" "grepmapr"
         	;;
         	tabletdist)
 				if [ -z "$GLB_INDEX_NAME" ]; then
@@ -964,18 +964,18 @@ function main_runLogDoctor(){
         	;;
         	analyzecores)
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzecores" "$mailfile"
+				maprutil_runCommandsOnNodesInParallel "$nodes" "analyzecores" "$mailfile"
 				[ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ] && util_postToSlack2 "$mailfile" "https://bit.ly/2vPLzrO"
         	;;
         	analyzeasan)
 				log_msghead "[$(util_getCurDate)] Analyzing ASAN errors reported in logs, if any"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "analyzeasan" "$mailfile"
+				maprutil_runCommandsOnNodesInParallel "$nodes" "analyzeasan" "$mailfile"
 				if [ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ]; then
 					local nodupfile=$(mktemp)
 					cp ${mailfile} ${nodupfile} > /dev/null 2>&1
 					if [ -z "${GLB_LOG_VERBOSE}" ]; then
 						maprutil_dedupASANErrors "${nodupfile}"
-						sed -i "1s/^/\nNodelist : ${nodelist}\n\n/" ${nodupfile}  > /dev/null 2>&1
+						sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${nodupfile}  > /dev/null 2>&1
 					fi
 
 				 	util_postToSlack2 "${nodupfile}" "https://bit.ly/3bYkfY2"
@@ -1005,18 +1005,18 @@ function main_runLogDoctor(){
 			;;
 			traceoff)
 				log_msghead "[$(util_getCurDate)] Disable traces on all nodes"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "traceoff"
+				maprutil_runCommandsOnNodesInParallel "$nodes" "traceoff"
         	;;
         	mfsthreads)
 				log_msghead "[$(util_getCurDate)] Listing MFS Process thread details"
-				maprutil_runCommandsOnNodesInParallel "$nodelist" "mfsthreads"
+				maprutil_runCommandsOnNodesInParallel "$nodes" "mfsthreads"
         	;;
         esac
         local ec=$GLB_EXIT_ERRCODE
         [ -n "$ec" ] && [ "$rc" -eq "0" ] && rc=$ec
 	done
 	if [ -s "$mailfile" ] && [ -n "$GLB_MAIL_LIST" ]; then
-        sed -i "1s/^/\nNodelist : ${nodelist}\n\n/" $mailfile
+        sed -i "1s/^/\nNodelist : ${nodes}\n\n/" $mailfile
         echo >> $mailfile
         local mailsub="$GLB_MAIL_SUB"
         [ -z "$mailsub" ] && mailsub="[ MapR LogDr Output ]"
