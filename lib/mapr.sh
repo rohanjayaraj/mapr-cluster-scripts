@@ -163,9 +163,9 @@ function maprutil_getCoreNodeBinaries() {
             if [ -n "$(echo $newbinlist | grep mapr-core)" ] && [ -z "$(echo $newbinlist | grep "mapr-hadoop-client")" ]; then
                 newbinlist="$newbinlist mapr-hadoop-client"
             fi 
-            if [ -n "$(echo $newbinlist | grep mapr-gateway)" ] && [ -z "$(echo $newbinlist | grep "mapr-hbase")" ]; then
-                newbinlist="$newbinlist mapr-hbase"
-            fi
+            #if [ -n "$(echo $newbinlist | grep mapr-gateway)" ] && [ -z "$(echo $newbinlist | grep "mapr-hbase")" ]; then
+            #    newbinlist="$newbinlist mapr-hbase"
+            #fi
         fi
         #GLB_MAPR_VERSION
         if [ -n "$GLB_MAPR_PATCH" ]; then
