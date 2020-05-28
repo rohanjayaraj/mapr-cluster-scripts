@@ -5310,7 +5310,7 @@ function maprutil_analyzeASAN(){
     for log in $asanlogs; 
     do
         [ ! -s "${log}" ] && continue
-        local asan=$(grep -n "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" ${log} | cut -d':' -f1)
+        local asan=$(grep -na "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" ${log} | cut -d':' -f1)
         [ -n "${asan}" ] && haslogs="$haslogs $log"
     done
 
@@ -5326,7 +5326,7 @@ function maprutil_analyzeASAN(){
 
     for errlog in $haslogs;
     do
-        local asan=$(grep -n  -e "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" -e "SUMMARY:" ${errlog})
+        local asan=$(grep -na  -e "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" -e "SUMMARY:" ${errlog})
         local numasan=$(echo $(echo "$asan" | wc -l) | bc)
         log_msghead "[$(util_getHostIP)] Analyzing $numasan ASAN msgs in ${errlog}"
         while read -r fline; do
