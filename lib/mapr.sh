@@ -3584,14 +3584,14 @@ function maprutil_setupATSClientNode() {
         
         # Install Git
         if ! command -v git > /dev/null 2>&1; then 
-            if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
-                yum groupinstall "Development Tools" --enablerepo=${opts} -y
-                yum install -y wget unzip gettext-devel openssl-devel perl-CPAN perl-devel zlib-devel libcurl-devel expat-devel --enablerepo=${opts} -q 2>/dev/null
-                cd /tmp && wget https://github.com/git/git/archive/v2.26.0.tar.gz -O git.tar.gz
-                cd /tmp && tar -xf git.tar.gz && cd git-* && make prefix=/usr/local all install
-            else
+            #if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
+            #    yum groupinstall "Development Tools" --enablerepo=${opts} -y
+            #    yum install -y wget unzip gettext-devel openssl-devel perl-CPAN perl-devel zlib-devel libcurl-devel expat-devel --enablerepo=${opts} -q 2>/dev/null
+            #    cd /tmp && wget https://github.com/git/git/archive/v2.26.0.tar.gz -O git.tar.gz
+            #    cd /tmp && tar -xf git.tar.gz && cd git-* && make prefix=/usr/local all install
+            #else
                 yum install -y git --enablerepo=${opts} -q 2>/dev/null
-            fi
+            #fi
         fi
 
         # Install rsync
@@ -5310,7 +5310,7 @@ function maprutil_analyzeASAN(){
     for log in $asanlogs; 
     do
         [ ! -s "${log}" ] && continue
-        local asan=$(grep -na "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" ${log} | cut -d':' -f1)
+        local asan=$(grep -na "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" ${log} | grep -v HINT | cut -d':' -f1)
         [ -n "${asan}" ] && haslogs="$haslogs $log"
     done
 
@@ -5326,7 +5326,7 @@ function maprutil_analyzeASAN(){
 
     for errlog in $haslogs;
     do
-        local asan=$(grep -na  -e "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" -e "SUMMARY:" ${errlog})
+        local asan=$(grep -na  -e "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" -e "SUMMARY:" ${errlog} | grep -v HINT)
         local numasan=$(echo $(echo "$asan" | wc -l) | bc)
         log_msghead "[$(util_getHostIP)] Analyzing $numasan ASAN msgs in ${errlog}"
         while read -r fline; do
