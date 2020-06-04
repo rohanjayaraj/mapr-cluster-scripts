@@ -1226,7 +1226,7 @@ function maprutil_customConfigure(){
             local hostip=$(util_getHostIP)
             local cmd="$hadoopdir/bin/configure.sh -c"
             [ -n "$GLB_SECURE_CLUSTER" ] && cmd="$cmd -secure"
-            [-n "${hsnodes}" ] && cmd="$cmd -C \"-HS $(util_getFirstElement "$hsnodes")\""
+            [ -n "${hsnodes}" ] && cmd="$cmd -C \"-HS $(util_getFirstElement "$hsnodes")\""
             log_info "[$hostip] $cmd"
             bash -c "$cmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         fi
