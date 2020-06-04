@@ -1186,6 +1186,8 @@ function maprutil_configureSSD(){
 
 function maprutil_customConfigure(){
 
+    local hsnodes="$1"
+
     if [ -n "$GLB_TABLE_NS" ]; then
         maprutil_addTableNS "core-site.xml" "$GLB_TABLE_NS"
         maprutil_addTableNS "hbase-site.xml" "$GLB_TABLE_NS"
@@ -1222,8 +1224,9 @@ function maprutil_customConfigure(){
         local yarnsite=$(find $hadoopdir -name "yarn-site.xml" | grep -v sample-conf)
         if [ -z "$yarnsite" ]; then
             local hostip=$(util_getHostIP)
-            local cmd="$hadoopdir/bin/configure.sh"
+            local cmd="$hadoopdir/bin/configure.sh -c"
             [ -n "$GLB_SECURE_CLUSTER" ] && cmd="$cmd -secure"
+            [-n "${hsnodes}" ] && cmd="$cmd -C \"-HS $(util_getFirstElement "$hsnodes")\""
             log_info "[$hostip] $cmd"
             bash -c "$cmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         fi
@@ -1583,7 +1586,7 @@ function maprutil_configure(){
     bash -c "$configurecmd" 2>&1 |  awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     
     # Perform series of custom configuration based on selected options
-    maprutil_customConfigure
+    maprutil_customConfigure "$hsnodes"
 
     # Create ATS Users
     [[ -n "$GLB_ATS_USERTICKETS" ]] && maprutil_createATSUsers 2>/dev/null
