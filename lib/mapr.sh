@@ -2038,7 +2038,7 @@ function maprutil_copyRepoFile(){
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ]; then
         ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled=0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1" > /dev/null 2>&1
-        ssh_executeCommandasRoot "$1" "yum-config-manager --disable \\*" > /dev/null 2>&1
+        #ssh_executeCommandasRoot "$1" "yum-config-manager --disable \\*" > /dev/null 2>&1
         #ssh_executeCommandasRoot "$1" "yum repolist | grep -i mapr | awk '{print \$1}' | tr '\n' ',' | sed 's/,$//g' > /dev/null 2>&1" > /dev/null 2>&1
         ssh_copyCommandasRoot "$node" "$2" "/etc/yum.repos.d/" > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
