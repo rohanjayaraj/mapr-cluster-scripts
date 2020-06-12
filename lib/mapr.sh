@@ -304,6 +304,8 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/hoststat*core*")
     dirlist+=("/opt/cores/posix*core*")
     dirlist+=("/opt/cores/maprStreamstest.core.*")
+    dirlist+=("/opt/cores/qtp*.core.*")
+    dirlist+=("/opt/cores/Thread-*.core.*")
     echo ${dirlist[*]}
 }
 
@@ -1576,10 +1578,10 @@ function maprutil_configure(){
 
     if [ "$ISCLIENT" -eq 1 ]; then
         configurecmd="$configurecmd -c"
-    else
-    #   [ -n "$rmnodes" ] && configurecmd="$configurecmd -RM $(util_getCommaSeparated "$rmnodes")"
-       [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS $(util_getFirstElement "$hsnodes")"
     fi
+    #[ -n "$rmnodes" ] && configurecmd="$configurecmd -RM $(util_getCommaSeparated "$rmnodes")"
+    [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS $(util_getFirstElement "$hsnodes")"
+    
 
     # Run configure.sh on the node
     log_info "[$hostip] $configurecmd"
