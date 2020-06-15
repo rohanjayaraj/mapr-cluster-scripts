@@ -176,6 +176,11 @@ function maprutil_getCoreNodeBinaries() {
             else
                 newbinlist=$newbinlist"mapr-patch-client"
             fi
+
+            [ -n "$(echo $newbinlist | grep mapr-loopbacknfs)" ] && newbinlist=$newbinlist"mapr-patch-loopbacknfs"
+            [ -n "$(echo $newbinlist | grep mapr-nfs4server)" ] && newbinlist=$newbinlist"mapr-patch-nfs4server"
+            [ -n "$(echo $newbinlist | grep mapr-posix-client-basic)" ] && newbinlist=$newbinlist"mapr-patch-posix-client-basic"
+            [ -n "$(echo $newbinlist | grep mapr-posix-client-platinum)" ] && newbinlist=$newbinlist"mapr-patch-posix-client-platinum"
         fi
         echo $newbinlist
     fi
@@ -305,6 +310,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/posix*core*")
     dirlist+=("/opt/cores/maprStreamstest.core.*")
     dirlist+=("/opt/cores/qtp*.core.*")
+    dirlist+=("/opt/cores/pool-*.core.*")
     dirlist+=("/opt/cores/Thread-*.core.*")
     echo ${dirlist[*]}
 }
@@ -5180,6 +5186,7 @@ function maprutil_perftool(){
 
 function maprutil_analyzeCores(){
     local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd' | awk '{print $9}')
+    [ -z "${cores}" ] && cores=$(ls -ltr /opt/cores | grep -e "qtp[0-9-]*.core.*" -e "pool-[0-9]*-thread.core.*" -e "maprStreamstest" | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
 
@@ -5216,9 +5223,9 @@ function maprutil_analyzeCores(){
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
             log_msg "\t\t Core file is truncated"
         elif [ -n "$backtrace" ]; then
-            if [ -n "$(echo "$backtrace" | head -n 4 |  grep -e "libz.so$" -e "libjvm.so$")" ]; then
-                log_msg "\t\t Ignoring JVM only backtrace"
-            else
+            #if [ -n "$(echo "$backtrace" | head -n 4 |  grep -e "libz.so$" -e "libjvm.so$")" ]; then
+            #    log_msg "\t\t Ignoring JVM only backtrace"
+            #else
                 if [ -z "$GLB_LOG_VERBOSE" ]; then
                     local btlen=$(echo -e "$backtrace" | wc -l)
                     echo -e "$backtrace" | awk -v l=$btlen 'BEGIN{i=0; j=0;}{i++; if(i<40||i>l-10){print $0;}else if(j<3){j++;printf("...\n")}}' | sed 's/^/\t\t/' 
@@ -5226,7 +5233,7 @@ function maprutil_analyzeCores(){
                     cat $tracefile | sed -e '1,/Thread debugging using/d' | sed 's/^/\t\t/'
                 fi
                 [ -n "$GLB_COPY_DIR" ] && cp $tracefile $cpfile > /dev/null 2>&1
-            fi
+            #fi
         else
             log_msg "\t\t Unable to fetch the backtrace"
         fi
@@ -5246,19 +5253,21 @@ function maprutil_debugCore(){
     local tracefile=$2
     local coreidx=$3
     local newcore=
-    local isjava=$(echo $corefile | grep "java[A-Za-z0-9]*.core")
+    local isjava=$(echo $corefile | grep -e "java[A-Za-z0-9]*.core" -e "qtp[0-9-]*.core.*" -e "pool-[0-9]*-thread.core.*")
     local iscollectd=$(echo $corefile | grep "reader\|writer\|collectd")
+    local iscats=$(echo $corefile | grep "maprStreamstest")
     local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[A-Za-z0-9.]*.core")
     local colbin=
+    local catsbin="/root/jenkins-client-setup/private-qa/new-cats/mapr-streams/maprStreamstestBinary"
 
     if [ -z "$(find $tracefile -type f -size +15k 2> /dev/null)" ]; then
         if [ -n "$isjava" ]; then
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
-            newcore=1
         elif [ -n "$iscollectd" ]; then
             colbin=$(find /opt/mapr/collectd -type f -name collectd  -exec file -i '{}' \; 2> /dev/null | tr -d ':' | grep 'x-executable' | awk {'print $1'})
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} $colbin > $tracefile 2>&1    
-            newcore=1
+        elif [ -n "$iscats" ] && [ -s "${catsbin}" ]; then
+            timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} $catsbin > $tracefile 2>&1    
         elif [ -n "$ismfs" ]; then
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
             newcore=1
@@ -5298,6 +5307,38 @@ function maprutil_debugCore(){
     [ -n "$backtrace" ] && echo "$backtrace" | sed  -n '/Switching to thread/q;p'
 }
 
+function maprutil_dedupCores() {
+    [ -z "$1" ] && return
+    local corefile="$1"
+
+    local corestack=
+    local corefn=
+    local i=1
+
+    local lines=$(cat ${corefile} | grep -n -e "Analyzing [0-9]* core file(s)" -e "Core #" -e "^[[:space:]]*$")
+    local currnode=
+    while read -r fl; do
+        if [ -n "$(echo "$fl" | grep "Analyzing")" ]; then
+            currnode=$(echo "$fl" | awk '{print $2}')
+            continue
+        fi
+        [ -z "$(echo "$fl" | grep "Core #")" ] && continue
+        read -r sl
+        local fln=$(echo "$fl" | cut -d':' -f1)
+        local sln=$(echo "$sl" | cut -d':' -f1)
+
+        local trace=$(cat ${corefile} | sed -n "${fln},${sln}p" | sed "s/Core #[0-9]* :/Core #${i} : ${currnode}/g")
+
+        local tfn=$(echo "$trace" | grep -e "mapr::fs" -e "rdkafka" | head -n 1 | awk '{print $NF}')
+        if [ -z "$(echo "${corefn}" | grep "${tfn}")" ] || [ -z "${tfn}" ]; then
+            corefn="${corefn} ${tfn}"
+            corestack="${corestack} $(echo -e "$trace") \n\n"
+            let i=i+1
+        fi
+    done <<< "$lines"
+    [ -n "${corestack}" ] && truncate -s 0 ${corefile} && echo -e "${corestack}" > ${corefile}
+}
+
 function maprutil_analyzeASAN(){
     local asanlogs="/opt/mapr/logs/mfs.err \
     /opt/mapr/logs/gatewayinit.log \
@@ -5305,10 +5346,16 @@ function maprutil_analyzeASAN(){
     /opt/mapr/logs/cldb.out"
 
     if [ -n "$GLB_EXT_ARGS" ] && [ -n "$(echo "${GLB_EXT_ARGS}" | grep ":")" ]; then
-        local dirpath=$(echo "${GLB_EXT_ARGS}" | cut -d':' -f1)
-        local fileprefix=$(echo "${GLB_EXT_ARGS}" | cut -d':' -f2)
-        [ ! -s "${dirpath}" ] && return
-        asanlogs=$(find ${dirpath} -name "${fileprefix}*")
+        asanlogs=
+        local alldirs=$(echo "${GLB_EXT_ARGS}" | tr ',' ' ')
+        for dirfile in ${alldirs}; 
+        do
+            local dirpath=$(echo "${dirfile}" | cut -d':' -f1)
+            local fileprefix=$(echo "${dirfile}" | cut -d':' -f2)
+            [ ! -s "${dirpath}" ] && continue
+            local logslist=$(find ${dirpath} -name "${fileprefix}*")
+            [ -n "${logslist}" ] && asanlogs="${asanlogs} ${logslist}"
+        done
     fi
 
     local haslogs=

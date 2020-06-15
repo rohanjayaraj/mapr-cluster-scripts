@@ -965,7 +965,16 @@ function main_runLogDoctor(){
         	analyzecores)
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
 				maprutil_runCommandsOnNodesInParallel "$nodes" "analyzecores" "$mailfile"
-				[ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ] && util_postToSlack2 "$mailfile" "https://bit.ly/2vPLzrO"
+				if [ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ]; then
+					local nodupfile=$(mktemp)
+					cp ${mailfile} ${nodupfile} > /dev/null 2>&1
+					if [ -z "${GLB_LOG_VERBOSE}" ]; then
+						maprutil_dedupCores "${nodupfile}"
+						sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${nodupfile}  > /dev/null 2>&1
+					fi
+					util_postToSlack2 "$mailfile" "https://bit.ly/2vPLzrO"
+					rm -rf ${nodupfile} > /dev/null 2>&1
+				fi
         	;;
         	analyzeasan)
 				log_msghead "[$(util_getCurDate)] Analyzing ASAN errors reported in logs, if any"
