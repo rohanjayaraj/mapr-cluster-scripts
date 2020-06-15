@@ -5185,8 +5185,7 @@ function maprutil_perftool(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd' | awk '{print $9}')
-    [ -z "${cores}" ] && cores=$(ls -ltr /opt/cores | grep -e "qtp[0-9-]*.core.*" -e "pool-[0-9]*-thread.core.*" -e "maprStreamstest" | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.core.*\|maprStreamstest' | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
 
