@@ -177,10 +177,10 @@ function maprutil_getCoreNodeBinaries() {
                 newbinlist=$newbinlist"mapr-patch-client"
             fi
 
-            [ -n "$(echo $newbinlist | grep mapr-loopbacknfs)" ] && newbinlist=$newbinlist"mapr-patch-loopbacknfs"
-            [ -n "$(echo $newbinlist | grep mapr-nfs4server)" ] && newbinlist=$newbinlist"mapr-patch-nfs4server"
-            [ -n "$(echo $newbinlist | grep mapr-posix-client-basic)" ] && newbinlist=$newbinlist"mapr-patch-posix-client-basic"
-            [ -n "$(echo $newbinlist | grep mapr-posix-client-platinum)" ] && newbinlist=$newbinlist"mapr-patch-posix-client-platinum"
+            [ -n "$(echo $newbinlist | grep mapr-loopbacknfs)" ] && newbinlist="$newbinlist mapr-patch-loopbacknfs"
+            [ -n "$(echo $newbinlist | grep mapr-nfs4server)" ] && newbinlist="$newbinlist mapr-patch-nfs4server"
+            [ -n "$(echo $newbinlist | grep mapr-posix-client-basic)" ] && newbinlist="$newbinlist mapr-patch-posix-client-basic"
+            [ -n "$(echo $newbinlist | grep mapr-posix-client-platinum)" ] && newbinlist="$newbinlist mapr-patch-posix-client-platinum"
         fi
         echo $newbinlist
     fi
