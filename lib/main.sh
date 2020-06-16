@@ -972,7 +972,7 @@ function main_runLogDoctor(){
 						maprutil_dedupCores "${nodupfile}"
 						sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${nodupfile}  > /dev/null 2>&1
 					fi
-					util_postToSlack2 "$mailfile" "https://bit.ly/2vPLzrO"
+					util_postToSlack2 "${nodupfile}" "https://bit.ly/2vPLzrO"
 					rm -rf ${nodupfile} > /dev/null 2>&1
 				fi
         	;;
