@@ -52,6 +52,29 @@ function getOSReleaseVersionOnNode(){
     echo "$osrel"
 }
 
+function isOSVersionSameOrNewer(){
+    if [ -z "$1" ]; then
+        return
+    fi
+
+    local isosverarr=($(echo "$1" | tr '.' ' ' | awk '{print $1,$2}'))
+
+    local osver=$(echo "$(getOSWithVersion)" | awk '{print $2}')
+    local osverarr=($(echo $osver | tr '.' ' ' | awk '{print $1,$2}'))
+
+    local oldver=
+    if [ "${osverarr[0]}" -lt "${isosverarr[0]}" ]; then
+        oldver=1
+    elif [ "${osverarr[0]}" -eq "${isosverarr[0]}" ] && [ "${osverarr[1]}" -lt "${isosverarr[1]}" ]; then
+        oldver=1
+    fi
+    
+    if [ -z "$oldver" ]; then
+        echo "newer"
+    fi
+
+}
+
 function util_getHostIP(){
     command -v ifconfig >/dev/null 2>&1 || util_installprereq > /dev/null 2>&1
     local ipadd=$(ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1\|0.0.0.0" | head -n 1 | awk '{print $2}' | cut -c6-)
@@ -68,22 +91,42 @@ function util_getCurDate(){
     echo "$(date +'%Y-%m-%d %H:%M:%S')"
 }
 
+function util_getInstallerOptions(){
+    ##
+    local opts=
+    if [[ "$(getOS)" = "centos" ]]; then
+        if [[ -n "$(isOSVersionSameOrNewer "8.2")" ]]; then
+            opts="--enablerepo=epel"
+        elif [[ -n "$(isOSVersionSameOrNewer "8")" ]]; then
+            opts="--enablerepo=epel,Base*,extras,AppStream*"
+        elif [[ -n "$(isOSVersionSameOrNewer "7")" ]]; then
+            opts="--enablerepo=C7*,base,epel,epel-release"
+        else
+            opts="--enablerepo=C6*,base,epel,epel-release"
+        fi
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        opts="--force-yes"
+        [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
+    elif [[ "$(getOS)" = "suse" ]]; then
+        opts="--no-gpg-checks --non-interactive"
+    fi
+
+    [ -n "${opts}" ] && echo "${opts}"
+}
+
 # @param command
 # @param package
 function util_checkAndInstall(){
     if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
-    local opts=
+    local opts=$(util_getInstallerOptions)
     if [ "$(getOS)" = "centos" ]; then
-        opts="C6*,C7*,base,epel,epel-release"
-        [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras,AppStream*"
-        command -v $1 >/dev/null 2>&1 || yum --enablerepo=${opts} install $2 -y -q 2>/dev/null
+        command -v $1 >/dev/null 2>&1 || yum ${opts} install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
-        command -v $1 >/dev/null 2>&1 || apt-get -y $opts install $2 2>/dev/null
+        command -v $1 >/dev/null 2>&1 || apt-get -y ${opts} install $2 2>/dev/null
     elif [[ "$(getOS)" = "suse" ]]; then
-        command -v $1 >/dev/null 2>&1 || zypper --no-gpg-checks --non-interactive -q install -n $2 2>/dev/null
+        command -v $1 >/dev/null 2>&1 || zypper ${opts} -q install -n $2 2>/dev/null
     fi
 }
 
@@ -94,21 +137,18 @@ function util_checkAndInstall2(){
     if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
+    local opts=$(util_getInstallerOptions)
     if [ "$(getOS)" = "centos" ]; then
         if [ ! -e "$1" ]; then
-            local opts="C6*,C7*,base,epel,epel-release"
-            [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras,AppStream*"
-            yum install $2 -y -q --enablerepo=${opts} 2>/dev/null
+            yum install $2 -y -q ${opts} 2>/dev/null
         fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         if [ ! -e "$1" ]; then
-            local opts=
-            [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
-            apt-get install $opts -y $2  2>/dev/null
+            apt-get install ${opts} -y $2  2>/dev/null
         fi
     elif [[ "$(getOS)" = "suse" ]]; then
         if [ ! -e "$1" ]; then
-            zypper --no-gpg-checks --non-interactive -q install $2  2>/dev/null
+            zypper ${opts} -q install $2  2>/dev/null
         fi
     fi
 }
@@ -128,23 +168,20 @@ function util_maprprereq(){
     netcat-openbsd nfs-client openssl syslinux tar util-linux vim openssh \
     device-mapper iputils lvm2 mozilla-nss ntp sdparm sysfsutils sysstat util-linux python-pycurl"
 
+    local opts=$(util_getInstallerOptions)
     if [ "$(getOS)" = "centos" ]; then
-        local opts="C6*,C7*,base,epel,epel-release"
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
-            opts="epel,Base*,extras,AppStream*"
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ ntp / chrony /')
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ python-devel / /')
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ python-pycurl / libcurl libcurl-devel /')
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ nss / nss.x86_64 nss-util nss-softokn /')
         fi
         yum --disablerepo=epel -q -y update ca-certificates 
-        yum -q -y install redhat-lsb-core --enablerepo=${opts}
-        yum -q -y install $DEPENDENCY_RPM --enablerepo=${opts}
-        yum -q -y install java-1.8.0-openjdk-devel --enablerepo=${opts}
+        yum -q -y install redhat-lsb-core ${opts}
+        yum -q -y install $DEPENDENCY_RPM ${opts}
+        yum -q -y install java-1.8.0-openjdk-devel ${opts}
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        local opts="--force-yes"
         if [[ "$(getOSReleaseVersion)" -ge "18" ]]; then
-            opts="--allow-unauthenticated"
             DEPENDENCY_DEB=$(echo $DEPENDENCY_DEB | sed 's/ sysv-rc-conf / /')
         fi
         apt-get update -qq $opts
@@ -179,6 +216,11 @@ function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
         yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install epel-release redhat-lsb-core -y > /dev/null 2>&1
         yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
+        if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
+            yum repolist enabled 2>&1 | grep extras || yum-config-manager --enable extras > /dev/null 2>&1
+            yum repolist enabled 2>&1 | grep BaseOS || yum-config-manager --enable BaseOS > /dev/null 2>&1
+            yum repolist enabled 2>&1 | grep AppStream || yum-config-manager --enable AppStream > /dev/null 2>&1
+        fi
     fi
 
     [ -z "$(getent passwd mapr)" ] && [ -n "$(util_isBareMetal)" ] && util_maprprereq
@@ -235,14 +277,14 @@ function util_installprereq(){
         util_checkAndInstall "host" "dnsutils"
     elif [ "$(getOS)" = "suse" ]; then
         util_checkAndInstall "host" "bind-utils"
-        zypper -n --no-gpg-checks -q -p http://download.opensuse.org/distribution/leap/42.3/repo/oss/ install sshpass > /dev/null 2>&1
+        zypper -n ${opts} -q -p http://download.opensuse.org/distribution/leap/42.3/repo/oss/ install sshpass > /dev/null 2>&1
     fi
 
     util_checkAndInstall2 "/usr/share/dict/words" "words"
 
-    if [ "$(getOS)" = "centos" ]; then
-         yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1 && yum clean metadata > /dev/null 2>&1
-    fi
+    #if [ "$(getOS)" = "centos" ]; then
+    #     yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1 && yum clean metadata > /dev/null 2>&1
+    #fi
 
     [[ -s "/usr/bin/python3" ]] && [[ ! -s "/usr/bin/python" ]] && alternatives --set python /usr/bin/python3 > /dev/null 2>&1
 
@@ -253,18 +295,14 @@ function util_checkAndInstallJDK11(){
     local nodeos="$(getOS)"
 
     local isInstalled=$(util_isJavaVersionInstalled "11")
-    local opts=
+    local opts=$(util_getInstallerOptions)
     if [ -z "${isInstalled}" ]; then
         if [[ "${nodeos}" = "centos" ]] && [[ "$(getOSReleaseVersion)" -ge "7" ]]; then     
-            local opts="C6*,C7*,base,epel,epel-release"
-            [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras,AppStream*"
-            yum -q -y install java-11-openjdk-devel --enablerepo=${opts}
+            yum -q -y install java-11-openjdk-devel ${opts}
         elif [[ "${nodeos}" = "ubuntu" ]] && [[ "$(getOSReleaseVersion)" -ge "16" ]]; then
-            local opts="--force-yes"
-            [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
             apt-get -qq -y $opts install openjdk-11-jdk
         elif [[ "${nodeos}" = "suse" ]] && [[ "$(getOSReleaseVersion)" -ge "15" ]]; then
-            zypper --non-interactive -q install -n java-11-openjdk
+            zypper ${opts}-q install -n java-11-openjdk
         fi
         isInstalled=$(util_isJavaVersionInstalled "11")
     fi

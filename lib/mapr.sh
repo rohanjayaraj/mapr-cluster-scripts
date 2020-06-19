@@ -3574,16 +3574,14 @@ function maprutil_setupATSClientNode() {
 
     log_info "[$(util_getHostIP)] Setting up ATS Client w/ Docker, Git, Maven etc"
     local nodeos=$(getOS $node)
+    local opts=$(util_getInstallerOptions)
     if [ "$nodeos" = "centos" ]; then
-        local opts="C6*,C7*,base,epel,epel-release"
-        [[ "$(getOSReleaseVersion)" -ge "8" ]] && opts="epel,Base*,extras,AppStream*"
-
         # Install docker
         if ! command -v docker > /dev/null 2>&1; then 
-            yum install -y yum-utils device-mapper-persistent-data lvm2 --enablerepo=${opts} -q 2>/dev/null
+            yum install -y yum-utils device-mapper-persistent-data lvm2 ${opts} -q 2>/dev/null
             yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
             if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then
-                yum install -y policycoreutils-python-utils libcgroup --enablerepo=${opts} -q 2>/dev/null
+                yum install -y policycoreutils-python-utils libcgroup ${opts} -q 2>/dev/null
                 yum install http://mirror.centos.org/centos/8/AppStream/x86_64/os/Packages/container-selinux-2.124.0-1.module_el8.1.0+272+3e64ee36.noarch.rpm -y -q 2>/dev/null
                 
             fi
@@ -3601,13 +3599,13 @@ function maprutil_setupATSClientNode() {
             #    cd /tmp && wget https://github.com/git/git/archive/v2.26.0.tar.gz -O git.tar.gz
             #    cd /tmp && tar -xf git.tar.gz && cd git-* && make prefix=/usr/local all install
             #else
-                yum install -y git --enablerepo=${opts} -q 2>/dev/null
+                yum install -y git ${opts} -q 2>/dev/null
             #fi
         fi
 
         # Install rsync
         if ! command -v rsync > /dev/null 2>&1; then 
-            yum install -y rsync --enablerepo=${opts} -q 2>/dev/null
+            yum install -y rsync ${opts} -q 2>/dev/null
         fi
         
         # Install maven
@@ -3638,9 +3636,7 @@ EOF
         fi
 
     elif [ "$nodeos" = "ubuntu" ]; then
-        local opts=
-        [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
-
+        
         # Install docker
         if ! command -v docker > /dev/null 2>&1; then 
             apt-get install $opts -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common 2>/dev/null
