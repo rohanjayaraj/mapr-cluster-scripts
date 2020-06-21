@@ -5309,12 +5309,15 @@ function maprutil_dedupCores() {
     local corestack=
     local corefn=
     local i=1
-
-    local lines=$(cat ${corefile} | grep -n -e "Analyzing [0-9]* core file(s)" -e "Core #" -e "^[[:space:]]*$")
+    
+    local lines=$(cat ${corefile} | grep -n -e "Analyzing" -e "Core #" -e "^[[:space:]]*$")
     local currnode=
+    local numcores=0
     while read -r fl; do
         if [ -n "$(echo "$fl" | grep "Analyzing")" ]; then
             currnode=$(echo "$fl" | awk '{print $2}')
+            local curnocores=$(echo "$fl" | grep -o "[0-9]* core" | awk '{print $1}')
+            numcores=$(echo "$curnocores+$numcores" | bc)
             continue
         fi
         [ -z "$(echo "$fl" | grep "Core #")" ] && continue
@@ -5325,12 +5328,14 @@ function maprutil_dedupCores() {
         local trace=$(cat ${corefile} | sed -n "${fln},${sln}p" | sed "s/Core #[0-9]* :/Core #${i} : ${currnode}/g")
 
         local tfn=$(echo "$trace" | grep -e "mapr::fs" -e "rdkafka" | head -n 1 | awk '{print $NF}')
+        [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep "^[[:space:]]*#" | grep -v "??" | awk '{print $4}' | tr '\n' ' ')
         if [ -z "$(echo "${corefn}" | grep "${tfn}")" ] || [ -z "${tfn}" ]; then
             corefn="${corefn} ${tfn}"
             corestack="${corestack} $(echo -e "$trace") \n\n"
             let i=i+1
         fi
     done <<< "$lines"
+    [ -n "${corestack}" ] && corestack="Analyzed ${numcores} core files \n\n  ${corestack}"
     [ -n "${corestack}" ] && truncate -s 0 ${corefile} && echo -e "${corestack}" > ${corefile}
 }
 
