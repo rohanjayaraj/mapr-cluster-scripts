@@ -5449,6 +5449,7 @@ function maprutil_dedupASANErrors() {
     local asanstack=
     local asanaddr=
     local i=1
+    local j=0
 
     local lines=$(cat ${asanfile} | grep -n -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY")
     while read -r fl; do
@@ -5466,7 +5467,9 @@ function maprutil_dedupASANErrors() {
             asanstack="${asanstack} $(echo -e "$trace" | sed 's/\t\t/\t/g') \n\n"
             let i=i+1
         fi
+        let j=j+1
     done <<< "$lines"
+    [ -n "${asanstack}" ] && asanstack="Analyzed ${j} ASAN errors \n\n  ${asanstack}"
     [ -n "${asanstack}" ] && truncate -s 0 ${asanfile} && echo -e "${asanstack}" > ${asanfile}
 }
 
