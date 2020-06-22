@@ -359,6 +359,8 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/perftool/")
     dirlist+=("/tmp/maprtrace/")
     dirlist+=("/tmp/maprlogs/")
+    dirlist+=("/var/tmp/*RegressionLog")
+    dirlist+=("/var/tmp/maprStreams-*")
 
     echo  ${dirlist[*]}
 }  
@@ -2024,14 +2026,19 @@ function maprutil_getMapRVersionFromRepo(){
     local nodeos=$(getOSFromNode $node)
     local maprversion=
     if [ "$nodeos" = "centos" ]; then
-        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$2}' | cut -d'.' -f1-3")
+        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$2}' | cut -d'.' -f1-4")
     elif [ "$nodeos" = "ubuntu" ]; then
-        maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | grep -v none | awk '{print \$2}' | cut -d'.' -f1-3")
+        maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | grep -v none | awk '{print \$2}' | cut -d'.' -f1-4")
     elif [ "$nodeos" = "suse" ]; then
-        maprversion=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep -v '$curchangeset' | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$7}' | cut -d'.' -f1-3")
+        maprversion=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep -v '$curchangeset' | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$7}' | cut -d'.' -f1-4")
     fi
 
     if [[ -n "$maprversion" ]]; then
+        local maprv=($(echo $maprversion | tr '.' ' ' | awk '{print $1,$2}'))
+        # 3 digit mapr versions
+        if [[ "${maprv[0]}" -lt "6" ]] || [[ "${maprv[0]}" -eq "6" ]] && [[ "${maprv[1]}" -le "1" ]]; then
+            maprversion=$(echo $maprversion | cut -d'.' -f1-3)
+        fi
         echo "$maprversion"
     fi
 }
