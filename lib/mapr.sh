@@ -5352,17 +5352,25 @@ function maprutil_analyzeASAN(){
     /opt/mapr/logs/mastgateway.err \
     /opt/mapr/logs/cldb.out"
 
+    local ignoreAllocDealloc=
+    local ignoreLeakSanitizer=
     if [ -n "$GLB_EXT_ARGS" ] && [ -n "$(echo "${GLB_EXT_ARGS}" | grep ":")" ]; then
         asanlogs=
         local alldirs=$(echo "${GLB_EXT_ARGS}" | tr ',' ' ')
         for dirfile in ${alldirs}; 
         do
+            [ -z "$(echo ${dirfile} | grep ":")" ] && continue
             local dirpath=$(echo "${dirfile}" | cut -d':' -f1)
             local fileprefix=$(echo "${dirfile}" | cut -d':' -f2)
             [ ! -s "${dirpath}" ] && continue
             local logslist=$(find ${dirpath} -name "${fileprefix}*")
             [ -n "${logslist}" ] && asanlogs="${asanlogs} ${logslist}"
         done
+    fi
+
+    if [[ -n "$GLB_EXT_ARGS" ]]; then 
+        [[ -n "$(echo $GLB_EXT_ARGS | grep -i -e ignorealloc -e ignoreallocdealloc)" ]] && ignoreAllocDealloc=1
+        [[ -n "$(echo $GLB_EXT_ARGS | grep -i -e ignoreleak -e ignoreleaksanitizer)" ]] && ignoreLeakSanitizer=1
     fi
 
     local haslogs=
@@ -5385,15 +5393,20 @@ function maprutil_analyzeASAN(){
 
     for errlog in $haslogs;
     do
-        local asan=$(grep -na  -e "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" -e "SUMMARY:" ${errlog} | grep -v HINT)
+        local grepcmd="grep -na  -e \"==[0-9A-Z=]*: [a-zA-Z]*Sanitizer\" -e \"SUMMARY:\" ${errlog} | grep -v HINT"
+        [ -n "${ignoreAllocDealloc}" ] && grepcmd="${grepcmd} | grep -v \"Sanitizer: alloc-dealloc-mismatch\""
+        [ -n "${ignoreLeakSanitizer}" ] && grepcmd="${grepcmd} | grep -v \"LeakSanitizer\""
+        
+        local asan=$(bash -c "${grepcmd}")
         local numasan=$(echo $(echo "$asan" | wc -l) | bc)
         log_msghead "[$(util_getHostIP)] Analyzing $numasan ASAN msgs in ${errlog}"
         while read -r fline; do
             [ -n "$(echo "$fline" | grep SUMMARY)" ] && continue
-            local isleak=$(echo "$fline" | grep LeakSanitizer)
-            fline=$(echo "$fline" | cut -d':' -f1)
             read -r sline
             [ -z "$(echo "$sline" | grep SUMMARY)" ] && continue
+
+            local isleak=$(echo "$fline" | grep LeakSanitizer)
+            fline=$(echo "$fline" | cut -d':' -f1)
             sline=$(echo "$sline" | cut -d':' -f1)
 
             local trace=$(sed -n "${fline},${sline}p" ${errlog})

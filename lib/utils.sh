@@ -96,13 +96,13 @@ function util_getInstallerOptions(){
     local opts=
     if [[ "$(getOS)" = "centos" ]]; then
         if [[ -n "$(isOSVersionSameOrNewer "8.2")" ]]; then
-            opts="--enablerepo=epel"
+            opts="--enablerepo=epel --nogpgcheck"
         elif [[ -n "$(isOSVersionSameOrNewer "8")" ]]; then
-            opts="--enablerepo=epel,Base*,extras,AppStream*"
+            opts="--enablerepo=epel,Base*,extras,AppStream* --nogpgcheck"
         elif [[ -n "$(isOSVersionSameOrNewer "7")" ]]; then
-            opts="--enablerepo=C7*,base,epel,epel-release"
+            opts="--enablerepo=C7*,base,epel,epel-release --nogpgcheck"
         else
-            opts="--enablerepo=C6*,base,epel,epel-release"
+            opts="--enablerepo=C6*,base,epel,epel-release --nogpgcheck"
         fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         opts="--force-yes"
@@ -214,7 +214,7 @@ EOM
 
 function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
-        yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install epel-release redhat-lsb-core -y > /dev/null 2>&1
+        yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install epel-release redhat-lsb-core -y --nogpgcheck > /dev/null 2>&1
         yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
             yum repolist enabled 2>&1 | grep extras || yum-config-manager --enable extras > /dev/null 2>&1
@@ -236,6 +236,7 @@ function util_installprereq(){
 
     if [ -n "$(util_isBareMetal)" ]; then
         util_checkAndInstall "screen" "screen"
+        util_checkAndInstall "clush" "clustershell"
         util_checkAndInstall "vim" "vim"
         util_checkAndInstall "iftop" "iftop"
         util_checkAndInstall "lsof" "lsof"
@@ -1038,7 +1039,7 @@ function util_getDiskInfo(){
     for disk in $disks
     do
         local blk=$(echo $disk | cut -d'/' -f3)
-        local size=$(echo "$fd" | grep "Disk \/" | grep "$disk" | tr -d ':' | awk '{if($4 ~ /^G/) {print $3} else if($4 ~ /^T/) {print $3*1024} else if($4 ~ /^M/) {print $3/1024}}')
+        local size=$(echo "$fd" | grep "Disk \/" | grep -w "$disk" | tr -d ':' | awk '{if($4 ~ /^G/) {print $3} else if($4 ~ /^T/) {print $3*1024} else if($4 ~ /^M/) {print $3/1024}}')
         local dtype=$(cat /sys/block/$blk/queue/rotational)
         local isos=$(echo "$fd" |  grep -wA6 "$disk" | grep "Disk identifier" | awk '{print $3}')
         local used=$(echo "$defdisks" | grep -w "$disk")
