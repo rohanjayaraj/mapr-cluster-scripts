@@ -177,9 +177,9 @@ function util_maprprereq(){
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ nss / nss.x86_64 nss-util nss-softokn /')
         fi
         yum --disablerepo=epel -q -y update ca-certificates 
-        yum -q -y install redhat-lsb-core ${opts}
-        yum -q -y install $DEPENDENCY_RPM ${opts}
-        yum -q -y install java-1.8.0-openjdk-devel ${opts}
+        yum -q -y --nogpgcheck install redhat-lsb-core ${opts}
+        yum -q -y --nogpgcheck install $DEPENDENCY_RPM ${opts}
+        yum -q -y --nogpgcheck install java-1.8.0-openjdk-devel ${opts}
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         if [[ "$(getOSReleaseVersion)" -ge "18" ]]; then
             DEPENDENCY_DEB=$(echo $DEPENDENCY_DEB | sed 's/ sysv-rc-conf / /')

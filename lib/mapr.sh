@@ -602,6 +602,10 @@ function maprutil_cleanPrevClusterConfig(){
 
     pushd /opt/mapr/conf/ > /dev/null 2>&1
     rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
+    if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+        find /opt/mapr/hadoop -name ssl-server.xml -o -name ssl-client.xml -exec rm -f {} \; > /dev/null 2>&1
+    fi
+
     popd > /dev/null 2>&1
     
      # Remove all directories
@@ -886,8 +890,8 @@ function maprutil_installBinariesOnNode(){
     fi
     
     # build full script for node
-    local hostnode=$1
-    local scriptpath="$RUNTEMPDIR/installbinnode_${hostnode}.sh"
+    local node=$1
+    local scriptpath="$RUNTEMPDIR/installbinnode_${node}.sh"
     maprutil_buildSingleScript "$scriptpath" "$1"
     local retval=$?
     if [ "$retval" -ne 0 ]; then
@@ -908,13 +912,18 @@ function maprutil_installBinariesOnNode(){
             echo "util_switchJavaVersion \"1.8\" > /dev/null 2>&1" >> $scriptpath
         fi
     fi
+    local nodeos=$(getOSFromNode $node)
+    local nodeosver=$(getOSReleaseVersionOnNode $node)
     local bins="$2"
     local maprpatch=$(echo "$bins" | tr ' ' '\n' | grep mapr-patch)
     [ -n "$maprpatch" ] && bins=$(echo "$bins" | tr ' ' '\n' | grep -v mapr-patch | tr '\n' ' ')
     
     ## Append MapR release version as there might be conflicts with mapr-patch-client with regex as 'mapr-patch*$VERSION*'
-    local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+        if [[ "${nodeosver}" -eq "7" ]] && [[ -n "$(echo ${GLB_MAPR_VERSION} | grep 6.2)" ]]; then
+            bins=$(echo "${bins}" | sed 's/mapr-collectd//g')
+            [ -z "$bins" ] && return
+        fi
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
         [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
         echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""-${GLB_MAPR_VERSION}"\"" >> $scriptpath
@@ -1572,6 +1581,9 @@ function maprutil_configure(){
         extops="-secure"
         pushd /opt/mapr/conf/ > /dev/null 2>&1
         rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
+        if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+            find /opt/mapr/hadoop -name ssl-server.xml -o -name ssl-client.xml -exec rm -f {} \; > /dev/null 2>&1
+        fi
         popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ]; then
             extops=$extops" -genkeys"
@@ -1885,6 +1897,16 @@ function maprutil_copySecureFilesFromCLDB(){
         chmod +600 /opt/mapr/conf/maprserverticket /opt/mapr/conf/ssl_keystore* > /dev/null 2>&1
     #fi
     chmod +444 /opt/mapr/conf/ssl_truststore* > /dev/null 2>&1
+
+    if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+        local sslsfile=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/hadoop -name ssl-server.xml")
+        ssh_copyCommandasRoot "$cldbhost" "${sslsfile}" "${sslsfile}";
+        chmod +640 ${sslsfile}
+
+        local sslcfile==$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/hadoop -name ssl-client.xml")
+        ssh_copyCommandasRoot "$cldbhost" "${sslcfile}" "${sslcfile}"; 
+        chmod +644 ${sslcfile}
+    fi
 }
 # @param host ip
 # @param config file path
