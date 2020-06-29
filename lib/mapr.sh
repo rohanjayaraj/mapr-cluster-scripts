@@ -2415,11 +2415,14 @@ function maprutil_setupasanmfs(){
     if [ -s "/opt/mapr/server/mfs" ] && [ -s "opt/mapr/server/mfs" ]; then
         mv /opt/mapr/server/mfs /opt/mapr/server/mfs.original > /dev/null 2>&1
         cp opt/mapr/server/mfs /opt/mapr/server/mfs > /dev/null 2>&1
+        local mfsasanso=$(ldd /opt/mapr/server/mfs 2>/dev/null | grep -oh "/[-a-z0-9_/]*libasan.so.[0-9]*")
         if [ -n "${GLB_ASAN_OPTIONS}" ]; then
             if [ "$nodeos" = "ubuntu" ]; then
                 sed -i "/start-stop-daemon --start/i export ASAN_OPTIONS=\"${GLB_ASAN_OPTIONS}\"" /opt/mapr/initscripts/mapr-mfs
+                [ -n "${mfsasanso}" ] && sed -i "/start-stop-daemon --start/i export LD_PRELOAD=${mfsasanso}" /opt/mapr/initscripts/mapr-mfs
             else
                 sed -i "/daemon \$USER_ARG/i export ASAN_OPTIONS=\"${GLB_ASAN_OPTIONS}\"" /opt/mapr/initscripts/mapr-mfs
+                [ -n "${mfsasanso}" ] && sed -i "/daemon \$USER_ARG/i export LD_PRELOAD=${mfsasanso}" /opt/mapr/initscripts/mapr-mfs
             fi
         fi
         log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
