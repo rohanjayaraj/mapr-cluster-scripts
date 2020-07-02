@@ -2147,6 +2147,8 @@ function maprutil_buildRepoFile(){
         echo "enabled=1" >> $repofile
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
+        echo "proxy=_none_" >> $repofile
+
         echo >> $repofile
         echo "[QA-CustomRepo]" >> $repofile
         echo "name=MapR Custom Repository" >> $repofile
@@ -2154,6 +2156,7 @@ function maprutil_buildRepoFile(){
         echo "enabled=1" >> $repofile
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
+        echo "proxy=_none_" >> $repofile
 
         # Add patch if specified
         if [ -n "$GLB_PATCH_REPOFILE" ]; then
@@ -2164,6 +2167,7 @@ function maprutil_buildRepoFile(){
             echo "enabled=1" >> $repofile
             echo "gpgcheck=0" >> $repofile
             echo "protect=1" >> $repofile
+            echo "proxy=_none_" >> $repofile
         fi
         echo >> $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
@@ -2317,6 +2321,7 @@ function maprutil_addLocalRepo(){
         echo "enabled=1" >> $repofile
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
+        echo "proxy=_none_" >> $repofile
         echo >> $repofile
 
         echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" >> $repofile
@@ -2325,6 +2330,7 @@ function maprutil_addLocalRepo(){
         echo "enabled=1" >> $repofile
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
+        echo "proxy=_none_" >> $repofile
 
         rm -rf /etc/yum.repos.d/mapr-[0-9]*.repo > /dev/null 2>&1
         cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
@@ -5496,9 +5502,9 @@ function maprutil_dedupASANErrors() {
     local i=1
     local j=0
 
-    local lines=$(cat ${asanfile} | grep -n -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY")
+    local lines=$(cat ${asanfile} | grep -n -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY" -e " leak " -e "^$")
     while read -r fl; do
-        [ -z "$(echo "$fl" | grep Sanitizer)" ] && continue
+        [ -z "$(echo "$fl" | grep leak)" ] || [ -z "$(echo "$fl" | grep Sanitizer)" ] && continue
         read -r sl
         local fln=$(echo "$fl" | cut -d':' -f1)
         local sln=$(echo "$sl" | cut -d':' -f1)
