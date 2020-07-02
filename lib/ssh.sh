@@ -192,7 +192,7 @@ function ssh_copyPublicKey(){
 	fi
 	ssh-keygen -R $2 >/dev/null 2>&1
 	local rootpwd=${ROOTPWD}
-	[ -n "$rootpwd" ] && rootpwd=$(echo "$rootpwd" | tr -d ' ' | tr ',' ' ') || rootpwd="mapr"
+	[ -n "$rootpwd" ] && rootpwd=$(echo "$rootpwd" | tr -d ' ' | tr ',' ' ') || rootpwd="mapr ssmssm"
 	for pwd in $rootpwd
 	do
 		sshpass -p${pwd} ssh -o StrictHostKeyChecking=no -l $1 $2 exit >/dev/null 2>&1
