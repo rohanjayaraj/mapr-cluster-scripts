@@ -4360,13 +4360,13 @@ function maprutil_publishMFSCPUUse(){
     json="$json}"
     json="cpuuse=$json"
     #echo $json > cpuuse.json
-    local tmpfile=$(mktemp)
+    local tmpfile="cpuuse_puffd.json"
     echo "$json" > $tmpfile
     local fsize=$(echo "$(stat -c %s $tmpfile)/(1024*1024)" | bc )
     [[ "$fsize" -ge "20" ]] && log_warn "Publish may fail as aggregated log file size (${fsize}MB) is >20MB. Reduce the size by limiting the time range"
     timeout 30 curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
     # TODO : Print URL
-    rm -f $tmpfile > /dev/null 2>&1
+    #rm -f $tmpfile > /dev/null 2>&1
     popd > /dev/null 2>&1
 }
 
@@ -4924,14 +4924,13 @@ function maprutil_publishGutsStats(){
     json="$json}"
 
     json="gutstats=$json"
-    echo $json > guts.json
-    local tmpfile=$(mktemp)
+    local tmpfile="guts_puffd.json"
     echo "$json" > $tmpfile
     local fsize=$(echo "$(stat -c %s $tmpfile)/(1024*1024)" | bc )
     [[ "$fsize" -ge "20" ]] && log_warn "Publish may fail as aggregated log file size (${fsize}MB) is >20MB. Reduce the size by limiting the time range"
     timeout 30 curl -L -X POST --data @- ${GLB_PERF_URL} < $tmpfile > /dev/null 2>&1
     # TODO : Print URL
-    rm -f $tmpfile > /dev/null 2>&1
+    #rm -f $tmpfile > /dev/null 2>&1
     popd > /dev/null 2>&1
 }
 
