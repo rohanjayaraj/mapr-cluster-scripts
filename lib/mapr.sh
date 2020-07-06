@@ -5373,7 +5373,7 @@ function maprutil_dedupCores() {
             let i=i+1
         fi
     done <<< "$lines"
-    [ -n "${corestack}" ] && corestack="Analyzed ${numcores} core files \n\n  ${corestack}"
+    [ -n "${corestack}" ] && corestack="Analyzed ${numcores} core files. Found $(echo "${i}-1"|bc) distinct backtraces \n\n  ${corestack}"
     [ -n "${corestack}" ] && truncate -s 0 ${corefile} && echo -e "${corestack}" > ${corefile}
 }
 
@@ -5520,7 +5520,7 @@ function maprutil_dedupASANErrors() {
         fi
         let j=j+1
     done <<< "$lines"
-    [ -n "${asanstack}" ] && asanstack="Analyzed ${j} ASAN errors \n\n  ${asanstack}"
+    [ -n "${asanstack}" ] && asanstack="Analyzed ${j} ASAN errors. Found $(echo "${i}-1"|bc) distinct errors \n\n  ${asanstack}"
     [ -n "${asanstack}" ] && truncate -s 0 ${asanfile} && echo -e "${asanstack}" > ${asanfile}
 }
 
