@@ -1894,12 +1894,13 @@ function maprutil_copySecureFilesFromCLDB(){
 
     if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
         i=0
-        local sslsetup="false"
-        while [ "$cldbisup" = "false" ]; do
-            sslsetup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/ssl-client.xml' ] && [ -e '/opt/mapr/conf/ssl-server.xml' ] && echo true || echo false")
-            if [ "$sslsetup" = "false" ]; then
+        local sslsetup=1
+        while [ -n "${sslsetup}" ]; do
+            sslsetup=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/hadoop -name ssl-server.xml -exec grep -l mapr123 {} \;")
+            if [ -n "${sslsetup}" ]; then
                 sleep 10
             else
+                sleep 2
                 break
             fi
             let i=i+1
