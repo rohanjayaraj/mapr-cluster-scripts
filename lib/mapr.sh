@@ -1581,13 +1581,13 @@ function maprutil_configure(){
         extops="-secure"
         pushd /opt/mapr/conf/ > /dev/null 2>&1
         rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
-        if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
-            find /opt/mapr/hadoop -name ssl-server.xml -o -name ssl-client.xml -exec rm -f {} \; > /dev/null 2>&1
-        fi
         popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ]; then
             extops=$extops" -genkeys"
         else
+            if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+                find /opt/mapr/hadoop -name ssl-server.xml -o -name ssl-client.xml -exec rm -f {} \; > /dev/null 2>&1
+            fi
             maprutil_copySecureFilesFromCLDB "$cldbnode" "$cldbnodes" "$zknodes"
         fi
         [ -n "$GLB_ENABLE_DARE" ] && extops="$extops -dare"
@@ -1900,12 +1900,16 @@ function maprutil_copySecureFilesFromCLDB(){
 
     if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
         local sslsfile=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/hadoop -name ssl-server.xml")
-        ssh_copyCommandasRoot "$cldbhost" "${sslsfile}" "${sslsfile}";
-        chmod +640 ${sslsfile}
+        if [ -n "${sslsfile}" ]; then
+            ssh_copyCommandasRoot "$cldbhost" "${sslsfile}" "${sslsfile}";
+            chmod +640 ${sslsfile}
+        fi
 
-        local sslcfile==$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/hadoop -name ssl-client.xml")
-        ssh_copyCommandasRoot "$cldbhost" "${sslcfile}" "${sslcfile}"; 
-        chmod +644 ${sslcfile}
+        local sslcfile=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/hadoop -name ssl-client.xml")
+        if [ -n "${sslcfile}" ]; then
+            ssh_copyCommandasRoot "$cldbhost" "${sslcfile}" "${sslcfile}"; 
+            chmod +644 ${sslcfile}
+        fi
     fi
 }
 # @param host ip
