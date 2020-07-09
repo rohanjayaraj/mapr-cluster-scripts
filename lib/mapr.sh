@@ -602,10 +602,7 @@ function maprutil_cleanPrevClusterConfig(){
 
     pushd /opt/mapr/conf/ > /dev/null 2>&1
     rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
-    if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
-        find /opt/mapr/hadoop -name ssl-server.xml -o -name ssl-client.xml -exec rm -f {} \; > /dev/null 2>&1
-    fi
-
+    
     popd > /dev/null 2>&1
     
      # Remove all directories
@@ -1585,9 +1582,6 @@ function maprutil_configure(){
         if [ "$hostip" = "$cldbnode" ]; then
             extops=$extops" -genkeys"
         else
-            if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
-                find /opt/mapr/hadoop -name ssl-server.xml -o -name ssl-client.xml -exec rm -f {} \; > /dev/null 2>&1
-            fi
             maprutil_copySecureFilesFromCLDB "$cldbnode" "$cldbnodes" "$zknodes"
         fi
         [ -n "$GLB_ENABLE_DARE" ] && extops="$extops -dare"
