@@ -1868,7 +1868,7 @@ function maprutil_copySecureFilesFromCLDB(){
         fi
         let i=i+1
         if [ "$i" -gt 18 ]; then
-            log_warn "[$(util_getHostIP)] Timed out waiting to find cldb.key on CLDB node [$cldbhost]. Exiting!"
+            log_warn "[$(util_getHostIP)] Timed out to find cldb.key on CLDB node [$cldbhost]. Exiting!"
             exit 1
         fi
     done
@@ -1893,6 +1893,22 @@ function maprutil_copySecureFilesFromCLDB(){
     chmod +444 /opt/mapr/conf/ssl_truststore* > /dev/null 2>&1
 
     if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+        i=0
+        local sslsetup="false"
+        while [ "$cldbisup" = "false" ]; do
+            sslsetup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/ssl-client.xml' ] && [ -e '/opt/mapr/conf/ssl-server.xml' ] && echo true || echo false")
+            if [ "$sslsetup" = "false" ]; then
+                sleep 10
+            else
+                break
+            fi
+            let i=i+1
+            if [ "$i" -gt 18 ]; then
+                log_warn "[$(util_getHostIP)] Timed out to find ssl-server.xml & ssl-client.xml on CLDB node [$cldbhost]. Exiting!"
+                exit 1
+            fi
+        done
+
         local sslsfile=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/hadoop -name ssl-server.xml")
         if [ -n "${sslsfile}" ]; then
             ssh_copyCommandasRoot "$cldbhost" "${sslsfile}" "${sslsfile}";
