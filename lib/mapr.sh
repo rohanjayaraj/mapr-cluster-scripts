@@ -1912,13 +1912,13 @@ function maprutil_copySecureFilesFromCLDB(){
 
         local sslsfile=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/hadoop -name ssl-server.xml")
         if [ -n "${sslsfile}" ]; then
-            ssh_copyCommandasRoot "$cldbhost" "${sslsfile}" "${sslsfile}";
+            ssh_copyFromCommand "root" "$cldbhost" "${sslsfile}" "${sslsfile}";
             chmod +640 ${sslsfile}
         fi
 
         local sslcfile=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/hadoop -name ssl-client.xml")
         if [ -n "${sslcfile}" ]; then
-            ssh_copyCommandasRoot "$cldbhost" "${sslcfile}" "${sslcfile}"; 
+            ssh_copyFromCommand "root" "$cldbhost" "${sslcfile}" "${sslcfile}"; 
             chmod +644 ${sslcfile}
         fi
     fi
