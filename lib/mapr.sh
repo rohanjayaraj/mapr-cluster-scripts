@@ -1775,6 +1775,13 @@ function maprutil_postConfigure(){
     #    echo "service.command.mfs.heapsize.percent=85" >> /opt/mapr/conf/warden.conf
     #fi
     #maprutil_restartWarden
+
+    if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+        local sslpwd=$(cat /opt/mapr/conf/ssl-server.xml 2>/dev/null| grep -A1 ssl.server.truststore.password | grep value | sed 's/<value>//' | sed 's/<\/value>//' | tr -d ' ')
+        if [ -n "${sslpwd}" ] && [ -s "/opt/mapr/apiserver/bin/mapr-apiserver.sh" ]; then
+            sed -i "s/recentlist=true/recentlist=true -Dapiserver.ssl.truststore.password=${sslpwd}/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
+        fi
+    fi
 }
 
 function maprutil_prePostConfigure(){
