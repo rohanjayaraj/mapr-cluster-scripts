@@ -1776,12 +1776,12 @@ function maprutil_postConfigure(){
     #fi
     #maprutil_restartWarden
 
-    if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
-        local sslpwd=$(cat /opt/mapr/conf/ssl-server.xml 2>/dev/null| grep -A1 ssl.server.truststore.password | grep value | sed 's/<value>//' | sed 's/<\/value>//' | tr -d ' ')
-        if [ -n "${sslpwd}" ] && [ -s "/opt/mapr/apiserver/bin/mapr-apiserver.sh" ]; then
-            sed -i "s/recentlist=true/recentlist=true -Dapiserver.ssl.truststore.password=${sslpwd}/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
-        fi
-    fi
+    #if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+    #    local sslpwd=$(cat /opt/mapr/conf/ssl-server.xml 2>/dev/null| grep -A1 ssl.server.truststore.password | grep value | sed 's/<value>//' | sed 's/<\/value>//' | tr -d ' ')
+    #    if [ -n "${sslpwd}" ] && [ -s "/opt/mapr/apiserver/bin/mapr-apiserver.sh" ]; then
+    #        sed -i "s/recentlist=true/recentlist=true -Dapiserver.ssl.truststore.password=${sslpwd}/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
+    #    fi
+    #fi
 }
 
 function maprutil_prePostConfigure(){
@@ -2070,11 +2070,11 @@ function maprutil_getMapRVersionFromRepo(){
     local nodeos=$(getOSFromNode $node)
     local maprversion=
     if [ "$nodeos" = "centos" ]; then
-        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$2}' | cut -d'.' -f1-4")
+        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | sort -k2 | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | head -n 1 | awk '{print \$2}' | cut -d'.' -f1-4")
     elif [ "$nodeos" = "ubuntu" ]; then
         maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | grep -v none | awk '{print \$2}' | cut -d'.' -f1-4")
     elif [ "$nodeos" = "suse" ]; then
-        maprversion=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep -v '$curchangeset' | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$7}' | cut -d'.' -f1-4")
+        maprversion=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep -v '$curchangeset' | sort -k7 | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | head -n 1 | awk '{print \$7}' | cut -d'.' -f1-4")
     fi
 
     if [[ -n "$maprversion" ]]; then
