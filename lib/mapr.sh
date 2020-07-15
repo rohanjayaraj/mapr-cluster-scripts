@@ -3561,7 +3561,6 @@ function maprutil_applyLicense(){
             for p in $rootpwd; do echo ${p} | maprlogin password  2>/dev/null; [[ "$?" -eq "0" ]] && break; done
             echo 'mapr' | su mapr -c 'maprlogin password' 2>/dev/null
             if [ -n "$GLB_ATS_USERTICKETS" ]; then
-                for p in $rootpwd; do echo ${p} | maprlogin generateticket -type servicewithimpersonation -out /tmp/maprticket_0 -user root 2>/dev/null; [[ "$?" -eq "0" ]] && break; done
                 for j in {1..4}; do 
                     local user="m7user$j"
                     id $user > /dev/null 2>&1 && echo 'mapr' | su $user -c 'maprlogin password' 2>/dev/null & 
@@ -3570,6 +3569,8 @@ function maprutil_applyLicense(){
                     local user="mapruser$j" 
                     id $user > /dev/null 2>&1 && echo 'mapr' | su $user -c 'maprlogin password' 2>/dev/null &
                 done
+                rm -rf /tmp/maprticket_0 > /dev/null 2>&1
+                for p in $rootpwd; do echo ${p} | su mapr -c 'maprlogin generateticket -type servicewithimpersonation -out /tmp/maprticket_0 -user root' 2>/dev/null; [[ "$?" -eq "0" ]] && break; done
                 wait
             fi
 
