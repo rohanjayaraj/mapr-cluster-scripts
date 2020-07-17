@@ -1775,20 +1775,6 @@ function maprutil_postConfigure(){
     #    echo "service.command.mfs.heapsize.percent=85" >> /opt/mapr/conf/warden.conf
     #fi
     #maprutil_restartWarden
-
-    #if [ -n "${GLB_SSLKEY_COPY}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
-    #    local sslpwd=$(cat /opt/mapr/conf/ssl-server.xml 2>/dev/null| grep -A1 ssl.server.truststore.password | grep value | sed 's/<value>//' | sed 's/<\/value>//' | tr -d ' ')
-    #    if [ -n "${sslpwd}" ] && [ -s "/opt/mapr/apiserver/bin/mapr-apiserver.sh" ]; then
-    #        sed -i "s/recentlist=true/recentlist=true -Dapiserver.ssl.truststore.password=${sslpwd}/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
-    #    fi
-    #fi
-
-    # workaround for MFS-10849
-    if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ] && [ -s "/opt/mapr/lib/log4j-slf4j-impl-2.12.1.jar" ]; then
-        rm -rf /opt/mapr/lib/log4j-slf4j-impl-2.12.1.jar
-        mv /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/lib/slf4j-log4j12-1.7.25.jar /opt/mapr/lib/ 
-        ln -sf /opt/mapr/lib/slf4j-log4j12-1.7.25.jar /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/lib/slf4j-log4j12-1.7.25.jar
-    fi
 }
 
 function maprutil_prePostConfigure(){
@@ -1798,6 +1784,28 @@ function maprutil_prePostConfigure(){
         cp /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop-common-*-SNAPSHOT.jar /opt/mapr/drill/drill-1.15.0/jars/3rdparty/  > /dev/null 2>&1 
         cp /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop-maprfs-client-*-SNAPSHOT.jar /opt/mapr/drill/drill-1.15.0/jars/3rdparty/  > /dev/null 2>&1 
         chown mapr:mapr /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop*.jar > /dev/null 2>&1 
+    fi
+
+    if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+        #if [ -n "${GLB_SSLKEY_COPY}" ]; then
+        #    local sslpwd=$(cat /opt/mapr/conf/ssl-server.xml 2>/dev/null| grep -A1 ssl.server.truststore.password | grep value | sed 's/<value>//' | sed 's/<\/value>//' | tr -d ' ')
+        #    if [ -n "${sslpwd}" ] && [ -s "/opt/mapr/apiserver/bin/mapr-apiserver.sh" ]; then
+        #        sed -i "s/recentlist=true/recentlist=true -Dapiserver.ssl.truststore.password=${sslpwd}/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
+        #    fi
+        #fi
+
+        # temp workaround for MFS-10849
+        if [ -s "/opt/mapr/lib/log4j-slf4j-impl-2.12.1.jar" ]; then
+            rm -rf /opt/mapr/lib/log4j-slf4j-impl-2.12.1.jar
+            mv /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/lib/slf4j-log4j12-1.7.25.jar /opt/mapr/lib/ 
+            ln -sf /opt/mapr/lib/slf4j-log4j12-1.7.25.jar /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/lib/slf4j-log4j12-1.7.25.jar
+        fi
+
+        # MFS-10849
+        if [ -n "${GLB_ATS_CLUSTER}" ] && [ -s "/opt/mapr/apiserver/bin/mapr-apiserver.sh" ]; then
+            sed -i "s/recentlist=true/recentlist=true -Dmaprcli.disable-recentlist=1/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
+        fi
+
     fi
 }
 
