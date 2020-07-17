@@ -1782,6 +1782,13 @@ function maprutil_postConfigure(){
     #        sed -i "s/recentlist=true/recentlist=true -Dapiserver.ssl.truststore.password=${sslpwd}/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
     #    fi
     #fi
+
+    # workaround for MFS-10849
+    if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ] && [ -s "/opt/mapr/lib/log4j-slf4j-impl-2.12.1.jar" ]; then
+        rm -rf /opt/mapr/lib/log4j-slf4j-impl-2.12.1.jar
+        mv /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/lib/slf4j-log4j12-1.7.25.jar /opt/mapr/lib/ 
+        ln -sf /opt/mapr/lib/slf4j-log4j12-1.7.25.jar /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/lib/slf4j-log4j12-1.7.25.jar
+    fi
 }
 
 function maprutil_prePostConfigure(){
