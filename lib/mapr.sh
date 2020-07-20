@@ -3584,8 +3584,7 @@ function maprutil_applyLicense(){
                     local user="mapruser$j" 
                     id $user > /dev/null 2>&1 && echo 'mapr' | su $user -c 'maprlogin password' 2>/dev/null &
                 done
-                rm -rf /tmp/maprticket_0 > /dev/null 2>&1
-                for p in $rootpwd; do echo ${p} | su mapr -c 'maprlogin generateticket -type servicewithimpersonation -out /tmp/maprticket_0 -user root' 2>/dev/null; [[ "$?" -eq "0" ]] && break; done
+                for p in $rootpwd; do echo ${p} | sudo -u root maprlogin generateticket -type servicewithimpersonation -out /tmp/maprticket_0 -user root 2>/dev/null; [[ "$?" -eq "0" ]] && break; done
                 wait
             fi
 
