@@ -1803,7 +1803,7 @@ function maprutil_prePostConfigure(){
 
         # MFS-10849
         if [ -n "${GLB_ATS_CLUSTER}" ] && [ -s "/opt/mapr/apiserver/bin/mapr-apiserver.sh" ]; then
-            sed -i "s/recentlist=true/recentlist=true -Dmaprcli.disable-recentlist=1/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
+            sed -i "s/hardmount=true/hardmount=true -Dmaprcli.disable-recentlist=1/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
         fi
 
     fi

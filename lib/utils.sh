@@ -233,6 +233,7 @@ function util_installprereq(){
     util_checkAndInstall "bc" "bc"
     util_checkAndInstall "pbzip2" "pbzip2"
     util_checkAndInstall "gawk" "gawk"
+    util_checkAndInstall "rsync" "rsync"
     
 
     if [ -n "$(util_isBareMetal)" ]; then

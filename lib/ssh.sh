@@ -100,7 +100,7 @@ function ssh_copyFromCommand(){
 		return 1
 	fi
 	
-	scp -r $1@$2:$3 $4
+	rsync -a $1@$2:$3 $4
 }
 
 # @param host ip
