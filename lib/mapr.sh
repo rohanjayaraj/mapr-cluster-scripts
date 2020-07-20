@@ -3574,20 +3574,20 @@ function maprutil_applyLicense(){
         if [[ -n "$GLB_SECURE_CLUSTER" ]] && [[ ! -e "/tmp/maprticket_0" ]]; then
             local rootpwd="mapr ssmssm"
             for p in $rootpwd; do echo ${p} | maprlogin password  2>/dev/null; [[ "$?" -eq "0" ]] && break; done
-            echo 'mapr' | su mapr -c 'maprlogin password' 2>/dev/null
+            echo mapr | sudo -u mapr maprlogin password 2>/dev/null &
             if [ -n "$GLB_ATS_USERTICKETS" ]; then
+                local user=
                 for j in {1..4}; do 
-                    local user="m7user$j"
-                    id $user > /dev/null 2>&1 && echo 'mapr' | su $user -c 'maprlogin password' 2>/dev/null & 
+                    user="m7user$j"
+                    id $user > /dev/null 2>&1 && echo $user | sudo -u $user maprlogin password 2>/dev/null & 
                 done
                 for j in {1..2}; do
-                    local user="mapruser$j" 
-                    id $user > /dev/null 2>&1 && echo 'mapr' | su $user -c 'maprlogin password' 2>/dev/null &
+                    user="mapruser$j" 
+                    id $user > /dev/null 2>&1 && echo $user | sudo -u $user maprlogin password 2>/dev/null &
                 done
                 for p in $rootpwd; do echo ${p} | sudo -u root maprlogin generateticket -type servicewithimpersonation -out /tmp/maprticket_0 -user root 2>/dev/null; [[ "$?" -eq "0" ]] && break; done
-                wait
             fi
-
+            wait
         fi
     done
 
