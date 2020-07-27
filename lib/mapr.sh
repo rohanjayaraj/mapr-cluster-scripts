@@ -1802,8 +1802,18 @@ function maprutil_prePostConfigure(){
         fi
 
         # MFS-10849
-        if [ -n "${GLB_ATS_CLUSTER}" ] && [ -s "/opt/mapr/apiserver/bin/mapr-apiserver.sh" ]; then
-            sed -i "s/hardmount=true/hardmount=true -Dmaprcli.disable-recentlist=1/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
+        if [ -n "${GLB_ATS_CLUSTER}" ]; then
+            if [ -s "/opt/mapr/apiserver/bin/mapr-apiserver.sh" ]; then
+                sed -i "s/hardmount=true/hardmount=true -Dmaprcli.disable-recentlist=1/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
+            fi
+            local gatewayconf="/opt/mapr/conf/gateway.conf"
+            if [ -e "${gatewayconf}" ]; then
+                echo "gateway.es.logcompaction.statsupdate.interval.ms=1000" >> ${gatewayconf}
+                echo "gateway.es.logcompaction.topicrefresh.interval.ms=1000" >> ${gatewayconf}
+            fi
+            #maprcli config save -values {mfs.db.parallel.copyregions:1024}
+            #maprcli config save -values {mfs.db.parallel.copytables:512}
+            #maprcli config save -values {mfs.db.parallel.replicasetups:512}
         fi
 
     fi

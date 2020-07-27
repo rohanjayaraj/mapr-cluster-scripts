@@ -193,11 +193,12 @@ function ssh_copyPublicKey(){
 	ssh-keygen -R $2 >/dev/null 2>&1
 	local rootpwd=${ROOTPWD}
 	[ -n "$rootpwd" ] && rootpwd=$(echo "$rootpwd" | tr -d ' ' | tr ',' ' ') || rootpwd="mapr ssmssm"
+	local isdone=
 	for pwd in $rootpwd
 	do
 		sshpass -p${pwd} ssh -o StrictHostKeyChecking=no -l $1 $2 exit >/dev/null 2>&1
-		local idfile=
 		local sshpassret=$?
+		local idfile=
 		[ "$(ls /root/.ssh/id_rsa*.pub | wc -l)" -gt "1" ] && [ -e "/root/.ssh/id_rsa.pub" ] && idfile="-i"
 		if [ "$sshpassret" -eq 0 ]; then
 			local sshpval=$(sshpass -p${pwd} ssh-copy-id $idfile $1@$2)
@@ -205,16 +206,17 @@ function ssh_copyPublicKey(){
 			if [ "$retval" != 0 ]; then
 				cat /root/.ssh/id_rsa.pub | sshpass -p${pwd} ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
 			fi
-			break
-		else
-			local sshpval=$(ssh-copy-id $idfile $1@$2)
-			local retval=$?
-			if [ "$retval" != 0 ]; then
-				cat /root/.ssh/id_rsa.pub | ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
-			fi
+			isdone=1
 			break
 		fi
 	done
+	if [ -z "${isdone}" ]; then
+		local sshpval=$(ssh-copy-id $idfile $1@$2)
+		local retval=$?
+		if [ "$retval" != 0 ]; then
+			cat /root/.ssh/id_rsa.pub | ssh -l $1 $2 'umask 0077; mkdir -p .ssh; cat >> .ssh/authorized_keys && echo "Key copied"'
+		fi
+	fi
 }
 
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
