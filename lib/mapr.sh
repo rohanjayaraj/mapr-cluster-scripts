@@ -4074,6 +4074,7 @@ function maprutil_wait(){
         #    unset GLB_BG_PIDS[$i]
             continue
         fi
+        #while kill -0 ${pid} 2>/dev/null; do echo -ne "."; sleep 10; done
         wait $pid
         local errcode=$?
         if [ "$errcode" -ne "0" ] && [ "$errcode" -ne "130" ]; then

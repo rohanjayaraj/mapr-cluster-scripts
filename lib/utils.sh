@@ -482,6 +482,14 @@ function util_checkInstallAndRetry(){
     fi
 }
 
+function util_isHPENode(){
+    [ -z "$1" ] && return
+    local nodeip="$1"
+    if [ -n "$(echo "$nodeip" | grep "^10.163")" ]; then
+        echo "yes"
+    fi
+}
+
 # @param list of binaries
 function util_installBinaries(){
     if [ -z "$1" ]; then
@@ -499,7 +507,13 @@ function util_installBinaries(){
     if [ "$(getOS)" = "centos" ]; then
         yum clean all > /dev/null 2>&1
         [ -z "${actbins}" ] && actbins="$(util_getExistingBinaries "$bins")"
-        yum install ${actbins} -y --nogpgcheck 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        if [ -n "$(util_isHPENode "$hostip")" ]; then
+            for k in ${actbins}; do 
+                yum install ${k} -y --nogpgcheck 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'; 
+            done
+        else
+            yum install ${actbins} -y --nogpgcheck 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+        fi
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"

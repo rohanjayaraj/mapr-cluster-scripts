@@ -16,7 +16,7 @@ function ssh_check(){
 		return 1
 	fi
 	
-	ssh -o BatchMode=yes -o StrictHostKeyChecking=no -l $1 $2 exit >/dev/null 2>&1
+	ssh -o BatchMode=yes -o StrictHostKeyChecking=no -T -l $1 $2 exit >/dev/null 2>&1
 	local retval=$?
 	if [ "$retval" = 0 ]; then
 		echo "enabled"
@@ -57,8 +57,7 @@ function ssh_executeCommand(){
 	if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
 		return 1
 	fi
-	
-	local retval=$(ssh $1@$2 "$3")
+	local retval=$(ssh -T $1@$2 "$3")
 	echo "$retval"
 }
 
@@ -115,7 +114,7 @@ function ssh_executeCommandWithTimeout(){
 		return 1
 	fi
 	
-	local retval=$(timeout $4 ssh $1@$2 $3)
+	local retval=$(timeout $4 ssh -T $1@$2 $3)
 	echo "$retval"
 }
 
@@ -133,7 +132,7 @@ function ssh_executeScript(){
 		return 1
 	fi
 	
-	local retval=$(ssh $1@$2 'bash -s' < $3)
+	local retval=$(ssh -T $1@$2 'bash -s' < $3)
 	echo "$retval"
 }
 
@@ -151,7 +150,7 @@ function ssh_executeScriptInBG(){
 		return 1
 	fi
 	local logfile="$3.log"
-	ssh $1@$2 'bash -s' < $3 | tee -a $logfile &
+	ssh -T $1@$2 'bash -s' < $3 | tee -a $logfile &
 }
 
 # @param host ip
@@ -164,7 +163,7 @@ function ssh_executeScriptasRootInBG(){
 	local script=$2
 	local logfile="$script.log"
 
-	ssh root@$node 'bash -s' < $script | tee -a $logfile &
+	ssh -T root@$node 'bash -s' < $script | tee -a $logfile &
 }
 
 # @param .ssh dir path
