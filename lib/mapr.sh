@@ -4299,7 +4299,7 @@ function maprutil_publishMFSCPUUse(){
     json="$json\"timestamp\":$timestamp,\"nodes\":\"$hostlist\",\"driver\":\"$(util_getHostIP)\""
     json="$json,\"build\":\"$buildid\",\"description\":\"$desc\""
 
-    log_info "Publishing resource usage statistics to \"$GLB_PERF_URL\""
+    log_info "Publishing resource usage statistics to \"$GLB_PERF_URL\" for node(s) : $hostlist"
 
     local sjson=
     local stjson=
@@ -4326,7 +4326,7 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$stjson" ] && sjson="\"threads\":{$stjson}" && stjson=
 
     ttime=0
-    local files="Rpc.log IOMgr.log FS.log DBMain.log DBHelper.log DBFlush.log Compress.log SysCalls.log ExtInstance.log Rpc_max.log IOMgr_max.log FS_max.log DBMain_max.log DBHelper_max.log DBFlush_max.log Compress_max.log SysCalls_max.log ExtInstance_max.log"
+    local files="Rpc.log IOMgr.log FS.log DBMain.log DBHelper.log DBFlush.log Compress.log SysCalls.log ExtInstance.log Rdma.log Rpc_max.log IOMgr_max.log FS_max.log DBMain_max.log DBHelper_max.log DBFlush_max.log Compress_max.log SysCalls_max.log ExtInstance_max.log Rdma_max.log"
     for fname in $files
     do
         [ ! -s "$fname" ] && continue
@@ -4449,14 +4449,14 @@ function maprutil_mfsCPUUseOnCluster(){
     mkdir -p $logdir > /dev/null 2>&1
     log_info "Aggregating MFS stats from nodes [ $nodes ]"
 
-    local files="fs.log db.log dbh.log dbf.log comp.log"
+    local files="fs.log db.log dbh.log dbf.log comp.log rdma.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/$fname 2>&1 &
     done
 
-    files="Rpc IOMgr FS DBMain DBHelper DBFlush Compress SysCalls ExtInstance"
+    files="Rpc IOMgr FS DBMain DBHelper DBFlush Compress SysCalls ExtInstance Rdma"
     for fname in $files
     do
         local filelist=$(find $dirlist -name "${fname}.log" 2>/dev/null)
@@ -4465,7 +4465,7 @@ function maprutil_mfsCPUUseOnCluster(){
         [ -n "$maxfilelist" ] && paste $maxfilelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/${fname}_max.log 2>&1 &
     done
 
-    files="fs_max.log db_max.log dbh_max.log dbf_max.log comp_max.log"
+    files="fs_max.log db_max.log dbh_max.log dbf_max.log comp_max.log rdma_max.log"
     for fname in $files
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
@@ -4530,7 +4530,21 @@ function maprutil_mfsCPUUseOnCluster(){
         rm -f $tmpclog > /dev/null 2>&1
     done
 
-    [ -n "$GLB_PERF_URL" ] && maprutil_publishMFSCPUUse "$logdir" "$timestamp" "$hostlist" "$buildid" "$publish"
+    if [ -n "$GLB_PERF_URL" ]; then 
+        maprutil_publishMFSCPUUse "$logdir" "$timestamp" "$hostlist" "$buildid" "$publish"
+        if [ -n "${GLB_NODE_STATS}" ]; then
+            local nodearr=(${allnodes})
+            local j=0
+            for nodedir in $alldirlist; do
+                local hostnode="${nodearr[${j}]}"
+                local nodepublish="${publish}-${hostnode}"
+                local nodetimestamp="$(echo "${timestamp}+${j}+1" | bc)"
+                maprutil_publishMFSCPUUse "$nodedir" "$nodetimestamp" "$hostnode" "$buildid" "$nodepublish"
+                let j=j+1
+            done
+        fi
+    fi
+
 
     pushd $tmpdir > /dev/null 2>&1
     local dirstotar=$dirlist
@@ -4813,6 +4827,12 @@ maprutil_getMFSThreadUse()
         local compfile="$tempdir/comp_$compthread.log"
         sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$compthread" | awk '{print $9}' > ${compfile} 2>&1 &
     done
+    local rdmathreads="$(echo "$mfsthreads" | grep CpuQ_Rdma | awk '{print $2}' | sed 's/,/ /g')"
+    for rdmathread in $rdmathreads
+    do
+        local rdmafile="$tempdir/rdma_$rdmathread.log"
+        sed -n ${sl},${el}p $mfstop | grep mfs | grep -w "$rdmathread" | awk '{print $9}' > ${rdmafile} 2>&1 &
+    done
     wait
 
     [ -n "$fsthreads" ] && paste $tempdir/fs_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/fs.log 2>&1 &
@@ -4829,6 +4849,9 @@ maprutil_getMFSThreadUse()
 
     [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/comp.log 2>&1 &
     [ -n "$compthreads" ] && paste $tempdir/comp_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/comp_max.log 2>&1 &
+
+    [ -n "$rdmathreads" ] && paste $tempdir/rdma_*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/rdma.log 2>&1 &
+    [ -n "$rdmathreads" ] && paste $tempdir/rdma_*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/rdma_max.log 2>&1 &
     wait
 }
 
@@ -5051,7 +5074,21 @@ function maprutil_gutstatsOnCluster(){
 
     paste $filelist | awk -v var="$colarr" -v fcnt="$filecnt" 'BEGIN{split(var,cids," ")} {j=0; for (i=1;i<=length(cids);i++) { if(cids[i] < 3) printf("%s ", $cids[i]); else { sum+=$cids[i]; j++;  if(j==fcnt) { printf("%s ", sum); sum=0; j=0}}}  printf("\n");}' > $logdir/guts.log
 
-    [ -n "$GLB_PERF_URL" ] && maprutil_publishGutsStats "$logdir" "$timestamp" "$hostlist" "$buildid" "$colnames" "$publish"
+    if [ -n "$GLB_PERF_URL" ]; then 
+        maprutil_publishGutsStats "$logdir" "$timestamp" "$hostlist" "$buildid" "$colnames" "$publish"
+        if [ -n "${GLB_NODE_STATS}" ]; then
+            local nodearr=(${nodes})
+            local j=0
+            for nodedir in $dirlist; do
+                local hostnode="${nodearr[${j}]}"
+                local nodepublish="${publish}-${hostnode}"
+                local nodetimestamp="$(echo "${timestamp}+${j}+1" | bc)"
+                maprutil_publishGutsStats "${nodedir}" "${nodetimestamp}" "${hostnode}" "${buildid}" "$colnames" "${nodepublish}"
+                let j=j+1
+            done
+        fi
+    fi
+
 
     colnames="$(echo "$colnames" | sed 's/,/ /g')" && sed -i "1s/^/${colnames}\n/" $logdir/guts.log > /dev/null 2>&1
     

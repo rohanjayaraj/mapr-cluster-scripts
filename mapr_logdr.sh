@@ -160,6 +160,9 @@ function usage () {
     echo -e "\t -pub | -pub=<DESCRIPTION> | --publish=<DESCRIPTION>" 
     echo -e "\t\t - When used with -mcu or -guts option, publish stats to Dashboard (dash.perf.lab)"
 
+    echo -e "\t -pubnode | --publish-node" 
+    echo -e "\t\t - When used with -pub option, publish stats for each node along w/ cluster-wide to perf dashboard"
+
     echo -e "\t -gwguts" 
     echo -e "\t\t - When passed with -guts option, build gateway guts instead of mfs"
 
@@ -310,6 +313,9 @@ while [ "$1" != "" ]; do
                 publishdesc="$VALUE"
                 args=$args"publish "
             fi
+        ;;
+        -pubnode | --publish-node)
+            args=$args"publishnode "
         ;;
         -mail | --maillist)
             if [ -n "$VALUE" ]; then
