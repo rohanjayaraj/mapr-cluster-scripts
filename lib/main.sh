@@ -1342,7 +1342,7 @@ while [ "$2" != "" ]; do
 	    			doLogAnalyze="$doLogAnalyze mfscpuuse"
 	    		elif [[ "$i" = "mfsthreads" ]]; then
 	    			doLogAnalyze="$doLogAnalyze $i"
-	    		elif [[ "$i" = "publish" ]] || [[ "$i" = "publishnode" ]]; then
+	    		elif [[ "$i" = "publish" ]]; then
 	    			GLB_PERF_URL="http://dash.perf.lab/puffd/"
 	    		elif [[ "$i" = "publishnode" ]]; then
 	    			GLB_NODE_STATS=1
