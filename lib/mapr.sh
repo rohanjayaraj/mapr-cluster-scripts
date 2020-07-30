@@ -4731,7 +4731,7 @@ maprutil_getMFSThreadUseFromGuts(){
             gheader="${gheader} ${k}"
         fi
     done
-    gheader=$(echo ${gheader} | sed 's/ \+/ /g' | tr ' ' '\n' | awk 'BEGIN{i=2}{ print i,$0; i++}')
+    gheader=$(echo ${gheader} | sed 's/ \+/ /g' | tr ' ' '\n' | awk 'BEGIN{i=1}{ print i,$0; i++}')
     local nummfsinst="$(echo "$gheader" | grep -w 'Rpc\|[0-9]*Rpc' | awk '{print $2}' | cut -d ']' -f1 | sort | uniq | wc -l)"
 
     local threadtypes="Rpc IOMgr FS DBMain DBHelper DBFlush Compress SysCalls ExtInstance"
