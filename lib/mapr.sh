@@ -805,7 +805,7 @@ function maprutil_upgrade(){
         cmd=$cmd" -QS"
     fi
     log_info "$cmd"
-    bash -c "$cmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+    stdbuf -i0 -o0 -e0 bash -c "$cmd" 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
 
     # Start zookeeper if if exists
     service mapr-zookeeper start 2>/dev/null
@@ -1244,7 +1244,7 @@ function maprutil_customConfigure(){
             [ -n "$GLB_SECURE_CLUSTER" ] && cmd="$cmd -secure"
             [ -n "${hsnodes}" ] && cmd="$cmd -C \"-HS $(util_getFirstElement "$hsnodes")\""
             log_info "[$hostip] $cmd"
-            bash -c "$cmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+            stdbuf -i0 -o0 -e0 bash -c "$cmd" 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         fi
     fi
 }
@@ -1599,7 +1599,7 @@ function maprutil_configure(){
 
     # Run configure.sh on the node
     log_info "[$hostip] $configurecmd"
-    bash -c "$configurecmd" 2>&1 |  awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+    stdbuf -i0 -o0 -e0 bash -c "$configurecmd" 2>&1 |  stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     
     # Perform series of custom configuration based on selected options
     maprutil_customConfigure "$hsnodes"
@@ -1637,7 +1637,7 @@ function maprutil_configure(){
             numsps=
         fi
         # SSH session exits after running for few seconds with error "Write failed: Broken pipe"; Running in background and waiting
-        /opt/mapr/server/disksetup -FW $numstripe $diskfile 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
+        stdbuf -i0 -o0 -e0  /opt/mapr/server/disksetup -FW $numstripe $diskfile 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
         dspid=$!
     elif [[ -n "$numsps" ]] &&  [[ "$numsps" -le "$numdisks" ]]; then
         [ $((numdisks%2)) -eq 1 ] && numdisks=$(echo "$numdisks+1" | bc)
@@ -1645,10 +1645,10 @@ function maprutil_configure(){
         if [[ "$(echo "$numstripe*$numsps" | bc)" -lt "$numdisks" ]]; then
             numstripe=$(echo "$numstripe+1" | bc)
         fi
-        /opt/mapr/server/disksetup -FW $numstripe $diskfile 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
+        stdbuf -i0 -o0 -e0 /opt/mapr/server/disksetup -FW $numstripe $diskfile 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
         dspid=$!
     else
-        /opt/mapr/server/disksetup -FM $diskfile 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
+        stdbuf -i0 -o0 -e0 /opt/mapr/server/disksetup -FM $diskfile 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}' &
         dspid=$!
     fi
     while kill -0 ${dspid} 2>/dev/null; do echo -ne "."; sleep 1; done
@@ -1763,7 +1763,7 @@ function maprutil_postConfigure(){
         cmd=$cmd" -QS"
     fi
     log_info "$cmd"
-    timeout 300 bash -c "$cmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+    timeout 300 stdbuf -i0 -o0 -e0 bash -c "$cmd" 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     
     [ -n "$otnodes" ] || [ -n "$esnodes" ] && sleep 30
     [ -n "$otnodes" ] && /opt/mapr/collectd/collectd-*/etc/init.d/collectd restart > /dev/null 2>&1 
@@ -2468,16 +2468,18 @@ function maprutil_setupasanmfs(){
     if [ -s "/opt/mapr/server/mfs" ] && [ -s "opt/mapr/server/mfs" ]; then
         mv /opt/mapr/server/mfs /opt/mapr/server/mfs.original > /dev/null 2>&1
         cp opt/mapr/server/mfs /opt/mapr/server/mfs > /dev/null 2>&1
+        local mfsasanoptions="detect_leaks=0 halt_on_error=0"
         local mfsasanso=$(ldd /opt/mapr/server/mfs 2>/dev/null | grep -oh "/[-a-z0-9_/]*libasan.so.[0-9]*")
-        if [ -n "${GLB_ASAN_OPTIONS}" ]; then
-            if [ "$nodeos" = "ubuntu" ]; then
-                sed -i "/start-stop-daemon --start/i export ASAN_OPTIONS=\"${GLB_ASAN_OPTIONS}\"" /opt/mapr/initscripts/mapr-mfs
-                [ -n "${mfsasanso}" ] && sed -i "/start-stop-daemon --start/i export LD_PRELOAD=${mfsasanso}" /opt/mapr/initscripts/mapr-mfs
-            else
-                sed -i "/daemon \$USER_ARG/i export ASAN_OPTIONS=\"${GLB_ASAN_OPTIONS}\"" /opt/mapr/initscripts/mapr-mfs
-                [ -n "${mfsasanso}" ] && sed -i "/daemon \$USER_ARG/i export LD_PRELOAD=${mfsasanso}" /opt/mapr/initscripts/mapr-mfs
-            fi
+        [ -n "${GLB_ASAN_OPTIONS}" ] && mfsasanoptions="$mfsasanoptions ${GLB_ASAN_OPTIONS}"
+    
+        if [ "$nodeos" = "ubuntu" ]; then
+            sed -i "/start-stop-daemon --start/i export ASAN_OPTIONS=\"${mfsasanoptions}\"" /opt/mapr/initscripts/mapr-mfs
+            [ -n "${mfsasanso}" ] && sed -i "/start-stop-daemon --start/i export LD_PRELOAD=${mfsasanso}" /opt/mapr/initscripts/mapr-mfs
+        else
+            sed -i "/daemon \$USER_ARG/i export ASAN_OPTIONS=\"${mfsasanoptions}\"" /opt/mapr/initscripts/mapr-mfs
+            [ -n "${mfsasanso}" ] && sed -i "/daemon \$USER_ARG/i export LD_PRELOAD=${mfsasanso}" /opt/mapr/initscripts/mapr-mfs
         fi
+        
         log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
     fi
 
@@ -4032,7 +4034,7 @@ function maprutil_restartWarden() {
         execcmd=$execcmd" restart"
     fi
 
-    bash -c "$execcmd" 2>&1 | awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
+    stdbuf -i0 -o0 -e0 bash -c "$execcmd" 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
 }
 
 ## @param optional hostip
@@ -4704,14 +4706,28 @@ maprutil_getMFSThreadUseFromGuts(){
     [ -z "$el" ] || [ -z "$sl" ] && log_error "[$(util_getHostIP)] Start or End time not found in the tguts.log. Specify newer time range" && return
     [ "$sl" -gt "$el" ] && el=$(cat $gutsfile | wc -l)
 
-    local gheader=$(grep '^[a-z]' $gutsfile | grep time | tail -1 | sed 's/ \+/ /g' | tr ' ' '\n' | awk 'BEGIN{i=2}{ print i,$0; i++}')
+    local twocols="time bucketWr write lwrite bwrite read lread inode regular small large meta dir ior iow iorI iowI iorB iowB iorD iowD icache dcache"
+    local gheadinit=$(grep '^[a-z]' $gutsfile | grep time | tail -1 | sed 's/ \+/ /g')
+    local gheader=
+    for k in $gheadinit; do 
+        local istwocol=$(echo "${twocols}" | tr ' ' '\n' | grep -w $k)
+        if [ -n "${istwocol}" ]; then
+            gheader="${gheader} ${k}_c1 ${k}_c2"
+        else
+            gheader="${gheader} ${k}"
+        fi
+    done
+    gheader=$(echo ${gheader} | sed 's/ \+/ /g' | tr ' ' '\n' | awk 'BEGIN{i=2}{ print i,$0; i++}')
     local nummfsinst="$(echo "$gheader" | grep -w 'Rpc\|[0-9]*Rpc' | awk '{print $2}' | cut -d ']' -f1 | sort | uniq | wc -l)"
 
     local threadtypes="Rpc IOMgr FS DBMain DBHelper DBFlush Compress SysCalls ExtInstance"
+    [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ] && threadtypes="${threadtypes} Rdma"
+
     declare -A altthreadtypes
     altthreadtypes["DBHelper"]="DBH"
     altthreadtypes["DBFlush"]="DBF"
     altthreadtypes["Compress"]="Comp"
+    altthreadtypes["SysCalls"]="Sys"
     altthreadtypes["ExtInstance"]="ExtIns"
 
     for ((j=0; j < $nummfsinst ; j++))

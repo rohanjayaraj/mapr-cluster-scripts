@@ -412,9 +412,9 @@ function util_getInstalledBinaries(){
     local bin=$(echo "$1" | sed 's/*/.*/g')
 
     if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
-        echo $(rpm -qa | grep "$bin" | awk '{split ($0, a, "-0"); print a[1]}' | sed ':a;N;$!ba;s/\n/ /g')
+        echo $(rpm -qa | grep "$bin" | awk '{split ($0, a, "-0"); print a[1]}' | sort | sed ':a;N;$!ba;s/\n/ /g')
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        echo $(dpkg -l | grep "$bin" | awk '{print $2}' | sed ':a;N;$!ba;s/\n/ /g')
+        echo $(dpkg -l | grep "$bin" | awk '{print $2}' | sort | sed ':a;N;$!ba;s/\n/ /g')
     fi
 }
 
