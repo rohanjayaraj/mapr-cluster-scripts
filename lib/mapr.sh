@@ -5605,7 +5605,7 @@ function maprutil_dedupASANErrors() {
 
     local lines=$(cat ${asanfile} | grep -n -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY" -e " leak " -e "^$")
     while read -r fl; do
-        [ -z "$(echo "$fl" | grep leak)" ] || [ -z "$(echo "$fl" | grep Sanitizer)" ] && continue
+        [ -z "$(echo "$fl" | grep leak)" ] && [ -z "$(echo "$fl" | grep Sanitizer)" ] && continue
         read -r sl
         local fln=$(echo "$fl" | cut -d':' -f1)
         local sln=$(echo "$sl" | cut -d':' -f1)
