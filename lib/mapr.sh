@@ -2095,11 +2095,11 @@ function maprutil_getMapRVersionFromRepo(){
     local nodeos=$(getOSFromNode $node)
     local maprversion=
     if [ "$nodeos" = "centos" ]; then
-        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | sort -k2 | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n 1 | awk '{print \$2}' | cut -d'.' -f1-4")
+        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | sort -k2 | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | grep -v "6.2.0.2018" | tail -n 1 | awk '{print \$2}' | cut -d'.' -f1-4")
     elif [ "$nodeos" = "ubuntu" ]; then
         maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | grep -v none | awk '{print \$2}' | cut -d'.' -f1-4")
     elif [ "$nodeos" = "suse" ]; then
-        maprversion=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep -v '$curchangeset' | sort -k7 | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n 1 | awk '{print \$7}' | cut -d'.' -f1-4")
+        maprversion=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep -v '$curchangeset' | sort -k7 | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | grep -v "6.2.0.2018" | tail -n 1 | awk '{print \$7}' | cut -d'.' -f1-4")
     fi
 
     if [[ -n "$maprversion" ]]; then
