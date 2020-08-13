@@ -975,7 +975,7 @@ function main_runLogDoctor(){
 						maprutil_dedupCores "${nodupfile}"
 						sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${nodupfile}  > /dev/null 2>&1
 					fi
-					[ -n "${GLB_MAIL_SUB}" ] && sed -i "3s/^/\ Sub: ${GLB_MAIL_SUB}\n/" ${nodupfile}  > /dev/null 2>&1
+					[ -n "${GLB_MAIL_SUB}" ] && sed -i "3s/^/\ Subject: ${GLB_MAIL_SUB}\n/" ${nodupfile}  > /dev/null 2>&1
 					util_postToSlack2 "${nodupfile}" "https://bit.ly/2vPLzrO"
 					rm -rf ${nodupfile} > /dev/null 2>&1
 				fi
@@ -990,7 +990,7 @@ function main_runLogDoctor(){
 						maprutil_dedupASANErrors "${nodupfile}"
 						sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${nodupfile}  > /dev/null 2>&1
 					fi
-					[ -n "${GLB_MAIL_SUB}" ] && sed -i "3s/^/\ Sub: ${GLB_MAIL_SUB}\n/" ${nodupfile}  > /dev/null 2>&1
+					[ -n "${GLB_MAIL_SUB}" ] && sed -i "3s/^/\ Subject: ${GLB_MAIL_SUB}\n/" ${nodupfile}  > /dev/null 2>&1
 
 				 	util_postToSlack2 "${nodupfile}" "https://bit.ly/3bYkfY2"
 					util_postToMSTeams "${nodupfile}" "https://bit.ly/2TBRKJ9"

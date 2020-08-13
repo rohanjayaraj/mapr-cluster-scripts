@@ -488,6 +488,14 @@ function maprutil_getMapRVersionOnNode(){
     fi
 }
 
+function maprutil_getMapRVersion(){
+    local version=$(cat /opt/mapr/MapRBuildVersion 2> /dev/null)
+    local patch=$(ls /opt/mapr/.patch/README.* 2> /dev/null | cut -d '.' -f3 | tr -d 'p')
+    [ -z "${version}" ] && return
+    [ -n "${patch}" ] && version="${version} (patch ${patch})"
+    echo "${version}"
+}
+
 # @param version to check "x.y.z"
 function maprutil_isMapRVersionSameOrNewer(){
     if [ -z "$1" ]; then
@@ -5328,10 +5336,19 @@ function maprutil_perftool(){
     rm -rf perf.data.$ppid > /dev/null 2>&1
 }
 
+function maprutil_getMFSCommitID(){
+    [ ! -s "/opt/mapr/server/mfs" ] && return
+    local commitid=$(strings /opt/mapr/server/mfs | grep "\$Id: mapr-version:" | head -n 1 |  awk '{print $4}')
+    [ -n "${commitid}" ] && echo "${commitid}"
+}
+
 function maprutil_analyzeCores(){
     local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
+    local buildid="$(maprutil_getMapRVersion)"
+    local commitid="$(maprutil_getMFSCommitID)"
+    [ -n "${commitid}" ] && buildid="${buildid} - ${commitid}"
 
     echo
     if [ -z "$GLB_COPY_CORES" ] || [ -z "$GLB_COPY_DIR" ]; then
@@ -5339,6 +5356,7 @@ function maprutil_analyzeCores(){
     else
         log_msghead "[$(util_getHostIP)] Analyzing and copying $(echo $cores | wc -w) core file(s). This may take a while"
     fi
+    log_msg "\t Build: ${buildid}"
 
     local i=1
     for core in $cores
@@ -5459,14 +5477,17 @@ function maprutil_dedupCores() {
     local corefn=
     local i=1
     
-    local lines=$(cat ${corefile} | grep -n -e "Analyzing" -e "Core #" -e "^[[:space:]]*$")
+    local lines=$(cat ${corefile} | grep -n -e "Analyzing" -e "Build:"" -e "Core #" -e "^[[:space:]]*$")
     local currnode=
+    local currbuildid=
     local numcores=0
     while read -r fl; do
         if [ -n "$(echo "$fl" | grep "Analyzing")" ]; then
             currnode=$(echo "$fl" | awk '{print $2}')
             local curnocores=$(echo "$fl" | grep -o "[0-9]* core" | awk '{print $1}')
             numcores=$(echo "$curnocores+$numcores" | bc)
+            read -r sl
+            currbuildid=$(echo "$sl")
             continue
         fi
         [ -z "$(echo "$fl" | grep "Core #")" ] && continue
@@ -5474,7 +5495,7 @@ function maprutil_dedupCores() {
         local fln=$(echo "$fl" | cut -d':' -f1)
         local sln=$(echo "$sl" | cut -d':' -f1)
 
-        local trace=$(cat ${corefile} | sed -n "${fln},${sln}p" | sed "s/Core #[0-9]* :/Core #${i} : ${currnode}/g")
+        local trace=$(cat ${corefile} | sed -n "${fln},${sln}p" | sed "s/Core #[0-9]* :/Core #${i} : ${currnode}/g" | sed "2s/^/\ \t${currbuildid}/")
 
         local tfn=$(echo "$trace" | grep -e "mapr::fs" -e "rdkafka" | head -n 1 | awk '{print $NF}')
         [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep "^[[:space:]]*#" | grep -v "??" | awk '{print $4}' | tr '\n' ' ')
@@ -5531,8 +5552,12 @@ function maprutil_analyzeASAN(){
     local asanstack=
     local asanleakstack=
     local i=1
+    local buildid="$(maprutil_getMapRVersion)"
+    local commitid="$(maprutil_getMFSCommitID)"
+    [ -n "${commitid}" ] && buildid="${buildid} - ${commitid}"
 
-
+    log_msghead "[$(util_getHostIP)] Analyzing ASAN log messages"
+    log_msg "Build: ${buildid}"
 
     for errlog in $haslogs;
     do
@@ -5542,7 +5567,7 @@ function maprutil_analyzeASAN(){
         
         local asan=$(bash -c "${grepcmd}")
         local numasan=$(echo $(echo "$asan" | wc -l) | bc)
-        log_msghead "[$(util_getHostIP)] Analyzing $numasan ASAN msgs in ${errlog}"
+        log_msg "Analyzing $numasan ASAN msgs in ${errlog}"
         while read -r fline; do
             [ -n "$(echo "$fline" | grep SUMMARY)" ] && continue
             read -r sline
@@ -5613,9 +5638,11 @@ function maprutil_dedupASANErrors() {
     local asanaddr=
     local i=1
     local j=0
+    local currbuildid=
 
-    local lines=$(cat ${asanfile} | grep -n -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY" -e " leak " -e "^$")
+    local lines=$(cat ${asanfile} | grep -n -e "Build:" -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY" -e " leak " -e "^$")
     while read -r fl; do
+        [ -n "$(echo "$fl" | grep "Build:")" ] && currbuildid="${fl}" && continue
         [ -z "$(echo "$fl" | grep leak)" ] && [ -z "$(echo "$fl" | grep Sanitizer)" ] && continue
         read -r sl
         local fln=$(echo "$fl" | cut -d':' -f1)
@@ -5626,7 +5653,7 @@ function maprutil_dedupASANErrors() {
         local tfn=$(echo "$trace" | head -n 15 | grep "mapr" | head -n 1 | awk '{print $NF}')
         if [ -z "$(echo "${asanaddr}" | grep "${tfn}" )" ]; then
             asanaddr="${asanaddr} ${tfn}"
-            asanstack="${asanstack} Issue #${i}: \n"
+            asanstack="${asanstack} Issue #${i}: ${currbuildid}\n"
             asanstack="${asanstack} $(echo -e "$trace" | sed 's/\t\t/\t/g') \n\n"
             let i=i+1
         fi
