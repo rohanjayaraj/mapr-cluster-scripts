@@ -2536,6 +2536,15 @@ function maprutil_setupasanmfs(){
             asanoptions="handle_segv=0 handle_sigill=0 detect_leaks=0"
             [ -n "$GLB_ASAN_OPTIONS" ] && asanoptions="${asanoptions} ${GLB_ASAN_OPTIONS}"
 
+            #copy posix bin
+            posix=$(ls /opt/mapr/bin/posix-client-*)
+            if [ -n "${posix}" ]; then
+              cp ${posix} ${posix}.original
+              cp opt/mapr/bin/posix-client-* /opt/mapr/bin/
+              sed -i "s#Start mapr-fuse daemon#Start mapr-fuse daemon \n export ASAN_OPTIONS=${asanoptions}\nLD_PRELOAD=${asanso} \n#g" /opt/mapr/initscripts/mapr-fuse
+              log_info "Replaced ${posix} and updated mapr-fuse"
+            fi
+
             # Update all start scripts to have asan options
             local files=$(find /opt/mapr/ -type f -exec grep -H " \"\$JAVA\"" {} \; | grep -v "if \[" | cut -d':' -f1 | sort -u)
             for file in $files; do
@@ -5320,7 +5329,7 @@ function maprutil_perftool(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.core.*\|maprStreamstest' | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.core.*\|maprStreamstest\|Thread-[0-9]*-core.*' | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
 
@@ -5387,7 +5396,7 @@ function maprutil_debugCore(){
     local tracefile=$2
     local coreidx=$3
     local newcore=
-    local isjava=$(echo $corefile | grep -e "java[A-Za-z0-9]*.core" -e "qtp[0-9-]*.core.*" -e "pool-[0-9]*-thread.core.*")
+    local isjava=$(echo $corefile | grep -e "java[A-Za-z0-9]*.core" -e "qtp[0-9-]*.core.*" -e "pool-[0-9]*-thread.core.*" -e "Thread-[0-9]*-core.*")
     local iscollectd=$(echo $corefile | grep "reader\|writer\|collectd")
     local iscats=$(echo $corefile | grep "maprStreamstest")
     local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[A-Za-z0-9.]*.core")
@@ -5435,6 +5444,7 @@ function maprutil_debugCore(){
         [ -n "$ismfs" ] && [ ! -f "$GLB_COPY_DIR/mfs" ] && cp /opt/mapr/server/mfs $GLB_COPY_DIR/ > /dev/null 2>&1
         [ ! -f "$GLB_COPY_DIR/libMapRClient.so" ] && cp /opt/mapr/lib/libMapRClient.so $GLB_COPY_DIR/ > /dev/null 2>&1
         [ ! -f "$GLB_COPY_DIR/libGatewayNative.so" ] && cp /opt/mapr/lib/libGatewayNative.so $GLB_COPY_DIR/ > /dev/null 2>&1
+        [ ! -f "$GLB_COPY_DIR/libMASTGatewayNative.so" ] && cp /opt/mapr/lib/libMASTGatewayNative.so $GLB_COPY_DIR/ > /dev/null 2>&1
         [ -n "$colbin" ] && [ ! -f "$GLB_COPY_DIR/collectd" ] && cp $colbin $GLB_COPY_DIR/ > /dev/null 2>&1
         [ "$sz" -gt "10737418240" ] && log_warn "[$(util_getHostIP)] Disk may get full with large(>10GB) core file(s)"
     fi
@@ -5482,7 +5492,8 @@ function maprutil_analyzeASAN(){
     local asanlogs="/opt/mapr/logs/mfs.err \
     /opt/mapr/logs/gatewayinit.log \
     /opt/mapr/logs/mastgateway.err \
-    /opt/mapr/logs/cldb.out"
+    /opt/mapr/logs/cldb.out \
+    /opt/mapr/logs/posix-client-*.log"
 
     local ignoreAllocDealloc=
     local ignoreLeakSanitizer=
