@@ -5487,7 +5487,7 @@ function maprutil_dedupCores() {
             local curnocores=$(echo "$fl" | grep -o "[0-9]* core" | awk '{print $1}')
             numcores=$(echo "$curnocores+$numcores" | bc)
             read -r sl
-            currbuildid=$(echo "$sl" | cut -d':' -f2)
+            currbuildid=$(echo "$sl" | cut -d':' -f2-)
             continue
         fi
         [ -z "$(echo "$fl" | grep "Core #")" ] && continue
@@ -5495,7 +5495,7 @@ function maprutil_dedupCores() {
         local fln=$(echo "$fl" | cut -d':' -f1)
         local sln=$(echo "$sl" | cut -d':' -f1)
 
-        local trace=$(cat ${corefile} | sed -n "${fln},${sln}p" | sed "s/Core #[0-9]* :/Core #${i} : ${currnode}/g" | sed "2s/^/\ \t${currbuildid}\n/")
+        local trace=$(cat ${corefile} | sed -n "${fln},${sln}p" | sed "s/Core #[0-9]* :/Core #${i} : ${currnode}/g" | sed "2s/^/\\t${currbuildid}\n/")
 
         local tfn=$(echo "$trace" | grep -e "mapr::fs" -e "rdkafka" | head -n 1 | awk '{print $NF}')
         [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep "^[[:space:]]*#" | grep -v "??" | awk '{print $4}' | tr '\n' ' ')
@@ -5642,7 +5642,7 @@ function maprutil_dedupASANErrors() {
 
     local lines=$(cat ${asanfile} | grep -n -e "Build:" -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY" -e " leak " -e "^$")
     while read -r fl; do
-        [ -n "$(echo "$fl" | grep "Build:")" ] && currbuildid="$(echo "${fl}" | cut -d':' -f2)" && continue
+        [ -n "$(echo "$fl" | grep "Build:")" ] && currbuildid="$(echo "${fl}" | cut -d':' -f2-)" && continue
         [ -z "$(echo "$fl" | grep leak)" ] && [ -z "$(echo "$fl" | grep Sanitizer)" ] && continue
         read -r sl
         local fln=$(echo "$fl" | cut -d':' -f1)
