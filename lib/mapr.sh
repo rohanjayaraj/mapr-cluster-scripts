@@ -5477,7 +5477,7 @@ function maprutil_dedupCores() {
     local corefn=
     local i=1
     
-    local lines=$(cat ${corefile} | grep -n -e "Analyzing" -e "Build:"" -e "Core #" -e "^[[:space:]]*$")
+    local lines=$(cat ${corefile} | grep -n -e "Analyzing" -e "Build:" -e "Core #" -e "^[[:space:]]*$")
     local currnode=
     local currbuildid=
     local numcores=0
