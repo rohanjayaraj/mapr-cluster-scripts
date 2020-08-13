@@ -5356,7 +5356,7 @@ function maprutil_analyzeCores(){
     else
         log_msghead "[$(util_getHostIP)] Analyzing and copying $(echo $cores | wc -w) core file(s). This may take a while"
     fi
-    log_msg "\t Build: ${buildid}"
+    log_msg "\tBuild: ${buildid}"
 
     local i=1
     for core in $cores
@@ -5557,7 +5557,7 @@ function maprutil_analyzeASAN(){
     [ -n "${commitid}" ] && buildid="${buildid} - ${commitid}"
 
     log_msghead "[$(util_getHostIP)] Analyzing ASAN log messages"
-    log_msg "Build: ${buildid}"
+    log_msg "\tBuild: ${buildid}"
 
     for errlog in $haslogs;
     do
@@ -5642,7 +5642,7 @@ function maprutil_dedupASANErrors() {
 
     local lines=$(cat ${asanfile} | grep -n -e "Build:" -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY" -e " leak " -e "^$")
     while read -r fl; do
-        [ -n "$(echo "$fl" | grep "Build:")" ] && currbuildid="$(echo "${fl}" | cut -d':' -f2-)" && continue
+        [ -n "$(echo "$fl" | grep "Build:")" ] && currbuildid="$(echo "${fl}" | cut -d':' -f3-)" && continue
         [ -z "$(echo "$fl" | grep leak)" ] && [ -z "$(echo "$fl" | grep Sanitizer)" ] && continue
         read -r sl
         local fln=$(echo "$fl" | cut -d':' -f1)
