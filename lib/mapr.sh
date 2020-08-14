@@ -359,6 +359,7 @@ function maprutil_tempdirs() {
     dirlist+=("/tmp/perftool/")
     dirlist+=("/tmp/maprtrace/")
     dirlist+=("/tmp/maprlogs/")
+    dirlist+=("/tmp/maprticket_*")
     dirlist+=("/var/tmp/*RegressionLog")
     dirlist+=("/var/tmp/maprStreams-*")
 
@@ -5653,7 +5654,7 @@ function maprutil_dedupASANErrors() {
         local tfn=$(echo "$trace" | head -n 15 | grep "mapr" | head -n 1 | awk '{print $NF}')
         if [ -z "$(echo "${asanaddr}" | grep "${tfn}" )" ]; then
             asanaddr="${asanaddr} ${tfn}"
-            asanstack="${asanstack} Issue #${i}: ${currbuildid}\n"
+            asanstack="${asanstack} Issue #${i}: [ ${currbuildid} ] \n"
             asanstack="${asanstack} $(echo -e "$trace" | sed 's/\t\t/\t/g') \n\n"
             let i=i+1
         fi
