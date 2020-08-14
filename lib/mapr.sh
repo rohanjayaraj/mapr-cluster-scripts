@@ -5623,11 +5623,11 @@ function maprutil_analyzeASAN(){
             local isnew=$(echo -e "$asanstack" | grep "$filelineno")
             if [ -z "$isnew" ] && [ -n "${trace}" ]; then
                 asanstack="$asanstack \n $trace"
-                if [ -z "$logheader" ]; then
+                if [ -z "${logheader}" ]; then
                     log_msghead "[$(util_getHostIP)] Analyzing ASAN log messages"
                     log_msg "\tBuild: ${buildid}"
                     logheader=1
-                if
+                fi
                 if [ -z "${logfilename}" ]; then
                     log_msg "Analyzing $numasan ASAN msgs in ${errlog}"
                     logfilename=1
