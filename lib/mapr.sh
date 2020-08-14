@@ -5629,7 +5629,7 @@ function maprutil_analyzeASAN(){
                     logheader=1
                 fi
                 if [ -z "${logfilename}" ]; then
-                    log_msg "Analyzing $numasan ASAN msgs in ${errlog}"
+                    log_msg "\tAnalyzing $numasan ASAN msgs in ${errlog}"
                     logfilename=1
                 fi
                 log_msg "\n\t Issue #${i} : "
