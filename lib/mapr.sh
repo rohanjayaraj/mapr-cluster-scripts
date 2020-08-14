@@ -5557,9 +5557,8 @@ function maprutil_analyzeASAN(){
     local commitid="$(maprutil_getMFSCommitID)"
     [ -n "${commitid}" ] && buildid="${buildid} - ${commitid}"
 
-    log_msghead "[$(util_getHostIP)] Analyzing ASAN log messages"
-    log_msg "\tBuild: ${buildid}"
-
+    local logheader=
+    
     for errlog in $haslogs;
     do
         local grepcmd="grep -na  -e \"==[0-9A-Z=]*: [a-zA-Z]*Sanitizer\" -e \"SUMMARY:\" ${errlog} | grep -v HINT"
@@ -5568,7 +5567,8 @@ function maprutil_analyzeASAN(){
         
         local asan=$(bash -c "${grepcmd}")
         local numasan=$(echo $(echo "$asan" | wc -l) | bc)
-        log_msg "Analyzing $numasan ASAN msgs in ${errlog}"
+        local logfilename=
+        
         while read -r fline; do
             [ -n "$(echo "$fline" | grep SUMMARY)" ] && continue
             read -r sline
@@ -5621,8 +5621,17 @@ function maprutil_analyzeASAN(){
             trace="$(echo "${trace}" | grep -v -e "unknown module" -e "libjvm.so" -e "libjli.so")"
 
             local isnew=$(echo -e "$asanstack" | grep "$filelineno")
-            if [ -z "$isnew" ]; then
+            if [ -z "$isnew" ] && [ -n "${trace}" ]; then
                 asanstack="$asanstack \n $trace"
+                if [ -z "$logheader" ]; then
+                    log_msghead "[$(util_getHostIP)] Analyzing ASAN log messages"
+                    log_msg "\tBuild: ${buildid}"
+                    logheader=1
+                if
+                if [ -z "${logfilename}" ]; then
+                    log_msg "Analyzing $numasan ASAN msgs in ${errlog}"
+                    logfilename=1
+                fi
                 log_msg "\n\t Issue #${i} : "
                 echo -e "$trace" | sed 's/^/\t\t/' 
                 let i=i+1
