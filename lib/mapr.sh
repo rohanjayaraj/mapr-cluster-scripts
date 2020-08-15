@@ -491,8 +491,9 @@ function maprutil_getMapRVersionOnNode(){
 
 function maprutil_getMapRVersion(){
     local version=$(cat /opt/mapr/MapRBuildVersion 2> /dev/null)
-    local patch=$(ls /opt/mapr/.patch/README.* 2> /dev/null | cut -d '.' -f3 | tr -d 'p')
     [ -z "${version}" ] && return
+    local patch=$(cat /opt/mapr/.patch/conf.new/mapr-build.properties.p* 2> /dev/null | grep "mapr.builddate" | awk -F'=' '{print $2}')
+    [ -z "${patch}" ] && patch=$(ls /opt/mapr/.patch/README.* 2> /dev/null | cut -d '.' -f3 | tr -d 'p')
     [ -n "${patch}" ] && version="${version} (patch ${patch})"
     echo "${version}"
 }
@@ -5338,8 +5339,11 @@ function maprutil_perftool(){
 }
 
 function maprutil_getMFSCommitID(){
+    local commitid=$(cat /opt/mapr/.patch/conf.new/mapr-build.properties.p* 2>/dev/null  | grep "mapr.buildversion" | awk -F'=' '{print $2}')
+    [ -z "${commitid}" ] && commitid=$(cat /opt/mapr/conf/mapr-build.properties 2>/dev/null | grep "mapr.buildversion" | awk -F'=' '{print $2}')
+    [ -n "${commitid}" ] && echo "${commitid}" && return
     [ ! -s "/opt/mapr/server/mfs" ] && return
-    local commitid=$(timeout 10 strings /opt/mapr/server/mfs 2>/dev/null | grep "\$Id: mapr-version:" | head -n 1 |  awk '{print $4}')
+    commitid=$(timeout 10 strings /opt/mapr/server/mfs 2>/dev/null | grep "\$Id: mapr-version:" | head -n 1 |  awk '{print $4}')
     [ -n "${commitid}" ] && echo "${commitid}"
 }
 
