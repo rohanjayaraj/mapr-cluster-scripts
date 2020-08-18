@@ -271,6 +271,7 @@ function util_installprereq(){
         fi
         #util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf-c"
         #util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf"
+        util_checkAndInstall2 "/usr/bin/python3" "python3"
     fi
 
     if [ "$(getOS)" = "centos" ]; then
