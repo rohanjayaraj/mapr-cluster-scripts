@@ -198,18 +198,19 @@ function util_maprprereq(){
         zypper --non-interactive -q install -n java-1_8_0-openjdk-devel
     fi
 
-    local MAPR_UID=${MAPR_UID:-5000}
-    local MAPR_GID=${MAPR_GID:-5000}
-    local MAPR_USER=${MAPR_USER-mapr}
-    local MAPR_GROUP=${MAPR_GROUP:-mapr}
+    if [ -z "$(getent passwd mapr)" ]; then
+        local MAPR_UID=${MAPR_UID:-5000}
+        local MAPR_GID=${MAPR_GID:-5000}
+        local MAPR_USER=${MAPR_USER-mapr}
+        local MAPR_GROUP=${MAPR_GROUP:-mapr}
 
-    groupadd -g $MAPR_GID $MAPR_GROUP
-    useradd -m -u $MAPR_UID -g $MAPR_GID -G $(stat -c '%G' /etc/shadow) $MAPR_USER
-    passwd $MAPR_USER > /dev/null 2>&1 << EOM
+        groupadd -g $MAPR_GID $MAPR_GROUP
+        useradd -m -u $MAPR_UID -g $MAPR_GID -G $(stat -c '%G' /etc/shadow) $MAPR_USER
+        passwd $MAPR_USER > /dev/null 2>&1 << EOM
 $MAPR_USER
 $MAPR_USER
 EOM
-
+    fi
 }
 
 function util_installprereq(){
@@ -497,11 +498,12 @@ function util_installBinaries(){
         return
     fi
     local bins="$1"
+    local buildid="$2"
     local prefix=$3
     local actbins=
     local hostip=$(util_getHostIP)
-    if [[ -n "$2" ]] && [[ -z "$(echo $2 | grep -i latest)" ]]; then
-        bins=$(util_appendVersionToPackage "$1" "$2" "$3")
+    if [[ -n "$buildid" ]] && [[ -z "$(echo ${buildid} | grep -i latest)" ]]; then
+        bins=$(util_appendVersionToPackage "${bins}" "${buildid}" "${prefix}")
         actbins="$bins"
     fi
     log_info "[$hostip] Installing packages : $bins"

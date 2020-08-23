@@ -218,6 +218,8 @@ function main_install(){
 			if [ -z "$buildexists" ]; then
 				log_error "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
 				exit 1
+			elif [[ "$GLB_BUILD_VERSION" = "latest" ]]; then
+				GLB_BUILD_VERSION="${buildexists}"
 			fi
 		fi
 		local nodebins=$(maprutil_getCoreNodeBinaries "$node")
@@ -478,6 +480,7 @@ function main_upgrade(){
 					log_error "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
 					exit 1
 				else
+					[[ "$GLB_BUILD_VERSION" = "latest" ]] && GLB_BUILD_VERSION="${buildexists}"
 					idx=1
 					log_info "Stopping warden on all nodes..."
 				fi
