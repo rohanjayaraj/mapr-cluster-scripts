@@ -814,7 +814,7 @@ function maprutil_upgrade(){
     if [ -n "$queryservice" ] && [ -n "$GLB_ENABLE_QS" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
         cmd=$cmd" -QS"
     fi
-    log_info "$cmd"
+    log_info "[$hostip] $cmd"
     stdbuf -i0 -o0 -e0 bash -c "$cmd" 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
 
     # Start zookeeper if if exists
@@ -2437,6 +2437,7 @@ function maprutil_setupasanmfs(){
     fi
 
     # stop warden
+    service mapr-zookeeper stop 2>/dev/null
     maprutil_restartWarden "stop" 2>/dev/null
     [ -n "$GLB_ASAN_OPTIONS" ] && GLB_ASAN_OPTIONS="$(echo "$GLB_ASAN_OPTIONS" | tr ',' ' ' | tr ':' '=')"
     # download latest asan mfs binary
@@ -2642,6 +2643,7 @@ function maprutil_setupasanmfs(){
     [ -n "${setupclient}" ] && rm -rf $ctempdir  > /dev/null 2>&1
 
     # start warden
+    service mapr-zookeeper start 2>/dev/null
     maprutil_restartWarden "start" 2>/dev/null
 }
 

@@ -218,11 +218,11 @@ function util_installprereq(){
         yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install epel-release redhat-lsb-core -y --nogpgcheck > /dev/null 2>&1
         yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
         yum-config-manager --save --setopt=epel.skip_if_unavailable=true > /dev/null 2>&1
-        if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
-            yum repolist enabled 2>&1 | grep extras || yum-config-manager --enable extras > /dev/null 2>&1
-            yum repolist enabled 2>&1 | grep BaseOS || yum-config-manager --enable BaseOS > /dev/null 2>&1
-            yum repolist enabled 2>&1 | grep AppStream || yum-config-manager --enable AppStream > /dev/null 2>&1
-        fi
+        #if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
+            #yum repolist enabled 2>&1 | grep extras || yum-config-manager --enable extras > /dev/null 2>&1
+            #yum repolist enabled 2>&1 | grep BaseOS || yum-config-manager --enable BaseOS > /dev/null 2>&1
+            #yum repolist enabled 2>&1 | grep AppStream || yum-config-manager --enable AppStream > /dev/null 2>&1
+        #fi
     fi
 
     [ -z "$(getent passwd mapr)" ] && [ -n "$(util_isBareMetal)" ] && util_maprprereq
