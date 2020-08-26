@@ -134,6 +134,7 @@ GLB_MAX_DISKS=
 GLB_MFS_MAXMEM=
 GLB_MAPR_VERSION=
 GLB_BUILD_VERSION=
+GLB_FORCE_DOWNLOAD=
 GLB_MAPR_PATCH=
 GLB_MEP_REPOURL=
 GLB_PATCH_VERSION=
@@ -218,8 +219,8 @@ function main_install(){
 			if [ -z "$buildexists" ]; then
 				log_error "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
 				exit 1
-			#elif [[ "$GLB_BUILD_VERSION" = "latest" ]]; then
-			#	GLB_BUILD_VERSION="${buildexists}"
+			elif [[ "$GLB_BUILD_VERSION" = "latest" ]]; then
+				GLB_BUILD_VERSION="${buildexists}"
 			fi
 		fi
 		local nodebins=$(maprutil_getCoreNodeBinaries "$node")
@@ -480,7 +481,7 @@ function main_upgrade(){
 					log_error "Specified build version [$GLB_BUILD_VERSION] doesn't exist in the configured repositories. Please check the repo file"
 					exit 1
 				else
-					#[[ "$GLB_BUILD_VERSION" = "latest" ]] && GLB_BUILD_VERSION="${buildexists}"
+					[[ "$GLB_BUILD_VERSION" = "latest" ]] && GLB_BUILD_VERSION="${buildexists}"
 					idx=1
 					log_info "Stopping warden on all nodes..."
 				fi
@@ -1320,6 +1321,8 @@ while [ "$2" != "" ]; do
     				doASAN=1
     			elif [[ "$i" = "asanall" ]]; then
     				doASAN=2
+    			elif [[ "$i" = "downloadbins" ]]; then
+    				GLB_FORCE_DOWNLOAD=1
     			fi
     		done
     	;;

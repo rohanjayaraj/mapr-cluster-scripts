@@ -127,6 +127,8 @@ function usage () {
     echo -e "\t\t - Use only HDD disks if the node(s) have mix of HDD & SSD"
     echo -e "\t -s | --secure" 
     echo -e "\t\t - Enable wire-level security on the cluster nodes"
+    echo -e "\t -dbins | --downloadbins" 
+    echo -e "\t\t - When passed with '-bld' option, download the binaries and install"
     echo -e "\t -dare" 
     echo -e "\t\t - Generate dare master key if security is enabled"
     echo -e "\t -f | --force" 
@@ -338,6 +340,9 @@ while [ "$1" != "" ]; do
         ;;
         -dare)
             extraarg=$extraarg"dare "
+        ;;
+        -dbins | --downloadbins)
+            extraarg=$extraarg"downloadbins "
         ;;
         -b | --backuplogs)
             if [ -z "$VALUE" ]; then

@@ -2715,8 +2715,10 @@ function maprutil_setupLocalRepo(){
     # Perform repo update
     local repourl=$(maprutil_getRepoURL)
 
-    local repoexists=$(util_checkPackageExists "mapr-core" "${GLB_BUILD_VERSION}")
-    [ -n "${repoexists}" ] && return
+    if [ -z "${GLB_FORCE_DOWNLOAD}" ]; then
+        local repoexists=$(util_checkPackageExists "mapr-core" "${GLB_BUILD_VERSION}")
+        [ -n "${repoexists}" ] && return
+    fi
     
     local patchrepo=$(maprutil_getPatchRepoURL)
     local repodir="/tmp/maprbuilds/$GLB_BUILD_VERSION"
