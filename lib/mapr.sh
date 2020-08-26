@@ -2105,11 +2105,11 @@ function maprutil_getMapRVersionFromRepo(){
     local nodeos=$(getOSFromNode $node)
     local maprversion=
     if [ "$nodeos" = "centos" ]; then
-        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | sort -k2 | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | grep -v "6.2.0.20" | tail -n 1 | awk '{print \$2}' | cut -d'.' -f1-4")
+        maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | sort -k2 | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | grep -v -e "6.2.0.20" -e "7.0.0.0" | tail -n 1 | awk '{print \$2}' | cut -d'.' -f1-4")
     elif [ "$nodeos" = "ubuntu" ]; then
         maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | grep -v none | awk '{print \$2}' | cut -d'.' -f1-4")
     elif [ "$nodeos" = "suse" ]; then
-        maprversion=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep -v '$curchangeset' | sort -k7 | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | grep -v "6.2.0.20" | tail -n 1 | awk '{print \$7}' | cut -d'.' -f1-4")
+        maprversion=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep -v '$curchangeset' | sort -k7 | awk '{if(match(\$7,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | grep -v -e "6.2.0.20" -e "7.0.0.0" | tail -n 1 | awk '{print \$7}' | cut -d'.' -f1-4")
     fi
 
     if [[ -n "$maprversion" ]]; then
@@ -2609,14 +2609,14 @@ function maprutil_setupasanmfs(){
             for file in $files; do
                 [ ! -s "$file" ] && continue
                 [ -n "$(grep -B2 "\/mrconfig" $file | grep LD_PRELOAD)" ] && continue
-                sed -i "/\/mrconfig/i  LD_PRELOAD=" $file
+                sed -i "/\/mrconfig/i  export LD_PRELOAD=${asanso}" $file
             done
-            files=$(grep "start$" /opt/mapr/conf/warden.conf 2>/dev/null| awk '{print $(NF-1)}' | cut -d'=' -f2)
+            files=$(grep "start$" /opt/mapr/conf/warden.conf 2>/dev/null| awk '{print $(NF-1)}' | cut -d'=' -f2 | sort | uniq)
             for file in $files; do
                 [ ! -s "$file" ] && continue
                 [ -n "$(grep -B2 "^BASEMAPR=" $file | grep LD_PRELOAD)" ] && continue
                 sed -i "/^BASEMAPR=/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
-                sed -i "/^BASEMAPR=/i  export LD_PRELOAD=" $file
+                sed -i "/^BASEMAPR=/i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/bin -type f -executable -exec grep -HIl -e '^[[:space:]]*[nohup]*[[:space:]]*java ' -e 'bin/java ' {} \;)
             for file in $files; do
