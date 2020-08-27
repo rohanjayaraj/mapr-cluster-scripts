@@ -2605,18 +2605,19 @@ function maprutil_setupasanmfs(){
                 sed -i "/=\"\$JAVA /i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
                 sed -i "/=\"\$JAVA /i  export LD_PRELOAD=${asanso}" $file
             done
+            # do no preload asan binary for scripts & mrconfig
             files="/opt/mapr/server/createsystemvolumes.sh /opt/mapr/server/initaudit.sh /opt/mapr/server/createTTVolume.sh /opt/mapr/server/mrdiagnostics"
             for file in $files; do
                 [ ! -s "$file" ] && continue
                 [ -n "$(grep -B2 "\/mrconfig" $file | grep LD_PRELOAD)" ] && continue
-                sed -i "/\/mrconfig/i  export LD_PRELOAD=${asanso}" $file
+                sed -i "/\/mrconfig/i  export LD_PRELOAD=" $file
             done
             files=$(grep "start$" /opt/mapr/conf/warden.conf 2>/dev/null| awk '{print $(NF-1)}' | cut -d'=' -f2 | sort | uniq)
             for file in $files; do
                 [ ! -s "$file" ] && continue
                 [ -n "$(grep -B2 "^BASEMAPR=" $file | grep LD_PRELOAD)" ] && continue
                 sed -i "/^BASEMAPR=/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
-                sed -i "/^BASEMAPR=/i  export LD_PRELOAD=${asanso}" $file
+                sed -i "/^BASEMAPR=/i  export LD_PRELOAD=" $file
             done
             files=$(find /opt/mapr/bin -type f -executable -exec grep -HIl -e '^[[:space:]]*[nohup]*[[:space:]]*java ' -e 'bin/java ' {} \;)
             for file in $files; do
