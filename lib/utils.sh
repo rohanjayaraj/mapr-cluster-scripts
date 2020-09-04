@@ -264,6 +264,7 @@ function util_installprereq(){
             util_checkAndInstall "dpkg-scanpackages" "dpkg-dev"
             util_checkAndInstall "sendmail" "sendmail"
             util_checkAndInstall "ethtool" "ethtool"
+            util_checkAndInstall "gethostip" "syslinux-utils"
             util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "google-perftools"
         elif [ "$(getOS)" = "suse" ]; then
             util_checkAndInstall "createrepo" "createrepo"

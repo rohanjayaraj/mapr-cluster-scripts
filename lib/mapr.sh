@@ -589,6 +589,10 @@ function maprutil_cleanPrevClusterConfig(){
     # Unmount NFS
     maprutil_unmountNFS
 
+    # Stop fuse clients
+    service mapr-posix-client-basic stop > /dev/null 2>&1
+    service mapr-posix-client-platinum stop > /dev/null 2>&1
+
     # Stop warden
     if [[ "$ISCLIENT" -eq 0 ]]; then
         maprutil_restartWarden "stop" 2>/dev/null
@@ -1772,7 +1776,7 @@ function maprutil_postConfigure(){
     if [ -n "$queryservice" ] && [ -n "$GLB_ENABLE_QS" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
         cmd=$cmd" -QS"
     fi
-    log_info "$cmd"
+    log_info "[$hostip] $cmd"
     timeout 300 stdbuf -i0 -o0 -e0 bash -c "$cmd" 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     
     [ -n "$otnodes" ] || [ -n "$esnodes" ] && sleep 30
@@ -5374,7 +5378,7 @@ function maprutil_getMFSCommitID(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.*core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
     local buildid="$(maprutil_getMapRVersion)"
@@ -5445,7 +5449,7 @@ function maprutil_debugCore(){
     local tracefile=$2
     local coreidx=$3
     local newcore=
-    local isjava=$(echo $corefile | grep -e "java[A-Za-z0-9]*.core" -e "qtp[0-9-]*.core.*" -e "pool-[0-9]*-thread.core.*" -e "Thread-[0-9]*.core.*")
+    local isjava=$(echo $corefile | grep -e "java[A-Za-z0-9]*.core" -e "qtp[0-9-]*.core.*" -e "pool-[0-9]*-thread.*core.*" -e "Thread-[0-9]*.core.*")
     local iscollectd=$(echo $corefile | grep "reader\|writer\|collectd")
     local iscats=$(echo $corefile | grep "maprStreamstest")
     local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[A-Za-z0-9.]*.core")
