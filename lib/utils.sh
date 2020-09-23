@@ -258,6 +258,7 @@ function util_installprereq(){
             util_checkAndInstall "ethtool" "ethtool.x86_64"
             util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
             util_checkAndInstall "sendmail" "sendmail sendmail-cf m4"
+            util_checkAndInstall "llvm-symbolizer" "llvm-toolset"
         elif [[ "$(getOS)" = "ubuntu" ]]; then
             util_checkAndInstall "add-apt-repository" "python-software-properties"
             util_checkAndInstall "add-apt-repository" "software-properties-common"
@@ -266,10 +267,12 @@ function util_installprereq(){
             util_checkAndInstall "ethtool" "ethtool"
             util_checkAndInstall "gethostip" "syslinux-utils"
             util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "google-perftools"
+            util_checkAndInstall "llvm-symbolizer" "llvm"
         elif [ "$(getOS)" = "suse" ]; then
             util_checkAndInstall "createrepo" "createrepo"
             util_checkAndInstall "perf" "perf"
             util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
+            util_checkAndInstall "llvm-symbolizer" "llvm-toolset"
         fi
         #util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf-c"
         #util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf"
