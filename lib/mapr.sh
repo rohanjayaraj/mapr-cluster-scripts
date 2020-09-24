@@ -5696,10 +5696,10 @@ function maprutil_dedupASANErrors() {
     local j=0
     local currbuildid=
 
-    local lines=$(cat ${asanfile} | grep -n -e "Build:" -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY" -e " leak " -e "^$")
+    local lines=$(cat ${asanfile} | grep -n -e "Build:" -e "^[[:space:]]*==" -e "^[[:space:]]*SUMMARY" -e "runtime error:" -e " leak " -e "^$")
     while read -r fl; do
         [ -n "$(echo "$fl" | grep "Build:")" ] && currbuildid="$(echo "${fl}" | cut -d':' -f3-)" && continue
-        [ -z "$(echo "$fl" | grep leak)" ] && [ -z "$(echo "$fl" | grep Sanitizer)" ] && continue
+        [ -z "$(echo "$fl" | grep leak)" ] && [ -z "$(echo "$fl" | grep Sanitizer)" ] && [ -z "$(echo "$fl" | grep ": runtime error:")" ] && continue
         read -r sl
         local fln=$(echo "$fl" | cut -d':' -f1)
         local sln=$(echo "$sl" | cut -d':' -f1)
