@@ -2501,7 +2501,7 @@ function maprutil_setupasanmfs(){
         mv /opt/mapr/server/mfs /opt/mapr/server/mfs.original > /dev/null 2>&1
         cp opt/mapr/server/mfs /opt/mapr/server/mfs > /dev/null 2>&1
         local mfsasanoptions="detect_leaks=0 halt_on_error=0"
-        local mfsasanso=$(ldd /opt/mapr/server/mfs 2>/dev/null | grep -oh "/[-a-z0-9_/]*libasan.so.[0-9]*")
+        local mfsasanso=$(ldd /opt/mapr/server/mfs 2>/dev/null | grep -oh -e "/[-a-z0-9_/]*libasan.so.[0-9]*" -e "/[-a-z0-9_/]*libubsan.so.[0-9]*" | sed ':a;N;$!ba;s/\n/:/g')
         [ -n "${GLB_ASAN_OPTIONS}" ] && mfsasanoptions="$mfsasanoptions ${GLB_ASAN_OPTIONS}"
     
         if [ "$nodeos" = "ubuntu" ]; then
@@ -2517,7 +2517,7 @@ function maprutil_setupasanmfs(){
         log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
     fi
 
-    local asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null | grep -oh "/[-a-z0-9_/]*libasan.so.[0-9]*")
+    local asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null | grep -oh -e "/[-a-z0-9_/]*libasan.so.[0-9]*" -e "/[-a-z0-9_/]*libubsan.so.[0-9]*" | sed ':a;N;$!ba;s/\n/:/g')
     local asanoptions="handle_segv=0"
     [ -n "$GLB_ASAN_OPTIONS" ] && asanoptions="${asanoptions} ${GLB_ASAN_OPTIONS}"
 
@@ -2546,7 +2546,7 @@ function maprutil_setupasanmfs(){
     # Copy client asan libraries
     pushd $ctempdir  > /dev/null 2>&1
     if  [ -s "opt/mapr/lib/libMapRClient.so.1" ] && [ -s "/opt/mapr/lib/libMapRClient.so.1" ]; then
-        [ -z "$asanso" ] && asanso=$(ldd opt/mapr/lib/libMapRClient.so.1 2>/dev/null| grep -oh "/[-a-z0-9_/]*libasan.so.[0-9]*")
+        [ -z "$asanso" ] && asanso=$(ldd opt/mapr/lib/libMapRClient.so.1 2>/dev/null| grep -oh -e "/[-a-z0-9_/]*libasan.so.[0-9]*" -e "/[-a-z0-9_/]*libubsan.so.[0-9]*" | sed ':a;N;$!ba;s/\n/:/g') 
         local asanbinlist="libMapRClient.so.1 libMapRClient_c.so.1"
         for asanbin in $asanbinlist; do
             cp opt/mapr/lib/${asanbin} /opt/mapr/lib/${asanbin}.asan > /dev/null 2>&1
@@ -5585,7 +5585,7 @@ function maprutil_analyzeASAN(){
     for log in $asanlogs; 
     do
         [ ! -s "${log}" ] && continue
-        local asan=$(grep -na "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" ${log} | grep -v HINT | cut -d':' -f1)
+        local asan=$(grep -na -e "==[0-9A-Z=]*: [a-zA-Z]*Sanitizer" -e "SUMMARY: [a-zA-Z]*Sanitizer" ${log} | grep -v HINT | cut -d':' -f1)
         [ -n "${asan}" ] && haslogs="$haslogs $log"
     done
 
@@ -5604,7 +5604,7 @@ function maprutil_analyzeASAN(){
     
     for errlog in $haslogs;
     do
-        local grepcmd="grep -na  -e \"==[0-9A-Z=]*: [a-zA-Z]*Sanitizer\" -e \"SUMMARY:\" ${errlog} | grep -v HINT"
+        local grepcmd="grep -na  -e \"==[0-9A-Z=]*: [a-zA-Z]*Sanitizer\" -e \": runtime error:\" -e \"SUMMARY: [a-zA-Z]*Sanitizer\" ${errlog} | grep -v HINT"
         [ -n "${ignoreAllocDealloc}" ] && grepcmd="${grepcmd} | grep -v \"Sanitizer: alloc-dealloc-mismatch\""
         [ -n "${ignoreLeakSanitizer}" ] && grepcmd="${grepcmd} | grep -v \"LeakSanitizer\""
         
@@ -5618,6 +5618,7 @@ function maprutil_analyzeASAN(){
             [ -z "$(echo "$sline" | grep SUMMARY)" ] && continue
 
             local isleak=$(echo "$fline" | grep LeakSanitizer)
+            local isubsan=$(echo "$fline" | grep ": runtime error:")
             fline=$(echo "$fline" | cut -d':' -f1)
             sline=$(echo "$sline" | cut -d':' -f1)
 
@@ -5645,6 +5646,8 @@ function maprutil_analyzeASAN(){
                     fi
                 done <<< "$leakasan"
                 trace="$newtrace"
+            elif [ -n "${isubsan}" ]; then
+                filelineno=$(echo "$trace" | grep ": runtime error:" | awk '{print $1}')
             else
                 local tracethreads=$(echo "$trace" | grep -n -e "Thread T" -e "#1 " -e "^$")
                 local ilines=

@@ -163,7 +163,7 @@ function util_maprprereq(){
     syslinux sysstat"
     local DEPENDENCY_RPM="$DEPENDENCY_BASE_RPM device-mapper iputils \
     libsysfs lvm2 nc nfs-utils nss ntp openssh-clients openssh-server \
-    python-devel python-pycurl rpcbind sdparm sshpass sysstat libasan"
+    python-devel python-pycurl rpcbind sdparm sshpass sysstat libasan libubsan"
     local DEPENDENCY_SUSE="$DEPENDENCY_BASE_SUSE libopenssl1_0_0 \
     netcat-openbsd nfs-client openssl syslinux tar util-linux vim openssh \
     device-mapper iputils lvm2 mozilla-nss ntp sdparm sysfsutils sysstat util-linux python-pycurl"
