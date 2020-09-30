@@ -164,6 +164,7 @@ GLB_SLACK_TRACE=
 GLB_PERF_OPTION=
 GLB_PERF_INTERVAL=
 GLB_ASAN_OPTIONS=
+GLB_ENABLE_UBSAN=
 GLB_SSLKEY_COPY=1
 GLB_EXT_ARGS=
 GLB_EXIT_ERRCODE=
@@ -1321,6 +1322,8 @@ while [ "$2" != "" ]; do
     				doASAN=1
     			elif [[ "$i" = "asanall" ]]; then
     				doASAN=2
+    			elif [[ "$i" = "ubsan" ]]; then
+    				GLB_ENABLE_UBSAN=1
     			elif [[ "$i" = "downloadbins" ]]; then
     				GLB_FORCE_DOWNLOAD=1
     			fi

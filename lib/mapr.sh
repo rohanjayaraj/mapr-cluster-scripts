@@ -2454,7 +2454,10 @@ function maprutil_setupasanmfs(){
     local asanrepo="http://artifactory.devops.lab/artifactory/core-deb/master-asan/"
     if [ "$nodeos" = "centos" ]; then 
         asanrepo="http://artifactory.devops.lab/artifactory/core-rpm/master-centos7-asan/"
-        [[ "$(getOSReleaseVersion)" -ge "8" ]] && asanrepo="http://artifactory.devops.lab/artifactory/core-rpm/master-centos8-asan/"
+        if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
+            asanrepo="http://artifactory.devops.lab/artifactory/core-rpm/master-centos8-asan/"
+            [[ -n "${GLB_ENABLE_UBSAN}" ]] && asanrepo="http://artifactory.devops.lab/artifactory/core-rpm/master-centos8-ubsan/"
+        fi
     fi
 
     local ubsanoptions="print_stacktrace=1"
@@ -2930,7 +2933,7 @@ function maprutil_runCommands(){
                 maprutil_queryservice
             ;;
             asanmfs)
-                maprutil_setupasanmfs
+                maprutil_setupasanmfs "mfs"
             ;;
             asanclient)
                 maprutil_setupasanmfs "client"
