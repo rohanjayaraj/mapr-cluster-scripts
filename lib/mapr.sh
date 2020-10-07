@@ -479,9 +479,11 @@ function maprutil_getMapRVersionOnNode(){
     local patch=
     local nodeos=$(getOSFromNode $node)
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
-        patch=$(ssh_executeCommandasRoot "$node" "rpm -qa | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1")
+        patch=$(ssh_executeCommandasRoot "$node" "rpm -qa | grep mapr-patch-[0-9] | cut -d'-' -f4 | cut -d'.' -f1")
+        [[ "${patch}" -eq "1" ]] &&  patch=$(ssh_executeCommandasRoot "$node" "rpm -qa | grep mapr-patch-[0-9] | cut -d'-' -f3")
     elif [ "$nodeos" = "ubuntu" ]; then
-        patch=$(ssh_executeCommandasRoot "$node" "dpkg -l | grep mapr-patch | awk '{print $3}' | cut -d'-' -f4 | cut -d'.' -f1")
+        patch=$(ssh_executeCommandasRoot "$node" "dpkg -l | grep mapr-patch-[0-9] | awk '{print $3}' | cut -d'-' -f4 | cut -d'.' -f1")
+        [[ "${patch}" -eq "1" ]] &&  patch=$(ssh_executeCommandasRoot "$node" "dpkg -l | grep mapr-patch-[0-9] | awk '{print $3}' | cut -d'-' -f3")
     fi
     [ -n "$patch" ] && patch=" (patch ${patch})"
     if [ -n "$version" ]; then
@@ -3395,12 +3397,14 @@ function maprutil_getMapRInfo(){
     local bins=
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
         local rpms=$(rpm -qa | grep mapr)
-        patch=$(echo "$rpms" | grep mapr-patch | cut -d'-' -f4 | cut -d'.' -f1)
+        patch=$(echo "$rpms" | grep mapr-patch-[0-9] | cut -d'-' -f4 | cut -d'.' -f1)
+        [[ "${patch}" -eq "1" ]] && patch=$(echo "$rpms" | grep mapr-patch-[0-9] | cut -d'-' -f3)
         client=$(echo "$rpms" | grep mapr-client | cut -d'-' -f3)
         bins=$(echo "$rpms" | grep mapr- | sort | sed 's/-[0-9].*//' | tr '\n' ' ')
     elif [ "$nodeos" = "ubuntu" ]; then
         local debs=$(dpkg -l | grep mapr)
         patch=$(echo "$debs" | grep mapr-patch | awk '{print $3}' | cut -d'-' -f2)
+        [[ "${patch}" -eq "1" ]] && patch=$(echo "$debs" | grep mapr-patch | awk '{print $3}' | cut -d'-' -f3)
         client=$(echo "$debs" | grep mapr-client | awk '{print $3}' | cut -d'-' -f1)
         bins=$(echo "$debs" | grep mapr- | awk '{print $2}' | sort | tr '\n' ' ')
     fi
