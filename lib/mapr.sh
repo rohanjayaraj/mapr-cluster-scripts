@@ -495,6 +495,7 @@ function maprutil_getMapRVersion(){
     local version=$(cat /opt/mapr/MapRBuildVersion 2> /dev/null)
     [ -z "${version}" ] && return
     local patch=$(cat /opt/mapr/.patch/conf.new/mapr-build.properties.p* 2> /dev/null | grep "mapr.builddate" | awk -F'=' '{print $2}')
+    [ -z "${patch}" ] && patch=$(cat /opt/mapr/.mapr-patch/opt/mapr/conf.new/mapr-build.properties.U 2> /dev/null | grep "mapr.builddate" | awk -F'=' '{print $2}')
     [ -z "${patch}" ] && patch=$(ls /opt/mapr/.patch/README.* 2> /dev/null | cut -d '.' -f3 | tr -d 'p')
     [ -n "${patch}" ] && version="${version} (patch ${patch})"
     echo "${version}"
@@ -5386,6 +5387,7 @@ function maprutil_perftool(){
 
 function maprutil_getMFSCommitID(){
     local commitid=$(cat /opt/mapr/.patch/conf.new/mapr-build.properties.p* 2>/dev/null  | grep "mapr.buildversion" | awk -F'=' '{print $2}')
+    [ -z "${commitid}" ] && commitid=$(cat /opt/mapr/.mapr-patch/opt/mapr/conf.new/mapr-build.properties.U 2>/dev/null  | grep "mapr.buildversion" | awk -F'=' '{print $2}')
     [ -z "${commitid}" ] && commitid=$(cat /opt/mapr/conf/mapr-build.properties 2>/dev/null | grep "mapr.buildversion" | awk -F'=' '{print $2}')
     [ -n "${commitid}" ] && echo "${commitid}" && return
     [ ! -s "/opt/mapr/server/mfs" ] && return
