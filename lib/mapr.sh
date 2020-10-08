@@ -3400,13 +3400,15 @@ function maprutil_getMapRInfo(){
         local rpms=$(rpm -qa | grep mapr)
         patch=$(echo "$rpms" | grep mapr-patch-[0-9] | cut -d'-' -f4 | cut -d'.' -f1)
         [[ "${patch}" -eq "1" ]] && patch=$(echo "$rpms" | grep mapr-patch-[0-9] | cut -d'-' -f3)
-        client=$(echo "$rpms" | grep mapr-client | cut -d'-' -f3)
+        client=$(echo "$rpms" | grep mapr-patch-client | cut -d'-' -f4)
+        [ -z "${client}" ] && client=$(echo "$rpms" | grep mapr-client | cut -d'-' -f3)
         bins=$(echo "$rpms" | grep mapr- | sort | sed 's/-[0-9].*//' | tr '\n' ' ')
     elif [ "$nodeos" = "ubuntu" ]; then
         local debs=$(dpkg -l | grep mapr)
         patch=$(echo "$debs" | grep mapr-patch | awk '{print $3}' | cut -d'-' -f2)
         [[ "${patch}" -eq "1" ]] && patch=$(echo "$debs" | grep mapr-patch | awk '{print $3}' | cut -d'-' -f3)
-        client=$(echo "$debs" | grep mapr-client | awk '{print $3}' | cut -d'-' -f1)
+        client=$(echo "$debs" | grep mapr-patch-client | awk '{print $3}' | cut -d'-' -f1)
+        [ -z "${client}" ] && client=$(echo "$debs" | grep mapr-client | awk '{print $3}' | cut -d'-' -f1)
         bins=$(echo "$debs" | grep mapr- | awk '{print $2}' | sort | tr '\n' ' ')
     fi
     [ -n "$patch" ] && version="$version (patch ${patch})"
