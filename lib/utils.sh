@@ -175,14 +175,14 @@ function util_maprprereq(){
     device-mapper iputils lvm2 mozilla-nss ntp sdparm sysfsutils sysstat util-linux python-pycurl"
 
     local opts=$(util_getInstallerOptions)
-    if [ "$(getOS)" = "centos" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ ntp / chrony /')
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ python-devel / /')
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ python-pycurl / libcurl libcurl-devel /')
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ nss / nss.x86_64 nss-util nss-softokn /')
         fi
-        yum --disablerepo=epel -q -y update ca-certificates 
+        [ "$(getOS)" = "centos" ] && yum --disablerepo=epel -q -y update ca-certificates 
         yum -q -y --nogpgcheck install redhat-lsb-core ${opts}
         yum -q -y --nogpgcheck install $DEPENDENCY_RPM ${opts}
         yum -q -y --nogpgcheck install java-1.8.0-openjdk-devel ${opts}
@@ -202,8 +202,6 @@ function util_maprprereq(){
         zypper --non-interactive -q install lsb-release
         zypper --non-interactive -q install -n $DEPENDENCY_SUSE
         zypper --non-interactive -q install -n java-1_8_0-openjdk-devel
-    elif [[ "$(getOS)" = "oracle" ]]; then
-        log_warn "No pre-requisites installed for OEL node"
     fi
 
     if [ -z "$(getent passwd mapr)" ]; then
@@ -231,6 +229,10 @@ function util_installprereq(){
             #yum repolist enabled 2>&1 | grep BaseOS || yum-config-manager --enable BaseOS > /dev/null 2>&1
             #yum repolist enabled 2>&1 | grep AppStream || yum-config-manager --enable AppStream > /dev/null 2>&1
         #fi
+    elif [ "$(getOS)" = "oracle" ]; then
+        local osver=$(getOSReleaseVersion)
+        yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-${osver}.noarch.rpm -y --nogpgcheck > /dev/null 2>&1
+        yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
     fi
 
     [ -z "$(getent passwd mapr)" ] && [ -n "$(util_isBareMetal)" ] && util_maprprereq
@@ -1164,7 +1166,7 @@ function util_getNearestPower2() {
 }
 
 function util_restartSSHD(){
-    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [ "$(getOS)" = "oracle" ]; then
         service sshd restart > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         service ssh restart > /dev/null 2>&1
