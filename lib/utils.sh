@@ -19,6 +19,8 @@ function getOSFromNode(){
     local osstr="$(ssh root@$1 lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2 )"
     if [ -n "$(echo $osstr | grep -i redhat)" ]; then
         echo "centos"
+    elif [[ -n "$(echo $osstr | grep -i oracle)" ]]; then
+        echo "oracle"
     else 
         echo "$osstr"
     fi
@@ -28,6 +30,8 @@ function getOS(){
     local osstr="$(lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2)"
     if [ -n "$(echo $osstr | grep -i redhat)" ]; then
         echo "centos"
+    elif [[ -n "$(echo $osstr | grep -i oracle)" ]]; then
+        echo "oracle"
     else 
         echo "$osstr"
     fi
@@ -109,7 +113,7 @@ function util_getInstallerOptions(){
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && opts="--allow-unauthenticated"
     elif [[ "$(getOS)" = "suse" ]]; then
         opts="--no-gpg-checks --non-interactive"
-    elif [[ "$(getOS)" = "oracleserver" ]]; then
+    elif [[ "$(getOS)" = "oracle" ]]; then
         opts="--nogpgcheck"
     fi
 
@@ -123,7 +127,7 @@ function util_checkAndInstall(){
         return
     fi
     local opts=$(util_getInstallerOptions)
-    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracleserver" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
         command -v $1 >/dev/null 2>&1 || yum ${opts} install $2 -y -q 2>/dev/null
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         command -v $1 >/dev/null 2>&1 || apt-get -y ${opts} install $2 2>/dev/null
@@ -140,7 +144,7 @@ function util_checkAndInstall2(){
         return
     fi
     local opts=$(util_getInstallerOptions)
-    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracleserver" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
         if [ ! -e "$1" ]; then
             yum install $2 -y -q ${opts} 2>/dev/null
         fi
@@ -198,7 +202,7 @@ function util_maprprereq(){
         zypper --non-interactive -q install lsb-release
         zypper --non-interactive -q install -n $DEPENDENCY_SUSE
         zypper --non-interactive -q install -n java-1_8_0-openjdk-devel
-    elif [[ "$(getOS)" = "oracleserver" ]]; then
+    elif [[ "$(getOS)" = "oracle" ]]; then
         log_warn "No pre-requisites installed for OEL node"
     fi
 
@@ -254,7 +258,7 @@ function util_installprereq(){
         util_checkAndInstall "lstopo" "hwloc"
         util_checkAndInstall "iperf3" "iperf3"
         util_checkAndInstall "gdb" "gdb"
-        if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracleserver" ]; then
+        if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
             util_checkAndInstall "yum-config-manager" "yum-utils"
             util_checkAndInstall "lstopo" "hwloc-gui"
             util_checkAndInstall "createrepo" "createrepo"
@@ -283,7 +287,7 @@ function util_installprereq(){
         util_checkAndInstall2 "/usr/bin/python3" "python3"
     fi
 
-    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracleserver" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
         util_checkAndInstall "host" "bind-utils"
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         util_checkAndInstall "gzip" "gzip"
@@ -310,7 +314,7 @@ function util_checkAndInstallJDK11(){
     local isInstalled=$(util_isJavaVersionInstalled "11")
     local opts=$(util_getInstallerOptions)
     if [ -z "${isInstalled}" ]; then
-        if [[ "${nodeos}" = "centos" ]] || [[ "$(getOS)" = "oracleserver" ]]; then
+        if [[ "${nodeos}" = "centos" ]] || [[ "$(getOS)" = "oracle" ]]; then
             [[ "$(getOSReleaseVersion)" -ge "7" ]] && yum -q -y install java-11-openjdk-devel ${opts}
         elif [[ "${nodeos}" = "ubuntu" ]] && [[ "$(getOSReleaseVersion)" -ge "16" ]]; then
             apt-get -qq -y $opts install openjdk-11-jdk
@@ -404,7 +408,7 @@ function util_checkPackageExists(){
         return
     fi
     local retval=
-    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracleserver" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
         retval=$(yum --showduplicates list $1 | grep "^$1" | awk '{print $2}' | grep -who "[0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         retval=$(apt-cache policy $1 | grep -v "file://" | grep -who " [0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
@@ -421,7 +425,7 @@ function util_getInstalledBinaries(){
     fi
     local bin=$(echo "$1" | sed 's/*/.*/g')
 
-    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [[ "$(getOS)" = "oracleserver" ]]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [[ "$(getOS)" = "oracle" ]]; then
         echo $(rpm -qa | grep "$bin" | awk '{split ($0, a, "-0"); print a[1]}' | sort | sed ':a;N;$!ba;s/\n/ /g')
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         echo $(dpkg -l | grep "$bin" | awk '{print $2}' | sort | sed ':a;N;$!ba;s/\n/ /g')
@@ -443,13 +447,13 @@ function util_appendVersionToPackage(){
         if [ -n "$binexists" ]; then
             [ -z "${prefix}" ] && prefix="-$(echo "${binexists}" | cut -d'.' -f1-3 )"
             if [ -z "$newbins" ]; then
-                if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [ "$(getOS)" = "oracleserver" ]; then
+                if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [ "$(getOS)" = "oracle" ]; then
                     newbins="$bin$prefix*$version*"
                 elif [[ "$(getOS)" = "ubuntu" ]]; then
                     newbins="$bin=${binexists}"
                 fi
             else
-                if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [ "$(getOS)" = "oracleserver" ]; then
+                if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [ "$(getOS)" = "oracle" ]; then
                     newbins=$newbins" $bin$prefix*$version*"
                 elif [[ "$(getOS)" = "ubuntu" ]]; then
                     newbins=$newbins" $bin=${binexists}"
@@ -480,7 +484,7 @@ function util_checkInstallAndRetry(){
         log_info "[$hostip] Not all binaries were installed [Expected: $numbins, Installed: $actbins]. Retrying after sleeping for 60s"
         sleep 60
         log_info "[$hostip] Retry: Installing packages : $1"
-        if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracleserver" ]; then
+        if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
             stdbuf -i0 -o0 -e0 yum install ${1} -y --nogpgcheck 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         elif [[ "$(getOS)" = "ubuntu" ]]; then
             local opts="--force-yes"
@@ -515,7 +519,7 @@ function util_installBinaries(){
         actbins="$bins"
     fi
     log_info "[$hostip] Installing packages : $bins"
-    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracleserver" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
         yum clean all > /dev/null 2>&1
         [ -z "${actbins}" ] && actbins="$(util_getExistingBinaries "$bins")"
         if [ -n "$(util_isHPENode "$hostip")" ]; then
@@ -543,7 +547,7 @@ function util_getExistingBinaries(){
     [ -z "$1" ] && return
     local bins="$1"
     local newbins=
-    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracleserver" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
         newbins=$(for i in $bins; do k=$(yum search ${i} 2> /dev/null| grep "^${i}" | cut -d'.' -f1 | grep "${i}$"); [ -n "$k" ] && echo ${i}; done | tr '\n' ' ')
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         newbins=$(for i in $bins; do k=$(apt-cache search ${i} 2> /dev/null| awk '{print $1}' | grep "^${i}$"); [ -n "$k" ] && echo ${i}; done | tr '\n' ' ')
@@ -561,7 +565,7 @@ function util_upgradeBinaries(){
     local bins="$1"
     local hostip=$(util_getHostIP)
     log_info "[$hostip] Upgrading packages : $bins"
-    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracleserver" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
         if [ -n "$2" ]; then
             bins=$(util_appendVersionToPackage "$1" "$2")
         fi
@@ -598,7 +602,7 @@ function util_removeBinaries(){
     [ -z "$rembins" ] && return
 
     log_info "[$(util_getHostIP)] Removing packages : $rembins"
-    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [ "$(getOS)" = "oracleserver" ]; then
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [ "$(getOS)" = "oracle" ]; then
         rpm -ef $rembins > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get -y remove --purge $rembins

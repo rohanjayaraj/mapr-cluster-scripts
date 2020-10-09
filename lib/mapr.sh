@@ -478,7 +478,7 @@ function maprutil_getMapRVersionOnNode(){
     local version=$(ssh_executeCommandasRoot "$node" "[ -e '/opt/mapr/MapRBuildVersion' ] && cat /opt/mapr/MapRBuildVersion")
     local patch=
     local nodeos=$(getOSFromNode $node)
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         patch=$(ssh_executeCommandasRoot "$node" "rpm -qa | grep mapr-patch-[0-9] | cut -d'-' -f4 | cut -d'.' -f1")
         [[ "${patch}" -eq "1" ]] &&  patch=$(ssh_executeCommandasRoot "$node" "rpm -qa | grep mapr-patch-[0-9] | cut -d'-' -f3")
     elif [ "$nodeos" = "ubuntu" ]; then
@@ -733,7 +733,7 @@ function maprutil_uninstall(){
 
     # Run Yum clean
     local nodeos=$(getOS $node)
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         yum clean all > /dev/null 2>&1
         yum-complete-transaction --cleanup-only > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
@@ -933,7 +933,7 @@ function maprutil_installBinariesOnNode(){
     [ -n "$maprpatch" ] && bins=$(echo "$bins" | tr ' ' '\n' | grep -v mapr-patch | tr '\n' ' ')
     
     ## Append MapR release version as there might be conflicts with mapr-patch-client with regex as 'mapr-patch*$VERSION*'
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         if [[ "${nodeosver}" -eq "7" ]] && [[ -n "$(echo ${GLB_MAPR_VERSION} | grep 6.2)" ]]; then
             bins=$(echo "${bins}" | sed 's/mapr-collectd//g')
             [ -z "$bins" ] && return
@@ -988,7 +988,7 @@ function maprutil_reinstallApiserver(){
     local haswebserver=$(echo $(maprutil_getNodesForService "mapr-webserver") | grep "$hostip")
     [ -z "$hasapi" ] && [ -z "$haswebserver" ] && return
     local nodeos=$(getOS)
-    [ "$nodeos" = "oracleserver" ] && return
+    [ "$nodeos" = "oracle" ] && return
 
     log_info "[$hostip] Removing and installed EBF builds for apiserver/webserver"
 
@@ -2042,7 +2042,7 @@ function maprutil_checkBuildExists(){
     local retval=
     local repolist=
     local nodeos=$(getOSFromNode $node)
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
         repolist=$(ssh_executeCommandasRoot "$node" "yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv 'mep\|opensource\|file://\|ebf' | grep Repo-baseurl | cut -d':' -f2- | tr -d ' ' | head -1")
         retval=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep $buildid")
@@ -2072,7 +2072,7 @@ function maprutil_checkBuildExists2(){
 
     local searchkey="mapr-fileserver*${buildid}*"
     local nodeos=$(getOSFromNode $node)
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         searchkey="${searchkey}.rpm"
     elif [ "$nodeos" = "ubuntu" ]; then
         searchkey="${searchkey}.deb"
@@ -2098,7 +2098,7 @@ function maprutil_checkNewBuildExists(){
     local curchangeset=$(echo $buildid | awk -F'.' '{print $(NF-1)}')
     local newchangeset=
     local nodeos=$(getOSFromNode $node)
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         #ssh_executeCommandasRoot "$node" "yum clean all" > /dev/null 2>&1
         newchangeset=$(ssh_executeCommandasRoot "$node" "yum clean all > /dev/null 2>&1; yum --showduplicates list mapr-core | grep -v '$curchangeset' | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | tail -n1 | awk '{print \$2}' | awk -F'.' '{print \$(NF-1)}'")
     elif [ "$nodeos" = "ubuntu" ]; then
@@ -2119,7 +2119,7 @@ function maprutil_getMapRVersionFromRepo(){
     local node=$1
     local nodeos=$(getOSFromNode $node)
     local maprversion=
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         maprversion=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core 2> /dev/null | sort -k2 | grep mapr-core | awk '{if(match(\$2,/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\.[a-zA-Z]*/)) print \$0}' | grep -v -e "6.2.0.20" | tail -n 1 | awk '{print \$2}' | cut -d'.' -f1-4")
     elif [ "$nodeos" = "ubuntu" ]; then
         maprversion=$(ssh_executeCommandasRoot "$node" "apt-cache policy mapr-core 2> /dev/null | grep Candidate | grep -v none | awk '{print \$2}' | cut -d'.' -f1-4")
@@ -2145,7 +2145,7 @@ function maprutil_copyRepoFile(){
     local repofile=$2
     local repofilename=$(basename $repofile)
     local nodeos=$(getOSFromNode $node)
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         ssh_executeCommandasRoot "$1" "sed -i 's/^enabled.*/enabled=0/g' /etc/yum.repos.d/*mapr*.repo > /dev/null 2>&1" > /dev/null 2>&1
         #ssh_executeCommandasRoot "$1" "yum-config-manager --disable \\*" > /dev/null 2>&1
         #ssh_executeCommandasRoot "$1" "yum repolist | grep -i mapr | awk '{print \$1}' | tr '\n' ',' | sed 's/,$//g' > /dev/null 2>&1" > /dev/null 2>&1
@@ -2176,7 +2176,7 @@ function maprutil_buildPatchRepoURL(){
     local repofile=$2
     local repopatch=
     local nodeos=$(getOSFromNode $node)
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         repopatch=$(cat $repofile 2>/dev/null | grep -B2 -A2 d=1 | grep patch | grep baseurl | cut -d '=' -f2)
         if [ -n "$repopatch" ]; then
             GLB_PATCH_REPOFILE=${repopatch}
@@ -2205,7 +2205,7 @@ function maprutil_buildRepoFile(){
     local meprepo=
     repourl=$(echo $repourl | sed 's/oel/redhat/g')
 
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         meprepo="http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
@@ -2214,7 +2214,7 @@ function maprutil_buildRepoFile(){
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | | sed 's/eco-deb/eco-rpm/g')
         [ -n "$(echo "$repourl" | grep ubuntu)" ] && repourl=$(echo $repourl | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
-        [ "$nodeos" = "oracleserver" ] && repourl=$(echo $repourl | sed 's/redhat/oel/g')
+        [ "$nodeos" = "oracle" ] && repourl=$(echo $repourl | sed 's/redhat/oel/g')
 
         echo "[QA-CustomOpensource]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
@@ -2267,7 +2267,7 @@ function maprutil_buildRepoFile(){
 function maprutil_getRepoURL(){
     local nodeos=$(getOS)
     
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         yum clean all > /dev/null 2>&1
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv 'mep\|opensource\|file://\|ebf' | grep Repo-baseurl | cut -d':' -f2- | tr -d " " | head -1)
         echo "$repolist"
@@ -2284,7 +2284,7 @@ function maprutil_getRepoURL(){
 
 function maprutil_getPatchRepoURL(){
     local nodeos=$(getOS)
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv 'mep\|opensource\|file://' | grep Repo-baseurl | grep -i EBF | cut -d':' -f2- | tr -d " " | head -1)
         echo "$repolist"
     elif [ "$nodeos" = "ubuntu" ]; then
@@ -2298,7 +2298,7 @@ function maprutil_getPatchRepoURL(){
 
 function maprutil_disableAllRepo(){
     local nodeos=$(getOS)
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv opensource | grep Repo-id | cut -d':' -f2 | tr -d " ")
         for repo in $repolist
         do
@@ -2326,7 +2326,7 @@ function maprutil_disableRepoByURL(){
     local nodeos=$(getOS)
     local repourl="$1"
     
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         local repofiles=$(grep "enabled=1" /etc/yum.repos.d/* | uniq | cut -d':' -f1)
         local repoline=$(grep -Hn "^baseurl=${repourl}" $repofiles)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
@@ -2351,7 +2351,7 @@ function maprutil_enableRepoByURL(){
     local repourl="$1"
     local nodeos=$(getOS)
     
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         local repofiles=$(grep "enabled=1" /etc/yum.repos.d/* | uniq | cut -d':' -f1)
         local repoline=$(grep -Hn "^baseurl=${repourl}" $repofiles)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
@@ -2389,7 +2389,7 @@ function maprutil_addLocalRepo(){
     [ -n "$(echo "$meprepo" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | sed 's/eco-deb/eco-rpm/g')
 
     log_info "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         echo "[QA-CustomOpensource-$GLB_BUILD_VERSION]" > $repofile
         echo "name=MapR Latest Build QA Repository" >> $repofile
         echo "baseurl=$meprepo" >> $repofile
@@ -2449,7 +2449,7 @@ function maprutil_addLocalRepo(){
 function maprutil_setupasanmfs(){
     local setupclient="$1"
     local nodeos=$(getOS)
-    if [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         log_warn "[$(util_getHostIP)] ASAN is currently NOT supported on SUSE"
         return
     fi
@@ -2696,7 +2696,7 @@ function maprutil_downloadBinaries(){
     pushd $dlddir > /dev/null 2>&1
     
     local ignorelist="mapr-core-internal*.nonstrip.*,mapr-cisco*,mapr-apple*,mapr-azure*,mapr-amadeus*,mapr-awsmp*,mapr-compat*,mapr-emc*,mapr-ericsson*,mapr-philips*,mapr-sap*,mapr-uber*,mapr-genericgolden*,mapr-cloudpartner*,mapr-single-node*,mapr-creditagricole*,mapr-upgrade*"
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         wget -r -np -nH -nd --cut-dirs=1 -R "${ignorelist}" --accept "*${searchkey}*.rpm" ${repourl} > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
         wget -r -np -nH -nd --cut-dirs=1 -R "${ignorelist}" --accept "*${searchkey}*.deb" ${repourl} > /dev/null 2>&1
@@ -2708,9 +2708,9 @@ function maprutil_downloadBinaries(){
 
         local relrepo=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v${mversion}/redhat/
 
-        if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
+        if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
             [ "$nodeos" = "suse" ] && relrepo=$(echo "$relrepo" | sed 's/redhat/suse/g')
-            [ "$nodeos" = "oracleserver" ] && relrepo=$(echo "$relrepo" | sed 's/redhat/oel/g')
+            [ "$nodeos" = "oracle" ] && relrepo=$(echo "$relrepo" | sed 's/redhat/oel/g')
             
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-apiserver*.rpm" ${relrepo} > /dev/null 2>&1
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-webserver*.rpm" ${relrepo} > /dev/null 2>&1
@@ -2721,7 +2721,7 @@ function maprutil_downloadBinaries(){
         fi
     fi
 
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         popd > /dev/null 2>&1
         createrepo $dlddir > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
@@ -3403,7 +3403,7 @@ function maprutil_getMapRInfo(){
     local patch=
     local client=
     local bins=
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         local rpms=$(rpm -qa | grep mapr)
         patch=$(echo "$rpms" | grep mapr-patch-[0-9] | cut -d'-' -f4 | cut -d'.' -f1)
         [[ "${patch}" -eq "1" ]] && patch=$(echo "$rpms" | grep mapr-patch-[0-9] | cut -d'-' -f3)
