@@ -1092,7 +1092,7 @@ function main_getRepoFile(){
 	local repofile=
 
 	local nodeos=$(getOSFromNode $node)
-	if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ]; then
+	if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracleserver" ]; then
        maprrepo=$repodir"/mapr.repo"
 	   repofile="$repodir/mapr2.repo"
     elif [ "$nodeos" = "ubuntu" ]; then
