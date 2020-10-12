@@ -2711,7 +2711,7 @@ function maprutil_downloadBinaries(){
         if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
             [ "$nodeos" = "suse" ] && relrepo=$(echo "$relrepo" | sed 's/redhat/suse/g')
             [ "$nodeos" = "oracle" ] && relrepo=$(echo "$relrepo" | sed 's/redhat/oel/g')
-            
+
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-apiserver*.rpm" ${relrepo} > /dev/null 2>&1
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-webserver*.rpm" ${relrepo} > /dev/null 2>&1
         elif [ "$nodeos" = "ubuntu" ]; then
@@ -4127,7 +4127,7 @@ function maprutil_restartZKOnNode() {
 }
 
 function maprutil_removemMapRPackages(){
-   
+    util_removeBinaries "mapr-patch"
     util_removeBinaries "mapr-"
 }
 
