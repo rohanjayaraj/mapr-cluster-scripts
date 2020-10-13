@@ -2450,7 +2450,7 @@ function maprutil_setupasanmfs(){
     local setupclient="$1"
     local nodeos=$(getOS)
     if [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
-        log_warn "[$(util_getHostIP)] ASAN is currently NOT supported on SUSE"
+        log_warn "[$(util_getHostIP)] ASAN/UBSAN is currently NOT supported on SUSE"
         return
     fi
 
@@ -2529,7 +2529,8 @@ function maprutil_setupasanmfs(){
         log_info "[$(util_getHostIP)] Replaced MFS w/ ${isAsan} MFS binary"
     fi
 
-    local asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null | grep -oh -e "/[-a-z0-9_/]*libasan.so.[0-9]*" -e "/[-a-z0-9_/]*libubsan.so.[0-9]*" | sed ':a;N;$!ba;s/\n/:/g')
+    local asanso="$(util_getASANPreloads)"
+    [ -z "${asanso}" ] && asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null | grep -oh -e "/[-a-z0-9_/]*libasan.so.[0-9]*" -e "/[-a-z0-9_/]*libubsan.so.[0-9]*" | sed ':a;N;$!ba;s/\n/:/g')
     local asanoptions="handle_segv=0"
     [ -n "$GLB_ASAN_OPTIONS" ] && asanoptions="${asanoptions} ${GLB_ASAN_OPTIONS}"
 

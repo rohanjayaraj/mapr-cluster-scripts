@@ -166,7 +166,7 @@ function util_maprprereq(){
     local DEPENDENCY_BASE_SUSE="aaa_base curl net-tools sudo timezone wget which"
     local DEPENDENCY_DEB="$DEPENDENCY_BASE_DEB debianutils libnss3 libsysfs2 netcat ntp \
     ntpdate openssh-client openssh-server python-dev python-pycurl sdparm sshpass \
-    syslinux sysstat"
+    syslinux sysstat libasan libubsan"
     local DEPENDENCY_RPM="$DEPENDENCY_BASE_RPM device-mapper iputils \
     libsysfs lvm2 nc nfs-utils nss ntp openssh-clients openssh-server \
     python-devel python-pycurl rpcbind sdparm sshpass sysstat libasan libubsan"
@@ -505,6 +505,29 @@ function util_isHPENode(){
         echo "yes"
     fi
 }
+
+function util_getASANPreloads() {
+    local nodeos="$(getOS)"
+    local libs=
+    local bins="libasan libubsan"
+    for bin in ${bins}; 
+    do
+        local package=
+        local binso=
+        if [[ "${nodeos}" = "ubuntu" ]]; then
+            package=$(rpm -qa | grep ${bin})
+            [ -z "${package}" ] && continue
+            binso=$(repoquery --installed -l ${package} | grep "${bin}.so" | head -n 1)
+        elif [[ "$nodeos" = "centos" ]]; then
+            package=$(dpkg -l | grep ${bin} | awk '{print $2}' | cut -d':' -f1)
+            [ -z "${package}" ] && continue
+            binso=$(dpkg-query -L ${package} | grep "${bin}.so" | head -n 1)
+        fi
+        [ -n "${binso}" ] && libs="${libs}${binso} "
+    done
+    echo "${libs}"
+}
+
 
 # @param list of binaries
 function util_installBinaries(){

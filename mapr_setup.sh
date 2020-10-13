@@ -165,7 +165,9 @@ function usage () {
     echo -e "\t -asanop=<ASAN_OPTIONS> | --asanoptions=<ASAN_OPTIONS>" 
     echo -e "\t\t - Comma separated ASAN Options to be appended. Replace '=' w/ ':' in the <ASAN_OPTIONS>"
     echo -e "\t -ubsan" 
-    echo -e "\t\t - Replace MFS, Gateway & Client binaries w/ UBSAN binaries"
+    echo -e "\t\t - Replace MFS & Gateway binaries w/ UBSAN binaries"
+    echo -e "\t -ubsanall | --ubsanclient" 
+    echo -e "\t\t - Replace UBSAN binaries of MFS,Gateway, Client & maprfs jar"
     
     echo 
 	echo " Post install Options : "
@@ -312,7 +314,7 @@ while [ "$1" != "" ]; do
         -ubsan)
             extraarg=$extraarg"ubsan "
         ;;
-        -asanall | --asanclient)
+        -asanall | --asanclient | -ubsanall | --ubsanclient)
             extraarg=$extraarg"asanall "
         ;;
         -asanop | --asanoptions)
