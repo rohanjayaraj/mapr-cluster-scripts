@@ -514,11 +514,11 @@ function util_getASANPreloads() {
     do
         local package=
         local binso=
-        if [[ "${nodeos}" = "ubuntu" ]]; then
+        if [[ "${nodeos}" = "centos" ]]; then
             package=$(rpm -qa | grep ${bin})
             [ -z "${package}" ] && continue
             binso=$(repoquery --installed -l ${package} | grep "${bin}.so" | head -n 1)
-        elif [[ "$nodeos" = "centos" ]]; then
+        elif [[ "$nodeos" = "ubuntu" ]]; then
             package=$(dpkg -l | grep ${bin} | awk '{print $2}' | cut -d':' -f1)
             [ -z "${package}" ] && continue
             binso=$(dpkg-query -L ${package} | grep "${bin}.so" | head -n 1)
