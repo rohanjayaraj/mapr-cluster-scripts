@@ -2454,6 +2454,7 @@ function maprutil_setupasanmfs(){
         return
     fi
 
+    local isAsan="ASAN"
     # stop warden
     service mapr-zookeeper stop 2>/dev/null
     maprutil_restartWarden "stop" 2>/dev/null
@@ -2464,7 +2465,7 @@ function maprutil_setupasanmfs(){
         asanrepo="http://artifactory.devops.lab/artifactory/core-rpm/master-centos7-asan/"
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
             asanrepo="http://artifactory.devops.lab/artifactory/core-rpm/master-centos8-asan/"
-            [[ -n "${GLB_ENABLE_UBSAN}" ]] && asanrepo="http://artifactory.devops.lab/artifactory/core-rpm/master-centos8-ubsan/"
+            [[ -n "${GLB_ENABLE_UBSAN}" ]] && asanrepo="http://artifactory.devops.lab/artifactory/core-rpm/master-centos8-ubsan/" && isAsan="UBSAN"
         fi
     fi
 
@@ -2474,7 +2475,7 @@ function maprutil_setupasanmfs(){
     local ctempdir=
     [ -n "${setupclient}" ] && ctempdir=$(mktemp -d)
 
-    log_info "[$(util_getHostIP)] Downloading and extracting MFS from ASAN buildid '${latestbuild}'"
+    log_info "[$(util_getHostIP)] Downloading and extracting MFS from ${isAsan} buildid '${latestbuild}'"
     pushd $tempdir  > /dev/null 2>&1
     if [ "$nodeos" = "centos" ]; then
         wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.rpm" ${asanrepo} > /dev/null 2>&1
@@ -2525,7 +2526,7 @@ function maprutil_setupasanmfs(){
             [ -n "${mfsasanso}" ] && sed -i "/daemon \$USER_ARG/i export LD_PRELOAD=${mfsasanso}" /opt/mapr/initscripts/mapr-mfs
         fi
         
-        log_info "[$(util_getHostIP)] Replaced MFS w/ ASAN MFS binary"
+        log_info "[$(util_getHostIP)] Replaced MFS w/ ${isAsan} MFS binary"
     fi
 
     local asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null | grep -oh -e "/[-a-z0-9_/]*libasan.so.[0-9]*" -e "/[-a-z0-9_/]*libubsan.so.[0-9]*" | sed ':a;N;$!ba;s/\n/:/g')
@@ -5733,7 +5734,7 @@ function maprutil_dedupASANErrors() {
         fi
         let j=j+1
     done <<< "$lines"
-    [ -n "${asanstack}" ] && asanstack="Analyzed ${j} ASAN errors. Found $(echo "${i}-1"|bc) distinct errors \n\n  ${asanstack}"
+    [ -n "${asanstack}" ] && asanstack="Analyzed ${j} ASAN/UBSAN errors. Found $(echo "${i}-1"|bc) distinct errors \n\n  ${asanstack}"
     [ -n "${asanstack}" ] && truncate -s 0 ${asanfile} && echo -e "${asanstack}" > ${asanfile}
 }
 
