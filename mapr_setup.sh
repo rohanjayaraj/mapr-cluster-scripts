@@ -164,7 +164,7 @@ function usage () {
     echo -e "\t\t - Replace ASAN binaries of MFS,Gateway, Client & maprfs jar"
     echo -e "\t -asanop=<ASAN_OPTIONS> | --asanoptions=<ASAN_OPTIONS>" 
     echo -e "\t\t - Comma separated ASAN Options to be appended. Replace '=' w/ ':' in the <ASAN_OPTIONS>"
-    echo -e "\t -ubsan" 
+    echo -e "\t -ubsan | --ubsanmfs" 
     echo -e "\t\t - Replace MFS & Gateway binaries w/ UBSAN binaries"
     echo -e "\t -ubsanall | --ubsanclient" 
     echo -e "\t\t - Replace UBSAN binaries of MFS,Gateway, Client & maprfs jar"
@@ -311,10 +311,13 @@ while [ "$1" != "" ]; do
         -asan | --asanmfs)
             extraarg=$extraarg"asan "
         ;;
-        -ubsan)
-            extraarg=$extraarg"ubsan "
+        -ubsan | --ubsanmfs)
+            extraarg=$extraarg"asan ubsan "
         ;;
-        -asanall | --asanclient | -ubsanall | --ubsanclient)
+        -ubsanall | --ubsanclient)
+            extraarg=$extraarg"asanall ubsan "
+        ;;
+        -asanall | --asanclient)
             extraarg=$extraarg"asanall "
         ;;
         -asanop | --asanoptions)
