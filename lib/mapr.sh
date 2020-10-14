@@ -2529,7 +2529,7 @@ function maprutil_setupasanmfs(){
         log_info "[$(util_getHostIP)] Replaced MFS w/ ${isAsan} MFS binary"
     fi
 
-    local asanso="$(util_getASANPreloads)"
+    local asanso="$(util_getASANPreloads "${isAsan}")"
     [ -z "${asanso}" ] && asanso=$(ldd opt/mapr/lib/libGatewayNative.so 2>/dev/null | grep -oh -e "/[-a-z0-9_/]*libasan.so.[0-9]*" -e "/[-a-z0-9_/]*libubsan.so.[0-9]*" | sed ':a;N;$!ba;s/\n/:/g')
     local asanoptions="handle_segv=0"
     [ -n "$GLB_ASAN_OPTIONS" ] && asanoptions="${asanoptions} ${GLB_ASAN_OPTIONS}"

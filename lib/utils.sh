@@ -507,9 +507,13 @@ function util_isHPENode(){
 }
 
 function util_getASANPreloads() {
+    local whichlib=$(echo ${1} | awk '{print tolower($0)}')
+
     local nodeos="$(getOS)"
     local libs=
     local bins="libasan libubsan"
+    [ -n "${whichlib}" ] && bins="lib${whichlib}"
+
     for bin in ${bins}; 
     do
         local package=
