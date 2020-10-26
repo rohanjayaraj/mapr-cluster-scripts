@@ -34,6 +34,9 @@ do
   source $srcfile
 done
 
+# source hpe proxy
+proxysh="/etc/profile.d/proxy.sh"
+[ ! -s "${proxysh}" ] && [ -n "$(cat ${proxysh} | grep "hpecorp.net")" ] && source ${proxysh}
 
 # Get the roles files
 rolefile=$1
