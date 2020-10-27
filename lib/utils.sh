@@ -1279,7 +1279,7 @@ function util_removeXterm(){
 function util_sourceProxy() {
     # source hpe proxy
     local proxysh="/etc/profile.d/proxy.sh"
-    [ ! -s "${proxysh}" ] && [ -n "$(cat ${proxysh} | grep "hpecorp.net")" ] && source ${proxysh}
+    [ -s "${proxysh}" ] && [ -n "$(cat ${proxysh} | grep "hpecorp.net")" ] && source ${proxysh}
 }
 
 function util_postToSlack(){
