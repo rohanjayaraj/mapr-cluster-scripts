@@ -1276,8 +1276,15 @@ function util_removeXterm(){
     echo "$1" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g'
 }
 
+function util_sourceProxy() {
+    # source hpe proxy
+    local proxysh="/etc/profile.d/proxy.sh"
+    [ ! -s "${proxysh}" ] && [ -n "$(cat ${proxysh} | grep "hpecorp.net")" ] && source ${proxysh}
+}
+
 function util_postToSlack(){
-     [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
+    [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
+    util_sourceProxy
 
     local SLACK_URL=$(wget https://bit.ly/37JEaaV 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
     local roles="$1"
@@ -1304,6 +1311,7 @@ function util_postToSlack2(){
     [ -z "$1" ] && echo "Missing arguments" && return
     [ -z "$2" ] && echo "Slack URL not specified" && return
 
+    util_sourceProxy
     local SLACK_URL=$(wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
     local filetopost="$1"
     
@@ -1331,6 +1339,7 @@ function util_postToMSTeams(){
     [ -z "$1" ] && echo "Missing arguments" && return
     [ -z "$2" ] && echo "Teams URL not specified" && return
 
+    util_sourceProxy
     local TEAMS_URL=$(wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
     local filetopost="$1"
     

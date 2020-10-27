@@ -1557,12 +1557,13 @@ function maprutil_configure(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
     fi
+    local hostip=$(util_getHostIP)
 
     # SSH session exits after running for few seconds with error "Write failed: Broken pipe"
     #util_restartSSHD
 
     if [ ! -d "/opt/mapr/" ]; then
-        log_warn "Configuration skipped as no MapR binaries are installed "
+        log_warn "[${hostip}] Configuration skipped as no MapR binaries are installed "
         return 1
     fi
 
@@ -1570,7 +1571,7 @@ function maprutil_configure(){
     maprutil_fixTempBuildIssues
     
     local diskfile="/tmp/disklist"
-    local hostip=$(util_getHostIP)
+    
     local cldbnodes=$(util_getCommaSeparated "$1")
     local cldbnode=$(util_getFirstElement "$1")
     local zknodes=$(util_getCommaSeparated "$2")
