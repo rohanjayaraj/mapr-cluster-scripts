@@ -1286,7 +1286,10 @@ function util_postToSlack(){
     [ -z "$1" ] || [ -z "$2" ] && echo "Missing arguments" && return
     util_sourceProxy
 
-    local SLACK_URL=$(wget https://bit.ly/37JEaaV 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    local SLACK_URL=$(timeout 5 wget https://bit.ly/37JEaaV 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  https://bit.ly/37JEaaV  | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    [ -z "${SLACK_URL}" ] && return
+
     local roles="$1"
     local optype="$2"
     local extrainfo="$3"
@@ -1312,7 +1315,10 @@ function util_postToSlack2(){
     [ -z "$2" ] && echo "Slack URL not specified" && return
 
     util_sourceProxy
-    local SLACK_URL=$(wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    local SLACK_URL=$(timeout 5 wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  $2  | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    [ -z "${SLACK_URL}" ] && return
+
     local filetopost="$1"
     
     local posttext="$(cat $filetopost)"
@@ -1340,7 +1346,10 @@ function util_postToMSTeams(){
     [ -z "$2" ] && echo "Teams URL not specified" && return
 
     util_sourceProxy
-    local TEAMS_URL=$(wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    local TEAMS_URL=$(timeout 5 wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  $2  | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    [ -z "${SLACK_URL}" ] && return
+
     local filetopost="$1"
     
     local posttext="$(cat $filetopost)"

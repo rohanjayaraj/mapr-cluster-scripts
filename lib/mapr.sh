@@ -1833,7 +1833,7 @@ function maprutil_prePostConfigure(){
                 sed -i "s/hardmount=true/hardmount=true -Dmaprcli.disable-recentlist=1/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
             fi
             local gatewayconf="/opt/mapr/conf/gateway.conf"
-            if [ -e "${gatewayconf}" ]; then
+            if [ -e "${gatewayconf}" ] && [ -e "/opt/mapr/roles/gateway" ]; then
                 echo "gateway.es.logcompaction.statsupdate.interval.ms=1000" >> ${gatewayconf}
                 echo "gateway.es.logcompaction.topicrefresh.interval.ms=1000" >> ${gatewayconf}
             fi
@@ -3779,7 +3779,7 @@ function maprutil_setupATSClientNode() {
 
         cat <<EOF > /etc/profile.d/maven.sh
 export M2_HOME=/opt/apache-maven
-export PATH=${M2_HOME}/bin:${PATH}
+export PATH=\${M2_HOME}/bin:${PATH}
 EOF
         fi
         mkdir -p ~/.m2 > /dev/null 2>&1
