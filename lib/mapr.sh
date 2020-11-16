@@ -538,7 +538,7 @@ function maprutil_isMapRVersionSameOrNewer(){
 }
 
 function maprutil_unmountNFS(){
-    local nfslist=$(mount | grep nfs | grep mapr | grep -v '10.10.10.20' | cut -d' ' -f3)
+    local nfslist=$(mount | grep nfs | grep mapr | grep -v -e '10.10.10.20' -e '10.163.160.200' | cut -d' ' -f3)
     for i in $nfslist
     do
         timeout 20 umount -l $i
@@ -1689,7 +1689,7 @@ function maprutil_configure(){
     service mapr-posix-client-platinum restart > /dev/null 2>&1
 
     # Mount self-hosting on all nodes
-    maprutil_mountSelfHosting
+    maprutil_mountSelfHosting "${hostip}"
 
     if [ "$hostip" = "$cldbnode" ]; then
         maprutil_applyLicense
@@ -3893,19 +3893,23 @@ function maprutil_setGatewayNodes(){
 }
 
 function maprutil_mountSelfHosting(){
+    local selfhostname="selfhosting"
+    local selfhostvip="10.10.10.20"
+    [ -n "$(util_isHPENode "$1")" ] && selfhostname="hpeselfhosting" && selfhostvip="10.163.160.200"
+
     local ismounted=$(mount | grep -Fw "10.10.10.20:/mapr/selfhosting/")
     # Force umount for a few days after selfhosting readonly change - 1/10/19 
     #[ -n "$ismounted" ] && return
-    for i in $(mount | grep "/mapr/selfhosting/" | cut -d' ' -f3)
+    for i in $(mount | grep -e "/mapr/selfhosting/" -e "/mapr/hpeselfhosting/" | cut -d' ' -f3)
     do
         timeout 20 umount -l $i > /dev/null 2>&1
     done
 
     [ ! -d "/home/MAPRTECH" ] && mkdir -p /home/MAPRTECH > /dev/null 2>&1
     [ ! -d "/home/PERFSELFHOST" ] && mkdir -p /home/PERFSELFHOST > /dev/null 2>&1
-    log_info "[$(util_getHostIP)] Mounting selfhosting on /home/MAPRTECH (readonly) & selfhosting/qa/perfruns on /home/PERFSELFHOST"
-    timeout 20 mount -t nfs 10.10.10.20:/mapr/selfhosting/ /home/MAPRTECH  > /dev/null 2>&1
-    timeout 20 mount -t nfs 10.10.10.20:/mapr/selfhosting/qa/perfruns /home/PERFSELFHOST  > /dev/null 2>&1
+    log_info "[$(util_getHostIP)] Mounting ${selfhostname} on /home/MAPRTECH (readonly) & ${selfhostname}/qa/perfruns on /home/PERFSELFHOST"
+    timeout 20 mount -t nfs ${selfhostvip}:/mapr/${selfhostname}/ /home/MAPRTECH  > /dev/null 2>&1
+    timeout 20 mount -t nfs ${selfhostvip}:/mapr/${selfhostname}/qa/perfruns /home/PERFSELFHOST  > /dev/null 2>&1
 }
 
 function maprutil_checkClusterSetup(){
