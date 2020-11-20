@@ -306,7 +306,7 @@ function util_installprereq(){
     #     yum repolist enabled 2>&1 | grep epel && yum-config-manager --disable epel >/dev/null 2>&1 && yum clean metadata > /dev/null 2>&1
     #fi
 
-    [[ -s "/usr/bin/python3" ]] && [[ ! -s "/usr/bin/python" ]] && alternatives --set python /usr/bin/python3 > /dev/null 2>&1
+    #[[ -s "/usr/bin/python3" ]] && [[ ! -s "/usr/bin/python" ]] && alternatives --set python /usr/bin/python3 > /dev/null 2>&1
 
     util_checkAndInstallJDK11
 }
