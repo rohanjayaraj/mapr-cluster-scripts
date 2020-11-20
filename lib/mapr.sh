@@ -925,6 +925,11 @@ function maprutil_installBinariesOnNode(){
         else
             echo "util_switchJavaVersion \"1.8\" > /dev/null 2>&1" >> $scriptpath
         fi
+        if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.1.0" "$GLB_MAPR_VERSION")" ]; then
+            echo "util_switchPythonVersion \"3\" > /dev/null 2>&1" >> $scriptpath
+        else
+            echo "util_switchPythonVersion \"2\" > /dev/null 2>&1" >> $scriptpath
+        fi
     fi
     local nodeos=$(getOSFromNode $node)
     local nodeosver=$(getOSReleaseVersionOnNode $node)
