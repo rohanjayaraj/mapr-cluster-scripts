@@ -180,7 +180,7 @@ function util_maprprereq(){
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ ntp / chrony /')
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ python-devel / /')
             DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ python-pycurl / libcurl libcurl-devel /')
-            DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ nss / nss.x86_64 nss-util nss-softokn /')
+            DEPENDENCY_RPM=$(echo $DEPENDENCY_RPM | sed 's/ nss / nss.x86_64 nss-util nss-softokn compat-openssl10 sg3_utils /')
         fi
         [ "$(getOS)" = "centos" ] && yum --disablerepo=epel -q -y update ca-certificates 
         yum -q -y --nogpgcheck install redhat-lsb-core ${opts}
