@@ -1212,6 +1212,10 @@ function maprutil_updateConfigs(){
     if [ -s "/opt/mapr/conf/fuse.conf" ]; then
         sed -i 's/^fuse.ticketfile.location/#fuse.ticketfile.location/g' /opt/mapr/conf/fuse.conf
     fi
+
+    if [ -n "${GLB_ENABLE_RDMA}" ] && [ -e "/opt/mapr/roles/fileserver" ]; then
+        echo "mfs.listen.on.rdma=1" >> /opt/mapr/conf/mfs.conf
+    fi
 }
 
 function maprutil_configureSSD(){
@@ -1270,6 +1274,10 @@ function maprutil_customConfigure(){
             log_info "[$hostip] $cmd"
             stdbuf -i0 -o0 -e0 bash -c "$cmd" 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
         fi
+    fi
+
+    if [ -n "${GLB_ENABLE_RDMA}" ] && [ -s "/opt/mapr/conf/env.sh" ]; then
+        echo "export MAPR_RDMA_SUPPORT=true" >> /opt/mapr/conf/env.sh
     fi
 }
 
@@ -1706,6 +1714,9 @@ function maprutil_configure(){
         fi
         [ -n "$GLB_ENABLE_AUDIT" ] && maprutil_enableClusterAudit
         [ -n "$GWNODES" ] && maprutil_setGatewayNodes "$3" "$GWNODES"
+        if [ -n "${GLB_ENABLE_RDMA}" ]; then
+            timeout 30 maprcli config save -values {"support.rdma.transport":"1"}
+        fi
     else
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
         [ ! -f "/opt/mapr/bin/guts" ] && maprutil_copyGutsFromCLDB

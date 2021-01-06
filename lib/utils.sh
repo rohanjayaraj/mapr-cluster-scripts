@@ -309,6 +309,8 @@ function util_installprereq(){
     #[[ -s "/usr/bin/python3" ]] && [[ ! -s "/usr/bin/python" ]] && alternatives --set python /usr/bin/python3 > /dev/null 2>&1
 
     util_checkAndInstallJDK11
+
+    util_checkAndConfigurePostfix
 }
 
 function util_checkAndInstallJDK11(){
@@ -400,6 +402,32 @@ function util_switchPythonVersion(){
     echo "${pyver}"
 }
 
+function util_checkAndConfigurePostfix() {
+    [ ! -s "/etc/postfix/main.cf" ] && return
+
+    local hostset=$(grep ^myhostname /etc/postfix/main.cf)
+    local relayset=$(grep ^relayhost /etc/postfix/main.cf)
+    [ -n "${hostset}" ] && [ -n "${relayset}" ] && return
+
+    local hostname=$(hostname -f)
+    local hostip=$(util_getHostIP)
+
+    local restart=
+
+    if [ -z "${relayset}" ] && [ -n "$(util_isHPENode "${hostip}")" ]; then
+        restart=1
+        local linebefore=$(grep -n "#relayhost" /etc/postfix/main.cf | tail -n 1 | cut -d':' -f1)
+        sed -i "${linebefore}a relayhost = [smtp1.hpe.com]" /etc/postfix/main.cf
+    fi
+
+    if [ -z "${hostset}" ]; then
+        restart=1
+        local linebefore=$(grep -n "#myhostname" /etc/postfix/main.cf | tail -n 1 | cut -d':' -f1)
+        sed -i "${linebefore}a myhostname = ${hostname}" /etc/postfix/main.cf
+    fi
+
+    [ -n "${restart}" ] && service postfix restart
+}
 
 # @param ip_address_string
 function util_validip(){

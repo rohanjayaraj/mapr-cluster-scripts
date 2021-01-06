@@ -131,6 +131,8 @@ function usage () {
     echo -e "\t\t - When passed with '-bld' option, download the binaries and install"
     echo -e "\t -dare" 
     echo -e "\t\t - Generate dare master key if security is enabled"
+    echo -e "\t -rdma" 
+    echo -e "\t\t - Enable RDMA on MFS instances"
     echo -e "\t -f | --force" 
     echo -e "\t\t - Force uninstall a node/cluster"
     echo -e "\t -pb=<#ofMBs> | --putbuffer=<#ofMBs>" 
@@ -350,6 +352,9 @@ while [ "$1" != "" ]; do
         ;;
         -dare)
             extraarg=$extraarg"dare "
+        ;;
+        -rdma)
+            extraarg=$extraarg"rdma "
         ;;
         -dbins | --downloadbins)
             extraarg=$extraarg"downloadbins "
