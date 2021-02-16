@@ -312,6 +312,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/qtp*.core.*")
     dirlist+=("/opt/cores/pool-*.core.*")
     dirlist+=("/opt/cores/Thread-*.core.*")
+    dirlist+=("/opt/cores/TestNG*.core.*")
     echo ${dirlist[*]}
 }
 
