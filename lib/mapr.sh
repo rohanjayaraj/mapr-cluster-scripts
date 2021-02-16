@@ -1232,6 +1232,12 @@ function maprutil_setuploopbacknfs(){
     [ -s "/opt/mapr/conf/nfsserver.conf" ] && scp /opt/mapr/conf/nfsserver.conf ${lbnfsconfdir} > /dev/null 2>&1
 }
 
+function maprutil_copyticketforloopbacknfs(){
+    [ ! -s "/usr/local/mapr-loopbacknfs" ] && return
+    [ -n "$GLB_SECURE_CLUSTER" ] && scp /tmp/maprticket_0 /usr/local/mapr-loopbacknfs/conf/ > /dev/null 2>&1
+    service mapr-loopbacknfs restart > /dev/null 2>&1
+}
+
 function maprutil_configureSSD(){
     local mfsconf="/opt/mapr/conf/mfs.conf"
     [ ! -e "$mfsconf" ] && return
@@ -1659,10 +1665,9 @@ function maprutil_configure(){
 
     # Return if configuring client node after this
     if [ "$ISCLIENT" -eq 1 ]; then
-        [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
+        [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode" && maprutil_copyticketforloopbacknfs
         [ -n "$GLB_TRACE_ON" ] && maprutil_startTraces
         [ -n "$GLB_ATS_CLIENTSETUP" ] && maprutil_setupATSClientNode
-        service mapr-loopbacknfs restart > /dev/null 2>&1
         log_info "[$hostip] Done configuring client node"
         return 
     fi
@@ -1718,8 +1723,7 @@ function maprutil_configure(){
     # Restart posix-client
     service mapr-posix-client-basic restart > /dev/null 2>&1
     service mapr-posix-client-platinum restart > /dev/null 2>&1
-    service mapr-loopbacknfs restart > /dev/null 2>&1
-
+    
     # Mount self-hosting on all nodes
     maprutil_mountSelfHosting "${hostip}"
 
@@ -1743,6 +1747,9 @@ function maprutil_configure(){
             maprutil_configureMultiMFS "$multimfs" "$numsps"
         fi
     fi
+
+    # Copy ticket for loopbacknfs & restart process
+    maprutil_copyticketforloopbacknfs
 
     if [ -n "$GLB_TRACE_ON" ]; then
         maprutil_startTraces
@@ -1942,7 +1949,6 @@ function maprutil_copyMapRTicketsFromCLDB(){
     
     if [ "$cldbisup" = "true" ]; then
         ssh_copyFromCommand "root" "$cldbhost" "/tmp/maprticket_*" "/tmp" 2>/dev/null
-        [ -s "/usr/local/mapr-loopbacknfs" ] && scp /tmp/maprticket_0 /usr/local/mapr-loopbacknfs/conf/
     fi
 }
 
