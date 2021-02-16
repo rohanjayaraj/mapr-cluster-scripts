@@ -552,6 +552,10 @@ function maprutil_unmountNFS(){
         /etc/init.d/mapr-posix-* stop > /dev/null 2>&1
         [ -n "$fusemnt" ] && timeout 10 fusermount -uq $fusemnt > /dev/null 2>&1
     fi
+
+    if [ -n "$(util_getInstalledBinaries mapr-loopback)" ]; then
+        service mapr-loopbacknfs stop > /dev/null 2>&1
+    fi
 }
 
 # @param host ip
@@ -596,6 +600,7 @@ function maprutil_cleanPrevClusterConfig(){
     # Stop fuse clients
     service mapr-posix-client-basic stop > /dev/null 2>&1
     service mapr-posix-client-platinum stop > /dev/null 2>&1
+    service mapr-loopbacknfs stop > /dev/null 2>&1
 
     # Stop warden
     if [[ "$ISCLIENT" -eq 0 ]]; then
@@ -1219,6 +1224,14 @@ function maprutil_updateConfigs(){
     fi
 }
 
+function maprutil_setuploopbacknfs(){
+    [ ! -s "/usr/local/mapr-loopbacknfs" ] && return
+    local lbnfsconfdir="/usr/local/mapr-loopbacknfs/conf/"
+    rm -rf ${lbnfsconfdir}/mapr-clusters.conf ${lbnfsconfdir}/maprticket* > /dev/null 2>&1
+    cp /opt/mapr/conf/mapr-clusters.conf ${lbnfsconfdir} > /dev/null 2>&1
+    [ -s "/opt/mapr/conf/nfsserver.conf" ] && scp /opt/mapr/conf/nfsserver.conf ${lbnfsconfdir} > /dev/null 2>&1
+}
+
 function maprutil_configureSSD(){
     local mfsconf="/opt/mapr/conf/mfs.conf"
     [ ! -e "$mfsconf" ] && return
@@ -1641,11 +1654,15 @@ function maprutil_configure(){
     # Create ATS Users
     [[ -n "$GLB_ATS_USERTICKETS" ]] && maprutil_createATSUsers 2>/dev/null
 
+    # Configure loopbacknfs
+    maprutil_setuploopbacknfs
+
     # Return if configuring client node after this
     if [ "$ISCLIENT" -eq 1 ]; then
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
         [ -n "$GLB_TRACE_ON" ] && maprutil_startTraces
         [ -n "$GLB_ATS_CLIENTSETUP" ] && maprutil_setupATSClientNode
+        service mapr-loopbacknfs restart > /dev/null 2>&1
         log_info "[$hostip] Done configuring client node"
         return 
     fi
@@ -1701,6 +1718,7 @@ function maprutil_configure(){
     # Restart posix-client
     service mapr-posix-client-basic restart > /dev/null 2>&1
     service mapr-posix-client-platinum restart > /dev/null 2>&1
+    service mapr-loopbacknfs restart > /dev/null 2>&1
 
     # Mount self-hosting on all nodes
     maprutil_mountSelfHosting "${hostip}"
@@ -1924,6 +1942,7 @@ function maprutil_copyMapRTicketsFromCLDB(){
     
     if [ "$cldbisup" = "true" ]; then
         ssh_copyFromCommand "root" "$cldbhost" "/tmp/maprticket_*" "/tmp" 2>/dev/null
+        [ -s "/usr/local/mapr-loopbacknfs" ] && scp /tmp/maprticket_0 /usr/local/mapr-loopbacknfs/conf/
     fi
 }
 
