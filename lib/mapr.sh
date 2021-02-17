@@ -1230,6 +1230,10 @@ function maprutil_setuploopbacknfs(){
     rm -rf ${lbnfsconfdir}/mapr-clusters.conf ${lbnfsconfdir}/maprticket* > /dev/null 2>&1
     cp /opt/mapr/conf/mapr-clusters.conf ${lbnfsconfdir} > /dev/null 2>&1
     [ -s "/opt/mapr/conf/nfsserver.conf" ] && scp /opt/mapr/conf/nfsserver.conf ${lbnfsconfdir} > /dev/null 2>&1
+    local tcpfiles="/proc/sys/sunrpc/tcp_slot_table_entries /proc/sys/sunrpc/tcp_max_slot_table_entries"
+    for tcpfile in $tcpfiles; do
+      [ -z "$(cat $tcpfile | grep "^128$")" ] && echo 128 > $tcpfile
+    done
 }
 
 function maprutil_copyticketforloopbacknfs(){
