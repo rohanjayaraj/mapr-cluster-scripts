@@ -97,8 +97,8 @@ function usage () {
     echo -e "\t -v | --verbose" 
     echo -e "\t\t - Print verbose of messages"
 
-    echo -e "\t -dt | --disktest" 
-    echo -e "\t\t - Run 'hdparm' disk tests on all nodes for MapR disks"
+    echo -e "\t -dt= | --disktest | -dt=1 | --disktest=1" 
+    echo -e "\t\t - Run 'hdparm' disk tests on all nodes for MapR disks. Pass 1 for direct disk read tests"
 
     echo -e "\t -cd | --containerdist" 
     echo -e "\t\t - Check Container distribution across SPs on each node"
@@ -239,7 +239,11 @@ while [ "$1" != "" ]; do
             [ -n "$VALUE" ] && logfile="$VALUE"
         ;;
         -dt | --disktest)
-            args=$args"disktest "
+            if [ -n "$VALUE" ]; then 
+                args=$args"disktest2 "
+            else
+                args=$args"disktest "
+            fi
         ;;
         -cs | --clusterspec)
             args=$args"clsspec "

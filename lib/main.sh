@@ -930,9 +930,9 @@ function main_runLogDoctor(){
 	    	diskerror)
 				maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck" "$mailfile"
         	;;
-        	disktest)
+        	disktest || disktest2)
 				log_msghead "[$(util_getCurDate)] Running disk tests on all nodes"
-				maprutil_runCommandsOnNodesInParallel "$nodes" "disktest" "$mailfile"
+				maprutil_runCommandsOnNodesInParallel "$nodes" "$i" "$mailfile"
         	;;
         	mfsgrep)
 				log_msghead "[$(util_getCurDate)] Grepping MFS logs on all nodes"
@@ -1338,6 +1338,8 @@ while [ "$2" != "" ]; do
 	    			doLogAnalyze="$doLogAnalyze diskerror"
 	    		elif [[ "$i" = "disktest" ]]; then
 	    			doLogAnalyze="$doLogAnalyze disktest"
+	    		elif [[ "$i" = "disktest2" ]]; then
+	    			doLogAnalyze="$doLogAnalyze disktest2"
 	    		elif [[ "$i" = "mfsgrep" ]]; then
 	    			doLogAnalyze="$doLogAnalyze mfsgrep"
 	    		elif [[ "$i" = "clsspec" ]]; then

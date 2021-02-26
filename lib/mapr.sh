@@ -2953,6 +2953,9 @@ function maprutil_runCommands(){
             disktest)
                 maprutil_runDiskTest
             ;;
+            disktest2 )
+                maprutil_runDiskTest "direct"
+            ;;
             sysinfo)
                 maprutil_sysinfo
             ;;
@@ -3063,6 +3066,7 @@ function maprutil_runDiskTest(){
     if [ -z "$maprdisks" ]; then
         return
     fi
+    local direct=${1}
     echo
     log_msghead "[$(util_getHostIP)] Running disk tests [$maprdisks]"
     local disktestdir="/tmp/disktest"
@@ -3070,7 +3074,11 @@ function maprutil_runDiskTest(){
     for disk in ${maprdisks[@]}
     do  
         local disklog="$disktestdir/${disk////_}.log"
-        hdparm -tT $disk > $disklog &
+        if [ -n "${direct}" ]; then
+            hdparm -tT --direct $disk > $disklog &
+        else
+            hdparm -tT $disk > $disklog &
+        fi
     done
     wait
     for file in $(find $disktestdir -type f | sort)
