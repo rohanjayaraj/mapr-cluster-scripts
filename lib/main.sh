@@ -930,7 +930,7 @@ function main_runLogDoctor(){
 	    	diskerror)
 				maprutil_runCommandsOnNodesInParallel "$nodes" "diskcheck" "$mailfile"
         	;;
-        	disktest || disktest2)
+        	disktest | disktest2)
 				log_msghead "[$(util_getCurDate)] Running disk tests on all nodes"
 				maprutil_runCommandsOnNodesInParallel "$nodes" "$i" "$mailfile"
         	;;
