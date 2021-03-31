@@ -1450,6 +1450,7 @@ function maprutil_startTraces() {
         fi
         nohup bash -c 'log="/opt/mapr/logs/gatewayguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts clientpid:$gwpid time:all gateway:all >> $log; rc=$?; [ "$rc" -eq "1" ] && [ -z "$(grep Printing $log)" ] && truncate -s 0 $log && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/gatewaytop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $gwpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        nohup bash -c 'log="/opt/mapr/logs/nfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/nfs" ]]; do nfspid=$(cat /opt/mapr/pid/nfsserver.pid 2>/dev/null); if kill -0 ${nfspid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $nfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
     maprutil_startResourceTraces
     maprutil_startClientResourceTraces
@@ -1474,6 +1475,7 @@ function maprutil_startResourceTraces() {
         nohup bash -c 'log="/opt/mapr/logs/drillresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/drill" ]]; do qspid=$(cat /opt/mapr/pid/drillbit.pid 2>/dev/null); if kill -0 ${qspid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $qspid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/dagresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/data-access-gateway" ]]; do dagpid=$(cat /opt/mapr/pid/data-access-gateway.pid 2>/dev/null); if kill -0 ${dagpid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $dagpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/tsdbresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/opentsdb" ]]; do tsdpid=$(cat /opt/mapr/pid/opentsdb.pid 2>/dev/null); if kill -0 ${tsdpid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $tsdpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        nohup bash -c 'log="/opt/mapr/logs/nfsresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/nfs" ]]; do nfspid=$(cat /opt/mapr/pid/nfsserver.pid 2>/dev/null); if kill -0 ${nfspid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $nfspid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
 }
 
@@ -4482,9 +4484,29 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$sjson" ] && sjson="$sjson,"
     [ -n "$stjson" ] && sjson="$sjson\"threads\":{$stjson}" && stjson=
 
+    ttime=0
+    local files="nfsrpc.log nfsrpc_max.log nfsrpc0.log nfsrpc0_max.log nfsrpc1.log nfsrpc1_max.log nfsrpc2.log nfsrpc2_max.log nfsrpc3.log nfsrpc3_max.log nfsserver.log nfsserver_max.log"
+    for fname in $files
+    do
+        [ ! -s "$fname" ] && continue
+        local tlog=$(cat $fname | awk 'BEGIN{printf("["); i=1} { if(i!=1) printf(","); printf("%s",$1); i++} END{printf("]")}')
+        [ -n "$tjson" ] && tjson="$tjson,"
+        tjson="$tjson\"$(echo $fname| cut -d'.' -f1)\":$tlog"
+        [ "$ttime" -lt "$(cat $fname | wc -l)" ] && ttime=$(cat $fname | wc -l)
+
+        [ -n "$(echo $fname | grep "max")" ] && continue
+        local avg=$(cat $fname | awk '{sum+=$1}END{print sum/NR}')
+        local stddev=$(util_getStdDev "$(cat $fname)")
+        [ -n "$stjson" ] && stjson="$stjson,"
+        stjson="$stjson\"$(echo $fname| cut -d'.' -f1)\":{\"avg\":$avg,\"stddev\":$stddev}"
+    done
+    [ -n "$tjson" ] && tjson="{\"maxcount\":$ttime,$tjson}" && tjson=$(echo $tjson | python -c 'import json,sys; print (json.dumps(sys.stdin.read()))')
+    [ -n "$tjson" ] && json="$json,\"nfsthreads\":$tjson"
+    [ -n "$sjson" ] && sjson="$sjson,"
+    [ -n "$stjson" ] && sjson="$sjson\"nfsthreads\":{$stjson}" && stjson=
 
     # add MFS & GW cpu
-    files="mfs.log gw.log client.log qs.log dag.log tsdb.log"
+    files="mfs.log gw.log client.log qs.log dag.log tsdb.log nfs.log"
     tjson=
     for fname in $files
     do
@@ -4606,6 +4628,15 @@ function maprutil_mfsCPUUseOnCluster(){
     do
         local filelist=$(find $dirlist -name $fname 2>/dev/null)
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/$fname 2>&1 &
+    done
+
+    files="nfsrpc.log nfsrpc0.log nfsrpc1.log nfsrpc2.log nfsrpc3.log nfsserver.log"
+    for fname in $files
+    do
+        local filelist=$(find $dirlist -name "${fname}.log" 2>/dev/null)
+        local maxfilelist=$(find $dirlist -name "${fname}_max.log" 2>/dev/null)
+        [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/${fname}.log 2>&1 &
+        [ -n "$maxfilelist" ] && paste $maxfilelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/${fname}_max.log 2>&1 &
     done
     wait
 
@@ -4777,6 +4808,9 @@ function maprutil_buildMFSCpuUse(){
             sed -n ${sl},${el}p $sysuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{c=100-$5; split($1,d,"-"); printf("%s-%s-%s %s %.0f\n",y,d[2],d[1],$2,c)}' > $tempdir/cpu.log 2>&1 &
         fi
     fi
+
+    local nfstop="/opt/mapr/logs/nfstop.log"
+    [ -s "${nfstop}" ] && maprutil_getNFSThreadUse "$tempdir" "$2" "$3"
     wait
 
     local mfstop="/opt/mapr/logs/mfstop.log"
@@ -4804,7 +4838,8 @@ maprutil_buildResUsage(){
         "/opt/mapr/logs/gwresusage.log:gw.log"
         "/opt/mapr/logs/drillresusage.log:qs.log"
         "/opt/mapr/logs/dagresusage.log:dag.log"
-        "/opt/mapr/logs/tsdbresusage.log:tsdb.log" )
+        "/opt/mapr/logs/tsdbresusage.log:tsdb.log"
+        "/opt/mapr/logs/nfsresusage.log:nfs.log" )
 
     for proc in "${PROCLIST[@]}"
     do
@@ -4905,6 +4940,46 @@ maprutil_getMFSThreadUseFromGuts(){
     wait
 }
 
+maprutil_getNFSThreadUse()
+{
+    local nfstop="/opt/mapr/logs/nfstop.log"
+    [ ! -s "$nfstop" ] && return
+
+    local tempdir="$1"
+    local stime="$2"
+    local etime="$3"
+    
+    local sl=1
+    local el=$(cat $nfstop | wc -l)
+
+    [ -n "$stime" ] && stime=$(date -d "$stime" "+%Y-%m-%d %H:%M")
+    [ -n "$etime" ] && etime=$(date -d "$etime" "+%Y-%m-%d %H:%M")
+    [ -n "$stime" ] && sl=$(cat $nfstop | grep -n "$stime" | cut -d':' -f1 | head -1)
+    [ -n "$etime" ] && el=$(cat $nfstop | grep -n "$etime" | cut -d':' -f1 | head -1)
+
+    [ -z "$el" ] || [ -z "$sl" ] && log_error "[$(util_getHostIP)] Start or End time not found in the nfstop.log. Specify newer time range" && return
+    [ "$sl" -gt "$el" ] && el=$(cat $nfstop | wc -l)
+
+    local nfsloglines="$(sed -n ${sl},${el}p $nfstop)"
+    local nfsthreadlines=$(echo "${nfsloglines}" | grep -n "top -" | tail -n 2)
+    local tsl=$(echo "${nfsthreadlines}" | head -n 1 | cut -d':' -f1)
+    local tel=$(echo "${nfsthreadlines}" | tail -n 1 | cut -d':' -f1)
+    local nfsthreads=$(echo "${nfsloglines}" | sed -n ${tsl},${tel}p | grep nfs | awk '{print $NF}' | sed ':a;N;$!ba;s/\n/ /g')
+    local nfsignorethreads="nfsCompr nfsRConn"
+
+    for nfsthread in ${nfsthreads}; 
+    do
+        [ -n "$(echo ${nfsignorethreads} | grep ${nfsthread})" ] && continue
+        local nfsfile="$tempdir/$(echo ${nfsthread} | tr '[:upper:]' '[:lower:]').log"
+        echo "${nfsloglines}" | grep -w "${nfsthread}" | awk '{print $9}' > ${nfsfile} 2>&1 &
+    done
+    wait
+
+    paste $tempdir/nfsrpc*.log | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $tempdir/nfsrpc.log 2>&1 &
+    paste $tempdir/nfsrpc*.log | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $tempdir/nfsrpc_max.log 2>&1 &
+    wait
+
+}
 maprutil_getMFSThreadUse()
 {
     local mfstop="/opt/mapr/logs/mfstop.log"
