@@ -4485,6 +4485,7 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$stjson" ] && sjson="$sjson\"threads\":{$stjson}" && stjson=
 
     ttime=0
+    tjson=
     local files="nfsrpc.log nfsrpc_max.log nfsrpc0.log nfsrpc0_max.log nfsrpc1.log nfsrpc1_max.log nfsrpc2.log nfsrpc2_max.log nfsrpc3.log nfsrpc3_max.log nfsserver.log nfsserver_max.log"
     for fname in $files
     do
@@ -4521,7 +4522,7 @@ function maprutil_publishMFSCPUUse(){
         local mstddev=$(util_getStdDev "$(cat $fname | awk '{print $3}')")
         local cstddev=$(util_getStdDev "$(cat $fname | awk '{print $4}')")
         [ -n "$stjson" ] && stjson="$stjson,"
-        stjson="$stjson\"$(echo $fname| cut -d'.' -f1)\":{\"mem\":{\"avg\":$mavg,\"stddev\":$mstddev},\"cpu\":{\"avg\":$mavg,\"stddev\":$mstddev}}"
+        stjson="$stjson\"$(echo $fname| cut -d'.' -f1)\":{\"mem\":{\"avg\":$mavg,\"stddev\":$mstddev},\"cpu\":{\"avg\":$mavg,\"stddev\":$cstddev}}"
     done
     [ -n "$tjson" ] && json="$json,$tjson"
     [ -n "$sjson" ] && sjson="$sjson,"
@@ -4679,7 +4680,7 @@ function maprutil_mfsCPUUseOnCluster(){
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {rsum+=$i; k=i+1; ssum+=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,rsum/j,ssum/j); rsum=0; ssum=0; j=0}' > $logdir/$fname 2>&1 &
     done
     # logs from all nodes, NOT just MFS/data nodes
-    files="gw.log qs.log dag.log tsdb.log"
+    files="gw.log qs.log dag.log tsdb.log nfs.log"
     for fname in $files
     do
         local filelist=$(find $alldirlist -name $fname 2>/dev/null)

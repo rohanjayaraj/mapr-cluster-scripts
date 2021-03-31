@@ -1440,7 +1440,12 @@ function util_getStdDev(){
     [ -z "$1" ] && return
     local values="$1"
     local stddev=$(echo "$values" | awk '{sum+=$1; sumsq+=$1*$1}END{printf("%.2f",sqrt(sumsq/NR - (sum/NR)**2))}')
-    [ -n "$stddev" ] && echo "$stddev"
+    local re="^[+-]?[0-9]+([.][0-9]+)?$"
+    if [[ $stddev =~ $re ]] ; then
+        echo "$stddev"
+    else
+        echo "0"
+    fi
 }
 
 function util_isBareMetal(){
