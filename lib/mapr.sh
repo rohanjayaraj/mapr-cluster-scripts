@@ -4630,13 +4630,27 @@ function maprutil_mfsCPUUseOnCluster(){
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/$fname 2>&1 &
     done
 
-    files="nfsrpc.log nfsrpc0.log nfsrpc1.log nfsrpc2.log nfsrpc3.log nfsserver.log"
+    files="nfsrpc nfsrpc_max"
     for fname in $files
     do
-        local filelist=$(find $dirlist -name "${fname}.log" 2>/dev/null)
-        local maxfilelist=$(find $dirlist -name "${fname}_max.log" 2>/dev/null)
-        [ -n "$filelist" ] && paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/${fname}.log 2>&1 &
-        [ -n "$maxfilelist" ] && paste $maxfilelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/${fname}_max.log 2>&1 &
+        local filelist=$(find $alldirlist -name "${fname}.log" 2>/dev/null)
+        if [ -n "$filelist" ]; then 
+            if [ -n "$(echo ${fname} | grep "_max")" ]; then
+                paste $filelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/${fname}.log 2>&1 &
+            else
+                paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/${fname}.log 2>&1 &
+            fi
+        fi
+    done
+
+    files="nfsrpc0 nfsrpc1 nfsrpc2 nfsrpc3 nfsserver"
+    for fname in $files
+    do
+        local filelist=$(find $alldirlist -name "${fname}.log" 2>/dev/null)
+        if [ -n "$filelist" ]; then 
+            paste $filelist | awk '{for(i=1;i<=NF;i++) sum+=$i; printf("%.0f\n", sum/NF); sum=0}' > $logdir/${fname}.log 2>&1 &
+            paste $filelist | awk '{for(i=1;i<=NF;i++) { if($i>max) max=$i; } printf("%.0f\n", max); max=0}' > $logdir/${fname}_max.log 2>&1 &
+        fi
     done
     wait
 
@@ -4969,7 +4983,7 @@ maprutil_getNFSThreadUse()
 
     for nfsthread in ${nfsthreads}; 
     do
-        [ -n "$(echo ${nfsignorethreads} | grep ${nfsthread})" ] && continue
+        [ -n "$(echo ${nfsignorethreads} | grep $(echo ${nfsthread} | sed 's/[0-9]*//g'))" ] && continue
         local nfsfile="$tempdir/$(echo ${nfsthread} | tr '[:upper:]' '[:lower:]').log"
         echo "${nfsloglines}" | grep -w "${nfsthread}" | awk '{print $9}' > ${nfsfile} 2>&1 &
     done
