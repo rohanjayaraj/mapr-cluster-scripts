@@ -1453,4 +1453,15 @@ function util_isBareMetal(){
     [ -n "$iscont" ] && echo "true"
 }
 
+function util_curlPost(){
+    [ -z "$1" ] || [ -z "$2" ] && return
+    local file="${2}"
+    [ ! -s "${file}" ] && return
+    local urls="$(echo "${1}" | sed 's/,/ /g')"
+    for url in $urls;
+    do
+        timeout 30 curl -L -X POST --data @- ${url} < $file > /dev/null 2>&1
+    done
+}
+
 ### END_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
