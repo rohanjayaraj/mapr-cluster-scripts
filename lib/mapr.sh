@@ -1746,6 +1746,8 @@ function maprutil_configure(){
         [ -n "$GWNODES" ] && maprutil_setGatewayNodes "$3" "$GWNODES"
         if [ -n "${GLB_ENABLE_RDMA}" ]; then
             timeout 30 maprcli config save -values {"support.rdma.transport":"1"}
+        else
+            timeout 30 maprcli config save -values {"support.rdma.transport":"0"}
         fi
     else
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
@@ -1893,6 +1895,11 @@ function maprutil_prePostConfigure(){
             #maprcli config save -values {mfs.db.parallel.replicasetups:512}
         fi
 
+    fi
+
+    local corepattern=$(cat /proc/sys/kernel/core_pattern)
+    if [ -z "$(echo "${corepattern}" | grep "/opt/cores/")" ]; then
+        echo "/opt/cores/%e.core.%p.%h" > /proc/sys/kernel/core_pattern
     fi
 }
 
