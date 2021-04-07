@@ -4522,7 +4522,7 @@ function maprutil_publishMFSCPUUse(){
         local mstddev=$(util_getStdDev "$(cat $fname | awk '{print $3}')")
         local cstddev=$(util_getStdDev "$(cat $fname | awk '{print $4}')")
         [ -n "$stjson" ] && stjson="$stjson,"
-        stjson="$stjson\"$(echo $fname| cut -d'.' -f1)\":{\"mem\":{\"avg\":$mavg,\"stddev\":$mstddev},\"cpu\":{\"avg\":$mavg,\"stddev\":$cstddev}}"
+        stjson="$stjson\"$(echo $fname| cut -d'.' -f1)\":{\"mem\":{\"avg\":$mavg,\"stddev\":$mstddev},\"cpu\":{\"avg\":$cavg,\"stddev\":$cstddev}}"
     done
     [ -n "$tjson" ] && json="$json,$tjson"
     [ -n "$sjson" ] && sjson="$sjson,"
