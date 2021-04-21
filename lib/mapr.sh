@@ -645,6 +645,23 @@ function maprutil_cleanPrevClusterConfig(){
     fi
 }
 
+function maprutil_hpecoloconfigs() {
+    hwclock -w > /dev/null 2>&1
+    service chronyd stop > /dev/null 2>&1
+    chronyd -q 'server mip-gcdc-01.storage.hpecorp.net' > /dev/null 2>&1 &
+    #ntpdate -u mip-gcdc-01.storage.hpecorp.net
+
+    local confs="/etc/profile.d/proxy.sh /root/.m2/settings.xml /etc/systemd/system/docker.service.d/http-proxy.conf /etc/sysconfig/docker /etc/docker/daemon.json"
+    for file in $confs;
+    do
+        if [ -s "${file}" ]; then
+            [ -n "$(grep "docker.artifactory.lab" ${file} 2>/dev/null)" ] && sed -i 's/docker.artifactory.lab/dfaf.mip.storage.hpecorp.net/g' ${file}
+            [ -n "$(grep "maven.corp.maprtech.com" ${file} 2>/dev/null)" ] && sed -i 's/maven.corp.maprtech.com/df-mvn-dev.mip.storage.hpecorp.net/g' ${file}
+        fi
+    done
+    [ -s "/etc/docker/daemon.json" ] && service docker restart  > /dev/null 2>&1 &
+}
+
 function maprutil_killSpyglass(){
     # Grafana uninstall has a bug (loops in sleep until timeout if warden is not running)
     util_removeBinaries "mapr-opentsdb,mapr-grafana,mapr-elasticsearch,mapr-kibana,mapr-collectd,mapr-fluentd" 2>/dev/null
@@ -714,6 +731,9 @@ function maprutil_cleanDocker(){
 
 function maprutil_uninstall(){
     
+    # Update configs
+    maprutil_hpecoloconfigs
+
     # Kill Spyglass
     maprutil_killSpyglass
 
