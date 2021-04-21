@@ -655,8 +655,9 @@ function maprutil_hpecoloconfigs() {
     for file in $confs;
     do
         if [ -s "${file}" ]; then
-            [ -n "$(grep "docker.artifactory.lab" ${file} 2>/dev/null)" ] && sed -i 's/docker.artifactory.lab/dfaf.mip.storage.hpecorp.net/g' ${file}
+            [ -n "$(grep "docker.artifactory.lab" ${file} 2>/dev/null)" ] && sed -i 's/docker.artifactory.lab/dfdkr.mip.storage.hpecorp.net/g' ${file}
             [ -n "$(grep "maven.corp.maprtech.com" ${file} 2>/dev/null)" ] && sed -i 's/maven.corp.maprtech.com/df-mvn-dev.mip.storage.hpecorp.net/g' ${file}
+            [ -n "$(grep "artifactory.devops.lab" ${file} 2>/dev/null)" ] && sed -i 's/artifactory.devops.lab/dfaf.mip.storage.hpecorp.net/g' ${file}
         fi
     done
     [ -s "/etc/docker/daemon.json" ] && service docker restart  > /dev/null 2>&1 &
@@ -2710,6 +2711,19 @@ function maprutil_setupasanmfs(){
                 [ -n "$(grep -B2 "=\"\$JAVA " $file | grep ASAN_OPTIONS)" ] && continue
                 sed -i "/=\"\$JAVA /i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"" $file
                 sed -i "/=\"\$JAVA /i  export LD_PRELOAD=${asanso}" $file
+            done
+            # explicit add
+            files="/opt/mapr/initscripts/mapr-hoststats /opt/mapr/initscripts/mapr-nfsserver"
+            for file in $files; do
+                [ ! -s "$file" ] && continue
+                [ -n "$(grep -B2 "\/daemon" $file | grep LD_PRELOAD)" ] && continue
+                if [ "$nodeos" = "ubuntu" ]; then
+                    sed -i "/start-stop-daemon --start/i export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"" ${file}
+                    sed -i "/start-stop-daemon --start/i export LD_PRELOAD=${asanso}" $file
+                else
+                    sed -i "/daemon \$USER_ARG/i export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"" ${file}
+                    sed -i "/daemon \$USER_ARG/i export LD_PRELOAD=${asanso}" $file
+                fi
             done
             # do no preload asan binary for scripts & mrconfig
             files="/opt/mapr/server/createsystemvolumes.sh /opt/mapr/server/initaudit.sh /opt/mapr/server/createTTVolume.sh /opt/mapr/server/mrdiagnostics"
