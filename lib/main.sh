@@ -1243,7 +1243,7 @@ useMEPURL=
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
-    VALUE=`echo $2 | awk -F= '{print $2}'`
+    VALUE=`echo $2 | awk -F= '{print $2}' | sed 's/artifactory.devops.lab/dfaf.mip.storage.hpecorp.net/g'`
     #echo "OPTION : $OPTION; VALUE : $VALUE"
     case $OPTION in
         h | help)
@@ -1363,7 +1363,7 @@ while [ "$2" != "" ]; do
 	    		elif [[ "$i" = "mfsthreads" ]]; then
 	    			doLogAnalyze="$doLogAnalyze $i"
 	    		elif [[ "$i" = "publish" ]]; then
-	    			GLB_PERF_URL="http://dash.perf.lab/puffd/ http://10.163.161.216/puffd/"
+	    			GLB_PERF_URL="http://10.163.161.216/puffd/"
 	    		elif [[ "$i" = "publishnode" ]]; then
 	    			GLB_NODE_STATS=1
 	    		elif [[ "$i" = "gutsstats" ]]; then

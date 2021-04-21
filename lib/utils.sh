@@ -1255,16 +1255,21 @@ function util_restartSSHD(){
 function util_createExtractFile(){
     local scriptfile="extract.sh"
     echo -e '#!/bin/bash \n' > $scriptfile
-    echo "for i in \$(ls *.bz2);do bzip2 -dk \$i;done " >> $scriptfile
-    echo "for i in \$(ls *.tar);do tar -xf \$i && rm -f \${i}; done" >> $scriptfile
+    echo "for i in \$(ls *.bz2);do bzip2 -dk \$i & done " >> $scriptfile
+    echo "wait" >> $scriptfile
+    echo "for i in \$(ls *.tar);do tar -xf \$i & done" >> $scriptfile
+    echo "wait" >> $scriptfile
+    echo "for i in \$(ls *.tar);do rm -f \${i} & done" >> $scriptfile
+    echo "wait" >> $scriptfile
     chmod +x $scriptfile
 
     local delscriptfile="delextract.sh"
     echo -e '#!/bin/bash \n' > $delscriptfile
     echo "deldirs=\"\$(ls *.bz2 | cut -d'_' -f2 | cut -d'.' -f1)\"" >> $delscriptfile
     echo "deldirs2=\"\$(ls *.bz2 | cut -d'_' -f2)\"" >> $delscriptfile
-    echo "for i in \$deldirs;do rm -f \${i}; done" >> $delscriptfile
-    echo "for i in \$deldirs2;do rm -f \${i}; done" >> $delscriptfile
+    echo "for i in \$deldirs;do rm -rf \${i} & done" >> $delscriptfile
+    echo "for i in \$deldirs2;do rm -rf \${i} & done" >> $delscriptfile
+    echo "wait" >> $delscriptfile
     chmod +x $delscriptfile
 }
 
