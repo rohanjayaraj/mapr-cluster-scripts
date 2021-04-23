@@ -660,7 +660,7 @@ function maprutil_hpecoloconfigs() {
             [ -n "$(grep "artifactory.devops.lab" ${file} 2>/dev/null)" ] && sed -i 's/artifactory.devops.lab/dfaf.mip.storage.hpecorp.net/g' ${file}
         fi
     done
-    [ -s "/etc/docker/daemon.json" ] && service docker restart  > /dev/null 2>&1 &
+    [ -s "/etc/docker/daemon.json" ] && systemctl daemon-reload && service docker restart > /dev/null 2>&1 &
 }
 
 function maprutil_killSpyglass(){
@@ -1691,6 +1691,9 @@ function maprutil_configure(){
     # Configure loopbacknfs
     maprutil_setuploopbacknfs
 
+    # Mount self-hosting on all nodes
+    maprutil_mountSelfHosting "${hostip}"
+
     # Return if configuring client node after this
     if [ "$ISCLIENT" -eq 1 ]; then
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode" && maprutil_copyticketforloopbacknfs
@@ -1752,9 +1755,6 @@ function maprutil_configure(){
     service mapr-posix-client-basic restart > /dev/null 2>&1
     service mapr-posix-client-platinum restart > /dev/null 2>&1
     
-    # Mount self-hosting on all nodes
-    maprutil_mountSelfHosting "${hostip}"
-
     if [ "$hostip" = "$cldbnode" ]; then
         maprutil_applyLicense
         if [ -n "$multimfs" ] && [ "$multimfs" -gt 0 ]; then
