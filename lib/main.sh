@@ -864,7 +864,7 @@ function main_publishlocalgutsstats(){
 	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=
 	local localgutsfile=${copydir}
 
-	[ -f "${localgutsfile}" ] && [ -s "${localgutsfile}" ] && log_error "${localgutsfile} is empty or doesn't exist!" && return
+	[ ! -f "${localgutsfile}" ] || [ ! -s "${localgutsfile}" ] && log_error "${localgutsfile} is empty or doesn't exist!" && return
 
 	local collist=$(marutil_getGutsSample "${localgutsfile}")
 	[ -z "$collist" ] && log_error "Guts column list is empty!" && return
@@ -921,9 +921,9 @@ function main_publishlocalgutsstats(){
 	[ -z "$doGutsType" ] && doGutsType="mfs"
 	
 	local timestamp=$(date +%s)
-	local tmpdir=$(maprutil_buildGutsStats "${timestamp}" "${doGutsType}" "${colids}" "${stime}" "${etime}" "${localgutsfile}")
+	local tmpdir=$(maprutil_buildGutsStats "${timestamp}" "${doGutsType}" "${colids}" "${startstr}" "${endstr}" "${localgutsfile}")
 
-	maprutil_publishGutsStats "${tmpdir}" "${timestamp}" "$(hostname -f)" "UNKNOWN" "$colnames" "${doPublish}"
+	maprutil_publishGutsStats "${tmpdir}" "${timestamp}" "UNKNOWN" "UNKNOWN" "$colnames" "${doPublish}"
 	rm -rf ${tmpdir} > /dev/null 2>&1	
 }
 
