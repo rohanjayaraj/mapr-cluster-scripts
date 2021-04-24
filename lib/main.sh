@@ -764,6 +764,8 @@ function main_getmfscpuuse(){
 }
 
 function main_getgutsstats(){
+	[ -f "${copydir}" ] && [ -s "${copydir}" ] && main_publishlocalgutsstats && return
+
 	log_msghead "[$(util_getCurDate)] Building & collecting 'guts' trends to $copydir"
 	
 	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start/End time not specified. Using entire time range available"
@@ -853,6 +855,76 @@ function main_getgutsstats(){
 	wait
 	log_info "Aggregating guts stats from Nodes [$mfsnodes]"
 	maprutil_gutstatsOnCluster "$mfsnodes" "$copydir" "$timestamp" "$colids" "$colnames" "$doPublish"
+}
+
+function main_publishlocalgutsstats(){
+	log_msghead "[$(util_getCurDate)] Publishing local guts stats"
+	
+	[ -z "$startstr" ] || [ -z "$endstr" ] && log_warn "Start/End time not specified. Using entire time range available"
+	[ -z "$startstr" ] && [ -n "$endstr" ] && log_warn "Setting start time to end time" && startstr="$endstr" && endstr=
+	local localgutsfile=${copydir}
+
+	[ -f "${localgutsfile}" ] && [ -s "${localgutsfile}" ] && log_error "${localgutsfile} is empty or doesn't exist!" && return
+
+	local collist=$(marutil_getGutsSample "${localgutsfile}")
+	[ -z "$collist" ] && log_error "Guts column list is empty!" && return
+	local defaultcols="$(maprutil_getGutsDefCols "$collist" "$doGutsCol")"
+	local usedefcols=
+
+	if [ -n "$doGutsCol" ] && [ -n "$(echo $doGutsCol | sed 's/,/ /g' | tr ' ' '\n' | grep 'stream\|cache\|fs\|db\|all')" ]; then
+		doGutsCol=
+		usedefcols=1
+	fi
+	if [ -n "$doGutsCol" ]; then
+		doGutsCol="$(echo "$doGutsCol" | sed 's/,/ /g')"
+	elif [ -n "$usedefcols" ] || [ -n "$doGutsDef" ]; then
+		doGutsCol="$defaultcols"
+	fi
+
+	local colids=
+
+	if [ -n "$doGutsCol" ]; then
+		for c in $doGutsCol
+		do
+			local cid=$(echo $collist | grep -o -w "[0-9]*=$c" | cut -d'=' -f1)
+			[ -n "$cid" ] && colids="$colids $cid"
+		done
+	else
+		local tmpfile=$(mktemp)
+		local ncollist=$(echo "$collist" | sed 's/\([0-9]*=\)/\\033\[95m\1/g' | sed 's/\(=[a-z]*\)/\\033\[0m\1/g')
+		ncollist=$(echo "$ncollist" | sed '1~2 s/\(=[A-Za-z0-9_]*\)/\\033\[36m\1/g' | sed '1~2 s/\(=[A-Za-z0-9_]*\)/\1\\033\[0m/g')
+		ncollist=$(echo "$ncollist" | sed '2~2 s/\(=[A-Za-z0-9_]*\)/\\033\[32m\1/g' | sed '2~2 s/\(=[A-Za-z0-9_]*\)/\1\\033\[0m/g')
+		echo "$ncollist" > $tmpfile
+		log_msghead "Guts column list : "
+		log_msghead "------------------ "
+		log_msg "$(column -t < $tmpfile | tr '=' ' ')"
+		rm -rf $tmpfile > /dev/null 2>&1
+		log_inline "Enter column numbers(space separated) to collect :"
+		read colids
+		[ -n "$colids" ] && log_info "Column list selected : $colids"
+		[ -n "$colids" ] && colids=$(echo "$colids" | sed 's/,/ /g')
+	fi
+
+	[ -z "$colids" ] && log_error "No columns specified!" && return
+	[ -z "$(echo $colids | grep -o -w "1")" ] && colids="$colids 1"
+	[ -z "$(echo $colids | grep -o -w "2")" ] && colids="$colids 2"
+	colids=$(echo $colids | sed 's/ /\n/g' | sort -n | sed 's/\n/ /g')
+
+	local colnames=
+	for colid in $colids
+	do
+		[ "$(util_isNumber "$colid")" = "false" ] && log_error "Invalid column id specified" && return
+		[ -z "$(echo $collist | grep -o -w "$colid=[A-Za-z0-9_]*")" ] && log_error "Column id '$colid' doesn't exist" && return
+		colnames="$colnames $(echo $collist | grep -o -w "$colid=[A-Za-z0-9_]*" | cut -d'=' -f2)"
+	done
+
+	[ -z "$doGutsType" ] && doGutsType="mfs"
+	
+	local timestamp=$(date +%s)
+	local tmpdir=$(maprutil_buildGutsStats "${timestamp}" "${doGutsType}" "${colids}" "${stime}" "${etime}" "${localgutsfile}")
+
+	maprutil_publishGutsStats "${tmpdir}" "${timestamp}" "$(hostname -f)" "UNKNOWN" "$colnames" "${doPublish}"
+	rm -rf ${tmpdir} > /dev/null 2>&1	
 }
 
 function main_perftool(){

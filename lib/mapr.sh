@@ -5153,7 +5153,14 @@ function marutil_getGutsSample(){
     local gutsfile="/opt/mapr/logs/guts.log"
     [ -n "$2" ] && [ "$2" = "gw" ] && gutsfile="/opt/mapr/logs/gatewayguts.log"
 
-    local gutsline="$(ssh_executeCommandasRoot "$node" "tail -n 1000 $gutsfile 2> /dev/null | grep '^[a-z]' | grep time | head -1 | sed 's/ \+/ /g'")"
+    local gutsline=
+    # hack for building column list from local guts file
+    if [ -s "${node}" ]; then 
+        gutsfile="${node}"
+        gutsline="$(tail -n 1000 $gutsfile 2> /dev/null | grep '^[a-z]' | grep time | head -1 | sed 's/ \+/ /g')"
+    else
+        gutsline="$(ssh_executeCommandasRoot "$node" "tail -n 1000 $gutsfile 2> /dev/null | grep '^[a-z]' | grep time | head -1 | sed 's/ \+/ /g'")"
+    fi
     [ -z "${gutsline}" ] && return
 
     local twocols="time bucketWr write lwrite bwrite read lread inode regular small large meta dir ior iow iorI iowI iorB iowB iorD iowD icache dcache"
@@ -5379,9 +5386,11 @@ function maprutil_buildGutsStats(){
     local colids="$3"
     local stime="$4"
     local etime="$5"
+    local localgutsfile="$6"
 
     local gutslog="/opt/mapr/logs/guts.log"
     [ "$gutstype" = "gw" ] && gutslog="/opt/mapr/logs/gatewayguts.log"
+    [ -s "${localgutsfile}" ] && gutslog=${localgutsfile}
 
     [ ! -s "$gutslog" ] && return
 
@@ -5399,6 +5408,8 @@ function maprutil_buildGutsStats(){
 
     local gutsfile="$tempdir/guts.log"
     sed -n ${sl},${el}p $gutslog | grep "^2" |  awk -v var="$colids" 'BEGIN{split(var,cids," ")} {for (i=1;i<=length(cids);i++) printf("%s ", $cids[i]); printf("\n");}' > ${gutsfile} 2>&1
+
+    echo ${tempdir}
 }
 
 function maprutil_buildDiskUsage(){
