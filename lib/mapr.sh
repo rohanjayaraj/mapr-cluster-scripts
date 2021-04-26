@@ -5407,7 +5407,14 @@ function maprutil_buildGutsStats(){
     mkdir -p $tempdir > /dev/null 2>&1
 
     local gutsfile="$tempdir/guts.log"
-    sed -n ${sl},${el}p $gutslog | grep "^2" |  awk -v var="$colids" 'BEGIN{split(var,cids," ")} {for (i=1;i<=length(cids);i++) printf("%s ", $cids[i]); printf("\n");}' > ${gutsfile} 2>&1
+    #while read -r line; do
+    #    local lineno=$(echo ${line} | awk '{print $1}' | tr -d ':')
+    #    local value=$(echo ${line} | awk '{print $2}')
+    #    local newvalue=$(echo ${value} | bc)
+    #    sed -i "${lineno}s/${value}/0 ${newvalue}/" $gutslog > /dev/null 2>&1 
+    #done <<< "$(grep -whon " 0[1-9][0-9]*" $gutslog)"
+
+    sed -n ${sl},${el}p $gutslog | grep "^2" |  awk -v var="$colids" 'BEGIN{split(var,cids," ")} {for (i=1;i<=length(cids);i++) { if(i>2) x=$cids[i]+0; else x=$cids[i]; printf("%s ", x); } printf("\n");}' > ${gutsfile} 2>&1
 
     echo ${tempdir}
 }
