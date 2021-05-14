@@ -276,7 +276,7 @@ function maprutil_getNodesFromRole() {
 
 function maprutil_ycsbdirs(){
     local dirlist=()
-    for i in $(find /var/ycsb -maxdepth 1 -type d -ctime +10 2>/dev/null)
+    for i in $(find /var/ycsb -maxdepth 1 -type d -ctime +5 2>/dev/null)
     do
       dirlist+=("$i")
     done
@@ -285,7 +285,16 @@ function maprutil_ycsbdirs(){
 
 function maprutil_rubixdirs(){
     local dirlist=()
-    for i in $(find /var/rubix -maxdepth 1 -type d -ctime +10 2>/dev/null)
+    for i in $(find /var/rubix -maxdepth 1 -type d -ctime +5 2>/dev/null)
+    do
+      dirlist+=("$i")
+    done
+    echo ${dirlist[*]}
+}
+
+function maprutil_warpdirs(){
+    local dirlist=()
+    for i in $(find /var/warp -maxdepth 1 -type d -ctime +5 2>/dev/null)
     do
       dirlist+=("$i")
     done
@@ -380,6 +389,7 @@ function maprutil_removedirs(){
             rm -rfv $(maprutil_coresdirs) > /dev/null 2>&1
             rm -rfv $(maprutil_ycsbdirs) > /dev/null 2>&1
             rm -rfv $(maprutil_rubixdirs) > /dev/null 2>&1
+            rm -rfv $(maprutil_warpdirs) > /dev/null 2>&1
            ;;
          known)
             rm -rfv $(maprutil_knowndirs) 

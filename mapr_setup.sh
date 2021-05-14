@@ -429,8 +429,8 @@ if [ -z "$rolefile" ]; then
 	exit 1
 else
     $libdir/main.sh "$rolefile" "-s=$setupop" "-e=$extraarg" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
-    "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-ft=$fsthreads" "-gt=$gwthreads" "-repo=$repourl" \
-    "-prepo=$patchrepourl" "-meprepo=$meprepourl" "-pid=$patchid" "-aop=$asanoptions" "-maxm=$maxmfsmem" "-vol=$volname"
+    "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-ft=$fsthreads" "-gt=$gwthreads" "-prepo=$patchrepourl" \
+    "-repo=$repourl" "-meprepo=$meprepourl" "-pid=$patchid" "-aop=$asanoptions" "-maxm=$maxmfsmem" "-vol=$volname"
     returncode=$?
     [ "$returncode" -ne "0" ] && exit $returncode
 fi
