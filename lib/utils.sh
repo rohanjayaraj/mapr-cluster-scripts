@@ -1344,7 +1344,7 @@ function util_postToSlack(){
     util_sourceProxy
 
     local SLACK_URL=$(timeout 5 wget https://bit.ly/37JEaaV 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
-    [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  https://bit.ly/37JEaaV  | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  https://bit.ly/37JEaaV  | grep -i Location | awk '{print $2}' | tr -d '"\r\n')
     [ -z "${SLACK_URL}" ] && return
 
     local roles="$1"
@@ -1373,7 +1373,7 @@ function util_postToSlack2(){
 
     util_sourceProxy
     local SLACK_URL=$(timeout 5 wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
-    [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  $2  | grep Location | awk '{print $2}' | tr -d '"\r\n')
+    [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  $2  | grep -i Location | awk '{print $2}' | tr -d '"\r\n')
     [ -z "${SLACK_URL}" ] && return
 
     local filetopost="$1"

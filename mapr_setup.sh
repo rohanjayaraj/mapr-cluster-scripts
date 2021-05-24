@@ -88,6 +88,10 @@ function usage () {
     echo -e "\t\t - Reconfigure the cluster if binaries are already installed"
     echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
     echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
+    echo -e "\t -im | --installminio" 
+    echo -e "\t\t - Install distributed MinIO cluster"
+    echo -e "\t -um | --uninstallminio" 
+    echo -e "\t\t - Uninstall MinIO cluster"
     
     echo 
     echo " Install/Uninstall Options : "
@@ -229,6 +233,13 @@ while [ "$1" != "" ]; do
         -r | --reconfigure | --reset)
             setupop="reconfigure"
             [[ "$rolefile" = "rolefile" ]] && rolefile="reconfigure"
+        ;;
+        -im | --installminio)
+            setupop="installminio"
+            [[ "$rolefile" = "rolefile" ]] && rolefile="install"
+        ;;
+        -um | --uninstallminio)
+            setupop="uninstallminio"
         ;;
     	-c | --clusterconfig)
     		rolefile=$VALUE

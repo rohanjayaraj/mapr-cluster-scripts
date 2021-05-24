@@ -412,6 +412,176 @@ function maprutil_removedirs(){
     esac
        
 }
+function minioutil_isInstalledOnNode(){
+    [ -z "$1" ] && return
+    local isRunning=$(ssh_executeCommandasRoot "$node" "ps -ef | grep '[m]inio server'")
+    local hasConfig=$(ssh_executeCommandasRoot "$node" "cat /etc/default/minio 2>/dev/null")
+    local hasService=$(ssh_executeCommandasRoot "$node" "cat /lib/systemd/system/minio.service 2>/dev/null")
+
+    if [ -n "${isRunning}" ] || [ -n "${hasConfig}" ] || [ -n "${hasService}" ]; then
+        echo "true"
+    fi
+}
+
+function minioutil_setupOnNode(){
+    [ -z "$1" ] && return
+    
+    # build full script for node
+    local node=$1
+    local scriptpath="$RUNTEMPDIR/setupnode_${node}.sh"
+    maprutil_buildSingleScript "$scriptpath" "$1"
+    local retval=$?
+    [ "$retval" -ne 0 ] && return
+    
+    
+    echo "minioutil_setupMinio" >> $scriptpath
+    
+    ssh_executeScriptasRootInBG "$1" "$scriptpath"
+    maprutil_addToPIDList "$!"
+}
+
+function minioutil_setupMinio(){
+    local hostip=$(util_getHostIP)
+    # Install MinIO
+    log_info "[$hostip] Downloading minio binary to /usr/local/bin/minio"
+    wget -O /usr/local/bin/minio https://dl.minio.io/server/minio/release/linux-amd64/minio > /dev/null 2>&1
+    chmod +x /usr/local/bin/minio
+
+    log_info "[$hostip] Adding systemd minio service"
+    cat > /lib/systemd/system/minio.service << EOF
+[Unit]
+Description=minio
+Documentation=https://docs.min.io
+Wants=network-online.target
+After=network-online.target
+AssertFileIsExecutable=/usr/local/bin/minio
+
+[Service]
+WorkingDirectory=/usr/local/
+User=root
+Group=root
+EnvironmentFile=/etc/default/minio
+ExecStart=/usr/local/bin/minio server \$MINIO_OPTS
+Restart=always
+LimitNOFILE=65536
+TimeoutStopSec=infinity
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    local diskfile="/tmp/disklist"
+    local ignoredisks=/root/baddisks
+    
+    # build disk list
+    maprutil_buildDiskList "$diskfile" "$ignoredisks"
+    local disklist=$(cat $diskfile)
+
+    log_info "[$hostip] Formating [ $(echo ${disklist} | tr '\n' ' ')] into xfs filesystem"
+    for disk in ${disklist}; do
+        mkfs.xfs -f $disk  > /dev/null 2>&1 &
+    done
+    wait
+
+    local i=1
+
+    log_info "[$hostip] Mounting disks to /minio[0-9]"
+    for disk in ${disklist};do
+        mkdir -p /minio$i
+        mount $disk /minio$i
+        let i=i+1
+    done
+}
+
+function minioutil_getHostDiskOpt(){
+    [ -z "$1" ] && return
+    local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
+    local numdisks=$(ssh_executeCommandasRoot "$node" "mount -l | grep '^/dev' | grep minio | wc -l")
+
+    echo "http://${host}:9000/minio{1...${numdisks}}"
+}
+
+function minioutil_configureOnNode(){
+    [ -z "$1" ] || [ -z "$2" ] && return
+    
+    # build full script for node
+    local node=$1
+    local minioopts="$2"
+    local scriptpath="$RUNTEMPDIR/setupnode_${node}.sh"
+    maprutil_buildSingleScript "$scriptpath" "$1"
+    local retval=$?
+    [ "$retval" -ne 0 ] && return
+    
+    
+    echo "minioutil_configureMinio \"${minioopts}\"" >> $scriptpath
+    
+    ssh_executeScriptasRootInBG "$1" "$scriptpath"
+    maprutil_addToPIDList "$!"
+}
+
+function minioutil_configureMinio(){
+    local minioopts="$1"
+    
+    cat > /etc/default/minio << EOF
+MINIO_OPTS="${minioopts}"
+MINIO_ACCESS_KEY="mapr"
+MINIO_SECRET_KEY="maprwins"
+EOF
+
+    systemctl daemon-reload > /dev/null 2>&1 
+    systemctl enable minio > /dev/null 2>&1 
+    systemctl start minio.service > /dev/null 2>&1 
+
+    log_info "[$(util_getHostIP)] Configuration complete. Waiting for MinIO service to come online"
+    sleep 120
+    
+}
+
+function minioutil_removeOnNode(){
+    [ -z "$1" ] && return
+    
+    # build full script for node
+    local node=$1
+    local scriptpath="$RUNTEMPDIR/setupnode_${node}.sh"
+    maprutil_buildSingleScript "$scriptpath" "$1"
+    local retval=$?
+    [ "$retval" -ne 0 ] && return
+    
+    
+    echo "minioutil_removeMinio" >> $scriptpath
+    
+    ssh_executeScriptasRootInBG "$1" "$scriptpath"
+    maprutil_addToPIDList "$!"
+}
+
+function minioutil_removeMinio(){
+    [ ! -s "/usr/local/bin/minio" ] && return
+
+    maprutil_hpecoloconfigs
+
+    systemctl stop minio.service
+    util_kill "minio"
+    local hostname=$(hostname -f)
+    local grepstr="-e ${hostname}"
+    local hostip=$(util_getHostIP)
+    local hostentry=$(cat /etc/hosts | grep "${hostip}" | awk '{print $2}')
+    [ -n "${hostentry}" ] && grepstr="${grepstr} -e ${hostentry}"
+
+    # Get list of disks configured
+    local diskstr=$(cat /etc/default/minio | grep "MINIO_OPTS" | cut -d'=' -f2 | tr -d '"' | tr ' ' '\n' | grep ${grepstr} | awk -F'/' '{print $4}')
+    local diskname=$(echo "${diskstr}" | cut -d'{' -f1)
+    local startidx=$(echo "${diskstr}" | cut -d'{' -f2 | tr -d '}' | tr '.' ' ' | awk '{print $1}')
+    local endidx=$(echo "${diskstr}" | cut -d'{' -f2 | tr -d '}' | tr '.' ' ' | awk '{print $2}')
+
+    log_info "[$hostip] Unmounting minio disks ${diskname}{${startidx}...${endidx}}"
+    for(( i=${startidx}; i<=${endidx}; i++)); do
+        umount -l /${diskname}$i
+    done
+
+    log_info "[$hostip] Removing minio binary, service & settings"
+    rm -rf /etc/default/minio /lib/systemd/system/minio.service /usr/local/bin/minio
+}
 
 # @param host ip
 function maprutil_isMapRInstalledOnNode(){
@@ -558,7 +728,8 @@ function maprutil_unmountNFS(){
 
     if [ -n "$(util_getInstalledBinaries mapr-posix)" ]; then
         local fusemnt=$(mount -l | grep posix-client | awk '{print $3}')
-        service mapr-posix-client* stop > /dev/null 2>&1
+        service mapr-posix-client-basic stop > /dev/null 2>&1
+        service mapr-posix-client-platinum stop > /dev/null 2>&1
         /etc/init.d/mapr-fuse stop > /dev/null 2>&1
         /etc/init.d/mapr-posix-* stop > /dev/null 2>&1
         [ -n "$fusemnt" ] && timeout 10 fusermount -uq $fusemnt > /dev/null 2>&1
@@ -659,7 +830,9 @@ function maprutil_hpecoloconfigs() {
     hwclock -w > /dev/null 2>&1
     service chronyd stop > /dev/null 2>&1
     chronyd -q 'server mip-gcdc-01.storage.hpecorp.net' > /dev/null 2>&1 &
-    #ntpdate -u mip-gcdc-01.storage.hpecorp.net
+    if [[ "$(getOS)" = "centos" ]] && [[ "$(getOSReleaseVersion)" -lt "8" ]]; then
+        ntpdate -u mip-gcdc-01.storage.hpecorp.net > /dev/null 2>&1 &
+    fi
 
     local confs="/etc/profile.d/proxy.sh /root/.m2/settings.xml /etc/systemd/system/docker.service.d/http-proxy.conf /etc/sysconfig/docker /etc/docker/daemon.json"
     for file in $confs;

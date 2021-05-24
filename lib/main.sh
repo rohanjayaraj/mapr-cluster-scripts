@@ -688,6 +688,132 @@ function main_isMapRInstalled(){
 	fi
 }
 
+function main_minioinstall(){
+	#set -x
+	# Warn user 
+	log_msghead "[$(util_getCurDate)] Installing MinIO on the following N-O-D-E-S : "
+	echo
+	local i=1
+	for node in ${nodes[@]}
+	do
+		log_msg "Node$i : $node"
+		let i=i+1
+	done
+
+	if [[ "$doSilent" -eq 0 ]]; then
+		read -p "Press 'y' to confirm... " -n 1 -r
+	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+	    	echo
+	    	log_msg "Abandoning install! "
+	    	doSkip=1
+	        return 1
+	    fi
+	fi
+    echo
+    log_info "Checking if MinIO is already installed on the nodes..."
+    local islist=
+    for node in ${nodes[@]}
+    do
+    	local isInstalled=$(minioutil_isInstalledOnNode "${node}")
+    	if [ -n "${isInstalled}" ]; then
+    		[ -n "${islist}" ] && islist="${islist} "
+    		islist="${islist}${node}"
+    	fi
+    done
+	if [ -n "$islist" ]; then
+		log_error "MinIO is already installed on the node(s) [ $islist]. Scooting!"
+		exit 255
+	else
+		log_info "No MinIO installed on any node. Continuing installation..."
+	fi
+
+	# Install required binaries on other nodes
+	for node in ${nodes[@]}
+	do
+		log_info "****** Installing MinIO on node -> $node ****** "
+		minioutil_setupOnNode "$node"
+	done
+	maprutil_wait
+
+	# Get all disks configured per host
+	local minioopts=
+	for node in ${nodes[@]}
+	do
+		local hostopts=$(minioutil_getHostDiskOpt "${node}")
+		[ -n "${minioopts}" ] && minioopts="${minioopts} "
+		minioopts="${minioopts}${hostopts}"
+	done
+
+	# Configure MinIO & start services
+	log_info "Configuring MinIO with server list : ${minioopts}"
+	for node in ${nodes[@]}
+	do
+		log_info "****** Configuring MinIO on node -> $node ****** "
+		minioutil_configureOnNode "$node" "${minioopts}"
+	done
+	maprutil_wait
+
+	# Post to SLACK
+	local cs="$(maprutil_getClusterSpec "$nodes")"
+	util_postToSlack "$(maprutil_getRolesList)" "MINIO_INSTALLED" "$cs"
+
+	#set +x
+	log_msghead "[$(util_getCurDate)] MinIO install is complete! [ RunTime - $(main_timetaken) ]"
+}
+
+function main_miniouninstall(){
+
+	# Warn user 
+	log_msghead "[$(util_getCurDate)] Uninstalling MinIO on the following N-O-D-E-S : "
+	echo
+	local i=1
+	for node in ${nodes[@]}
+	do
+		log_msg "Node$i : $node"
+		let i=i+1
+	done
+
+	if [[ "$doSilent" -eq 0 ]]; then
+		read -p "Press 'y' to confirm... " -n 1 -r
+	    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+	    	log_msg "Uninstall C-A-N-C-E-L-L-E-D! "
+	    	doSkip=1
+	        return 1
+	    fi
+	fi
+    
+    echo
+    log_info "Checking if MinIO is installed on the nodes..."
+    local islist=
+    for node in ${nodes[@]}
+    do
+    	local isInstalled=$(minioutil_isInstalledOnNode "${node}")
+    	if [ -n "${isInstalled}" ]; then
+    		[ -n "${islist}" ] && islist="${islist} "
+    		islist="${islist}${node}"
+    	fi
+    done
+	if [ -z "$islist" ]; then
+		log_error "MinIO not found on the node(s). Scooting!"
+		exit 255
+	else
+		log_info "MinIO installed on the node(s) [${islist}]. Continuing uninstallation..."
+	fi
+
+	# Uninstall minIO on other nodes
+	for node in ${nodes[@]}
+	do
+		log_info "****** Uninstalling MinIO on node -> $node ****** "
+		minioutil_removeOnNode "$node"
+	done
+	maprutil_wait
+
+	# Post to SLACK
+	util_postToSlack "$(maprutil_getRolesList)" "MINIO_UNINSTALLED"
+
+	log_msghead "[$(util_getCurDate)] MinIO uninstall is complete! [ RunTime - $(main_timetaken) ]"
+}
+
 function main_backuplogs(){
 	log_msghead "[$(util_getCurDate)] Backing up MapR log directory on all nodes to $doBackup"
 	
@@ -1290,6 +1416,8 @@ doUninstall=0
 doUpgrade=0
 doRolling=
 doConfigure=0
+doMinIOInstall=0
+doMinIOUninstall=0
 doCmdExec=
 doLogAnalyze=
 doPontis=0
@@ -1337,6 +1465,12 @@ while [ "$2" != "" ]; do
 		    	reconfigure)
 		    		doConfigure=1
 		    		GLB_CLDB_TOPO=1
+		    	;;
+		    	installminio)
+					doMinIOInstall=1
+		    	;;
+		    	uninstallminio)
+					doMinIOUninstall=1
 		    	;;
 		    esac
 		    ;;
@@ -1667,6 +1801,12 @@ if [ -z "$dummyrole" ]; then
 	elif [ "$doConfigure" -eq 1 ]; then
 		log_msghead " *************** Starting Cluster Reset & configuration **************** "
 		main_reconfigure
+	fi
+
+	if [ "${doMinIOInstall}" -eq 1 ]; then
+		main_minioinstall
+	elif [ "${doMinIOUninstall}" -eq 1 ]; then
+		main_miniouninstall
 	fi
 
 	[ -n "$GLB_EXIT_ERRCODE" ] && log_critical "One or more nodes returned error '$GLB_EXIT_ERRCODE'" && exit "$GLB_EXIT_ERRCODE"
