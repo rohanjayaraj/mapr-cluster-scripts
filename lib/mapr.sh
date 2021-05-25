@@ -5796,7 +5796,7 @@ function maprutil_getMFSCommitID(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores/ | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.*core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores/ | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|MAST\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.*core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
     local buildid="$(maprutil_getMapRVersion)"
@@ -5871,6 +5871,7 @@ function maprutil_debugCore(){
     local iscollectd=$(echo $corefile | grep "reader\|writer\|collectd")
     local iscats=$(echo $corefile | grep "maprStreamstest")
     local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[A-Za-z0-9.]*.core")
+    local ismastgw=$(echo $corefile | grep -e "MAST")
     local colbin=
     local catsbin="/root/jenkins-client-setup/private-qa/new-cats/mapr-streams/maprStreamstestBinary"
 
@@ -5884,6 +5885,9 @@ function maprutil_debugCore(){
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} $catsbin > $tracefile 2>&1    
         elif [ -n "$ismfs" ]; then
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/server/mfs > $tracefile 2>&1    
+            newcore=1
+        elif [ -n "$ismastgw" ]; then
+            timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/lib/libMASTGatewayNative.so > $tracefile 2>&1    
             newcore=1
         fi
     fi
