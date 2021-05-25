@@ -1248,6 +1248,7 @@ function main_runLogDoctor(){
         rm -f $tmpfile > /dev/null 2>&1
     fi
     if [ -s "${mailfile}" ] && [ -n "${GLB_CUSTOM_SLACK}" ]; then
+    	sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${mailfile}  > /dev/null 2>&1
     	util_postToSlack2 "${mailfile}" "${GLB_CUSTOM_SLACK}"
     fi
     [ -z "$logdrfile" ] && rm -f $mailfile > /dev/null 2>&1
