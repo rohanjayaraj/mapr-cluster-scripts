@@ -5889,6 +5889,9 @@ function maprutil_debugCore(){
         elif [ -n "$ismastgw" ]; then
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/lib/libMASTGatewayNative.so > $tracefile 2>&1    
             newcore=1
+        else
+            timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/lib/libMapRClient.so > $tracefile 2>&1    
+            newcore=1
         fi
     fi
     local btline=$(cat $tracefile | grep -B10 -n "mapr::fs::FileServer::CoreHandler" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)

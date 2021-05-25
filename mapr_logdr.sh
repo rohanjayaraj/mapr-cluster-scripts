@@ -37,6 +37,7 @@ mailsub=
 logfile=
 backupregex=
 verbose=
+slackhook=
 doNoFormat=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
@@ -181,7 +182,7 @@ function usage () {
     echo -e "\t -sub=<MAILSUBJECT> | --subject=<MAILSUBJECT>" 
     echo -e "\t\t - Use MAILSUBJECT for the mail"
 
-    echo -e "\t -sl | --slack" 
+    echo -e "\t -sl | --slack | -sl=<SLACKHOOK> | --slack=<SLACKHOOK>" 
     echo -e "\t\t - Post 'analyzecores' to slack #perf-stack-trace channel"
 
     echo -e "\t -pt=<OPTION> | --perftool=<OPTION>" 
@@ -333,6 +334,7 @@ while [ "$1" != "" ]; do
         ;;
         -sl | --slack)
             args=$args"slack "
+            [ -n "${VALUE}" ] && slackhook="${VALUE}"
         ;;
         -guts)
             if [ -n "$VALUE" ]; then
@@ -399,8 +401,8 @@ if [ -z "$rolefile" ]; then
 else
     params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
     \"-dir=$copydir\" \"-ldrlog=$logfile\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
-    \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\" \"-mail=$maillist\" \"-sub=$mailsub\" \
-    \"-pn=$pname\" \"-pt=$perftool\" \"-pi=$perfinterval\" \"-extarg=$extarg\""
+    \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\" \"-mail=$maillist\" \"-sub=$mailsub\" \"-slhk=$slackhook\" \
+    \"-pn=$pname\" \"-pt=$perftool\" \"-pi=$perfinterval\" \"-extarg=$extarg\" "
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else

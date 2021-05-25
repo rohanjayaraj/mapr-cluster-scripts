@@ -161,6 +161,7 @@ GLB_COPY_CORES=
 GLB_MAIL_LIST=
 GLB_MAIL_SUB=
 GLB_SLACK_TRACE=
+GLB_CUSTOM_SLACK=
 GLB_PERF_OPTION=
 GLB_PERF_INTERVAL=
 GLB_ASAN_OPTIONS=
@@ -1246,6 +1247,9 @@ function main_runLogDoctor(){
         util_sendMail "$GLB_MAIL_LIST" "$mailsub" "$tmpfile"
         rm -f $tmpfile > /dev/null 2>&1
     fi
+    if [ -s "${mailfile}" ] && [ -n "${GLB_CUSTOM_SLACK}" ]; then
+    	util_postToSlack2 "${mailfile}" "${GLB_CUSTOM_SLACK}"
+    fi
     [ -z "$logdrfile" ] && rm -f $mailfile > /dev/null 2>&1
 	return $rc
 }
@@ -1770,6 +1774,9 @@ while [ "$2" != "" ]; do
  				GLB_ASAN_OPTIONS="$VALUE"
  			fi
 		;;
+		-slhk)
+			[ -n "$VALUE" ] && GLB_CUSTOM_SLACK="$VALUE"
+ 		;;
  		-extarg)
 			if [ -n "$VALUE" ]; then
 				GLB_EXT_ARGS=$VALUE

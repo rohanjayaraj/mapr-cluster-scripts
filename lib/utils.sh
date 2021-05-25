@@ -1372,9 +1372,13 @@ function util_postToSlack2(){
     [ -z "$2" ] && echo "Slack URL not specified" && return
 
     util_sourceProxy
-    local SLACK_URL=$(timeout 5 wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
-    [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  $2  | grep -i Location | awk '{print $2}' | tr -d '"\r\n')
-    [ -z "${SLACK_URL}" ] && return
+    local isHookURL=$(echo "$2" | grep -e "slack.com" -e "office.com")
+    local SLACK_URL=$2
+    if [ -z "${isHookURL}" ]; then
+        SLACK_URL=$(timeout 5 wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
+        [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  $2  | grep -i Location | awk '{print $2}' | tr -d '"\r\n')
+        [ -z "${SLACK_URL}" ] && return
+    fi
 
     local filetopost="$1"
     
