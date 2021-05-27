@@ -439,9 +439,32 @@ if [ -z "$rolefile" ]; then
 	>&2 echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	exit 1
 else
-    $libdir/main.sh "$rolefile" "-s=$setupop" "-e=$extraarg" "-c=$clustername" "-m=$multimfs" "-ns=$tablens" "-d=$maxdisks" \
-    "-sp=$numsps" "-b=$backupdir" "-bld=$buildid" "-pb=$putbuffer" "-ft=$fsthreads" "-gt=$gwthreads" "-prepo=$patchrepourl" \
-    "-repo=$repourl" "-meprepo=$meprepourl" "-pid=$patchid" "-aop=$asanoptions" "-maxm=$maxmfsmem" "-vol=$volname"
+    params="$libdir/main.sh $rolefile"
+    [ -n "${setupop}" ] && params="${params} -s=${setupop}"
+    [ -n "${extraarg}" ] && params="${params} \"-e=${extraarg}\""
+    [ -n "${clustername}" ] && params="${params} \"-c=${clustername}\""
+    [ -n "${multimfs}" ] && params="${params} \"-m=${multimfs}\""
+    [ -n "${numsps}" ] && params="${params} \"-sp=${numsps}\""
+    [ -n "${tablens}" ] && params="${params} \"-ns=${tablens}\""
+    [ -n "${maxdisks}" ] && params="${params} \"-d=${maxdisks}\""
+
+    [ -n "${backupdir}" ] && params="${params} \"-b=${backupdir}\""
+    [ -n "${buildid}" ] && params="${params} \"-bld=${buildid}\""
+    [ -n "${putbuffer}" ] && params="${params} \"-pb=${putbuffer}\""
+    [ -n "${fsthreads}" ] && params="${params} \"-ft=${fsthreads}\""
+    [ -n "${gwthreads}" ] && params="${params} \"-gt=${gwthreads}\""
+    [ -n "${patchrepourl}" ] && params="${params} \"-prepo=${patchrepourl}\""
+
+    [ -n "${repourl}" ] && params="${params} \"-repo=${repourl}\""
+    [ -n "${meprepourl}" ] && params="${params} \"-meprepo=${meprepourl}\""
+    [ -n "${patchid}" ] && params="${params} \"-pid=${patchid}\""
+
+    [ -n "${asanoptions}" ] && params="${params} \"-aop=${asanoptions}\""
+    [ -n "${maxmfsmem}" ] && params="${params} \"-maxm=${maxmfsmem}\""
+    [ -n "${volname}" ] && params="${params} \"-vol=${volname}\""
+
+    bash -c "$params"
+    
     returncode=$?
     [ "$returncode" -ne "0" ] && exit $returncode
 fi

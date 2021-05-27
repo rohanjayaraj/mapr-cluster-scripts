@@ -399,10 +399,31 @@ if [ -z "$rolefile" ]; then
 	echo "[ERROR] : Cluster config not specified. Please use -c or --clusterconfig option. Run \"./$me -h\" for more info"
 	returncode=1
 else
-    params="$libdir/main.sh $rolefile -td=$tbltdist -in=${indexname} -si=$sysinfo -v=$verbose \"-e=force\" \
-    \"-dir=$copydir\" \"-ldrlog=$logfile\" \"-g=$grepkey\" \"-b=$backupdir\" \"-bf=$backupregex\" \"-l=$args\" \"-it=$numiter\" \
-    \"-st=$startstr\" \"-et=$endstr\" \"-pub=$publishdesc\" \"-gc=$gutscols\" \"-mail=$maillist\" \"-sub=$mailsub\" \"-slhk=$slackhook\" \
-    \"-pn=$pname\" \"-pt=$perftool\" \"-pi=$perfinterval\" \"-extarg=$extarg\" "
+    params="$libdir/main.sh $rolefile -e=force"
+    [ -n "${tbltdist}" ] && params="${params} -td=${tbltdist}"
+    [ -n "${indexname}" ] && params="${params} -in=${indexname}"
+    [ -n "${sysinfo}" ] && params="${params} -si=${sysinfo}"
+    [ -n "${verbose}" ] && params="${params} -v=${verbose}"
+    [ -n "${copydir}" ] && params="${params} \"-dir=${copydir}\""
+    [ -n "${logfile}" ] && params="${params} \"-ldrlog=${logfile}\""
+    [ -n "${grepkey}" ] && params="${params} \"-g=${grepkey}\""
+    [ -n "${backupdir}" ] && params="${params} \"-b=${backupdir}\""
+    [ -n "${backupregex}" ] && params="${params} \"-bf=${backupregex}\""
+    [ -n "${args}" ] && params="${params} \"-l=${args}\""
+    [ -n "${numiter}" ] && params="${params} \"-it=${numiter}\""
+    [ -n "${startstr}" ] && params="${params} \"-st=${startstr}\""
+    [ -n "${endstr}" ] && params="${params} \"-et=${endstr}\""
+    [ -n "${publishdesc}" ] && params="${params} \"-pub=${publishdesc}\""
+    [ -n "${gutscols}" ] && params="${params} \"-gc=${gutscols}\""
+    [ -n "${maillist}" ] && params="${params} \"-mail=${maillist}\""
+    [ -n "${mailsub}" ] && params="${params} \"-sub=${mailsub}\""
+    [ -n "${slackhook}" ] && params="${params} \"-slhk=${slackhook}\""
+
+    [ -n "${pname}" ] && params="${params} \"-pn=${pname}\""
+    [ -n "${perftool}" ] && params="${params} \"-pt=${perftool}\""
+    [ -n "${perfinterval}" ] && params="${params} \"-pi=${perfinterval}\""
+    [ -n "${extarg}" ] && params="${params} \"-extarg=${extarg}\""
+
     if [ -z "$doNoFormat" ]; then
         bash -c "$params"
     else
