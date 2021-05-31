@@ -1252,7 +1252,7 @@ function main_runLogDoctor(){
     	if [ -n "${haslogs}" ]; then
 	    	sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${mailfile}  > /dev/null 2>&1
 	    	util_postToSlack2 "${mailfile}" "${GLB_CUSTOM_SLACK}"
-	    if
+	    fi
     fi
     [ -z "$logdrfile" ] && rm -f $mailfile > /dev/null 2>&1
 	return $rc
