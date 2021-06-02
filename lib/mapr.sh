@@ -3104,7 +3104,7 @@ function maprutil_runCommandsOnNodesInParallel(){
     for node in ${nodes[@]}
     do
         local nodefile="$tempdir/${node}_${cmd}.log"
-        if [ "$(cat $nodefile | wc -w)" -gt "0" ]; then
+        if [ "$(cat $nodefile | grep -v "^$" | wc -l)" -gt "1" ]; then
             cat "$nodefile" 2>/dev/null
             if [ -n "$mailfile" ]; then
                 echo "Command '$cmd' Output : " >> $mailfile
