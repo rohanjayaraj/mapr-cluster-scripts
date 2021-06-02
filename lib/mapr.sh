@@ -1011,7 +1011,8 @@ function maprutil_upgrade(){
     [ -n "$(maprutil_areTracesRunning)" ] && maprutil_killTraces && starttrace=1
     
     local removebins="mapr-patch"
-    if [ -n "$(util_getInstalledBinaries $removebins)" ]; then
+    local patches=$(util_getInstalledBinaries $removebins)
+    if [ -n "${patches}" ]; then
         util_removeBinaries $removebins
     fi
 
@@ -1039,8 +1040,13 @@ function maprutil_upgrade(){
 
     if [ -n "${GLB_PATCH_REPOFILE}" ] && [ -n "${GLB_MAPR_PATCH}" ]; then
         maprutil_enableRepoByURL "$GLB_PATCH_REPOFILE"
-        local maprpatches=$(echo $(maprutil_getCoreNodeBinaries "$node") | tr ' ' '\n' | grep mapr-patch)
-        util_installBinaries "${maprpatch}" "$GLB_PATCH_VERSION" "-${GLB_MAPR_VERSION}" || exit 1
+        local maprpatches=$(echo $(maprutil_getCoreNodeBinaries "$node") | tr ' ' '\n' | grep mapr-patch | tr '\n' ' ')
+        maprpatches=$(echo "${maprpatches} ${patches}" | tr ' ' '\n' | sort | uniq | tr '\n' ' ')
+        if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
+            util_installBinaries "${maprpatches}" "$GLB_PATCH_VERSION" "-${GLB_MAPR_VERSION}" || exit 1
+        else
+            util_installBinaries "${maprpatches}" "$GLB_PATCH_VERSION" "${GLB_MAPR_VERSION}" || exit 1
+        fi
     fi
     
     #mv /opt/mapr/conf/warden.conf  /opt/mapr/conf/warden.conf.old
