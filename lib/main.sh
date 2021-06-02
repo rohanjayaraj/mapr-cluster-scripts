@@ -500,6 +500,7 @@ function main_upgrade(){
 		do
 			maprutil_restartWardenOnNode "$node" "stop" 
 		done
+		maprutil_wait
 
 		log_info "Stopping zookeeper..."
 		# Stop ZK on ZK nodes

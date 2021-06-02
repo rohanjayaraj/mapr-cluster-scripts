@@ -1011,7 +1011,7 @@ function maprutil_upgrade(){
     [ -n "$(maprutil_areTracesRunning)" ] && maprutil_killTraces && starttrace=1
     
     local removebins="mapr-patch"
-    local patches=$(util_getInstalledBinaries $removebins)
+    local patches=$(echo "$(util_getInstalledBinaries $removebins)" | grep -o "mapr-patch[-a-z]*" | sed 's/-$//g')
     if [ -n "${patches}" ]; then
         util_removeBinaries $removebins
     fi
