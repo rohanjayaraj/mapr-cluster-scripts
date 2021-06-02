@@ -1006,6 +1006,7 @@ function maprutil_upgrade(){
     upbins=$(echo $upbins | sed 's/\n/ /g')
 
     local buildversion=$1
+    local node=$2
     local starttrace=
     [ -n "$(maprutil_areTracesRunning)" ] && maprutil_killTraces && starttrace=1
     
@@ -1014,7 +1015,33 @@ function maprutil_upgrade(){
         util_removeBinaries $removebins
     fi
 
+    if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+        util_switchJavaVersion "11" > /dev/null 2>&1
+    else
+        util_switchJavaVersion "1.8" > /dev/null 2>&1
+    fi
+    if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.1.0" "$GLB_MAPR_VERSION")" ]; then
+        util_switchPythonVersion "3" > /dev/null 2>&1
+    else
+        util_switchPythonVersion "2" > /dev/null 2>&1
+    fi
+
+    local nodeos=$(getOS)
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
+    else
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g' | sed 's/core-rpm/core-deb/g')
+    fi    
+        
+    [ -n "$GLB_PATCH_REPOFILE" ] && maprutil_disableRepoByURL "$GLB_PATCH_REPOFILE"
+
     util_upgradeBinaries "$upbins" "$buildversion" || exit 1
+
+    if [ -n "${GLB_PATCH_REPOFILE}" ] && [ -n "${GLB_MAPR_PATCH}" ]; then
+        maprutil_enableRepoByURL "$GLB_PATCH_REPOFILE"
+        local maprpatches=$(echo $(maprutil_getCoreNodeBinaries "$node") | tr ' ' '\n' | grep mapr-patch)
+        util_installBinaries "${maprpatch}" "$GLB_PATCH_VERSION" "-${GLB_MAPR_VERSION}" || exit 1
+    fi
     
     #mv /opt/mapr/conf/warden.conf  /opt/mapr/conf/warden.conf.old
     #cp /opt/mapr/conf.new/warden.conf /opt/mapr/conf/warden.conf
@@ -1062,7 +1089,7 @@ function maprutil_upgradeNode(){
     if [ -n "$GLB_BUILD_VERSION" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
-    echo "maprutil_upgrade \""$GLB_BUILD_VERSION"\" || exit 1" >> $scriptpath
+    echo "maprutil_upgrade \""$GLB_BUILD_VERSION"\" \""${hostnode}"\"|| exit 1" >> $scriptpath
 
     ssh_executeScriptasRootInBG "$hostnode" "$scriptpath"
     maprutil_addToPIDList "$!"
