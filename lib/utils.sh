@@ -83,7 +83,18 @@ function util_getHostIP(){
     command -v ifconfig >/dev/null 2>&1 || util_installprereq > /dev/null 2>&1
     local ipadd=$(ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1\|0.0.0.0" | head -n 1 | awk '{print $2}' | cut -c6-)
     if [ -z "$ipadd" ]; then
-        ipadd=$(ip addr | grep 'state UP' -A2 | head -n 3 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
+        local ipadds=$(ip addr | grep 'state UP' -A2 | grep inet |  awk '{print $2}' | cut -f1  -d'/')
+        if [[ "$(echo "${ipadds}" | wc -l)" -gt "1" ]]; then
+            local route=$(ip route get 1 | head -n 1)
+            for ip in ${ipadds}; do
+                local isip=$(echo ${route} | grep ${ip})
+                [ -n "${isip}" ] && ipadd=${ip} && break
+            done
+        else
+            ipadd=$(echo "${ipadds}")
+        fi
+        #ipadd=$(ip addr | grep 'state UP' -A2 | head -n 3 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
+
     fi
     if [ -z "$ipadd" ] && [ -n "$HOSTIP" ]; then
         ipadd=$HOSTIP

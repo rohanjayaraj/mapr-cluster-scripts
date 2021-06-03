@@ -1176,10 +1176,12 @@ function main_runLogDoctor(){
         	;;
         	analyzecores)
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
-				maprutil_runCommandsOnNodesInParallel "$nodes" "analyzecores" "$mailfile"
-				if [ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ]; then
+				local tmailfile=$(mktemp)
+				maprutil_runCommandsOnNodesInParallel "$nodes" "analyzecores" "$tmailfile"
+				cat ${tmailfile} >> ${mailfile}
+				if [ -n "$GLB_SLACK_TRACE" ] && [ -s "$tmailfile" ]; then
 					local nodupfile=$(mktemp)
-					cp ${mailfile} ${nodupfile} > /dev/null 2>&1
+					cp ${tmailfile} ${nodupfile} > /dev/null 2>&1
 					if [ -z "${GLB_LOG_VERBOSE}" ]; then
 						maprutil_dedupCores "${nodupfile}"
 						sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${nodupfile}  > /dev/null 2>&1
@@ -1188,13 +1190,16 @@ function main_runLogDoctor(){
 					util_postToSlack2 "${nodupfile}" "https://bit.ly/2vPLzrO"
 					rm -rf ${nodupfile} > /dev/null 2>&1
 				fi
+				rm -rf ${tmailfile}  > /dev/null 2>&1
         	;;
         	analyzeasan)
+				local tmailfile=$(mktemp)
 				log_msghead "[$(util_getCurDate)] Analyzing ASAN errors reported in logs, if any"
-				maprutil_runCommandsOnNodesInParallel "$nodes" "analyzeasan" "$mailfile"
-				if [ -n "$GLB_SLACK_TRACE" ] && [ -s "$mailfile" ]; then
+				maprutil_runCommandsOnNodesInParallel "$nodes" "analyzeasan" "$tmailfile"
+				cat ${tmailfile} >> ${mailfile}
+				if [ -n "$GLB_SLACK_TRACE" ] && [ -s "$tmailfile" ]; then
 					local nodupfile=$(mktemp)
-					cp ${mailfile} ${nodupfile} > /dev/null 2>&1
+					cp ${tmailfile} ${nodupfile} > /dev/null 2>&1
 					if [ -z "${GLB_LOG_VERBOSE}" ]; then
 						maprutil_dedupASANErrors "${nodupfile}"
 						sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${nodupfile}  > /dev/null 2>&1
@@ -1205,6 +1210,7 @@ function main_runLogDoctor(){
 					util_postToMSTeams "${nodupfile}" "https://bit.ly/2TBRKJ9"
 					rm -rf ${nodupfile} > /dev/null 2>&1
 				fi
+				rm -rf ${tmailfile}  > /dev/null 2>&1
         	;;
         	mrinfo)
 				log_msghead "[$(util_getCurDate)] Running mrconfig info "
