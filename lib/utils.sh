@@ -1458,9 +1458,13 @@ function util_getIPfromHostName(){
 
 # @param node ip
 function util_getDecryptPwd(){
-    local cmd="cat /etc/resolv.conf 2>/dev/null | grep "^search" | head -n 1 | awk '{print \$2}'"
-    [ -n "$1" ] && cmd="ssh root@$1 ${cmd}"
-    local passwd=$(bash -c "${cmd}")
+    loca node=$1
+    local passwd=
+    if [ -n "${node}" ]; then
+        passwd=$(ssh root@${node} "cat /etc/resolv.conf 2>/dev/null | grep '^search' | head -n 1 | awk '{print \$2}'")
+    else
+        passwd=$(cat /etc/resolv.conf 2>/dev/null | grep '^search' | head -n 1 | awk '{print $2}')
+    fi
     [ -n "${passwd}" ] && echo ${passwd}
 }
 
@@ -1476,11 +1480,13 @@ function util_getDecryptStr(){
     [ -n "${node}" ] && hasopenssl=$(ssh root@${node} "command -v openssl")
     [ -z "${hasopenssl}" ] && return
 
-    local sslcmd="echo \"${encstr}\" | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1"
-    [ -n "${node}" ] && sslcmd="ssh root@${node} ${sslcmd}"
-    local decstr=$(bash -c "${sslcmd}")
+    local decstr=
+    if [ -n "${node}" ]; then
+        decstr=$(ssh root@${node} "echo '${encstr}' | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1")
+    else
+        decstr=$(echo '${encstr}' | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1)
+    fi
     [ -n "$(echo "${decstr}" | grep "bad decrypt")" ] && decstr=
-
     [ -n "${decstr}" ] && echo "${decstr}"
 }
 
