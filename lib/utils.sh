@@ -1458,7 +1458,7 @@ function util_getIPfromHostName(){
 
 # @param node ip
 function util_getDecryptPwd(){
-    loca node=$1
+    local node=$1
     local passwd=
     if [ -n "${node}" ]; then
         passwd=$(ssh root@${node} "cat /etc/resolv.conf 2>/dev/null | grep '^search' | head -n 1 | awk '{print \$2}'")
