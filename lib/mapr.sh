@@ -5908,12 +5908,14 @@ function maprutil_debugCore(){
     local iscats=$(echo $corefile | grep "maprStreamstest")
     local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[A-Za-z0-9.]*.core")
     local ismastgw=$(echo $corefile | grep -e "MAST")
+    local isatsdkr=$(docker images 2>/dev/null | grep "localhost:5000/ats" | awk '{print $3}')
+    [ -n "${isatsdkr}" ] && isatsdkr="docker run -v /opt/cores:/opt/cores ${isatsdkr}"
     local colbin=
     local catsbin="/root/jenkins-client-setup/private-qa/new-cats/mapr-streams/maprStreamstestBinary"
 
     if [ -z "$(find $tracefile -type f -size +15k 2> /dev/null)" ]; then
         if [ -n "$isjava" ]; then
-            timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
+            timeout 120 ${isatsdkr} gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
         elif [ -n "$iscollectd" ]; then
             colbin=$(find /opt/mapr/collectd -type f -name collectd  -exec file -i '{}' \; 2> /dev/null | tr -d ':' | grep 'x-executable' | awk {'print $1'})
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} $colbin > $tracefile 2>&1    
