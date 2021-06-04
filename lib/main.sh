@@ -1321,16 +1321,16 @@ function main_buildServiceHostNames(){
 	[ -z "$1" ] && return
 
 	local node=$1
-  local hostname=$(util_getDecryptPwd "${node}" "U2FsdGVkX1+52TpzoIV3bquA9nhpOLLYikry5GsRCqQOHnjNJrUEav+wZBGzTP4JsLKVUvrHkG/2dk8nb0/0Sg==")
+  local hostname=$(util_getDecryptStr "${node}" "U2FsdGVkX1+52TpzoIV3bquA9nhpOLLYikry5GsRCqQOHnjNJrUEav+wZBGzTP4JsLKVUvrHkG/2dk8nb0/0Sg==")
   [ -n "${hostname}" ] && GLB_MVN_HOST=${hostname} || return
   
-  hostname=$(util_getDecryptPwd "${node}" "U2FsdGVkX18QdvjCr9tIJ+K1C9j/NFsTZiHW4INHrPAHhwj5lQ3vunlgaH2uA1Ye=")
+  hostname=$(util_getDecryptStr "${node}" "U2FsdGVkX18QdvjCr9tIJ+K1C9j/NFsTZiHW4INHrPAHhwj5lQ3vunlgaH2uA1Ye=")
   [ -n "${hostname}" ] && GLB_ART_HOST=${hostname} || return
 
-  hostname=$(util_getDecryptPwd "${node}" "U2FsdGVkX18TmqfS81Lb3G1llCzR10TPq98j31T/PDJ9HVhlWdcq4KHtqafuj/EA") 
+  hostname=$(util_getDecryptStr "${node}" "U2FsdGVkX18TmqfS81Lb3G1llCzR10TPq98j31T/PDJ9HVhlWdcq4KHtqafuj/EA") 
   [ -n "${hostname}" ] && GLB_CRY_HOST=${hostname} || return
 
-  hostname=$(util_getDecryptPwd "${node}" "U2FsdGVkX1/3Aoc7hVlw1ElxpKjNobYx7lDYDQ0hZhnjS2Nj4U29CeSvuqYhdY8t")
+  hostname=$(util_getDecryptStr "${node}" "U2FsdGVkX1/3Aoc7hVlw1ElxpKjNobYx7lDYDQ0hZhnjS2Nj4U29CeSvuqYhdY8t")
   [ -n "${hostname}" ] && GLB_DKR_HOST=${hostname} || return
   
   [ -n "${useRepoURL}" ] && useRepoURL=$(echo "${useRepoURL}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
