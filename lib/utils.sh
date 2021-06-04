@@ -81,7 +81,7 @@ function isOSVersionSameOrNewer(){
 
 function util_getHostIP(){
     command -v ifconfig >/dev/null 2>&1 || util_installprereq > /dev/null 2>&1
-    local ipadd=$(ifconfig | grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1\|0.0.0.0" | head -n 1 | awk '{print $2}' | cut -c6-)
+    local ipadd=$(ifconfig 2>/dev/null| grep -e "inet:" -e "addr:" | grep -v "inet6" | grep -v "127.0.0.1\|0.0.0.0" | head -n 1 | awk '{print $2}' | cut -c6-)
     if [ -z "$ipadd" ]; then
         local ipadds=$(ip addr | grep 'state UP' -A2 | grep inet |  awk '{print $2}' | cut -f1  -d'/')
         if [[ "$(echo "${ipadds}" | wc -l)" -gt "1" ]]; then
@@ -1347,7 +1347,7 @@ function util_removeXterm(){
 function util_sourceProxy() {
     # source hpe proxy
     local proxysh="/etc/profile.d/proxy.sh"
-    [ -s "${proxysh}" ] && [ -n "$(cat ${proxysh} | grep "hpecorp.net")" ] && source ${proxysh}
+    [ -s "${proxysh}" ] && source ${proxysh}
 }
 
 function util_postToSlack(){
@@ -1453,6 +1453,14 @@ function util_getIPfromHostName(){
     if [ "$(util_validip2 "$ip")" = "valid" ]; then
         echo $ip
     fi
+}
+
+# @param node ip
+function util_getDecryptPwd(){
+    [ ! -s "/etc/resolv.conf" ] && return
+    [ -z "$1" ] && return
+    local passwd=$(ssh root@$1 cat /etc/resolv.conf 2>/dev/null | grep "^search" | head -n 1 | awk '{print $2}')
+    [ -n "${passwd}" ] && echo ${passwd}
 }
 
 # @param values in new lines

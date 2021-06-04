@@ -829,18 +829,18 @@ function maprutil_cleanPrevClusterConfig(){
 function maprutil_hpecoloconfigs() {
     hwclock -w > /dev/null 2>&1
     service chronyd stop > /dev/null 2>&1
-    chronyd -q 'server mip-gcdc-01.storage.hpecorp.net' > /dev/null 2>&1 &
+    chronyd -q 'server ${GLB_CRY_HOST}' > /dev/null 2>&1 &
     if [[ "$(getOS)" = "centos" ]] && [[ "$(getOSReleaseVersion)" -lt "8" ]]; then
-        ntpdate -u mip-gcdc-01.storage.hpecorp.net > /dev/null 2>&1 &
+        ntpdate -u ${GLB_CRY_HOST} > /dev/null 2>&1 &
     fi
 
     local confs="/etc/profile.d/proxy.sh /root/.m2/settings.xml /etc/systemd/system/docker.service.d/http-proxy.conf /etc/sysconfig/docker /etc/docker/daemon.json"
     for file in $confs;
     do
         if [ -s "${file}" ]; then
-            [ -n "$(grep "docker.artifactory.lab" ${file} 2>/dev/null)" ] && sed -i 's/docker.artifactory.lab/dfdkr.mip.storage.hpecorp.net/g' ${file}
-            [ -n "$(grep "maven.corp.maprtech.com" ${file} 2>/dev/null)" ] && sed -i 's/maven.corp.maprtech.com/df-mvn-dev.mip.storage.hpecorp.net/g' ${file}
-            [ -n "$(grep "artifactory.devops.lab" ${file} 2>/dev/null)" ] && sed -i 's/artifactory.devops.lab/dfaf.mip.storage.hpecorp.net/g' ${file}
+            [ -n "$(grep "docker.artifactory.lab" ${file} 2>/dev/null)" ] && sed -i "s/docker.artifactory.lab/${GLB_DKR_HOST}/g" ${file}
+            [ -n "$(grep "maven.corp.maprtech.com" ${file} 2>/dev/null)" ] && sed -i "s/maven.corp.maprtech.com/${GLB_MVN_HOST}/g" ${file}
+            [ -n "$(grep "artifactory.devops.lab" ${file} 2>/dev/null)" ] && sed -i "s/artifactory.devops.lab/${GLB_ART_HOST}/g" ${file}
         fi
     done
     [ -s "/etc/docker/daemon.json" ] && systemctl daemon-reload && service docker restart > /dev/null 2>&1 &
@@ -888,7 +888,7 @@ function maprutil_cleanDocker(){
     local vnics="$(ls -l /sys/class/net/ | grep virtual | awk '{print $9}')"
     for i in $vnics
     do 
-        local remove=$(ifconfig | grep UP | grep $i | grep -v LOOPBACK)
+        local remove=$(ifconfig 2>/dev/null | grep UP | grep $i | grep -v LOOPBACK)
         [ -z "$remove" ] && continue
         if [ -n "$(echo $i | grep docker)" ]; then
             log_info "[$(util_getHostIP)] Shutting down '$i' network interface"
@@ -1228,7 +1228,7 @@ function maprutil_installApiserverIfAbsent(){
     [ -n "$hasapi" ] && [ -z "$apiinst" ] && notok=1
     [ -n "$hasweb" ] && [ -z "$webinst" ] && notok=1
 
-    [ -n "$notok" ] && maprutil_reinstallApiserver "http://dfaf.mip.storage.hpecorp.net/artifactory/list/eco-rpm/releases/opensource/redhat/mapr-admin-${GLB_MAPR_VERSION}/"
+    [ -n "$notok" ] && maprutil_reinstallApiserver "http://${GLB_ART_HOST}/artifactory/list/eco-rpm/releases/opensource/redhat/mapr-admin-${GLB_MAPR_VERSION}/"
 }
 
 function maprutil_reinstallApiserver(){
@@ -1246,7 +1246,7 @@ function maprutil_reinstallApiserver(){
     local repourl="$1"
     local ext="rpm"
 
-    [ -z "$repourl" ] && repourl="http://dfaf.mip.storage.hpecorp.net/artifactory/list/eco-rpm/releases/opensource/redhat/mapr-admin-${GLB_MAPR_VERSION}-EBF/"
+    [ -z "$repourl" ] && repourl="http://${GLB_ART_HOST}/artifactory/list/eco-rpm/releases/opensource/redhat/mapr-admin-${GLB_MAPR_VERSION}-EBF/"
     
     if [ "$nodeos" = "ubuntu" ]; then
         repourl="$(echo $repourl | sed 's/eco-rpm/eco-deb/g' | sed 's/redhat/ubuntu/g')"
@@ -2344,11 +2344,11 @@ function maprutil_checkBuildExists(){
         retval=$(ssh_executeCommandasRoot "$node" "yum --showduplicates list mapr-core | grep $buildid")
     elif [ "$nodeos" = "ubuntu" ]; then
         ssh_executeCommandasRoot "$node" "apt-get update" > /dev/null 2>&1
-        repolist=$(ssh_executeCommandasRoot "$node" "grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | tr ' ' '\n' | grep -e apt.qa.lab -e dfaf.mip.storage.hpecorp.net -e artifactory.devops.lab -e package.mapr.com| grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
+        repolist=$(ssh_executeCommandasRoot "$node" "grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | tr ' ' '\n' | grep -e apt.qa.lab -e ${GLB_ART_HOST} -e artifactory.devops.lab -e package.mapr.com| grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
         retval=$(ssh_executeCommandasRoot "$node" "apt-get update >/dev/null 2>&1 && apt-cache policy mapr-core | grep $buildid")
     elif [ "$nodeos" = "suse" ]; then
         ssh_executeCommandasRoot "$node" "zypper clean" > /dev/null 2>&1
-        repolist=$(ssh_executeCommandasRoot "$node" "zypper lr -u | awk '{if(\$7~"Yes") print \$NF}' | grep -e apt.qa.lab -e dfaf.mip.storage.hpecorp.net -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
+        repolist=$(ssh_executeCommandasRoot "$node" "zypper lr -u | awk '{if(\$7~"Yes") print \$NF}' | grep -e apt.qa.lab -e ${GLB_ART_HOST} -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://\|ebf' | head -1")
         retval=$(ssh_executeCommandasRoot "$node" "zypper search -s mapr-core | grep $buildid")
     fi
     [[ "$buildid" = "latest" ]] && retval=$(maprutil_getLatestBuildID "$repolist")
@@ -2450,7 +2450,7 @@ function maprutil_copyRepoFile(){
         ssh_executeCommandasRoot "$1" "rm -rf /etc/apt/sources.list.d/*mapr*.list > /dev/null 2>&1" > /dev/null 2>&1
         ssh_executeCommandasRoot "$1" "sed -i '/apt.qa.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
         ssh_executeCommandasRoot "$1" "sed -i '/artifactory.devops.lab/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
-        ssh_executeCommandasRoot "$1" "sed -i '/dfaf.mip.storage.hpecorp.net/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
+        ssh_executeCommandasRoot "$1" "sed -i \"/${GLB_ART_HOST}/s/^/#/\" /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
         ssh_executeCommandasRoot "$1" "sed -i '/package.mapr.com/s/^/#/' /etc/apt/sources.list /etc/apt/sources.list.d/* > /dev/null 2>&1" > /dev/null 2>&1
 
         ssh_copyCommandasRoot "$node" "$2" "/etc/apt/sources.list.d/" > /dev/null 2>&1
@@ -2478,14 +2478,14 @@ function maprutil_buildPatchRepoURL(){
         if [ -n "$repopatch" ]; then
             GLB_PATCH_REPOFILE=${repopatch}
         else
-            [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://dfaf.mip.storage.hpecorp.net/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
+            [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
         fi
     elif [ "$nodeos" = "ubuntu" ]; then
         repopatch=$(cat $repofile 2>/dev/null | grep -v "^#" | grep patch | awk '{print $2}')
         if [ -n "$repopatch" ]; then
             GLB_PATCH_REPOFILE=${repopatch}
         else
-            [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://dfaf.mip.storage.hpecorp.net/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/ubuntu/"
+            [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/ubuntu/"
         fi
     fi
     #echo "$GLB_PATCH_REPOFILE"
@@ -2503,10 +2503,10 @@ function maprutil_buildRepoFile(){
     repourl=$(echo $repourl | sed 's/oel/redhat/g')
 
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
-        meprepo="http://dfaf.mip.storage.hpecorp.net/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
+        meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
-        [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://dfaf.mip.storage.hpecorp.net/artifactory/list/ebf-rpm/"
+        [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://${GLB_ART_HOST}/artifactory/list/ebf-rpm/"
         
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | | sed 's/eco-deb/eco-rpm/g')
         [ -n "$(echo "$repourl" | grep ubuntu)" ] && repourl=$(echo $repourl | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
@@ -2543,10 +2543,10 @@ function maprutil_buildRepoFile(){
         fi
         echo >> $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        meprepo="http://dfaf.mip.storage.hpecorp.net/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/ubuntu/"
+        meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/ubuntu/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
-        [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://dfaf.mip.storage.hpecorp.net/artifactory/list/ebf-deb/"
+        [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://${GLB_ART_HOST}/artifactory/list/ebf-deb/"
 
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g' | sed 's/eco-rpm/eco-deb/g')
         [ -n "$(echo "$repourl" | grep redhat)" ] && repourl=$(echo $repourl | sed 's/redhat/ubuntu/g' | sed 's/core-rpm/core-deb/g')
@@ -2570,11 +2570,11 @@ function maprutil_getRepoURL(){
         echo "$repolist"
     elif [ "$nodeos" = "ubuntu" ]; then
         apt-get update > /dev/null 2>&1
-        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | tr ' ' '\n' | grep -e apt.qa.lab -e dfaf.mip.storage.hpecorp.net -e artifactory.devops.lab -e package.mapr.com|  grep -iv 'mep\|opensource\|file://\|ebf' | head -1)
+        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | tr ' ' '\n' | grep -e apt.qa.lab -e ${GLB_ART_HOST} -e artifactory.devops.lab -e package.mapr.com|  grep -iv 'mep\|opensource\|file://\|ebf' | head -1)
         echo "$repolist"
     elif [ "$nodeos" = "suse" ]; then
         zypper clean > /dev/null 2>&1
-        local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e dfaf.mip.storage.hpecorp.net -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://\|ebf' | head -1)
+        local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e ${GLB_ART_HOST} -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://\|ebf' | head -1)
         echo "$repolist"
     fi
 }
@@ -2585,10 +2585,10 @@ function maprutil_getPatchRepoURL(){
         local repolist=$(yum repolist enabled -v | grep -e Repo-id -e Repo-baseurl -e MapR | grep -A1 -B1 MapR | grep -v Repo-name | grep -iv 'mep\|opensource\|file://' | grep Repo-baseurl | grep -i EBF | cut -d':' -f2- | tr -d " " | head -1)
         echo "$repolist"
     elif [ "$nodeos" = "ubuntu" ]; then
-        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' |  tr ' ' '\n' | grep -e apt.qa.lab -e dfaf.mip.storage.hpecorp.net -e artifactory.devops.lab -e package.mapr.com| grep -iv 'mep\|opensource\|file://' | grep -i EBF| head -1)
+        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' |  tr ' ' '\n' | grep -e apt.qa.lab -e ${GLB_ART_HOST} -e artifactory.devops.lab -e package.mapr.com| grep -iv 'mep\|opensource\|file://' | grep -i EBF| head -1)
         echo "$repolist"
     elif [ "$nodeos" = "suse" ]; then
-        local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e dfaf.mip.storage.hpecorp.net -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://' | grep -i EBF | head -1)
+        local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $NF}' | grep -e apt.qa.lab -e ${GLB_ART_HOST} -e artifactory.devops.lab -e package.mapr.com | grep -iv 'mep\|opensource\|file://' | grep -i EBF | head -1)
         echo "$repolist"
     fi
 }
@@ -2603,14 +2603,14 @@ function maprutil_disableAllRepo(){
             yum-config-manager --disable $repo > /dev/null 2>&1
         done
     elif [ "$nodeos" = "ubuntu" ]; then
-        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' |  tr ' ' '\n' | grep -e apt.qa.lab -e dfaf.mip.storage.hpecorp.net -e artifactory.devops.lab -e package.mapr.com| grep -iv opensource)
+        local repolist=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' |  tr ' ' '\n' | grep -e apt.qa.lab -e ${GLB_ART_HOST} -e artifactory.devops.lab -e package.mapr.com| grep -iv opensource)
         for repo in $repolist
         do
            local repof=$(grep ^ /etc/apt/sources.list /etc/apt/sources.list.d/* | grep -v ':#' | grep $repo | cut -d":" -f1)
            sed -i "/${repo//\//\\/}/s/^/#/" ${repof}
         done
     elif [ "$nodeos" = "suse" ]; then
-        local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $0}' | grep -e apt.qa.lab -e dfaf.mip.storage.hpecorp.net -e artifactory.devops.lab -e package.mapr.com| awk '{print $3}' | grep -iv opensource)
+        local repolist=$(zypper lr -u | awk '{if($7~"Yes") print $0}' | grep -e apt.qa.lab -e ${GLB_ART_HOST} -e artifactory.devops.lab -e package.mapr.com| awk '{print $3}' | grep -iv opensource)
         for repo in $repolist
         do
            log_info "[$(util_getHostIP)] Disabling repository $repo"
@@ -2681,7 +2681,7 @@ function maprutil_addLocalRepo(){
     fi
 
     local repourl=$1
-    local meprepo="http://dfaf.mip.storage.hpecorp.net/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
+    local meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
     [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
     [ -n "$(echo "$meprepo" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | sed 's/eco-deb/eco-rpm/g')
 
@@ -2757,12 +2757,12 @@ function maprutil_setupasanmfs(){
     maprutil_restartWarden "stop" 2>/dev/null
     [ -n "$GLB_ASAN_OPTIONS" ] && GLB_ASAN_OPTIONS="$(echo "$GLB_ASAN_OPTIONS" | tr ',' ' ' | tr ':' '=')"
     # download latest asan mfs binary
-    local asanrepo="http://dfaf.mip.storage.hpecorp.net/artifactory/core-deb/master-asan/"
+    local asanrepo="http://${GLB_ART_HOST}/artifactory/core-deb/master-asan/"
     if [ "$nodeos" = "centos" ]; then 
-        asanrepo="http://dfaf.mip.storage.hpecorp.net/artifactory/core-rpm/master-centos7-asan/"
+        asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos7-asan/"
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
-            asanrepo="http://dfaf.mip.storage.hpecorp.net/artifactory/core-rpm/master-centos8-asan/"
-            [[ -n "${GLB_ENABLE_UBSAN}" ]] && asanrepo="http://dfaf.mip.storage.hpecorp.net/artifactory/core-rpm/master-centos8-ubsan/" && isAsan="UBSAN"
+            asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos8-asan/"
+            [[ -n "${GLB_ENABLE_UBSAN}" ]] && asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos8-ubsan/" && isAsan="UBSAN"
         fi
     fi
 
@@ -3018,7 +3018,7 @@ function maprutil_downloadBinaries(){
     if [[ -z "$(ls ${dlddir} | grep mapr-apiserver)" ]] || [[ -z "$(ls ${dlddir} | grep mapr-webserver)" ]]; then
         rm -rf mapr-apiserver* mapr-webserver* > /dev/null 2>&1
 
-        local relrepo=http://dfaf.mip.storage.hpecorp.net/artifactory/prestage/releases-dev/v${mversion}/redhat/
+        local relrepo=http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/v${mversion}/redhat/
 
         if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
             [ "$nodeos" = "suse" ] && relrepo=$(echo "$relrepo" | sed 's/redhat/suse/g')
@@ -4105,7 +4105,7 @@ EOF
         if [ ! -s "/etc/docker/daemon.json" ]; then
         cat <<EOF > /etc/docker/daemon.json
 {
-    "insecure-registries": ["dfdkr.mip.storage.hpecorp.net"]
+    "insecure-registries": ["${GLB_DKR_HOST}"]
 }
 EOF
         systemctl restart docker > /dev/null 2>&1
@@ -4142,7 +4142,7 @@ EOF
         if [ ! -s "/etc/docker/daemon.json" ]; then
             cat <<EOF > /etc/docker/daemon.json
 {
-    "insecure-registries": ["dfdkr.mip.storage.hpecorp.net"]
+    "insecure-registries": ["${GLB_DKR_HOST}"]
 }
 EOF
             systemctl restart docker > /dev/null 2>&1

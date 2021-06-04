@@ -167,6 +167,10 @@ GLB_PERF_INTERVAL=
 GLB_ASAN_OPTIONS=
 GLB_ENABLE_UBSAN=
 GLB_SSLKEY_COPY=1
+GLB_MVN_HOST=maven.foo.org
+GLB_ART_HOST=artifactory.foo.org
+GLB_CRY_HOST=ntp.foo.org
+GLB_DKR_HOST=docker.foo.org
 GLB_EXT_ARGS=
 GLB_EXIT_ERRCODE=
 
@@ -1301,6 +1305,20 @@ function main_stopall() {
     done
 }
 
+function main_buildServiceHostNames(){
+    local passwd=$(util_getDecryptPwd ${node})
+    [ -z "${passwd}" ] && return
+    local hasopenssl=$(ssh_executeCommandasRoot "${node}" "command -v openssl")
+    [ -z "${hasopenssl}" ] && return
+
+    local sslcmd="openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d"
+    GLB_MVN_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX1+52TpzoIV3bquA9nhpOLLYikry5GsRCqQOHnjNJrUEav+wZBGzTP4JsLKVUvrHkG/2dk8nb0/0Sg==\" | ${sslcmd}")
+		GLB_ART_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX18QdvjCr9tIJ+K1C9j/NFsTZiHW4INHrPAHhwj5lQ3vunlgaH2uA1Ye\" | ${sslcmd}")
+		GLB_CRY_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX18TmqfS81Lb3G1llCzR10TPq98j31T/PDJ9HVhlWdcq4KHtqafuj/EA\" | ${sslcmd}")
+		GLB_DKR_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX1/3Aoc7hVlw1ElxpKjNobYx7lDYDQ0hZhnjS2Nj4U29CeSvuqYhdY8t\" | ${sslcmd}")
+		decryptdone=1
+}
+
 function main_getRepoFile(){
 	#local cldbnodes=$(maprutil_getCLDBNodes)
 	#local cldbnode=$(util_getFirstElement)
@@ -1317,6 +1335,8 @@ function main_getRepoFile(){
 	   repofile="$repodir/mapr2.list"
     fi
 
+	[ -z "${decryptdone}" ] && main_buildServiceHostNames "${node}"
+	
 	if [ -z "$useRepoURL" ]; then
 		echo "$maprrepo"
 		return
@@ -1452,13 +1472,14 @@ endstr=
 copydir=
 logdrfile=
 bkpRegex=
+decryptdone=
 useBuildID=
 useRepoURL=
 useMEPURL=
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
-    VALUE=`echo $2 | awk -F= '{print $2}' | sed 's/artifactory.devops.lab/dfaf.mip.storage.hpecorp.net/g'`
+    VALUE=`echo $2 | awk -F= '{print $2}' | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g"`
     #echo "OPTION : $OPTION; VALUE : $VALUE"
     case $OPTION in
         h | help)
