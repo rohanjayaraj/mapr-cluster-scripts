@@ -1318,22 +1318,26 @@ function main_stopall() {
 
 function main_buildServiceHostNames(){
 	[ -n "${decryptdone}" ] && return
-    local passwd=$(util_getDecryptPwd ${node})
-    [ -z "${passwd}" ] && return
-    local hasopenssl=$(ssh_executeCommandasRoot "${node}" "command -v openssl")
-    [ -z "${hasopenssl}" ] && return
+	[ -z "$1" ] && return
 
-    local sslcmd="openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d"
-    GLB_MVN_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX1+52TpzoIV3bquA9nhpOLLYikry5GsRCqQOHnjNJrUEav+wZBGzTP4JsLKVUvrHkG/2dk8nb0/0Sg==\" | ${sslcmd}")
-		GLB_ART_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX18QdvjCr9tIJ+K1C9j/NFsTZiHW4INHrPAHhwj5lQ3vunlgaH2uA1Ye\" | ${sslcmd}")
-		GLB_CRY_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX18TmqfS81Lb3G1llCzR10TPq98j31T/PDJ9HVhlWdcq4KHtqafuj/EA\" | ${sslcmd}")
-		GLB_DKR_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX1/3Aoc7hVlw1ElxpKjNobYx7lDYDQ0hZhnjS2Nj4U29CeSvuqYhdY8t\" | ${sslcmd}")
+	local node=$1
+  local hostname=$(util_getDecryptPwd "${node}" "U2FsdGVkX1+52TpzoIV3bquA9nhpOLLYikry5GsRCqQOHnjNJrUEav+wZBGzTP4JsLKVUvrHkG/2dk8nb0/0Sg==")
+  [ -n "${hostname}" ] && GLB_MVN_HOST=${hostname} || return
+  
+  hostname=$(util_getDecryptPwd "${node}" "U2FsdGVkX18QdvjCr9tIJ+K1C9j/NFsTZiHW4INHrPAHhwj5lQ3vunlgaH2uA1Ye=")
+  [ -n "${hostname}" ] && GLB_ART_HOST=${hostname} || return
 
-		[ -n "${useRepoURL}" ] && useRepoURL=$(echo "${useRepoURL}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
-		[ -n "${GLB_PATCH_REPOFILE}" ] && GLB_PATCH_REPOFILE=$(echo "${GLB_PATCH_REPOFILE}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
-		[ -n "${GLB_MEP_REPOURL}" ] && GLB_MEP_REPOURL=$(echo "${GLB_MEP_REPOURL}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
+  hostname=$(util_getDecryptPwd "${node}" "U2FsdGVkX18TmqfS81Lb3G1llCzR10TPq98j31T/PDJ9HVhlWdcq4KHtqafuj/EA") 
+  [ -n "${hostname}" ] && GLB_CRY_HOST=${hostname} || return
 
-		decryptdone=1
+  hostname=$(util_getDecryptPwd "${node}" "U2FsdGVkX1/3Aoc7hVlw1ElxpKjNobYx7lDYDQ0hZhnjS2Nj4U29CeSvuqYhdY8t")
+  [ -n "${hostname}" ] && GLB_DKR_HOST=${hostname} || return
+  
+  [ -n "${useRepoURL}" ] && useRepoURL=$(echo "${useRepoURL}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
+	[ -n "${GLB_PATCH_REPOFILE}" ] && GLB_PATCH_REPOFILE=$(echo "${GLB_PATCH_REPOFILE}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
+	[ -n "${GLB_MEP_REPOURL}" ] && GLB_MEP_REPOURL=$(echo "${GLB_MEP_REPOURL}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
+
+	decryptdone=1
 }
 
 function main_getRepoFile(){

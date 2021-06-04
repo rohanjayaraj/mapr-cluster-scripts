@@ -1463,6 +1463,24 @@ function util_getDecryptPwd(){
     [ -n "${passwd}" ] && echo ${passwd}
 }
 
+# @param node ip
+function util_getDecryptStr(){
+    [ -z "$1" ] || [ -z "$2" ] && return
+    local node="$1"
+    local encstr="$2"
+
+    local passwd=$(util_getDecryptPwd ${node})
+    [ -z "${passwd}" ] && return
+    local hasopenssl=$(ssh root@${node} "command -v openssl")
+    [ -z "${hasopenssl}" ] && return
+
+    local sslcmd="openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1"
+    local decstr=$(ssh root@${node} "echo \"${encstr}\" | ${sslcmd}")
+    [ -n "$(echo "${decstr}" | grep "bad decrypt")" ] && decstr=
+
+    [ -n "${decstr}" ] && echo "${decstr}"
+}
+
 # @param values in new lines
 function util_getStdDev(){
     [ -z "$1" ] && return
