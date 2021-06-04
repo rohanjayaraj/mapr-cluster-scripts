@@ -1428,6 +1428,8 @@ function main_preSetup(){
 	[ -n "$copydir" ] && GLB_COPY_DIR="$copydir" && mkdir -p $GLB_COPY_DIR > /dev/null 2>&1
 	[ -z "$GLB_MAPR_PATCH" ] && [ -n "$(echo "$roles" | grep mapr-patch)" ] && GLB_MAPR_PATCH=1
 	GLB_CLUSTER_SIZE=$(echo "$roles" |  grep "^[^#;]" | grep 'mapr-fileserver' | wc -l)
+
+	[ -n "${GLB_PATCH_REPOFILE}" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE=
 }
 
 function main_extractMapRVersion(){
@@ -1479,7 +1481,7 @@ useMEPURL=
 
 while [ "$2" != "" ]; do
 	OPTION=`echo $2 | awk -F= '{print $1}'`
-    VALUE=`echo $2 | awk -F= '{print $2}' | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g"`
+    VALUE=`echo $2 | awk -F= '{print $2}'`
     #echo "OPTION : $OPTION; VALUE : $VALUE"
     case $OPTION in
         h | help)
@@ -1767,7 +1769,6 @@ while [ "$2" != "" ]; do
 				[ -z "$GLB_PATCH_REPOFILE" ] && [ -n "$(echo ${useRepoURL} | grep "releases")" ] && GLB_PATCH_REPOFILE="$(echo ${useRepoURL} | sed 's/\(\/v[0-9].[0-9].[0-9]\)/\/patches\1/g')"
 				[ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(echo ${GLB_PATCH_REPOFILE} | grep "releases-dev")" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/\/releases\//\/releases-dev\//')
 				#[ -z "$GLB_PATCH_REPOFILE" ] && GLB_PATCH_REPOFILE="${useRepoURL%?}-patch-EBF"
-				[ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE=
 			fi
 		;;
 		-prepo)
