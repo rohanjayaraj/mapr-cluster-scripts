@@ -1484,9 +1484,9 @@ function util_getDecryptStr(){
     if [ -n "${node}" ]; then
         decstr=$(ssh root@${node} "echo '${encstr}' | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1")
     else
-        decstr=$(echo '${encstr}' | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1)
+        decstr=$(echo "${encstr}" | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1)
     fi
-    [ -n "$(echo "${decstr}" | grep "bad decrypt")" ] && decstr=
+    [ -n "$(echo "${decstr}" | grep -e "bad decrypt" -e "error reading input file")" ] && decstr=
     [ -n "${decstr}" ] && echo "${decstr}"
 }
 
