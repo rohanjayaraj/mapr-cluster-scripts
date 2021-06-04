@@ -168,7 +168,7 @@ GLB_ASAN_OPTIONS=
 GLB_ENABLE_UBSAN=
 GLB_SSLKEY_COPY=1
 GLB_MVN_HOST=maven.foo.org
-GLB_ART_HOST=artifactory.foo.org
+GLB_ART_HOST=artifactory.devops.lab
 GLB_CRY_HOST=ntp.foo.org
 GLB_DKR_HOST=docker.foo.org
 GLB_EXT_ARGS=
@@ -211,11 +211,15 @@ function main_install(){
 	# Read properties
 	local clustername=$GLB_CLUSTER_NAME
 	
+	# resolve hosts
+	for node in ${nodes[@]}; do
+		main_buildServiceHostNames "${node}"
+	done
+
 	# Install required binaries on other nodes
 	local buildexists=
 	for node in ${nodes[@]}
 	do
-		main_buildServiceHostNames "${node}"
 		local maprrepo=$(main_getRepoFile $node)
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
@@ -470,9 +474,14 @@ function main_upgrade(){
 
     # First copy repo on all nodes
     local idx=
+
+  # resolve hosts
+	for node in ${nodes[@]}; do
+		main_buildServiceHostNames "${node}"
+	done
+
 	for node in ${nodes[@]}
 	do
-		main_buildServiceHostNames "${node}"
 		local maprrepo=$(main_getRepoFile $node)
 		if [ -z "$idx" ]; then
 			# Copy mapr.repo if it doen't exist
@@ -1319,6 +1328,11 @@ function main_buildServiceHostNames(){
 		GLB_ART_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX18QdvjCr9tIJ+K1C9j/NFsTZiHW4INHrPAHhwj5lQ3vunlgaH2uA1Ye\" | ${sslcmd}")
 		GLB_CRY_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX18TmqfS81Lb3G1llCzR10TPq98j31T/PDJ9HVhlWdcq4KHtqafuj/EA\" | ${sslcmd}")
 		GLB_DKR_HOST=$(ssh_executeCommandasRoot "${node}" "echo \"U2FsdGVkX1/3Aoc7hVlw1ElxpKjNobYx7lDYDQ0hZhnjS2Nj4U29CeSvuqYhdY8t\" | ${sslcmd}")
+
+		[ -n "${useRepoURL}" ] && useRepoURL=$(echo "${useRepoURL}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
+		[ -n "${GLB_PATCH_REPOFILE}" ] && GLB_PATCH_REPOFILE=$(echo "${GLB_PATCH_REPOFILE}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
+		[ -n "${GLB_MEP_REPOURL}" ] && GLB_MEP_REPOURL=$(echo "${GLB_MEP_REPOURL}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
+
 		decryptdone=1
 }
 
@@ -1339,6 +1353,7 @@ function main_getRepoFile(){
     fi
 
 	if [ -z "$useRepoURL" ]; then
+		sed -i "s/artifactory.devops.lab/${GLB_ART_HOST}/g" ${$maprrepo}
 		echo "$maprrepo"
 		return
 	fi
