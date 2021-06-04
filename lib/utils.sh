@@ -232,8 +232,8 @@ EOM
 
 function util_installprereq(){
     if [ "$(getOS)" = "centos" ]; then
-        yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install epel-release redhat-lsb-core yum-utils -y --nogpgcheck > /dev/null 2>&1
-        yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
+        yum repolist all 2>&1 | grep -e "epel/" -e "^.*epel " || yum install epel-release redhat-lsb-core yum-utils -y --nogpgcheck > /dev/null 2>&1
+        yum repolist enabled 2>&1 | grep "epel " || yum-config-manager --enable epel > /dev/null 2>&1
         yum-config-manager --save --setopt=epel.skip_if_unavailable=true > /dev/null 2>&1
         #if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
             #yum repolist enabled 2>&1 | grep extras || yum-config-manager --enable extras > /dev/null 2>&1
@@ -422,13 +422,14 @@ function util_checkAndConfigurePostfix() {
 
     local hostname=$(hostname -f)
     local hostip=$(util_getHostIP)
+    local relayhost=$(util_getDecryptStr "U2FsdGVkX18F3QGgk+RI4ShACP6F1T2UhytVRcHW0Xs=")
 
     local restart=
 
-    if [ -z "${relayset}" ] && [ -n "$(util_isHPENode "${hostip}")" ]; then
+    if [ -z "${relayset}" ] && [ -n "$(util_isEDFNode "${hostip}")" ]; then
         restart=1
         local linebefore=$(grep -n "#relayhost" /etc/postfix/main.cf | tail -n 1 | cut -d':' -f1)
-        sed -i "${linebefore}a relayhost = [smtp1.hpe.com]" /etc/postfix/main.cf
+        sed -i "${linebefore}a relayhost = [${relayhost}]" /etc/postfix/main.cf
     fi
 
     if [ -z "${hostset}" ]; then
@@ -561,7 +562,7 @@ function util_checkInstallAndRetry(){
     fi
 }
 
-function util_isHPENode(){
+function util_isEDFNode(){
     [ -z "$1" ] && return
     local nodeip="$1"
     if [ -n "$(echo "$nodeip" | grep "^10.163")" ]; then
@@ -614,7 +615,7 @@ function util_installBinaries(){
     if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
         yum clean all > /dev/null 2>&1
         [ -z "${actbins}" ] && actbins="$(util_getExistingBinaries "$bins")"
-        if [ -n "$(util_isHPENode "$hostip")" ]; then
+        if [ -n "$(util_isEDFNode "$hostip")" ]; then
             for k in ${actbins}; do 
                 stdbuf -i0 -o0 -e0 yum install ${k} -y --nogpgcheck 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'; 
             done
@@ -1345,7 +1346,7 @@ function util_removeXterm(){
 }
 
 function util_sourceProxy() {
-    # source hpe proxy
+    # source proxy
     local proxysh="/etc/profile.d/proxy.sh"
     [ -s "${proxysh}" ] && source ${proxysh}
 }
@@ -1457,25 +1458,27 @@ function util_getIPfromHostName(){
 
 # @param node ip
 function util_getDecryptPwd(){
-    [ ! -s "/etc/resolv.conf" ] && return
-    [ -z "$1" ] && return
-    local passwd=$(ssh root@$1 cat /etc/resolv.conf 2>/dev/null | grep "^search" | head -n 1 | awk '{print $2}')
+    local cmd="cat /etc/resolv.conf 2>/dev/null | grep "^search" | head -n 1 | awk '{print \$2}'"
+    [ -n "$1" ] && cmd="ssh root@$1 ${cmd}"
+    local passwd=$(bash -c "${cmd}")
     [ -n "${passwd}" ] && echo ${passwd}
 }
 
 # @param node ip
 function util_getDecryptStr(){
-    [ -z "$1" ] || [ -z "$2" ] && return
-    local node="$1"
-    local encstr="$2"
+    [ -z "$1" ] && return
+    local encstr="$1"
+    local node="$2"
 
     local passwd=$(util_getDecryptPwd ${node})
     [ -z "${passwd}" ] && return
-    local hasopenssl=$(ssh root@${node} "command -v openssl")
+    local hasopenssl=$(command -v openssl)
+    [ -n "${node}" ] && hasopenssl=$(ssh root@${node} "command -v openssl")
     [ -z "${hasopenssl}" ] && return
 
-    local sslcmd="openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1"
-    local decstr=$(ssh root@${node} "echo \"${encstr}\" | ${sslcmd}")
+    local sslcmd="echo \"${encstr}\" | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1"
+    [ -n "${node}" ] && sslcmd="ssh root@${node} ${sslcmd}"
+    local decstr=$(bash -c "${sslcmd}")
     [ -n "$(echo "${decstr}" | grep "bad decrypt")" ] && decstr=
 
     [ -n "${decstr}" ] && echo "${decstr}"

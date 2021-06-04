@@ -558,7 +558,7 @@ function minioutil_removeOnNode(){
 function minioutil_removeMinio(){
     [ ! -s "/usr/local/bin/minio" ] && return
 
-    maprutil_hpecoloconfigs
+    maprutil_coloconfigs
 
     systemctl stop minio.service
     util_kill "minio"
@@ -720,7 +720,8 @@ function maprutil_isMapRVersionSameOrNewer(){
 }
 
 function maprutil_unmountNFS(){
-    local nfslist=$(mount | grep nfs | grep mapr | grep -v -e '10.10.10.20' -e '10.163.160.200' | cut -d' ' -f3)
+    local selfhostvip2=$(util_getDecryptStr "U2FsdGVkX19nO5r3Z4+z8rncDwYT2AMpk5fEAx9tjPE=")
+    local nfslist=$(mount | grep nfs | grep mapr | grep -v -e '10.10.10.20' -e '${selfhostvip2}' | cut -d' ' -f3)
     for i in $nfslist
     do
         timeout 20 umount -l $i
@@ -826,7 +827,7 @@ function maprutil_cleanPrevClusterConfig(){
     fi
 }
 
-function maprutil_hpecoloconfigs() {
+function maprutil_coloconfigs() {
     hwclock -w > /dev/null 2>&1
     service chronyd stop > /dev/null 2>&1
     chronyd -q 'server ${GLB_CRY_HOST}' > /dev/null 2>&1 &
@@ -916,7 +917,7 @@ function maprutil_cleanDocker(){
 function maprutil_uninstall(){
     
     # Update configs
-    maprutil_hpecoloconfigs
+    maprutil_coloconfigs
 
     # Kill Spyglass
     maprutil_killSpyglass
@@ -4204,12 +4205,14 @@ function maprutil_setGatewayNodes(){
 function maprutil_mountSelfHosting(){
     local selfhostname="selfhosting"
     local selfhostvip="10.10.10.20"
-    [ -n "$(util_isHPENode "$1")" ] && selfhostname="hpeselfhosting" && selfhostvip="10.163.160.200"
+    local selfhostvip2=$(util_getDecryptStr "U2FsdGVkX19nO5r3Z4+z8rncDwYT2AMpk5fEAx9tjPE=")
+    local selfhostname2=$(util_getDecryptStr "U2FsdGVkX18zuxJhlHpHTSgFX7PNPD/elxE46nFfafE=")
+    [ -n "$(util_isEDFNode "$1")" ] && selfhostname="${selfhostname2}" && selfhostvip="${selfhostvip2}"
 
     local ismounted=$(mount | grep -Fw "10.10.10.20:/mapr/selfhosting/")
     # Force umount for a few days after selfhosting readonly change - 1/10/19 
     #[ -n "$ismounted" ] && return
-    for i in $(mount | grep -e "/mapr/selfhosting/" -e "/mapr/hpeselfhosting/" | cut -d' ' -f3)
+    for i in $(mount | grep -e "/mapr/selfhosting/" -e "/mapr/${selfhostname2}/" | cut -d' ' -f3)
     do
         timeout 20 umount -l $i > /dev/null 2>&1
     done
