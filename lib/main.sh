@@ -215,6 +215,7 @@ function main_install(){
 	local buildexists=
 	for node in ${nodes[@]}
 	do
+		main_buildServiceHostNames "${node}"
 		local maprrepo=$(main_getRepoFile $node)
 		# Copy mapr.repo if it doen't exist
 		maprutil_copyRepoFile "$node" "$maprrepo" && [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(maprutil_getMapRVersionFromRepo $node)
@@ -471,6 +472,7 @@ function main_upgrade(){
     local idx=
 	for node in ${nodes[@]}
 	do
+		main_buildServiceHostNames "${node}"
 		local maprrepo=$(main_getRepoFile $node)
 		if [ -z "$idx" ]; then
 			# Copy mapr.repo if it doen't exist
@@ -1306,6 +1308,7 @@ function main_stopall() {
 }
 
 function main_buildServiceHostNames(){
+	[ -n "${decryptdone}" ] && return
     local passwd=$(util_getDecryptPwd ${node})
     [ -z "${passwd}" ] && return
     local hasopenssl=$(ssh_executeCommandasRoot "${node}" "command -v openssl")
@@ -1335,8 +1338,6 @@ function main_getRepoFile(){
 	   repofile="$repodir/mapr2.list"
     fi
 
-	[ -z "${decryptdone}" ] && main_buildServiceHostNames "${node}"
-	
 	if [ -z "$useRepoURL" ]; then
 		echo "$maprrepo"
 		return
