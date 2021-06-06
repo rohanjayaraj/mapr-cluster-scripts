@@ -1,0 +1,4 @@
+10.10.88.xxx,mapr-cldb,mapr-fileserver,mapr-webserver,mapr-nfs,mapr-resourcemanager,mapr-nodemanager,mapr-historyserver
+10.10.88.xxx,mapr-cldb,mapr-fileserver,mapr-nfs,mapr-resourcemanager,mapr-nodemanager,mapr-zookeeper
+10.10.88.xxx,mapr-cldb,mapr-fileserver,mapr-nfs,mapr-nodemanager,mapr-zookeeper
+10.10.88.xxx,mapr-fileserver,mapr-nfs,mapr-nodemanager,mapr-zookeeper,mapr-gateway

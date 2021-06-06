@@ -1,0 +1,209 @@
+
+###################### Latest Builds ##############################################
+
+###### Performance builds ######
+
+[QA-Master-Artifactory-ProdMode]
+name=MapR Master Prod Mode Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/core-rpm/master-prodmode/
+enabled=1
+gpgcheck=0
+protect=1
+
+######### QA builds ##########
+
+[QA-MASTER-Artifactory]
+name=MapR Master Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/core-rpm/master/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-6.2.0-CORE-Artifactory]
+name=MapR v6.2.0 Core Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.2.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### MEP/Opensource Builds #####################################
+
+[QA-MEP-6.1.0-Artifactory]
+name=MapR MEP 6.1.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.1.0/redhat/
+enabled=1
+gpgcheck=0
+protect=1
+
+[QA-MEP-6.0.0-Artifactory]
+name=MapR MEP 6.0.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-6.0.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-MEP-5.0.0-Artifactory]
+name=MapR MEP 5.0.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-5.0.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-MEP-4.1.0-Artifactory]
+name=MapR MEP 4.1.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.1.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-MEP-4.0-Artifactory]
+name=MapR MEP 4.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-4.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-MEP-3.0-Artifactory]
+name=MapR MEP 3.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-3.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-MEP-2.0-Artifactory]
+name=MapR MEP 2.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-2.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-MEP-1.0-Artifactory]
+name=MapR MEP 1.0 Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/MEP/MEP-1.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+
+###################### ALL Patches #####################################
+
+[QA-ALL-EBF-Patches]
+name=MapR All EBF Patches Repository
+baseurl=http://artifactory.devops.lab/artifactory/list/ebf-rpm/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### 6.1.0 #####################################
+
+[QA-6.1.0-Artifactory]
+name=MapR v6.1.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.1.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### 6.0.1 #####################################
+
+[QA-6.0.1-Artifactory]
+name=MapR v6.0.1 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.0.1/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### 6.0.0 #####################################
+
+[QA-6.0.0-Artifactory]
+name=MapR v6.0.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.0.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-6.0.0-Patch-Artifactory]
+name=MapR v6.0.0 Patch Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v6.0.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### 5.2.2 #####################################
+
+[QA-5.2.2-Artifactory]
+name=MapR v5.2.2 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.2.2/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.2.2-Patch-Artifactory]
+name=MapR v5.2.2 Patch Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.2.2/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### 5.2.1 #####################################
+
+[QA-5.2.1-Artifactory]
+name=MapR v5.2.1 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.2.1/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.2.1-Patch-Artifactory]
+name=MapR v5.2.1 Patch Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.2.1/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### 5.2.0 #####################################
+
+[QA-5.2.0-Artifactory]
+name=MapR v5.2.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.2.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.2.0-Patch-Artifactory]
+name=MapR v5.2.0 Patch Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.2.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### 5.1.0 #####################################
+
+[QA-5.1.0-Artifactory]
+name=MapR v5.1.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.1.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.1.0-Patch-Artifactory]
+name=MapR v5.1.0 Patch Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.1.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+###################### 5.0.0 #####################################
+
+[QA-5.0.0-Artifactory]
+name=MapR v5.0.0 Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v5.0.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
+
+[QA-5.0.0-Patch-Artifactory]
+name=MapR v5.0.0 Patch Artifactory Repository
+baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/patches/v5.0.0/redhat/
+enabled=0
+gpgcheck=0
+protect=1
