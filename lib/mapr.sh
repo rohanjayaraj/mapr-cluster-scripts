@@ -322,7 +322,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/pool-*.core.*")
     dirlist+=("/opt/cores/Thread-*.core.*")
     dirlist+=("/opt/cores/TestNG*.core.*")
-    dirlist+=("/opt/cores/core.*")
+    dirlist+=("/opt/cores/[-a-zA-Z0-9]*.core.*")
     echo ${dirlist[*]}
 }
 
@@ -1614,7 +1614,14 @@ function maprutil_buildDiskList() {
     echo "$(util_getRawDisks $GLB_DISK_TYPE)" > $diskfile
     maprutil_getSSDvsHDDRatio "$(cat $diskfile)"
     local diskratio=$?
-    [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "1" ]] && echo "$(util_getRawDisks "ssd")" > $diskfile
+    if [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "1" ]]; then
+        local nvmedisks=$(util_getRawDisks "nvme")
+        if [ -n "${nvmedisks}" ]; then
+            echo "${nvmedisks}" > $diskfile
+        else
+            echo "$(util_getRawDisks "ssd")" > $diskfile
+        fi
+    fi
     [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "0" ]] && echo "$(util_getRawDisks "hdd")" > $diskfile
     if [ -s "$ignorefile" ]; then
         local baddisks=$(cat $ignorefile | sed 's/,/ /g' | tr -s " " | tr ' ' '\n')
@@ -3819,7 +3826,7 @@ function maprutil_getClusterSpec(){
     [ "$diskcnt" -lt "$numdisks" ] && numdisks=$diskcnt
     
     local disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | sort | uniq)
-    if [ "$(echo $disktype | wc -w)" -gt "1" ]; then
+    if [ "$(echo $disktype | wc -w)" -gt "1" ] && [ -n "$(echo ${disktype} | grep HDD)" ]; then
         log_warn "Mix of HDD & SSD disks. Not a homogeneous cluster"
         disktype=$(echo "$diskstr" | awk '{print $4}' | tr -d ',' | sort | uniq -c | sort -nr | awk '{print $2}' | tr '\n' '/' | sed s'/.$//')
     fi
