@@ -1272,6 +1272,7 @@ function main_runLogDoctor(){
     if [ -s "${mailfile}" ] && [ -n "${GLB_CUSTOM_SLACK}" ]; then
     	local haslogs=$(cat ${mailfile} | grep -v -e "^Command " -e " \[" -e "^$")
     	if [ -n "${haslogs}" ]; then
+    		sed -i '/^Command/,+1d' ${mailfile}  > /dev/null 2>&1
 	    	sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${mailfile}  > /dev/null 2>&1
 	    	util_postToSlack2 "${mailfile}" "${GLB_CUSTOM_SLACK}"
 	    fi
@@ -1588,6 +1589,8 @@ while [ "$2" != "" ]; do
     				GLB_DISK_TYPE="ssd"
     			elif [[ "$i" = "hddonly" ]]; then
     				GLB_DISK_TYPE="hdd"
+    			elif [[ "$i" = "nvmeonly" ]]; then
+    				GLB_DISK_TYPE="nvme"
     			elif [[ "$i" = "asan" ]]; then
     				doASAN=1
     			elif [[ "$i" = "asanall" ]]; then

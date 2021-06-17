@@ -718,6 +718,7 @@ function util_getDefaultDisks(){
 function util_getRawDisks(){
     local disktype="$1"
     local defdisks=$(util_getDefaultDisks)
+    local nvmedisks=$(nvme list 2>/dev/null | grep "^/" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/ /g')
     local cmd="sfdisk -l 2> /dev/null| grep Disk | tr -d ':' | cut -d' ' -f2"
     for disk in $defdisks
     do
@@ -740,7 +741,10 @@ function util_getRawDisks(){
         for disk in $disks
         do
             local blk=$(echo $disk | cut -d'/' -f3)
-            [ "$(cat /sys/block/$blk/queue/rotational)" -eq 0 ] && [ "$disktype" = "ssd" ] && ssddisks="${ssddisks}${disk} "
+            if [ "$(cat /sys/block/$blk/queue/rotational)" -eq 0 ]; then 
+                [ "$disktype" = "nvme" ] && [ -n "$(echo "${nvmedisks}" | grep -who "${disk}")" ] && ssddisks="${ssddisks}${disk} "
+                [ "$disktype" = "ssd" ] && ssddisks="${ssddisks}${disk} "
+            fi
             [ "$(cat /sys/block/$blk/queue/rotational)" -eq 1 ] && [ "$disktype" = "hdd" ] && ssddisks="${ssddisks}${disk} "
         done
         [ -n "$ssddisks" ] && ssddisks=$(echo $ssddisks| sed 's/ $//') && disks=$(echo $ssddisks | tr ' ' '\n')
@@ -1159,6 +1163,7 @@ function util_getDiskInfo(){
     local disks=$(echo "$fd"| grep "Disk \/" | grep -v 'mapper\|docker' | sort | grep -v "\/dev\/md" | awk '{print $2}' | sed -e 's/://g')
     local numdisks=$(echo "$disks" | wc -l)
     local defdisks=$(util_getDefaultDisks)
+    local nvmedisks=$(nvme list 2>/dev/null | grep "^/" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/ /g')
     log_msghead "Disk Info : [ #ofdisks: $numdisks ]"
 
     for disk in $disks
@@ -1169,7 +1174,11 @@ function util_getDiskInfo(){
         local isos=$(echo "$fd" |  grep -wA6 "$disk" | grep "Disk identifier" | awk '{print $3}')
         local used=$(echo "$defdisks" | grep -w "$disk")
         if [ "$dtype" -eq 0 ]; then
-            dtype="SSD"
+            if [ -n "$(echo "${nvmedisks}" | grep -who "${disk}")" ]; then
+                dtype="NVMe"
+            else
+                dtype="SSD"
+            fi
         else
             dtype="HDD"
         fi

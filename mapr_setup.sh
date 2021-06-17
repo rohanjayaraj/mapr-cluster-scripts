@@ -129,6 +129,8 @@ function usage () {
     echo -e "\t\t - Use only SSD disks if the node(s) have mix of HDD & SSD"
     echo -e "\t -hdd | --hddonly" 
     echo -e "\t\t - Use only HDD disks if the node(s) have mix of HDD & SSD"
+    echo -e "\t -nvme | --nvmeonly" 
+    echo -e "\t\t - Use only NVMe disks if the node(s) have mix of SSD & NVMe"
     echo -e "\t -s | --secure" 
     echo -e "\t\t - Enable wire-level security on the cluster nodes"
     echo -e "\t -dbins | --downloadbins" 
@@ -255,6 +257,9 @@ while [ "$1" != "" ]; do
         ;;
         -hdd | --hddonly)
             extraarg=$extraarg"hddonly "
+        ;;
+        -nvme | --nvmeonly)
+            extraarg=$extraarg"nvmeonly "
         ;;
         -d | --maxdisks)
             maxdisks=$VALUE
