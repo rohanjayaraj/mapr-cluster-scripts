@@ -2102,13 +2102,15 @@ function maprutil_postConfigure(){
 }
 
 function maprutil_prePostConfigure(){
-    # Temp workaround for hadoop decouple and drillbit 1.15 with hardcoded hadoop common jar
-    if [ -f "/opt/mapr/drill/drill-1.15.0/jars/3rdparty/hadoop-common-2.7.0-mapr-1808.jar" ] && [ -d "/opt/mapr/hadoop/hadoop-2.7.4" ]; then
-        rm -rf /opt/mapr/drill/drill-1.15.0/jars/3rdparty/hadoop-common*.jar  > /dev/null 2>&1 
-        cp /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop-common-*-SNAPSHOT.jar /opt/mapr/drill/drill-1.15.0/jars/3rdparty/  > /dev/null 2>&1 
-        cp /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop-maprfs-client-*-SNAPSHOT.jar /opt/mapr/drill/drill-1.15.0/jars/3rdparty/  > /dev/null 2>&1 
-        chown mapr:mapr /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop*.jar > /dev/null 2>&1 
-    fi
+
+    # Temp workaround for drill jars with broken symbolic links
+    local bslinks=$(find /opt/mapr -type l -name "*.jar" ! -exec test -e {} \; -print)
+    for slink in ${bslinks}; do
+        log_warn "[$(util_getHostIP)] Found broken symbolic link '${slink}'. Trying to fix it"
+        local clink=$(readlink -f ${slink} | awk -F='/' '{print $NF}' | sed 's#\[0-9]#\[.0-9a-zA-Z]*#g')
+        [ -z "$(ls ${clink} 2>/dev/null)" ] && return
+        ln -sfn ${clink} ${slink} > /dev/null 2>&1
+    done
 
     if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
         #if [ -n "${GLB_SSLKEY_COPY}" ]; then
