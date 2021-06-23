@@ -2071,9 +2071,6 @@ function maprutil_postConfigure(){
     [ -n "$otnodes" ] && otnodes="$(util_getCommaSeparated "$otnodes")"
     local queryservice=$(echo $(maprutil_getNodesForService "drill") | grep "$hostip")
     
-
-
-
     local cmd="/opt/mapr/server/configure.sh -R"
     if [ -n "$esnodes" ]; then
         cmd=$cmd" -ES "$esnodes
@@ -2099,16 +2096,12 @@ function maprutil_postConfigure(){
     #    echo "service.command.mfs.heapsize.percent=85" >> /opt/mapr/conf/warden.conf
     #fi
     #maprutil_restartWarden
+
+    # Post-setup after calling configure
+    maprutil_postPostConfigure
 }
 
 function maprutil_prePostConfigure(){
-    # Temp workaround for hadoop decouple and drillbit 1.15 with hardcoded hadoop common jar
-    if [ -f "/opt/mapr/drill/drill-1.15.0/jars/3rdparty/hadoop-common-2.7.0-mapr-1808.jar" ] && [ -d "/opt/mapr/hadoop/hadoop-2.7.4" ]; then
-        rm -rf /opt/mapr/drill/drill-1.15.0/jars/3rdparty/hadoop-common*.jar  > /dev/null 2>&1 
-        cp /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop-common-*-SNAPSHOT.jar /opt/mapr/drill/drill-1.15.0/jars/3rdparty/  > /dev/null 2>&1 
-        cp /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop-maprfs-client-*-SNAPSHOT.jar /opt/mapr/drill/drill-1.15.0/jars/3rdparty/  > /dev/null 2>&1 
-        chown mapr:mapr /opt/mapr/hadoop/hadoop-2.7.4/share/hadoop/common/hadoop*.jar > /dev/null 2>&1 
-    fi
 
     if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
         #if [ -n "${GLB_SSLKEY_COPY}" ]; then
@@ -2146,6 +2139,18 @@ function maprutil_prePostConfigure(){
     if [ -z "$(echo "${corepattern}" | grep "/opt/cores/")" ]; then
         echo "/opt/cores/%e.core.%p.%h" > /proc/sys/kernel/core_pattern
     fi
+}
+
+function maprutil_postPostConfigure(){
+
+    # Temp workaround for drill jars with broken symbolic links
+    local bslinks=$(find /opt/mapr -type l -name "*.jar" ! -exec test -e {} \; -print)
+    for slink in ${bslinks}; do
+        log_warn "[$(util_getHostIP)] Found broken symbolic link '${slink}'. Trying to fix it"
+        local clink=$(readlink -f ${slink} | awk -F='/' '{print $NF}' | sed 's#\[0-9]#\[.0-9a-zA-Z]*#g')
+        [ -z "$(ls ${clink} 2>/dev/null)" ] && return
+        ln -sfn ${clink} ${slink} > /dev/null 2>&1
+    done
 }
 
 function maprutil_queryservice(){
