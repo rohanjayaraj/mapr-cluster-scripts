@@ -1868,8 +1868,10 @@ if [ -z "$dummyrole" ]; then
 
 	if [ "${doMinIOInstall}" -eq 1 ]; then
 		main_minioinstall
+		doSkip=1
 	elif [ "${doMinIOUninstall}" -eq 1 ]; then
 		main_miniouninstall
+		doSkip=1
 	fi
 
 	[ -n "$GLB_EXIT_ERRCODE" ] && log_critical "One or more nodes returned error '$GLB_EXIT_ERRCODE'" && exit "$GLB_EXIT_ERRCODE"
