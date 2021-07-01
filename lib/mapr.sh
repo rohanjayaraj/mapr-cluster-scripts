@@ -565,7 +565,7 @@ function minioutil_removeMinio(){
     maprutil_coloconfigs
 
     systemctl stop minio.service
-    #util_kill "minio"
+    util_kill "minio server"
     local hostname=$(hostname -f)
     local grepstr="-e ${hostname}"
     local hostip=$(util_getHostIP)
@@ -580,7 +580,10 @@ function minioutil_removeMinio(){
 
     log_info "[$hostip] Unmounting minio disks ${diskname}{${startidx}...${endidx}}"
     for(( i=${startidx}; i<=${endidx}; i++)); do
-        [ -n "$(mount | grep "{diskname}$i")" ] && umount -l /${diskname}$i
+        [ -n "$(mount | grep "${diskname}$i")" ] && umount -l /${diskname}$i
+    done
+    for i in $(mount | grep "/minio[0-9]*" | awk '{print $3}'); do
+        umount -l ${i}
     done
 
     log_info "[$hostip] Removing minio binary, service & settings"

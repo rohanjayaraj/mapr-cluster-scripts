@@ -778,9 +778,9 @@ function util_kill(){
     local esckey="[${key:0:1}]${key:1}"
     if [ -n "$(ps aux | grep "$esckey")" ]; then
         if [ -n "$ignore" ]; then
-            bash -c "ps aux | grep '$esckey' | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9" > /dev/null 2>&1
+            bash -c "ps aux | grep -v 'main.sh' | grep '$esckey' | $ignore | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9" > /dev/null 2>&1
         else
-            bash -c "ps aux | grep '$esckey' | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9" > /dev/null 2>&1
+            bash -c "ps aux | grep -v 'main.sh' | grep '$esckey' | sed -n 's/ \+/ /gp' | cut -d' ' -f2 | xargs kill -9" > /dev/null 2>&1
         fi
     fi
 }
