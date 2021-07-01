@@ -735,10 +735,11 @@ function util_getRawDisks(){
         [ "$rep" = "MB" ] && [ "$size" -lt "200000" ] && cmd="$cmd | grep -v \"$disk\""
         [ "$rep" = "GB" ] && [ "$size" -lt "200" ] &&  cmd="$cmd | grep -v \"$disk\""
     done
-    local disks=$(bash -c  "$cmd | sort")
+    local disks=
+    local alldisks=$(bash -c  "$cmd | sort")
     if [ -n "$disktype" ]; then
         local ssddisks=
-        for disk in $disks
+        for disk in ${alldisks}
         do
             local blk=$(echo $disk | cut -d'/' -f3)
             if [ "$(cat /sys/block/$blk/queue/rotational)" -eq 0 ]; then 
@@ -748,6 +749,8 @@ function util_getRawDisks(){
             [ "$(cat /sys/block/$blk/queue/rotational)" -eq 1 ] && [ "$disktype" = "hdd" ] && ssddisks="${ssddisks}${disk} "
         done
         [ -n "$ssddisks" ] && ssddisks=$(echo $ssddisks| sed 's/ $//') && disks=$(echo $ssddisks | tr ' ' '\n')
+    else
+        disks="${alldisks}"
     fi
     echo "$disks"
 }

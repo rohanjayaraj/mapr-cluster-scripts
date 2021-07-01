@@ -488,6 +488,7 @@ EOF
 
     log_info "[$hostip] Mounting disks to /minio[0-9]"
     for disk in ${disklist};do
+        rm -rf /minio$i
         mkdir -p /minio$i
         mount $disk /minio$i
         let i=i+1
@@ -529,6 +530,9 @@ MINIO_ACCESS_KEY="mapr"
 MINIO_SECRET_KEY="maprwins"
 EOF
 
+    # Switch java to enable run ycsb s3 workloads 
+    util_switchJavaVersion "11" > /dev/null 2>&1
+
     systemctl daemon-reload > /dev/null 2>&1 
     systemctl enable minio > /dev/null 2>&1 
     systemctl start minio.service > /dev/null 2>&1 
@@ -561,7 +565,7 @@ function minioutil_removeMinio(){
     maprutil_coloconfigs
 
     systemctl stop minio.service
-    util_kill "minio"
+    #util_kill "minio"
     local hostname=$(hostname -f)
     local grepstr="-e ${hostname}"
     local hostip=$(util_getHostIP)
@@ -576,7 +580,7 @@ function minioutil_removeMinio(){
 
     log_info "[$hostip] Unmounting minio disks ${diskname}{${startidx}...${endidx}}"
     for(( i=${startidx}; i<=${endidx}; i++)); do
-        umount -l /${diskname}$i
+        [ -n "$(mount | grep "{diskname}$i")" ] && umount -l /${diskname}$i
     done
 
     log_info "[$hostip] Removing minio binary, service & settings"
@@ -1994,6 +1998,7 @@ function maprutil_configure(){
         else
             timeout 30 maprcli config save -values {"support.rdma.transport":"0"}
         fi
+        [ -n "${GLB_ATS_CLUSTER}" ] && maprutil_configureATSCluster
     else
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
         [ ! -f "/opt/mapr/bin/guts" ] && maprutil_copyGutsFromCLDB
@@ -2128,9 +2133,6 @@ function maprutil_prePostConfigure(){
                 echo "gateway.es.logcompaction.statsupdate.interval.ms=1000" >> ${gatewayconf}
                 echo "gateway.es.logcompaction.topicrefresh.interval.ms=1000" >> ${gatewayconf}
             fi
-            #maprcli config save -values {mfs.db.parallel.copyregions:1024}
-            #maprcli config save -values {mfs.db.parallel.copytables:512}
-            #maprcli config save -values {mfs.db.parallel.replicasetups:512}
         fi
 
     fi
@@ -2141,10 +2143,19 @@ function maprutil_prePostConfigure(){
     fi
 }
 
+function maprutil_configureATSCluster(){
+    timeout 10 maprcli volume create -name mapr.qa.ats.results -path /var/mapr/ats > /dev/null 2>&1
+    timeout 10 maprcli stream create -path /var/mapr/ats/resultstream -ttl 0 -defaultpartitions 10 -adminperm 'u:root|u:mapr' -produceperm p -consumeperm p -autocreate true > /dev/null 2>&1
+
+    timeout 10 maprcli config save -values {mfs.db.parallel.copyregions:1024} > /dev/null 2>&1
+    timeout 10 maprcli config save -values {mfs.db.parallel.copytables:512} > /dev/null 2>&1
+    timeout 10 maprcli config save -values {mfs.db.parallel.replicasetups:512} > /dev/null 2>&1
+}
+
 function maprutil_postPostConfigure(){
 
     # Temp workaround for drill jars with broken symbolic links
-    local bslinks=$(find /opt/mapr -type l -name "*.jar" ! -exec test -e {} \; -print)
+    local bslinks=$(find /opt/mapr -type l -name "*.jar" ! -path "/opt/mapr/.patch/*" ! -exec test -e {} \; -print)
     for slink in ${bslinks}; do
         log_warn "[$(util_getHostIP)] Found broken symbolic link '${slink}'. Trying to fix it"
         local clink=$(readlink -f ${slink} | awk -F='/' '{print $NF}' | sed 's#\[0-9]#\[.0-9a-zA-Z]*#g')
