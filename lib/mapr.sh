@@ -471,6 +471,7 @@ SendSIGKILL=no
 WantedBy=multi-user.target
 EOF
 
+    util_installBinaries "mapr-client" || exit 0
     local diskfile="/tmp/disklist"
     local ignoredisks=/root/baddisks
     
@@ -488,7 +489,7 @@ EOF
 
     log_info "[$hostip] Mounting disks to /minio[0-9]"
     for disk in ${disklist};do
-        rm -rf /minio$i
+        [ -n "$(mount | grep "/minio$i")" ] && umount -f /minio$i
         mkdir -p /minio$i
         mount $disk /minio$i
         let i=i+1
@@ -532,6 +533,8 @@ EOF
 
     # Switch java to enable run ycsb s3 workloads 
     util_switchJavaVersion "11" > /dev/null 2>&1
+    # Mount self-hosting on all nodes
+    maprutil_mountSelfHosting
 
     systemctl daemon-reload > /dev/null 2>&1 
     systemctl enable minio > /dev/null 2>&1 
@@ -562,7 +565,8 @@ function minioutil_removeOnNode(){
 function minioutil_removeMinio(){
     [ ! -s "/usr/local/bin/minio" ] && return
 
-    maprutil_coloconfigs
+    # Remove MapR Binaries
+    maprutil_uninstall
 
     systemctl stop minio.service
     util_kill "minio server"
@@ -948,7 +952,7 @@ function maprutil_uninstall(){
     service mapr-zookeeper stop  2>/dev/null
 
     # Remove MapR Binaries
-    maprutil_removemMapRPackages
+    maprutil_removeMapRPackages
 
     # Run Yum clean
     local nodeos=$(getOS $node)
@@ -2209,6 +2213,8 @@ function maprutil_copyMapRTicketsFromCLDB(){
     # Check if CLDB is configured & files are available for copy
     local cldbisup="false"
     local i=0
+    local waitcount=18
+    [ "$ISCLIENT" -eq 1 ] && waitcount=27
     while [ "$cldbisup" = "false" ]; do
         cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/tmp/maprticket_0' ] && echo true || echo false")
         if [ "$cldbisup" = "false" ]; then
@@ -2219,7 +2225,7 @@ function maprutil_copyMapRTicketsFromCLDB(){
             break
         fi
         let i=i+1
-        if [ "$i" -gt 18 ]; then
+        if [[ "$i" -gt ${waitcount} ]]; then
             log_warn "[$(util_getHostIP)] Timed out waiting to find 'maprticket_0' on CLDB node [$cldbhost]. Copy manually!"
             break
         fi
@@ -4471,7 +4477,7 @@ function maprutil_restartZKOnNode() {
     maprutil_addToPIDList "$!" 
 }
 
-function maprutil_removemMapRPackages(){
+function maprutil_removeMapRPackages(){
     util_removeBinaries "mapr-patch"
     util_removeBinaries "mapr-"
 }
