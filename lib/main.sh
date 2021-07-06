@@ -744,10 +744,18 @@ function main_minioinstall(){
 		log_info "No MinIO installed on any node. Continuing installation..."
 	fi
 
+	# resolve hosts
+	for node in ${nodes[@]}; do
+		main_buildServiceHostNames "${node}"
+	done
+	
 	# Install required binaries on other nodes
 	for node in ${nodes[@]}
 	do
 		log_info "****** Installing MinIO on node -> $node ****** "
+		local maprrepo=$(main_getRepoFile $node)
+		# Copy mapr.repo if it doen't exist
+		maprutil_copyRepoFile "$node" "$maprrepo"
 		minioutil_setupOnNode "$node"
 	done
 	maprutil_wait
