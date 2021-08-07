@@ -1171,8 +1171,9 @@ function maprutil_installBinariesOnNode(){
     if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$4" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
-    echo "keyexists=\$(util_fileExists \"/root/.ssh/id_rsa\")" >> $scriptpath
-    echo "[ -z \"\$keyexists\" ] && ssh_createkey \"/root/.ssh\"" >> $scriptpath
+    #echo "keyexists=\$(util_fileExists \"/root/.ssh/id_rsa\")" >> $scriptpath
+    #echo "[ -z \"\$keyexists\" ] && ssh_createkey \"/root/.ssh\"" >> $scriptpath
+    echo "ssh_createkey \"/root/.ssh\"" >> $scriptpath
     #echo "maprutil_checkIsBareMetal" >> $scriptpath
     echo "util_installprereq > /dev/null 2>&1" >> $scriptpath
     if [ -n "$GLB_MAPR_VERSION" ]; then

@@ -178,7 +178,12 @@ function ssh_createkey(){
 
 	local keydir="$1"
 	local key="$keydir/id_rsa"
-	if [ ! -e  "$key" ]; then
+	if [ -e "$key" ]; then 
+		local keysize=$(ssh-keygen -l -f ${key} | awk '{print $1}')
+		[[ -n "${keysize}" ]] && [[ "${keysize}" -gt "2048" ]] && rm -f ${key} > /dev/null 2>&1
+	fi
+
+	if [ ! -e "$key" ]; then
 		if [ ! -d "$keydir" ]; then
 			mkdir $keydir
 		fi
