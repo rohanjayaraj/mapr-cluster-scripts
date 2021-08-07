@@ -4018,7 +4018,7 @@ function maprutil_applyLicense(){
             exit 1
         fi
         if [[ -n "$GLB_SECURE_CLUSTER" ]] && [[ ! -e "/tmp/maprticket_0" ]]; then
-            local rootpwd="mapr ssmssm"
+            local rootpwd=$(util_getSUPwd)
             for p in $rootpwd; do echo ${p} | maprlogin password  2>/dev/null; [[ "$?" -eq "0" ]] && break; done
             echo mapr | sudo -u mapr maprlogin password 2>/dev/null &
             if [ -n "$GLB_ATS_USERTICKETS" ]; then

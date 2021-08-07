@@ -7,6 +7,9 @@
 #
 ################
 
+lib_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$lib_dir/utils.sh"
+
 ### START_OF_FUNCTIONS - DO NOT DELETE THIS LINE ###
 
 # @param user
@@ -191,13 +194,8 @@ function ssh_copyPublicKey(){
 	fi
 	ssh-keygen -R $2 >/dev/null 2>&1
 	local rootpwd=${ROOTPWD}
-	local hasopenssl=$(command -v openssl)
-	if [ -n "$rootpwd" ]; then 
-		rootpwd=$(echo "$rootpwd" | tr -d ' ' | tr ',' ' ')
-	elif [ -n "${hasopenssl}" ]; then
-		local passwd=$(cat /etc/resolv.conf 2>/dev/null | grep '^search' | head -n 1 | awk '{print $2}')
-		rootpwd=$(echo "LrmPAyabIz6jBrd2uydsuA==" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
-	fi
+	[ -n "$rootpwd" ] && rootpwd=$(echo "$rootpwd" | tr -d ' ' | tr ',' ' ') || rootpwd=$(util_getSUPwd)
+	
 	local isdone=
 	for pwd in $rootpwd
 	do
