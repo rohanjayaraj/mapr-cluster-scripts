@@ -1502,6 +1502,15 @@ function util_getDecryptStr(){
     [ -n "${decstr}" ] && echo "${decstr}"
 }
 
+function util_getSUPwd(){
+    local hasopenssl=$(command -v openssl)
+    [ -z "${hasopenssl}" ] && return
+
+    local passwd=$(util_getDecryptPwd)
+    rootpwd=$(echo "LrmPAyabIz6jBrd2uydsuA==" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
+    echo "${rootpwd} mapr ssmssm"
+}
+
 # @param values in new lines
 function util_getStdDev(){
     [ -z "$1" ] && return
