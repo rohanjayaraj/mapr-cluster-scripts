@@ -1552,6 +1552,8 @@ function maprutil_customConfigure(){
 
     if [ -n "${GLB_ENABLE_RDMA}" ] && [ -s "/opt/mapr/conf/env.sh" ]; then
         echo "export MAPR_RDMA_SUPPORT=true" >> /opt/mapr/conf/env.sh
+    else
+        echo "export MAPR_RDMA_SUPPORT=false" >> /opt/mapr/conf/env.sh
     fi
 }
 
@@ -1693,7 +1695,7 @@ function maprutil_getSSDvsHDDRatio(){
 function maprutil_startTraces() {
     maprutil_killTraces
     if [[ "$ISCLIENT" -eq "0" ]] && [[ -e "/opt/mapr/roles" ]]; then
-        nohup bash -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" && -e "/opt/mapr/conf/disktab" ]]; do mfspid=$(pidof mfs); if kill -0 ${mfspid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all io:all >> $log; rc=$?; [[ "$rc" -eq "1" ]] || [[ "$rc" -eq "134" ]] && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+        nohup bash -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" && -e "/opt/mapr/conf/disktab" ]]; do mfspid=$(pidof mfs); if kill -0 ${mfspid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all nfs:all io:all >> $log; rc=$?; [[ "$rc" -eq "1" ]] || [[ "$rc" -eq "134" ]] && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/dstat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" && -e "/opt/mapr/conf/disktab" ]]; do timeout 14 dstat -tcdnim >> $log; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/iostat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" && -e "/opt/mapr/conf/disktab" ]]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         local nodeos=$(getOS)
@@ -1733,6 +1735,7 @@ function maprutil_startResourceTraces() {
         nohup bash -c 'log="/opt/mapr/logs/tsdbresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/opentsdb" ]]; do tsdpid=$(cat /opt/mapr/pid/opentsdb.pid 2>/dev/null); if kill -0 ${tsdpid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $tsdpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/nfsresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/nfs" ]]; do nfspid=$(cat /opt/mapr/pid/nfsserver.pid 2>/dev/null); if kill -0 ${nfspid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $nfspid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
+    nohup bash -c 'log="/opt/mapr/logs/fuseresusage.log"; rc=0; while [[ "$rc" -ne 137 && -s "/opt/mapr/initscripts/mapr-fuse" ]]; do fusepid=$(ps -ef | grep "/opt/mapr/bin/[p]osix-client" | awk '"'"'{if($3 != 1) print $2}'"'"' 2>/dev/null); if kill -0 ${fusepid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $fusepid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
 }
 
 function maprutil_startClientResourceTraces(){
@@ -1847,6 +1850,12 @@ function maprutil_fixTempBuildIssues() {
     if [ -d "/opt/mapr/apiserver" ] && [ -z "$(cat $apiscript | grep "db.mapr.recentlist")" ]; then
         sed -i "s|fs.mapr.hardmount=true|fs.mapr.hardmount=true -Ddb.mapr.recentlist=true|g" $apiscript
     fi
+
+    # remove rdma files
+    local remsos="/opt/mapr/lib/libibverbs.so /opt/mapr/lib/librdmacm.so"
+    for i in ${remsos}; do
+        [ -s "${i}" ] && rm -rf ${i}  > /dev/null 2>&1
+    done
 }
 
 function maprutil_configure(){
@@ -4792,7 +4801,7 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$stjson" ] && sjson="$sjson\"nfsthreads\":{$stjson}" && stjson=
 
     # add MFS & GW cpu
-    files="mfs.log gw.log client.log qs.log dag.log tsdb.log nfs.log"
+    files="mfs.log gw.log client.log qs.log dag.log tsdb.log nfs.log fuse.log"
     tjson=
     for fname in $files
     do
@@ -4966,7 +4975,7 @@ function maprutil_mfsCPUUseOnCluster(){
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {rsum+=$i; k=i+1; ssum+=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,rsum/j,ssum/j); rsum=0; ssum=0; j=0}' > $logdir/$fname 2>&1 &
     done
     # logs from all nodes, NOT just MFS/data nodes
-    files="gw.log qs.log dag.log tsdb.log nfs.log"
+    files="gw.log qs.log dag.log tsdb.log nfs.log fuse.log"
     for fname in $files
     do
         local filelist=$(find $alldirlist -name $fname 2>/dev/null)
@@ -5140,7 +5149,8 @@ maprutil_buildResUsage(){
         "/opt/mapr/logs/drillresusage.log:qs.log"
         "/opt/mapr/logs/dagresusage.log:dag.log"
         "/opt/mapr/logs/tsdbresusage.log:tsdb.log"
-        "/opt/mapr/logs/nfsresusage.log:nfs.log" )
+        "/opt/mapr/logs/nfsresusage.log:nfs.log"
+        "/opt/mapr/logs/fuseresusage.log:fuse.log" )
 
     for proc in "${PROCLIST[@]}"
     do
