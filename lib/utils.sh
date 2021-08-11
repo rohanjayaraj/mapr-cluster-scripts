@@ -230,9 +230,15 @@ EOM
     fi
 }
 
-function util_installprereq(){
+function util_installepel(){
+    local osver=$(getOSReleaseVersion)
     if [ "$(getOS)" = "centos" ]; then
-        yum repolist all 2>&1 | grep -e "epel/" -e "^.*epel " || yum install epel-release redhat-lsb-core yum-utils -y --nogpgcheck > /dev/null 2>&1
+        if [[ "$(getOSWithVersion)" == *"RedHat"* ]]; then
+            yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-${osver}.noarch.rpm redhat-lsb-core -y --nogpgcheck > /dev/null 2>&1
+        else
+            yum repolist all 2>&1 | grep -e "epel/" -e "^.*epel " || yum install epel-release redhat-lsb-core yum-utils -y --nogpgcheck > /dev/null 2>&1 
+        fi
+        
         yum repolist enabled 2>&1 | grep "epel " || yum-config-manager --enable epel > /dev/null 2>&1
         yum-config-manager --save --setopt=epel.skip_if_unavailable=true > /dev/null 2>&1
         #if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
@@ -245,6 +251,10 @@ function util_installprereq(){
         yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-${osver}.noarch.rpm -y --nogpgcheck > /dev/null 2>&1
         yum repolist enabled 2>&1 | grep epel || yum-config-manager --enable epel > /dev/null 2>&1
     fi
+}
+
+function util_installprereq(){
+    util_installepel
 
     [ -z "$(getent passwd mapr)" ] && [ -n "$(util_isBareMetal)" ] && util_maprprereq
 
