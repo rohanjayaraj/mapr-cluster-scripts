@@ -6200,6 +6200,12 @@ function maprutil_dedupASANErrors() {
         read -r sl
         local fln=$(echo "$fl" | cut -d':' -f1)
         local sln=$(echo "$sl" | cut -d':' -f1)
+        read -r nl;
+        while [ -n "$(echo $nl | cut -d':' -f2)" ]; do
+            sln=$(echo "$nl" | cut -d':' -f1)
+            read -r nl;
+        done
+
 
         local trace=$(cat ${asanfile} | sed -n "${fln},${sln}p")
 
