@@ -474,14 +474,21 @@ EOF
     util_installBinaries "mapr-client" || exit 0
     local diskfile="/tmp/disklist"
     local ignoredisks=/root/baddisks
-    
+    local fsformat=xfs
+    [[ "$(getOSWithVersion)" == *"RedHat"* ]] && fsformat=ext4
+
     # build disk list
     maprutil_buildDiskList "$diskfile" "$ignoredisks"
     local disklist=$(cat $diskfile)
 
-    log_info "[$hostip] Formating [ $(echo ${disklist} | tr '\n' ' ')] into xfs filesystem"
+    log_info "[$hostip] Formating [ $(echo ${disklist} | tr '\n' ' ')] into ${fsformat} filesystem"
     for disk in ${disklist}; do
-        mkfs.xfs -f $disk  > /dev/null 2>&1 &
+        local isSSD=$(util_isSSDDrive "$disk")
+        if [ "${fsformat}" = "ext4" ]; then
+            mkfs.ext4 $disk  > /dev/null 2>&1
+        else
+            mkfs.xfs -f $disk  > /dev/null 2>&1
+        fi
     done
     wait
 
@@ -5951,7 +5958,7 @@ function maprutil_debugCore(){
     local iscats=$(echo $corefile | grep "maprStreamstest")
     local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[A-Za-z0-9.]*.core")
     local ismastgw=$(echo $corefile | grep -e "MAST")
-    local isatsdkr=$(docker images 2>/dev/null | grep "localhost:5000/ats" | awk '{print $3}')
+    local isatsdkr=$(docker images 2>/dev/null | grep "localhost:5000/ats" | awk '{print $3}' | head -n 1)
     [ -n "${isatsdkr}" ] && isatsdkr="docker run -v /opt/cores:/opt/cores ${isatsdkr}"
     local colbin=
     local catsbin="/root/jenkins-client-setup/private-qa/new-cats/mapr-streams/maprStreamstestBinary"

@@ -1458,7 +1458,7 @@ function main_preSetup(){
 	[ -z "$GLB_MAPR_PATCH" ] && [ -n "$(echo "$roles" | grep mapr-patch)" ] && GLB_MAPR_PATCH=1
 	GLB_CLUSTER_SIZE=$(echo "$roles" |  grep "^[^#;]" | grep 'mapr-fileserver' | wc -l)
 
-	[ -n "${GLB_PATCH_REPOFILE}" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE=
+	[ -n "${GLB_PATCH_REPOFILE}" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -t 1 -T 5 -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE=
 }
 
 function main_extractMapRVersion(){
