@@ -584,7 +584,7 @@ function minioutil_removeMinio(){
     [ -n "${hostentry}" ] && grepstr="${grepstr} -e ${hostentry}"
 
     # Get list of disks configured
-    local diskstr=$(cat /etc/default/minio | grep "MINIO_OPTS" | cut -d'=' -f2 | tr -d '"' | tr ' ' '\n' | grep ${grepstr} | awk -F'/' '{print $4}')
+    local diskstr=$(cat /etc/default/minio 2>/dev/null | grep "MINIO_OPTS" | cut -d'=' -f2 | tr -d '"' | tr ' ' '\n' | grep ${grepstr} | awk -F'/' '{print $4}')
     local diskname=$(echo "${diskstr}" | cut -d'{' -f1)
     local startidx=$(echo "${diskstr}" | cut -d'{' -f2 | tr -d '}' | tr '.' ' ' | awk '{print $1}')
     local endidx=$(echo "${diskstr}" | cut -d'{' -f2 | tr -d '}' | tr '.' ' ' | awk '{print $2}')

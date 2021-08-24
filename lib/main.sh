@@ -1366,7 +1366,7 @@ function main_getRepoFile(){
     fi
 
 	if [ -z "$useRepoURL" ]; then
-		sed -i "s/artifactory.devops.lab/${GLB_ART_HOST}/g" ${$maprrepo}
+		sed -i "s/artifactory.devops.lab/${GLB_ART_HOST}/g" ${maprrepo}
 		echo "$maprrepo"
 		return
 	fi
