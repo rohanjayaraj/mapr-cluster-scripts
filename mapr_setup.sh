@@ -166,6 +166,8 @@ function usage () {
     echo -e "\t\t - Create ATS user(m7user[1-4],mapruser[1-2]) tickets"
     echo -e "\t -acs | --atsnodesetup" 
     echo -e "\t\t - Setup ATS client nodes w/ maven/git/docker etc"
+    echo -e "\t -ats | --atsconfig" 
+    echo -e "\t\t - Setup ATS related configurations"
     echo -e "\t -asan | --asanmfs" 
     echo -e "\t\t - Replace MFS  & Gateway binaries w/ ASAN binaries"
     echo -e "\t -asanall | --asanclient" 
@@ -321,10 +323,13 @@ while [ "$1" != "" ]; do
             extraarg=$extraarg"queryservice "
         ;;
         -aut | --atsusertickets)
-            extraarg=$extraarg"atstickets "
+            extraarg=$extraarg"atstickets atsconfig "
         ;;
         -acs | --atsnodesetup)
-            extraarg=$extraarg"atssetup "
+            extraarg=$extraarg"atssetup atsconfig "
+        ;;
+         -ats | --atsconfig)
+            extraarg=$extraarg"atsconfig "
         ;;
         -asan | --asanmfs)
             extraarg=$extraarg"asan "
