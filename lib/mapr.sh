@@ -5882,7 +5882,7 @@ function maprutil_getMFSCommitID(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores/ | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|MAST\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.*core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores/ | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|posix-client\|MAST\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.*core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
     local buildid="$(maprutil_getMapRVersion)"
@@ -5958,10 +5958,12 @@ function maprutil_debugCore(){
     local iscats=$(echo $corefile | grep "maprStreamstest")
     local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[A-Za-z0-9.]*.core")
     local ismastgw=$(echo $corefile | grep -e "MAST")
+    local isposix=$(echo $corefile | grep -e "posix-client")
     local isatsdkr=$(docker images 2>/dev/null | grep "localhost:5000/ats" | awk '{print $3}' | head -n 1)
     [ -n "${isatsdkr}" ] && isatsdkr="docker run -v /opt/cores:/opt/cores ${isatsdkr}"
     local colbin=
     local catsbin="/root/jenkins-client-setup/private-qa/new-cats/mapr-streams/maprStreamstestBinary"
+    local posixbin="/opt/mapr/bin/posix-client-basic"
 
     if [ -z "$(find $tracefile -type f -size +15k 2> /dev/null)" ]; then
         if [ -n "$isjava" ]; then
@@ -5976,6 +5978,10 @@ function maprutil_debugCore(){
             newcore=1
         elif [ -n "$ismastgw" ]; then
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/lib/libMASTGatewayNative.so > $tracefile 2>&1    
+            newcore=1
+        elif [ -n "$isposix" ]; then
+            [ -n "$(echo "${corefile}" | grep posix-client-pl)" ] && posixbin="/opt/mapr/bin/posix-client-platinum"
+            timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} ${posixbin} > $tracefile 2>&1    
             newcore=1
         else
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} /opt/mapr/lib/libMapRClient.so > $tracefile 2>&1    
