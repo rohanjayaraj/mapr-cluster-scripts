@@ -1517,7 +1517,12 @@ function util_getSUPwd(){
     [ -z "${hasopenssl}" ] && return
 
     local passwd=$(util_getDecryptPwd)
-    rootpwd=$(echo "LrmPAyabIz6jBrd2uydsuA==" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
+    local suepwd="LrmPAyabIz6jBrd2uydsuA== nXX9iFJ3Tr6E5gmTZQq4uA=="
+    local rootpwd=
+    for epwd in ${suepwd}; do
+        local supwd=$(echo "${epwd}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
+        [ -z "${rootpwd}" ] &&  rootpwd="${supwd}" || rootpwd="${rootpwd} ${supwd}"
+    don
     echo "${rootpwd} mapr ssmssm"
 }
 

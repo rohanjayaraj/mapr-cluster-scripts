@@ -6217,13 +6217,15 @@ function maprutil_dedupASANErrors() {
         read -r sl
         local fln=$(echo "$fl" | cut -d':' -f1)
         local sln=$(echo "$sl" | cut -d':' -f1)
-        read -r nl;
-        while [ -n "$(echo $nl | cut -d':' -f2)" ]; do
-            sln=$(echo "$nl" | cut -d':' -f1)
+        if [ -z "$(echo $sl | grep -e "[[:space:]]*SUMMARY" -e " leak " )" ]; then
             read -r nl;
-        done
-
-
+            while [ -n "${nl}" ] && [ -z "$(echo $nl | grep -e "[[:space:]]*SUMMARY" -e " leak " )" ]; do
+                sln=$(echo "$nl" | cut -d':' -f1)
+                read -r nl;
+            done
+            [ -n "${nl}" ] && sln=$(echo "$nl" | cut -d':' -f1)
+        fi
+        
         local trace=$(cat ${asanfile} | sed -n "${fln},${sln}p")
 
         local tfn=$(echo "$trace" | head -n 15 | grep "mapr" | head -n 1 | awk '{print $NF}')
