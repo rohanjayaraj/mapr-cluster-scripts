@@ -1522,7 +1522,7 @@ function util_getSUPwd(){
     for epwd in ${suepwd}; do
         local supwd=$(echo "${epwd}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
         [ -z "${rootpwd}" ] &&  rootpwd="${supwd}" || rootpwd="${rootpwd} ${supwd}"
-    don
+    done
     echo "${rootpwd} mapr ssmssm"
 }
 
