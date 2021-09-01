@@ -155,7 +155,7 @@ function maprutil_getCoreNodeBinaries() {
         local newbinlist=
         for bin in ${binlist[@]}
         do
-            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2 ]]; then
+            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2|s3server ]]; then
                 newbinlist=$newbinlist"$bin "
             fi
         done
@@ -194,7 +194,7 @@ function maprutil_getPostInstallNodes(){
         local binlist=$(echo $line | cut -d',' -f2- | sed 's/,/ /g')
         for bin in ${binlist[@]}
         do
-            if [[ "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2 ]]; then
+            if [[ "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2|s3server ]]; then
                 nodelist="$nodelist $node"
                 break
             fi
@@ -738,7 +738,7 @@ function maprutil_isMapRVersionSameOrNewer(){
 }
 
 function maprutil_unmountNFS(){
-    local selfhostvip2=$(util_getDecryptStr "U2FsdGVkX19nO5r3Z4+z8rncDwYT2AMpk5fEAx9tjPE=")
+    local selfhostvip2=$(util_getDecryptStr "REt8NFD+N4wuBV4Y6h5DIg==")
     local nfslist=$(mount | grep nfs | grep mapr | grep -v -e '10.10.10.20' -e '${selfhostvip2}' | cut -d' ' -f3)
     for i in $nfslist
     do
@@ -4254,8 +4254,8 @@ function maprutil_setGatewayNodes(){
 function maprutil_mountSelfHosting(){
     local selfhostname="selfhosting"
     local selfhostvip="10.10.10.20"
-    local selfhostvip2=$(util_getDecryptStr "U2FsdGVkX19nO5r3Z4+z8rncDwYT2AMpk5fEAx9tjPE=")
-    local selfhostname2=$(util_getDecryptStr "U2FsdGVkX18zuxJhlHpHTSgFX7PNPD/elxE46nFfafE=")
+    local selfhostvip2=$(util_getDecryptStr "REt8NFD+N4wuBV4Y6h5DIg==")
+    local selfhostname2=$(util_getDecryptStr "UpFxzE2mrRqvw0Gyo1h0Ww==")
     [ -n "$(util_isEDFNode "$1")" ] && selfhostname="${selfhostname2}" && selfhostvip="${selfhostvip2}"
 
     local ismounted=$(mount | grep -Fw "10.10.10.20:/mapr/selfhosting/")
