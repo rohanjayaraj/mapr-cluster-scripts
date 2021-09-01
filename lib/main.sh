@@ -167,6 +167,7 @@ GLB_PERF_INTERVAL=
 GLB_ASAN_OPTIONS=
 GLB_ENABLE_UBSAN=
 GLB_SSLKEY_COPY=1
+GLB_MINIO_PORT=9000
 GLB_MVN_HOST=maven.foo.org
 GLB_ART_HOST=artifactory.devops.lab
 GLB_CRY_HOST=ntp.foo.org
@@ -1837,6 +1838,9 @@ while [ "$2" != "" ]; do
 			if [ -n "$VALUE" ]; then
  				GLB_ASAN_OPTIONS="$VALUE"
  			fi
+		;;
+		-mp)
+			[ -n "$VALUE" ] && GLB_MINIO_PORT="$VALUE"
 		;;
 		-slhk)
 			[ -n "$VALUE" ] && GLB_CUSTOM_SLACK="$VALUE"

@@ -508,7 +508,7 @@ function minioutil_getHostDiskOpt(){
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     local numdisks=$(ssh_executeCommandasRoot "$node" "mount -l | grep '^/dev' | grep minio | wc -l")
 
-    echo "http://${host}:9000/minio{1...${numdisks}}"
+    echo "http://${host}:${GLB_MINIO_PORT}/minio{1...${numdisks}}"
 }
 
 function minioutil_configureOnNode(){
