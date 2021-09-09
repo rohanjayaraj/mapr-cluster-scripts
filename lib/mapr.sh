@@ -2280,6 +2280,11 @@ function maprutil_copySecureFilesFromCLDB(){
 
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
         ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/";
+        if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
+            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprhsm.conf" "/opt/mapr/conf/";
+            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/tokens" "/opt/mapr/conf/"
+            chown -R mapr:mapr /opt/mapr/conf/tokens
+        fi
     fi
     [ -n "$GLB_ENABLE_DARE" ] && ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/dare.master.key" "/opt/mapr/conf/";
      
@@ -2323,6 +2328,15 @@ function maprutil_copySecureFilesFromCLDB(){
         if [ -n "${sslcfile}" ]; then
             ssh_copyFromCommand "root" "$cldbhost" "${sslcfile}" "${sslcfile}"; 
             chmod +644 ${sslcfile}
+        fi
+        if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
+            local jcekskeys=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/conf -name mapr*creds.jceks")
+            if [ -n "${jcekskeys}" ]; then
+                for jceks in $jcekskeys; do
+                    ssh_copyFromCommand "root" "$cldbhost" "${jceks}" "${jceks}"; 
+                    chmod +644 ${jceks}
+                done
+            fi
         fi
     fi
 }
