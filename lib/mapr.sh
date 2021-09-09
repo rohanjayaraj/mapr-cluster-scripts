@@ -825,7 +825,7 @@ function maprutil_cleanPrevClusterConfig(){
     rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.conf /opt/mapr/logs/* 2>/dev/null
 
     pushd /opt/mapr/conf/ > /dev/null 2>&1
-    rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
+    rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key tokens/* ssl_*store* *.jceks > /dev/null 2>&1
     
     popd > /dev/null 2>&1
     
@@ -1910,7 +1910,7 @@ function maprutil_configure(){
     if [ -n "$GLB_SECURE_CLUSTER" ]; then
         extops="-secure"
         pushd /opt/mapr/conf/ > /dev/null 2>&1
-        rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
+        rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key tokens/* ssl_*store* *.jceks> /dev/null 2>&1
         popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ]; then
             extops=$extops" -genkeys"
@@ -2287,7 +2287,7 @@ function maprutil_copySecureFilesFromCLDB(){
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
         if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprhsm.conf" "/opt/mapr/conf/";
-            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/tokens" "/opt/mapr/conf/"
+            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/tokens/*" "/opt/mapr/conf/tokens/"
             chown -R mapr:mapr /opt/mapr/conf/tokens
         else
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/";
@@ -2337,12 +2337,10 @@ function maprutil_copySecureFilesFromCLDB(){
             chmod +644 ${sslcfile}
         fi
         if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
-            local jcekskeys=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/conf -name maprkeycreds.jceks")
-            ssh_copyFromCommand "root" "$cldbhost" "${jcekskeys}" "${jcekskeys}"; 
-            chmod +600 ${jceks}
-            jcekskeys=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/conf -name maprtrustcreds.jceks")
-            ssh_copyFromCommand "root" "$cldbhost" "${jcekskeys}" "${jcekskeys}"; 
-            chmod +644 ${jceks}
+            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprtrustcreds.jceks" "/opt/mapr/conf/";
+            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprkeycreds.jceks" "/opt/mapr/conf/";
+            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_usertruststore*" "/opt/mapr/conf/";
+            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_userkeystore*" "/opt/mapr/conf/";
         fi
     fi
 }
