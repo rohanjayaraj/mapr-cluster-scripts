@@ -432,7 +432,7 @@ function util_checkAndConfigurePostfix() {
 
     local hostname=$(hostname -f)
     local hostip=$(util_getHostIP)
-    local relayhost=$(util_getDecryptStr "U2FsdGVkX18F3QGgk+RI4ShACP6F1T2UhytVRcHW0Xs=")
+    local relayhost=$(util_getDecryptStr "jcBoijMEdb/ZLFFu2qW9Sg==")
 
     local restart=
 
@@ -1504,9 +1504,11 @@ function util_getDecryptStr(){
 
     local decstr=
     if [ -n "${node}" ]; then
-        decstr=$(ssh root@${node} "echo '${encstr}' | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1")
+        #decstr=$(ssh root@${node} "echo '${encstr}' | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1")
+        decstr=$(ssh root@${node} "echo '${encstr}' | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null")
     else
-        decstr=$(echo "${encstr}" | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1)
+        decstr=$(echo "${encstr}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
+        #decstr=$(echo "${encstr}" | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1)
     fi
     [ -n "$(echo "${decstr}" | grep -e "bad decrypt" -e "error reading input file")" ] && decstr=
     [ -n "${decstr}" ] && echo "${decstr}"
@@ -1517,7 +1519,12 @@ function util_getSUPwd(){
     [ -z "${hasopenssl}" ] && return
 
     local passwd=$(util_getDecryptPwd)
-    rootpwd=$(echo "LrmPAyabIz6jBrd2uydsuA==" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
+    local suepwd="LrmPAyabIz6jBrd2uydsuA== nXX9iFJ3Tr6E5gmTZQq4uA=="
+    local rootpwd=
+    for epwd in ${suepwd}; do
+        local supwd=$(echo "${epwd}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
+        [ -z "${rootpwd}" ] &&  rootpwd="${supwd}" || rootpwd="${rootpwd} ${supwd}"
+    done
     echo "${rootpwd} mapr ssmssm"
 }
 

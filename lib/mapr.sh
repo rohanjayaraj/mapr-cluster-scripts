@@ -155,7 +155,7 @@ function maprutil_getCoreNodeBinaries() {
         local newbinlist=
         for bin in ${binlist[@]}
         do
-            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2 ]]; then
+            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2|s3server ]]; then
                 newbinlist=$newbinlist"$bin "
             fi
         done
@@ -194,7 +194,7 @@ function maprutil_getPostInstallNodes(){
         local binlist=$(echo $line | cut -d',' -f2- | sed 's/,/ /g')
         for bin in ${binlist[@]}
         do
-            if [[ "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2 ]]; then
+            if [[ "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2|s3server ]]; then
                 nodelist="$nodelist $node"
                 break
             fi
@@ -508,7 +508,7 @@ function minioutil_getHostDiskOpt(){
     local host=$(ssh_executeCommandasRoot "$node" "echo \$(hostname -f)")
     local numdisks=$(ssh_executeCommandasRoot "$node" "mount -l | grep '^/dev' | grep minio | wc -l")
 
-    echo "http://${host}:9000/minio{1...${numdisks}}"
+    echo "http://${host}:${GLB_MINIO_PORT}/minio{1...${numdisks}}"
 }
 
 function minioutil_configureOnNode(){
@@ -738,7 +738,7 @@ function maprutil_isMapRVersionSameOrNewer(){
 }
 
 function maprutil_unmountNFS(){
-    local selfhostvip2=$(util_getDecryptStr "U2FsdGVkX19nO5r3Z4+z8rncDwYT2AMpk5fEAx9tjPE=")
+    local selfhostvip2=$(util_getDecryptStr "REt8NFD+N4wuBV4Y6h5DIg==")
     local nfslist=$(mount | grep nfs | grep mapr | grep -v -e '10.10.10.20' -e '${selfhostvip2}' | cut -d' ' -f3)
     for i in $nfslist
     do
@@ -2280,6 +2280,11 @@ function maprutil_copySecureFilesFromCLDB(){
 
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
         ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/";
+        if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
+            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprhsm.conf" "/opt/mapr/conf/";
+            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/tokens" "/opt/mapr/conf/"
+            chown -R mapr:mapr /opt/mapr/conf/tokens
+        fi
     fi
     [ -n "$GLB_ENABLE_DARE" ] && ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/dare.master.key" "/opt/mapr/conf/";
      
@@ -2323,6 +2328,15 @@ function maprutil_copySecureFilesFromCLDB(){
         if [ -n "${sslcfile}" ]; then
             ssh_copyFromCommand "root" "$cldbhost" "${sslcfile}" "${sslcfile}"; 
             chmod +644 ${sslcfile}
+        fi
+        if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
+            local jcekskeys=$(ssh_executeCommandasRoot "$cldbhost" "find /opt/mapr/conf -name mapr*creds.jceks")
+            if [ -n "${jcekskeys}" ]; then
+                for jceks in $jcekskeys; do
+                    ssh_copyFromCommand "root" "$cldbhost" "${jceks}" "${jceks}"; 
+                    chmod +644 ${jceks}
+                done
+            fi
         fi
     fi
 }
@@ -4254,8 +4268,8 @@ function maprutil_setGatewayNodes(){
 function maprutil_mountSelfHosting(){
     local selfhostname="selfhosting"
     local selfhostvip="10.10.10.20"
-    local selfhostvip2=$(util_getDecryptStr "U2FsdGVkX19nO5r3Z4+z8rncDwYT2AMpk5fEAx9tjPE=")
-    local selfhostname2=$(util_getDecryptStr "U2FsdGVkX18zuxJhlHpHTSgFX7PNPD/elxE46nFfafE=")
+    local selfhostvip2=$(util_getDecryptStr "REt8NFD+N4wuBV4Y6h5DIg==")
+    local selfhostname2=$(util_getDecryptStr "UpFxzE2mrRqvw0Gyo1h0Ww==")
     [ -n "$(util_isEDFNode "$1")" ] && selfhostname="${selfhostname2}" && selfhostvip="${selfhostvip2}"
 
     local ismounted=$(mount | grep -Fw "10.10.10.20:/mapr/selfhosting/")
@@ -6217,13 +6231,15 @@ function maprutil_dedupASANErrors() {
         read -r sl
         local fln=$(echo "$fl" | cut -d':' -f1)
         local sln=$(echo "$sl" | cut -d':' -f1)
-        read -r nl;
-        while [ -n "$(echo $nl | cut -d':' -f2)" ]; do
-            sln=$(echo "$nl" | cut -d':' -f1)
+        if [ -z "$(echo $sl | grep -e "[[:space:]]*SUMMARY" -e " leak " )" ]; then
             read -r nl;
-        done
-
-
+            while [ -n "${nl}" ] && [ -z "$(echo $nl | grep -e "[[:space:]]*SUMMARY" -e " leak " )" ]; do
+                sln=$(echo "$nl" | cut -d':' -f1)
+                read -r nl;
+            done
+            [ -n "${nl}" ] && sln=$(echo "$nl" | cut -d':' -f1)
+        fi
+        
         local trace=$(cat ${asanfile} | sed -n "${fln},${sln}p")
 
         local tfn=$(echo "$trace" | head -n 15 | grep "mapr" | head -n 1 | awk '{print $NF}')

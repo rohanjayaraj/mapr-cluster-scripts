@@ -39,6 +39,7 @@ meprepourl=
 patchrepourl=
 patchid=
 asanoptions=
+minioport=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
 
@@ -178,6 +179,8 @@ function usage () {
     echo -e "\t\t - Replace MFS & Gateway binaries w/ UBSAN binaries"
     echo -e "\t -ubsanall | --ubsanclient" 
     echo -e "\t\t - Replace UBSAN binaries of MFS,Gateway, Client & maprfs jar"
+    echo -e "\t -mp=<PORTNUM> | --minioport=<PORTNUM>" 
+    echo -e "\t\t - Specify a PORTNUM for running minio servers (when run with -im option)"
     
     echo 
 	echo " Post install Options : "
@@ -348,6 +351,9 @@ while [ "$1" != "" ]; do
                 asanoptions="$VALUE"
             fi
         ;;
+        -mp | --minioport)
+            [ -n "$VALUE" ] && minioport="$VALUE"
+        ;;
         -sp | --storagepool)
             numsps=$VALUE
         ;;
@@ -472,6 +478,7 @@ else
     [ -n "${asanoptions}" ] && params="${params} \"-aop=${asanoptions}\""
     [ -n "${maxmfsmem}" ] && params="${params} \"-maxm=${maxmfsmem}\""
     [ -n "${volname}" ] && params="${params} \"-vol=${volname}\""
+    [ -n "${minioport}" ] && params="${params} \"-mp=${minioport}\""
 
     bash -c "$params"
     
