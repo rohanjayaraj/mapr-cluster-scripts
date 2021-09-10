@@ -5988,7 +5988,7 @@ function maprutil_debugCore(){
         if [ -n "$isjava" ]; then
             timeout 120 ${isatsdkr} gdb -ex "thread apply all bt" --batch -c ${corefile} $(which java) > $tracefile 2>&1
         elif [ -n "$iscollectd" ]; then
-            colbin=$(find /opt/mapr/collectd -type f -name collectd  -exec file -i '{}' \; 2> /dev/null | tr -d ':' | grep 'x-executable' | awk {'print $1'})
+            colbin=$(find /opt/mapr/collectd -type f -name collectd  -exec file -i '{}' \; 2> /dev/null | tr -d ':' | grep -e 'x-executable' -e 'x-sharedlib' | head -n 1 | awk {'print $1'})
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} $colbin > $tracefile 2>&1    
         elif [ -n "$iscats" ] && [ -s "${catsbin}" ]; then
             timeout 120 gdb -ex "thread apply all bt" --batch -c ${corefile} $catsbin > $tracefile 2>&1    

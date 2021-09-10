@@ -487,7 +487,7 @@ function util_checkPackageExists(){
     if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
         retval=$(yum --showduplicates list $1 | grep "^$1" | awk '{print $2}' | grep -who "[0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        retval=$(apt-cache policy $1 | grep -v "file://" | grep -who " [0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
+        retval=$(apt-cache policy $1 | grep -v "file://" | grep -who " [0-9.]*${2}[0-9.GA-]*" | sed '/^[[:space:]]$/d' | head -n 1 | tr -d ' ')
     elif [[ "$(getOS)" = "suse" ]]; then
         retval=$(zypper search -s $1 | grep -who " [0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
     fi
@@ -1519,7 +1519,7 @@ function util_getSUPwd(){
     [ -z "${hasopenssl}" ] && return
 
     local passwd=$(util_getDecryptPwd)
-    local suepwd="LrmPAyabIz6jBrd2uydsuA== nXX9iFJ3Tr6E5gmTZQq4uA=="
+    local suepwd="LrmPAyabIz6jBrd2uydsuA== nXX9iFJ3Tr6E5gmTZQq4uA== Fw1TIj6Vsk6yVcqM+Sko6w=="
     local rootpwd=
     for epwd in ${suepwd}; do
         local supwd=$(echo "${epwd}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
