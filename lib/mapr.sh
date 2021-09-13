@@ -2264,7 +2264,7 @@ function maprutil_copySecureFilesFromCLDB(){
     local keyname="cldb.key"
     local i=0
     while [ "$cldbisup" = "false" ]; do
-        if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
+        if [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
             cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/maprtrustcreds.jceks' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && echo true || echo false")
             keyname="maprtrustcreds.jceks"
         else
@@ -2285,7 +2285,7 @@ function maprutil_copySecureFilesFromCLDB(){
     sleep 10
 
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
-        if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
+        if [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprhsm.conf" "/opt/mapr/conf/";
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/tokens/*" "/opt/mapr/conf/tokens/"
             chown -R mapr:mapr /opt/mapr/conf/tokens
@@ -2336,7 +2336,7 @@ function maprutil_copySecureFilesFromCLDB(){
             ssh_copyFromCommand "root" "$cldbhost" "${sslcfile}" "${sslcfile}"; 
             chmod +644 ${sslcfile}
         fi
-        if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
+        if [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprtrustcreds.jceks" "/opt/mapr/conf/";
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/maprkeycreds.jceks" "/opt/mapr/conf/";
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_usertruststore*" "/opt/mapr/conf/";
@@ -4158,7 +4158,7 @@ function maprutil_setupATSClientNode() {
         
         # Install maven
         if ! command -v mvn > /dev/null 2>&1; then 
-            cd /tmp && wget http://www-us.apache.org/dist/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz && tar -zxvf apache-maven-3.5.4-bin.tar.gz 
+            cd /tmp && wget http://apache.claz.org/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz && tar -zxvf apache-maven-3.5.4-bin.tar.gz 
         
             mv /tmp/apache-maven-3.5.4 /opt/apache-maven > /dev/null 2>&1
 
