@@ -5900,7 +5900,20 @@ function maprutil_getMFSCommitID(){
 }
 
 function maprutil_analyzeCores(){
-    local cores=$(ls -ltr /opt/cores/ | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|hoststats\|posix-client\|MAST\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.*core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | awk '{print $9}')
+    # unlz4 core files if any
+    local lz4cores=$(ls  /opt/cores/*.lz4 2>/dev/null)
+    if [ -n "${lz4cores}" ]; then
+        command -v lz4 >/dev/null 2>&1 || util_checkAndInstall "lz4" "lz4" > /dev/null 2>&1
+        if command -v lz4 > /dev/null 2>&1; then
+            for lz4core in ${lz4cores}
+            do
+                [ -s "${lz4cores::-4}" ] && continue
+                lz4 -d ${lz4core}
+            done
+        fi
+    fi
+
+    local cores=$(ls -ltr /opt/cores/ | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|reader\|writer\|collectd\|hoststats\|posix-client\|MAST\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.*core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | grep -v "lz4$" | awk '{print $9}')
     [ -n "$GLB_EXT_ARGS" ] && cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
     [ -z "$cores" ] && return
     local buildid="$(maprutil_getMapRVersion)"
