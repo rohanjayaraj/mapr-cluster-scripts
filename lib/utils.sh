@@ -266,6 +266,7 @@ function util_installprereq(){
     util_checkAndInstall "pbzip2" "pbzip2"
     util_checkAndInstall "gawk" "gawk"
     util_checkAndInstall "rsync" "rsync"
+    util_checkAndInstall "lz4" "lz4"
     
 
     if [ -n "$(util_isBareMetal)" ]; then
