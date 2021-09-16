@@ -5909,7 +5909,7 @@ function maprutil_analyzeCores(){
             for lz4core in ${lz4cores}
             do
                 [ -s "${lz4core::-4}" ] && continue
-                lz4 -d ${lz4core}
+                lz4 -dq ${lz4core} > ${lz4core::-4}
             done
             popd > /dev/null 2>&1
         fi
