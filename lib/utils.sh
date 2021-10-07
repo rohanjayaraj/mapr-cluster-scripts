@@ -17,7 +17,7 @@ function getOSFromNode(){
         return
     fi
     local osstr="$(ssh root@$1 lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2 )"
-    if [ -n "$(echo $osstr | grep -i redhat)" ]; then
+    if [ -n "$(echo $osstr | grep -i -e redhat -e rocky)" ]; then
         echo "centos"
     elif [[ -n "$(echo $osstr | grep -i oracle)" ]]; then
         echo "oracle"
@@ -28,7 +28,7 @@ function getOSFromNode(){
 
 function getOS(){
     local osstr="$(lsb_release -a 2> /dev/null| grep Distributor | tr -d '\t' | tr '[:upper:]' '[:lower:]' | cut -d':' -f2)"
-    if [ -n "$(echo $osstr | grep -i redhat)" ]; then
+    if [ -n "$(echo $osstr | grep -i -e redhat -e rocky)" ]; then
         echo "centos"
     elif [[ -n "$(echo $osstr | grep -i oracle)" ]]; then
         echo "oracle"

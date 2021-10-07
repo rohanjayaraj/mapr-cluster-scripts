@@ -754,6 +754,7 @@ function main_minioinstall(){
 	# Install required binaries on other nodes
 	for node in ${nodes[@]}
 	do
+		[ -n "${noMinioOnCLDB}" ] && [ -n "$(echo $(maprutil_getNodesForService "mapr-cldb") | grep "$node")" ] && continue
 		log_info "****** Installing MinIO on node -> $node ****** "
 		local maprrepo=$(main_getRepoFile $node)
 		# Copy mapr.repo if it doen't exist
@@ -766,6 +767,7 @@ function main_minioinstall(){
 	local minioopts=
 	for node in ${nodes[@]}
 	do
+		[ -n "${noMinioOnCLDB}" ] && [ -n "$(echo $(maprutil_getNodesForService "mapr-cldb") | grep "$node")" ] && continue
 		local hostopts=$(minioutil_getHostDiskOpt "${node}")
 		[ -n "${minioopts}" ] && minioopts="${minioopts} "
 		minioopts="${minioopts}${hostopts}"
@@ -775,6 +777,7 @@ function main_minioinstall(){
 	log_info "Configuring MinIO with server list : ${minioopts}"
 	for node in ${nodes[@]}
 	do
+		[ -n "${noMinioOnCLDB}" ] && [ -n "$(echo $(maprutil_getNodesForService "mapr-cldb") | grep "$node")" ] && continue
 		log_info "****** Configuring MinIO on node -> $node ****** "
 		minioutil_configureOnNode "$node" "${minioopts}"
 	done
@@ -1498,6 +1501,7 @@ doGutsDef=
 doGutsCol=
 doGutsType=
 doSkip=
+noMinioOnCLDB=
 addSpy=
 doASAN=
 startstr=
@@ -1610,6 +1614,8 @@ while [ "$2" != "" ]; do
     				GLB_ENABLE_UBSAN=1
     			elif [[ "$i" = "downloadbins" ]]; then
     				GLB_FORCE_DOWNLOAD=1
+    			elif [[ "$i" = "nominiooncldb" ]]; then
+    				noMinioOnCLDB=1
     			fi
     		done
     	;;

@@ -181,6 +181,8 @@ function usage () {
     echo -e "\t\t - Replace UBSAN binaries of MFS,Gateway, Client & maprfs jar"
     echo -e "\t -mp=<PORTNUM> | --minioport=<PORTNUM>" 
     echo -e "\t\t - Specify a PORTNUM for running minio servers (when run with -im option)"
+    echo -e "\t -igcldb | --ignorecldbforminio" 
+    echo -e "\t\t - When run with --installminio option, do not install minio on nodes with cldb role"
     
     echo 
 	echo " Post install Options : "
@@ -353,6 +355,9 @@ while [ "$1" != "" ]; do
         ;;
         -mp | --minioport)
             [ -n "$VALUE" ] && minioport="$VALUE"
+        ;;
+        -igcldb | --ignorecldbforminio)
+            extraarg=$extraarg"nominiooncldb "
         ;;
         -sp | --storagepool)
             numsps=$VALUE
