@@ -5926,7 +5926,7 @@ function maprutil_analyzeCores(){
     if [ -n "$GLB_EXT_ARGS" ]; then
         if [[ "$GLB_EXT_ARGS" = "all" ]]; then
             # analyze all cores on the node
-            cores=$(ls -ltr /opt/cores/ | grep 'core')
+            cores=$(ls -ltr /opt/cores/ | grep 'core' | grep -v ".lz4$" | awk '{print $9}')
             allcores=1
         else
             cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
