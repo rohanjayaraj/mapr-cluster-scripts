@@ -323,6 +323,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/Thread-*.core.*")
     dirlist+=("/opt/cores/TestNG*.core.*")
     dirlist+=("/opt/cores/[-a-zA-Z0-9]*.core.*")
+    dirlist+=("/opt/cores/[-a-zA-Z0-9]*.core.*")
     echo ${dirlist[*]}
 }
 
@@ -3783,9 +3784,13 @@ function maprutil_grepMapRLogs(){
     local dirpath="/opt/mapr/logs"
     local fileprefix="*"
     local numlines=2
-    [ -n "$GLB_LOG_VERBOSE" ] && numlines=all
+    [ -n "$GLB_LOG_VERBOSE" ] && numlines=all    
 
-    util_grepFiles "$numlines" "$dirpath" "$fileprefix" "$GLB_GREP_MAPRLOGS"
+    if [ -z "${GLB_GREP_EXCERPT}" ]; then
+        util_grepFiles "$numlines" "$dirpath" "$fileprefix" "$GLB_GREP_MAPRLOGS"
+    else
+        util_grepFileExcerpt "$numlines" "$dirpath" "$fileprefix" "$GLB_GREP_MAPRLOGS" "${GLB_GREP_EXCERPT}" "${GLB_GREP_OCCURENCE}"
+    fi
 }
 
 function maprutil_getMapRInfo(){

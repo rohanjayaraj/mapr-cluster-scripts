@@ -155,6 +155,8 @@ GLB_PERF_URL=
 GLB_NODE_STATS=
 GLB_SYSINFO_OPTION=
 GLB_GREP_MAPRLOGS=
+GLB_GREP_EXCERPT=
+GLB_GREP_OCCURENCE=
 GLB_LOG_VERBOSE=
 GLB_COPY_DIR=
 GLB_COPY_CORES=
@@ -1683,6 +1685,12 @@ while [ "$2" != "" ]; do
 				doLogAnalyze="$doLogAnalyze greplogs"
 				GLB_GREP_MAPRLOGS="$VALUE"
 			fi
+		;;
+		-ge)
+			[ -n "$VALUE" ] && GLB_GREP_EXCERPT="$VALUE"
+		;;
+		-geo)
+			[ -n "$VALUE" ] && GLB_GREP_OCCURENCE="$VALUE"
 		;;
 		-td)
 			if [ -n "$VALUE" ]; then

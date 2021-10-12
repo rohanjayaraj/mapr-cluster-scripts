@@ -1059,6 +1059,77 @@ function util_grepFiles(){
     fi
 }
 
+
+#  @param numprint - number of matches to print if found
+#  @param dirpath - directory path to find the grep files
+#  @param filereg - File prefix/regex to grep on 
+#  @param startkeyword - Start keyword to grep
+#  @param endkeyword - End keyword to print from the match of the startkeyword
+#  @param numendoccurence - Number of endkeyword occurrences to print till from the match of startkeywork
+function util_grepFileExcerpt(){
+    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+        return
+    fi
+
+    local numprint=$1
+    local dirpath=$2
+    local filereg=$3
+    local startkeyword=${4}
+    local endkeyword=${5}
+    local numendkey=${6}
+    [ -z "${numendkey}" ] && [ -z "${endkeyword}" ] && numendkey=10
+    [ -z "${numendkey}" ] && numendkey=2
+
+    local runcmd="find $dirpath -type f -name \"${filereg}\" -exec grep -Hn -e \"${startkeyword}\""
+    [ -n "${endkeyword}" ] && runcmd=$runcmd" -e "${endkeyword}""
+    runcmd=$runcmd" {} \;"
+    [ -n "${endkeyword}" ] && runcmd=$runcmd" | grep -A${numendkey} \"${startkeyword}\""
+
+    local retstat=$(bash -c "${runcmd}" | sed "s~${dirpath}~~" | sed "s~^/~~")
+    [ -z "${retstat}" ] && return
+    local cnt=$(echo "$retstat" | grep "${startkeyword}" | wc -l)
+
+    echo -e "  Searchkey '${startkeyword}' found $cnt times in directory [ ${dirpath} ] in file(s) [ $filereg ]"
+
+    local i=0
+    while read -r line
+    do
+        [ -z "$(echo "${line}" | grep "${startkeyword}")" ] && continue
+        local filename=$(echo "${line}" | cut -d':' -f1)
+        local skl=$(echo "${line}" | cut -d':' -f2)
+        local ekl=
+
+        if [ -n "${endkeyword}" ]; then
+            for ((k=0; k<${numendkey}; k++))
+            do
+                read -r ekline
+                if [ -n "$(echo ${ekline} | grep ${endkeyword})" ]; then 
+                    ekl=$(echo "${ekline}" | cut -d':' -f2)
+                    ekl=$(echo "${ekl} - 1" | bc)
+                fi
+            done
+        else
+            ekl=$(echo "${skl} + ${numendkey}" | bc)
+        fi
+
+        if [ -n "${ekl}" ]; then
+            local println=
+            if [ "$numprint" = "all" ]; then
+                println=1
+            elif [ "$(util_isNumber $numprint)" = "true" ]; then
+                [[ "${numprint}" -gt "${i}" ]] && println=1
+            fi    
+            if [ -n "${println}" ]; then 
+                [[ "${i}" -gt "0" ]] && echo
+                sed -n ${skl},${ekl}p ${filename} | sed 's/^/\t/'
+            fi
+        fi
+        let i=i+1
+        
+    done <<<"${retstat}"
+}
+
+
 # @param total number of sectors
 # @param sector start position
 function util_getHDTrimList(){
