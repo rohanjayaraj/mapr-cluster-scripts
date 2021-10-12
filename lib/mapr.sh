@@ -3786,10 +3786,10 @@ function maprutil_grepMapRLogs(){
     local numlines=2
     [ -n "$GLB_LOG_VERBOSE" ] && numlines=all    
 
-    if [ -z "${GLB_GREP_EXCERPT}" ]; then
-        util_grepFiles "$numlines" "$dirpath" "$fileprefix" "$GLB_GREP_MAPRLOGS"
-    else
+    if [ -n "${GLB_GREP_EXCERPT}" ] || [ -n "${GLB_GREP_OCCURENCE}" ]; then
         util_grepFileExcerpt "$numlines" "$dirpath" "$fileprefix" "$GLB_GREP_MAPRLOGS" "${GLB_GREP_EXCERPT}" "${GLB_GREP_OCCURENCE}"
+    else
+        util_grepFiles "$numlines" "$dirpath" "$fileprefix" "$GLB_GREP_MAPRLOGS"
     fi
 }
 
