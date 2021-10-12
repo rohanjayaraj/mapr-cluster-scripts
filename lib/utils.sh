@@ -1085,7 +1085,7 @@ function util_grepFileExcerpt(){
     runcmd=$runcmd" {} \;"
     [ -n "${endkeyword}" ] && runcmd=$runcmd" | grep -A${numendkey} \"${startkeyword}\""
 
-    local retstat=$(bash -c "${runcmd}" | sed "s~${dirpath}~~" | sed "s~^/~~")
+    local retstat=$(bash -c "${runcmd}")
     [ -z "${retstat}" ] && return
     local cnt=$(echo "$retstat" | grep "${startkeyword}" | wc -l)
 
