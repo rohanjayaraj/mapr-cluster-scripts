@@ -24,6 +24,8 @@ tbltdist=
 indexname=
 sysinfo=
 grepkey=
+grependkey=
+grepoccur=
 pname=
 numiter=
 gutscols=
@@ -124,6 +126,12 @@ function usage () {
 
     echo -e "\t -g=<SEARCHKEY> | --greplogs=<SEARCHKEY>" 
     echo -e "\t\t - Grep MapR logs for SEARCHKEY on all nodes"
+
+    echo -e "\t -ge=<SEARCHENDKEY> | --grependkey=<SEARCHENDKEY>" 
+    echo -e "\t\t - When passed with -g, print the log excerpt from SEARCHKEY to SEARCHENDKEY. Useful to print stack traces from logs"
+
+    echo -e "\t -geo=<NUMBER> | --grependkeyoccurence=<NUMBER>" 
+    echo -e "\t\t - When passed with -ge, extract log excerpt from SEARCHKEY to NUMBER occurence of SEARCHENDKEY"
 
     echo -e "\t -b | -b=<COPYTODIR> | --backuplogs=<COPYTODIR>" 
     echo -e "\t\t - Backup /opt/mapr/logs/ directory on each node to COPYTODIR (default COPYTODIR : /tmp/)"
@@ -369,6 +377,12 @@ while [ "$1" != "" ]; do
                 grepkey="$VALUE"
             fi
         ;;
+        -ge | --grependkey)
+            [ -n "$VALUE" ] && grependkey="$VALUE"
+        ;;
+        -geo | --grependkeyoccurence)
+            [ -n "$VALUE" ] && grepoccur="$VALUE"
+        ;;
         -l | --mfsloggrep)
             args=$args"mfsgrep "
         ;;
@@ -407,6 +421,8 @@ else
     [ -n "${copydir}" ] && params="${params} \"-dir=${copydir}\""
     [ -n "${logfile}" ] && params="${params} \"-ldrlog=${logfile}\""
     [ -n "${grepkey}" ] && params="${params} \"-g=${grepkey}\""
+    [ -n "${grependkey}" ] && params="${params} \"-ge=${grependkey}\""
+    [ -n "${grepoccur}" ] && params="${params} \"-geo=${grepoccur}\""
     [ -n "${backupdir}" ] && params="${params} \"-b=${backupdir}\""
     [ -n "${backupregex}" ] && params="${params} \"-bf=${backupregex}\""
     [ -n "${args}" ] && params="${params} \"-l=${args}\""
