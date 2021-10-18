@@ -324,6 +324,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/TestNG*.core.*")
     dirlist+=("/opt/cores/[-a-zA-Z0-9]*.core.*")
     dirlist+=("/opt/cores/[-a-zA-Z0-9]*.core.*")
+    dirlist+=("/opt/cores/VM*")
     echo ${dirlist[*]}
 }
 
@@ -5931,10 +5932,10 @@ function maprutil_analyzeCores(){
     if [ -n "$GLB_EXT_ARGS" ]; then
         if [[ "$GLB_EXT_ARGS" = "all" ]]; then
             # analyze all cores on the node
-            cores=$(ls -ltr /opt/cores/ | grep 'core' | grep -v ".lz4$" | awk '{print $9}')
+            cores="$(ls -ltr /opt/cores/ | grep 'core' | grep -v ".lz4$" | awk '{f="";for(i=9;i<=NF;++i) f=sprintf("%s%s ",f,$i); print f}' | sed '/^$/d' | sed 's/[[:space:]]*$//')"
             allcores=1
         else
-            cores=$(echo "$cores" | grep "$GLB_EXT_ARGS")
+            cores="$(echo "$cores" | grep "$GLB_EXT_ARGS")"
         fi
     fi
     [ -z "$cores" ] && return
@@ -5952,7 +5953,7 @@ function maprutil_analyzeCores(){
     log_msg "\tBuild: ${buildid}"
 
     local i=1
-    for core in $cores
+    while read -r core; do
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
         maprutil_debugCore "/opt/cores/$core" $tracefile $i ${allcores} > /dev/null 2>&1 &
@@ -5960,11 +5961,11 @@ function maprutil_analyzeCores(){
             sleep 1
         done
         let i=i+1 
-    done
+    done <<< "$cores"
     wait
 
     i=1
-    for core in $cores
+    while read -r core; do
     do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
         local cpfile=
@@ -5992,7 +5993,7 @@ function maprutil_analyzeCores(){
             log_msg "\t\t Unable to fetch the backtrace"
         fi
         let i=i+1
-    done
+    done <<< "$cores"
 }
 
 # @param corefile
@@ -6003,7 +6004,7 @@ function maprutil_debugCore(){
     fi
     command -v gdb >/dev/null 2>&1 || return
 
-    local corefile=$1
+    local corefile="$1"
     local tracefile=$2
     local coreidx=$3
     local allcores=$4
