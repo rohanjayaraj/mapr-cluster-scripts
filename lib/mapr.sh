@@ -5954,7 +5954,6 @@ function maprutil_analyzeCores(){
 
     local i=1
     while read -r core; do
-    do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
         maprutil_debugCore "/opt/cores/$core" $tracefile $i ${allcores} > /dev/null 2>&1 &
         while [ "$(ps -ef | grep "[g]db -ex" | wc -l)" -gt "5" ]; do
@@ -5966,7 +5965,6 @@ function maprutil_analyzeCores(){
 
     i=1
     while read -r core; do
-    do
         local tracefile="/opt/mapr/logs/$core.gdbtrace"
         local cpfile=
         [ -n "$GLB_COPY_DIR" ] && mkdir -p $GLB_COPY_DIR > /dev/null 2>&1 && cpfile="$GLB_COPY_DIR/$core.gdbtrace"
