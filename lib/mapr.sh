@@ -2296,7 +2296,8 @@ function maprutil_copySecureFilesFromCLDB(){
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
         if [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/tokens/*" "/opt/mapr/conf/tokens/"
-            chown -R mapr:mapr /opt/mapr/conf/tokens
+            ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ca" "/opt/mapr/conf/"
+            chown -R mapr:mapr /opt/mapr/conf/tokens /opt/mapr/conf/ca
         else
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/";
         fi
