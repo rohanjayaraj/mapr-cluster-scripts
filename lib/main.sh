@@ -945,7 +945,7 @@ function main_getgutsstats(){
 	local defaultcols="$(maprutil_getGutsDefCols "$collist" "$doGutsCol")"
 	local usedefcols=
 
-	if [ "$doGutsType" = "gw" ]; then
+	if [ "$doGutsType" = "gw" ] || [ "$doGutsType" = "moss" ]; then
 		doGutsDef=
 		[ -n "$(echo $doGutsCol | sed 's/,/ /g' | tr ' ' '\n' | grep 'all')" ] && usedefcols=1 && doGutsCol=
 	elif [ -n "$doGutsCol" ] && [ -n "$(echo $doGutsCol | sed 's/,/ /g' | tr ' ' '\n' | grep 'stream\|cache\|fs\|db\|all')" ]; then
@@ -1659,6 +1659,8 @@ while [ "$2" != "" ]; do
 	    			doLogAnalyze="$doLogAnalyze mrdbinfo"
 	    		elif [[ "$i" = "gwguts" ]]; then
 	    			doGutsType="gw"
+	    		elif [[ "$i" = "mossguts" ]]; then
+	    			doGutsType="moss"
 	    		elif [[ "$i" = "defaultguts" ]]; then
 	    			doGutsDef=1
 	    		elif [[ "$i" = "copycores" ]]; then
