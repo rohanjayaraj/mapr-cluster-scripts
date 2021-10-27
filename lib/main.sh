@@ -1208,17 +1208,21 @@ function main_runLogDoctor(){
 				log_msghead "[$(util_getCurDate)] Analyzing core files (if present)"
 				local tmailfile=$(mktemp)
 				maprutil_runCommandsOnNodesInParallel "$nodes" "analyzecores" "$tmailfile"
-				cat ${tmailfile} >> ${mailfile}
 				if [ -n "$GLB_SLACK_TRACE" ] && [ -s "$tmailfile" ]; then
 					local nodupfile=$(mktemp)
 					cp ${tmailfile} ${nodupfile} > /dev/null 2>&1
 					if [ -z "${GLB_LOG_VERBOSE}" ]; then
 						maprutil_dedupCores "${nodupfile}"
+						cat ${nodupfile} >> ${mailfile}
 						sed -i "1s/^/\nNodelist : ${nodes}\n\n/" ${nodupfile}  > /dev/null 2>&1
+					else
+						cat ${tmailfile} >> ${mailfile}
 					fi
 					[ -n "${GLB_MAIL_SUB}" ] && sed -i "3s/^/\ Subject: ${GLB_MAIL_SUB}\n/" ${nodupfile}  > /dev/null 2>&1
 					util_postToSlack2 "${nodupfile}" "https://bit.ly/2vPLzrO"
 					rm -rf ${nodupfile} > /dev/null 2>&1
+				else
+					cat ${tmailfile} >> ${mailfile}
 				fi
 				rm -rf ${tmailfile}  > /dev/null 2>&1
         	;;

@@ -282,6 +282,7 @@ function util_installprereq(){
         util_checkAndInstall "lstopo" "hwloc"
         util_checkAndInstall "iperf3" "iperf3"
         util_checkAndInstall "gdb" "gdb"
+        util_checkAndInstall "dlv" "go-toolset"
         if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
             util_checkAndInstall "yum-config-manager" "yum-utils"
             util_checkAndInstall "lstopo" "hwloc-gui"
@@ -300,6 +301,8 @@ function util_installprereq(){
             util_checkAndInstall "gethostip" "syslinux-utils"
             util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "google-perftools"
             util_checkAndInstall "llvm-symbolizer" "llvm"
+            util_checkAndInstall "dlv" "golang-go.tools"
+            util_checkAndInstall "dlv" "delve"
         elif [ "$(getOS)" = "suse" ]; then
             util_checkAndInstall "createrepo" "createrepo"
             util_checkAndInstall "perf" "perf"
@@ -331,6 +334,8 @@ function util_installprereq(){
     #[[ -s "/usr/bin/python3" ]] && [[ ! -s "/usr/bin/python" ]] && alternatives --set python /usr/bin/python3 > /dev/null 2>&1
 
     util_checkAndInstallJDK11
+
+    util_checkAndInstallGO
 
     util_checkAndConfigurePostfix
 }
@@ -400,6 +405,18 @@ function util_switchJavaVersion(){
     jver=$(util_getJavaVersion)
 
     echo "${jver}"
+}
+
+function util_checkAndInstallGO(){
+    local gover=
+    [ -e "/usr/local/go" ] && gover=$(/usr/local/go/bin/go version 2>/dev/null| awk '{print $3}' | grep -ho "[.0-9]*")
+    [ -n "${gover}" ] || [ -s "/usr/local/go/bin/go" ] && return
+
+    pushd /tmp > /dev/null 2>&1
+    rm -rf /tmp/go*.linux-amd64.tar.gz > /dev/null 2>&1
+    wget https://golang.org/dl/go1.17.2.linux-amd64.tar.gz 2>/dev/null && tar -C /usr/local -xzf go1.17.2.linux-amd64.tar.gz
+    popd > /dev/null 2>&1 
+    echo "export PATH=\$PATH:/usr/local/go/bin" >> /etc/profile.d/go.sh
 }
 
 function util_getPythonVersion(){
