@@ -170,11 +170,11 @@ function maprutil_getCoreNodeBinaries() {
         #GLB_MAPR_VERSION
         if [ -n "$GLB_MAPR_PATCH" ]; then
             if [ -z "$(maprutil_isClientNode $1)" ]; then
-                [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist"mapr-patch"
+                [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist" mapr-patch"
             elif [ -n "$(echo $newbinlist | grep mapr-core)" ]; then
-                newbinlist=$newbinlist"mapr-patch"
+                newbinlist=$newbinlist" mapr-patch"
             else
-                newbinlist=$newbinlist"mapr-patch-client"
+                newbinlist=$newbinlist" mapr-patch-client"
             fi
 
             [ -n "$(echo $newbinlist | grep mapr-loopbacknfs)" ] && newbinlist="$newbinlist mapr-patch-loopbacknfs"
