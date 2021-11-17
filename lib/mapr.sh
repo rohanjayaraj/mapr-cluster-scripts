@@ -2308,7 +2308,7 @@ function maprutil_copySecureFilesFromCLDB(){
     while [ "$cldbisup" = "false" ]; do
         if [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
             cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/maprtrustcreds.conf' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && echo true || echo false")
-            keyname="maprtrustcreds.jceks"
+            keyname="maprtrustcreds.[jceks|bcfks]"
         else
             cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/cldb.key' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && echo true || echo false")
         fi
@@ -2318,7 +2318,7 @@ function maprutil_copySecureFilesFromCLDB(){
             break
         fi
         let i=i+1
-        if [ "$i" -gt 18 ]; then
+        if [ "$i" -gt 30 ]; then
             log_warn "[$(util_getHostIP)] Timed out to find ${keyname} on CLDB node [$cldbhost]. Exiting!"
             exit 1
         fi
