@@ -325,6 +325,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/[-a-zA-Z0-9]*.core.*")
     dirlist+=("/opt/cores/[-a-zA-Z0-9]*.core.*")
     dirlist+=("/opt/cores/VM*")
+    dirlist+=("/opt/cores/GC*")
     dirlist+=("/opt/cores/*core*")
     echo ${dirlist[*]}
 }
@@ -552,7 +553,7 @@ EOF
 
     log_info "[$(util_getHostIP)] Configuration complete. Waiting for MinIO service to come online"
     sleep 120
-    
+    [ -n "$GLB_TRACE_ON" ] && maprutil_startTraces
 }
 
 function minioutil_removeOnNode(){
@@ -829,7 +830,7 @@ function maprutil_cleanPrevClusterConfig(){
 
     pushd /opt/mapr/conf/ > /dev/null 2>&1
     rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
-    rm -rf tokens/* ca/* mapr*creds.* maprhsm.* ssl_*store* *.jceks *.bcfks > /dev/null 2>&1
+    rm -rf tokens/* ca/* mapr*creds.* ssl_*store* *.jceks *.bcfks > /dev/null 2>&1
     
     popd > /dev/null 2>&1
     
@@ -838,7 +839,9 @@ function maprutil_cleanPrevClusterConfig(){
     maprutil_removedirs "temp" > /dev/null 2>&1
 
     if [ -e "/opt/mapr/roles/zookeeper" ]; then
-        for i in datacenter services services_config servers queryservice drill ; do 
+        zkentries="$(/opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 ls / | grep datacenter | tr -d '[' | tr -d ']' | tr -d ',')"
+        [ -z  "${zkentries}" ] && zkentries="datacenter services services_config servers queryservice drill"
+        for i in ${zkentries} ; do 
             /opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 rmr /$i > /dev/null 2>&1
             #su mapr -c '/opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 rmr /$i' > /dev/null 2>&1
         done
@@ -1727,10 +1730,21 @@ function maprutil_startTraces() {
         nohup bash -c 'log="/opt/mapr/logs/gatewaytop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $gwpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/nfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/nfs" ]]; do nfspid=$(cat /opt/mapr/pid/nfsserver.pid 2>/dev/null); if kill -0 ${nfspid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $nfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/mossguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/s3server" ]]; do mpid=$(cat /opt/mapr/pid/s3server.pid 2>/dev/null); if kill -0 ${mpid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts clientpid:$mpid time:all >> $log; rc=$?; [ "$rc" -eq "1" ] && [ -z "$(grep Printing $log)" ] && truncate -s 0 $log && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
-        nohup bash -c 'log="/opt/mapr/logs/mosstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/s3server" ]]; do mpid=$(cat /opt/mapr/pid/s3server.pid 2>/dev/null); if kill -0 ${mpid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &        
+        nohup bash -c 'log="/opt/mapr/logs/mosstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/s3server" ]]; do mpid=$(cat /opt/mapr/pid/s3server.pid 2>/dev/null); if kill -0 ${mpid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
     maprutil_startResourceTraces
     maprutil_startClientResourceTraces
+    maprutil_startMinioTraces
+}
+
+function maprutil_startMinioTraces(){
+    [ ! -f "/usr/local/bin/minio" ] || [ ! -f "/etc/default/minio" ] && return
+
+    nohup bash -c 'log="/opt/mapr/logs/dstat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/etc/default/minio" && -e "/usr/local/bin/minio" ]]; do timeout 14 dstat -tcdnim >> $log; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+    nohup bash -c 'log="/opt/mapr/logs/iostat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/etc/default/minio" && -e "/usr/local/bin/minio" ]]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+
+    nohup bash -c 'log="/opt/mapr/logs/mosstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/etc/default/minio" ]]; do mpid=$(pidof minio); if kill -0 ${mpid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+    nohup bash -c 'log="/opt/mapr/logs/mossresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/etc/default/minio" ]]; do mpid=$(pidof minio); if kill -0 ${mpid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $mpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
 }
 
 function maprutil_startInstanceGuts(){
@@ -1818,6 +1832,16 @@ function maprutil_killYCSB() {
     util_kill "ycsb-driver"
     util_kill "/var/ycsb/"
     util_kill "/tmp/ycsb"
+
+    # Kill s3 test clients 
+    maprutil_killWarp
+}
+
+function maprutil_killWarp() {
+    util_kill "run.warp.sh"
+    util_kill "warp"
+    util_kill "/var/warp/"
+    util_kill "warp-client"
 }
 
 function maprutil_configureSSH(){
@@ -2597,7 +2621,7 @@ function maprutil_buildRepoFile(){
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
-        [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
+        [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node" "${repofile}"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://${GLB_ART_HOST}/artifactory/list/ebf-rpm/"
         
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | | sed 's/eco-deb/eco-rpm/g')
@@ -2637,7 +2661,7 @@ function maprutil_buildRepoFile(){
     elif [ "$nodeos" = "ubuntu" ]; then
         meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/ubuntu/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
-        [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node"
+        [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node" "${repofile}"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://${GLB_ART_HOST}/artifactory/list/ebf-deb/"
 
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g' | sed 's/eco-rpm/eco-deb/g')
@@ -5750,7 +5774,7 @@ function maprutil_buildDiskUsage(){
 
     local disklog="/opt/mapr/logs/iostat.log"
     [ ! -s "$disklog" ] && return
-    [ ! -s "/opt/mapr/conf/disktab" ] && return
+    #[ ! -s "/opt/mapr/conf/disktab" ] && return
 
     local sl=1
     local el=$(cat $disklog | wc -l)
@@ -5764,7 +5788,14 @@ function maprutil_buildDiskUsage(){
 
     local disksfile="$tmpdir/disks.log"
 
-    local mdisks=$(cat /opt/mapr/conf/disktab | grep '/' | awk '{print $1}' | sed 's/\/dev\///g' | tr '\n' ' ')
+    local mdisks=
+    if [ -s "/opt/mapr/conf/disktab" ]; then 
+        mdisks=$(cat /opt/mapr/conf/disktab | grep '/' | awk '{print $1}' | sed 's/\/dev\///g' | tr '\n' ' ')
+    elif [ -s "/etc/default/minio" ]; then
+        mdisks=$(timeout 5 df -h 2>/dev/null| grep "/minio" | awk '{print $1}' | sed 's/\/dev\///g' | tr '\n' ' ')
+    fi
+    [ -z "${mdisks}" ] && return
+
     local numdisks=$(echo $mdisks | wc -w)
     mdisks="$mdisks AM PM"
     mdisks=$(echo $mdisks | tr ' ' '\n')
