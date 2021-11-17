@@ -450,7 +450,7 @@ function util_checkAndConfigurePostfix() {
 
     local hostname=$(hostname -f)
     local hostip=$(util_getHostIP)
-    local relayhost=$(util_getDecryptStr "jcBoijMEdb/ZLFFu2qW9Sg==")
+    local relayhost=$(util_getDecryptStr "jcBoijMEdb/ZLFFu2qW9Sg==" "U2FsdGVkX1+Vew5W9wFpLktOx5x+jykB2x238Etjnvg=")
 
     local restart=
 
@@ -1582,8 +1582,9 @@ function util_getDecryptPwd(){
 # @param node ip
 function util_getDecryptStr(){
     [ -z "$1" ] && return
-    local encstr="$1"
-    local node="$2"
+    local encmd5str="$1"
+    local encshastr="$2"
+    local node="$3"
 
     local passwd=$(util_getDecryptPwd ${node})
     [ -z "${passwd}" ] && return
@@ -1593,11 +1594,11 @@ function util_getDecryptStr(){
 
     local decstr=
     if [ -n "${node}" ]; then
-        #decstr=$(ssh root@${node} "echo '${encstr}' | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1")
-        decstr=$(ssh root@${node} "echo '${encstr}' | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null")
+        decstr=$(ssh root@${node} "echo '${encmd5str}' | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null")
+        [ -z "${decstr}" ] && decstr=$(ssh root@${node} "echo '${encshastr}' | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1")
     else
-        decstr=$(echo "${encstr}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
-        #decstr=$(echo "${encstr}" | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1)
+        decstr=$(echo "${encmd5str}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
+        [ -z "${decstr}" ] && decstr=$(echo "${encmd5str}" | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1)
     fi
     [ -n "$(echo "${decstr}" | grep -e "bad decrypt" -e "error reading input file")" ] && decstr=
     [ -n "${decstr}" ] && echo "${decstr}"

@@ -1341,16 +1341,16 @@ function main_buildServiceHostNames(){
 	[ -z "$1" ] && return
 
 	local node=$1
-  local hostname=$(util_getDecryptStr "qhOJME0ovom4zDy5rNdTWR2RgyrvVeZYWnRhEGuPO7Y+MPFP0aKndkUt4WXYryf+" "${node}")
+  local hostname=$(maprutil_getMavenHost "${node}")
   [ -n "${hostname}" ] && GLB_MVN_HOST=${hostname} || return
   
-  hostname=$(util_getDecryptStr "dakntoOj0hNDANkuvkiE0r2pgBw0KpWz7hBUwWfY9rM=" "${node}")
+  hostname=$(maprutil_getArtHost "${node}")
   [ -n "${hostname}" ] && GLB_ART_HOST=${hostname} || return
 
-  hostname=$(util_getDecryptStr "e74gumedSyjCTHY60PmKKyi1akS9uEqBaWz4eiCtnrfUfLNET87Pnb8FLDaWnDtb" "${node}" ) 
+  hostname=$(maprutil_getCronyHost "${node}" ) 
   [ -n "${hostname}" ] && GLB_CRY_HOST=${hostname} || return
 
-  hostname=$(util_getDecryptStr "LiNIw6MBmxR1hLTX7e2EU34ezk8zGtKiQ+kVtxik4H0=" "${node}" )
+  hostname=$(maprutil_getDockerHost "${node}" )
   [ -n "${hostname}" ] && GLB_DKR_HOST=${hostname} || return
   
   [ -n "${useRepoURL}" ] && useRepoURL=$(echo "${useRepoURL}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")

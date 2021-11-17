@@ -742,7 +742,7 @@ function maprutil_isMapRVersionSameOrNewer(){
 }
 
 function maprutil_unmountNFS(){
-    local selfhostvip2=$(util_getDecryptStr "REt8NFD+N4wuBV4Y6h5DIg==")
+    local selfhostvip2=$(maprutil_getSelfHostIP)
     local nfslist=$(mount | grep nfs | grep mapr | grep -v -e '10.10.10.20' -e '${selfhostvip2}' | cut -d' ' -f3)
     for i in $nfslist
     do
@@ -4210,9 +4210,9 @@ function maprutil_setupATSClientNode() {
         
         # Install maven
         if ! command -v mvn > /dev/null 2>&1; then 
-            cd /tmp && wget http://apache.claz.org/maven/maven-3/3.5.4/binaries/apache-maven-3.5.4-bin.tar.gz && tar -zxvf apache-maven-3.5.4-bin.tar.gz 
+            cd /tmp && wget https://dlcdn.apache.org/maven/maven-3/3.8.3/binaries/apache-maven-3.8.3-bin.tar.gz && tar -zxvf apache-maven-3.8.3-bin.tar.gz 
         
-            mv /tmp/apache-maven-3.5.4 /opt/apache-maven > /dev/null 2>&1
+            mv /tmp/apache-maven-3.8.3 /opt/apache-maven > /dev/null 2>&1
 
         cat <<EOF > /etc/profile.d/maven.sh
 export M2_HOME=/opt/apache-maven
@@ -4324,8 +4324,8 @@ function maprutil_setGatewayNodes(){
 function maprutil_mountSelfHosting(){
     local selfhostname="selfhosting"
     local selfhostvip="10.10.10.20"
-    local selfhostvip2=$(util_getDecryptStr "REt8NFD+N4wuBV4Y6h5DIg==")
-    local selfhostname2=$(util_getDecryptStr "UpFxzE2mrRqvw0Gyo1h0Ww==")
+    local selfhostvip2=$(maprutil_getSelfHostIP)
+    local selfhostname2=$(maprutil_getSelfHost)
     [ -n "$(util_isEDFNode "$1")" ] && selfhostname="${selfhostname2}" && selfhostvip="${selfhostvip2}"
 
     local ismounted=$(mount | grep -Fw "10.10.10.20:/mapr/selfhosting/")
@@ -6376,6 +6376,42 @@ function maprutil_runmrconfig_info(){
         echo "$output" | sed 's/^/\t/'
         echo
     done
+}
+
+function maprutil_getMavenHost(){
+    local node="$1"
+    local hostname=$(util_getDecryptStr "qhOJME0ovom4zDy5rNdTWR2RgyrvVeZYWnRhEGuPO7Y+MPFP0aKndkUt4WXYryf+" "U2FsdGVkX19J0e7nYnX5hPon0QawBdAg1uHs8OLsLI2YfAv4VvTkutZpL3pOe7T9tLtk8E3cn+pIGPPx7ubSNQ==" "${node}")
+    echo "${hostname}"
+}
+
+function maprutil_getArtHost(){
+    local node="$1"
+    local hostname=$(util_getDecryptStr "dakntoOj0hNDANkuvkiE0r2pgBw0KpWz7hBUwWfY9rM=" "U2FsdGVkX19dLZuyfgU4nIFlQBUUftcavp1b9maa8xZ+60hVt4V1x5d+8jR2iiAZ" "${node}")
+    echo "${hostname}"
+}
+
+function maprutil_getCronyHost(){
+    local node="$1"
+    local hostname=$(util_getDecryptStr "e74gumedSyjCTHY60PmKKyi1akS9uEqBaWz4eiCtnrfUfLNET87Pnb8FLDaWnDtb" "U2FsdGVkX1+6z73yLP3UAKv+zbULNDIYcPSO8Xvdc6QSZ6HnUf/lzCoFK2Z+/QeOwUcDnJib/AypXV1t9xSIXQ==" "${node}")
+    echo "${hostname}"
+}
+
+function maprutil_getDockerHost(){
+    local node="$1"
+    local hostname=$(util_getDecryptStr "LiNIw6MBmxR1hLTX7e2EU34ezk8zGtKiQ+kVtxik4H0=" "U2FsdGVkX19gnXLXieGW+wTtmVsw+2Ret+OHcKhDsjVU945oA0W1/owFByIrymzg" "${node}")
+    echo "${hostname}"
+}
+
+function maprutil_getSelfHostIP(){
+    local node="$1"
+    local hostip=$(util_getDecryptStr "REt8NFD+N4wuBV4Y6h5DIg==" "U2FsdGVkX1+X0MitQBO8qpvkvfpYBne1CFkMwfV8Bqc=" "${node}")
+    echo "${hostip}"
+}
+
+function maprutil_getSelfHost(){
+    local node="$1"
+    local hostname=$(util_getDecryptStr "UpFxzE2mrRqvw0Gyo1h0Ww==" "U2FsdGVkX1/RmM7hOgUYKrOJP1Wbi8AFjFpXBSPwK0k=" "${node}")
+    echo "${hostname}"
 }
 
 # @param scriptpath
