@@ -2307,7 +2307,7 @@ function maprutil_copySecureFilesFromCLDB(){
     local i=0
     while [ "$cldbisup" = "false" ]; do
         if [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
-            cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/maprtrustcreds.conf' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && echo true || echo false")
+            cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/maprtrustcreds.conf' ] && [ -e '/opt/mapr/conf/maprkeycreds.conf' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && echo true || echo false")
             keyname="maprtrustcreds.[jceks|bcfks]"
         else
             cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/cldb.key' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && echo true || echo false")
@@ -2315,6 +2315,7 @@ function maprutil_copySecureFilesFromCLDB(){
         if [ "$cldbisup" = "false" ]; then
             sleep 10
         else
+            [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ] && sleep 60
             break
         fi
         let i=i+1
@@ -2324,7 +2325,7 @@ function maprutil_copySecureFilesFromCLDB(){
         fi
     done
     
-    sleep 10
+    sleep 30
 
     if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
         if [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
@@ -4079,7 +4080,7 @@ function maprutil_applyLicense(){
     while [ "${jobs}" -ne "0" ]; do
         log_info "[$(util_getHostIP)] Waiting for CLDB to come up to apply license.... sleeping 10s"
         if [ "$jobs" -ne 0 ]; then
-            local licenseExists=`timeout 30 /opt/mapr/bin/maprcli license list 2>/dev/null | grep M7 | wc -l`
+            local licenseExists=`timeout 30 /opt/mapr/bin/maprcli license list 2>/dev/null | grep -e M7 -e Demo | wc -l`
             if [[ "$licenseExists" -ne "0" ]]; then
                 jobs=0
             else
