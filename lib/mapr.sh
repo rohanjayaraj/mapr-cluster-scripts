@@ -280,7 +280,7 @@ function maprutil_ycsbdirs(){
     do
       dirlist+=("$i")
     done
-    echo ${dirlist[*]}
+    echo "${dirlist[*]}"
 }
 
 function maprutil_rubixdirs(){
@@ -289,7 +289,7 @@ function maprutil_rubixdirs(){
     do
       dirlist+=("$i")
     done
-    echo ${dirlist[*]}
+    echo "${dirlist[*]}"
 }
 
 function maprutil_warpdirs(){
@@ -298,7 +298,7 @@ function maprutil_warpdirs(){
     do
       dirlist+=("$i")
     done
-    echo ${dirlist[*]}
+    echo "${dirlist[*]}"
 }
 
 function maprutil_coresdirs(){
@@ -327,7 +327,7 @@ function maprutil_coresdirs(){
     dirlist+=("/opt/cores/VM*")
     dirlist+=("/opt/cores/GC*")
     dirlist+=("/opt/cores/*core*")
-    echo ${dirlist[*]}
+    echo "${dirlist[*]}"
 }
 
 function maprutil_knowndirs(){
@@ -340,7 +340,7 @@ function maprutil_knowndirs(){
     dirlist+=("/mapr/perf")
     dirlist+=("/mapr/archerx")
     dirlist+=("/mapr/[A-Za-z0-9]*")
-    echo ${dirlist[*]}
+    echo "${dirlist[*]}"
 }
 
 function maprutil_tempdirs() {
@@ -378,7 +378,7 @@ function maprutil_tempdirs() {
     dirlist+=("/var/tmp/*RegressionLog")
     dirlist+=("/var/tmp/maprStreams-*")
 
-    echo  ${dirlist[*]}
+    echo  "${dirlist[*]}"
 }  
 
 function maprutil_removedirs(){
