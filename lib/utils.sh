@@ -234,9 +234,9 @@ function util_installepel(){
     local osver=$(getOSReleaseVersion)
     if [ "$(getOS)" = "centos" ]; then
         if [[ "$(getOSWithVersion)" == *"RedHat"* ]]; then
-            yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " || yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-${osver}.noarch.rpm redhat-lsb-core -y --nogpgcheck > /dev/null 2>&1
+            yum repolist all 2>&1 | grep -e "epel/" -e "^*epel " -e "^epel[[:space:]]" || yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-${osver}.noarch.rpm redhat-lsb-core -y --nogpgcheck > /dev/null 2>&1
         else
-            yum repolist all 2>&1 | grep -e "epel/" -e "^.*epel " || yum install epel-release redhat-lsb-core yum-utils -y --nogpgcheck > /dev/null 2>&1 
+            yum repolist all 2>&1 | grep -e "epel/" -e "^.*epel " -e "^epel[[:space:]]" || yum install epel-release redhat-lsb-core yum-utils -y --nogpgcheck > /dev/null 2>&1 
         fi
         
         yum repolist enabled 2>&1 | grep "epel " || yum-config-manager --enable epel > /dev/null 2>&1
@@ -1609,7 +1609,9 @@ function util_getSUPwd(){
     [ -z "${hasopenssl}" ] && return
 
     local passwd=$(util_getDecryptPwd)
-    local suepwd="LrmPAyabIz6jBrd2uydsuA== nXX9iFJ3Tr6E5gmTZQq4uA== Fw1TIj6Vsk6yVcqM+Sko6w== U2FsdGVkX18HRmDRjF+2ed4Z03TnuZy4f0va2Q/mZx0= U2FsdGVkX1/QIGWcL713GA2yS8aEbUybZZJhg4vEoy4= U2FsdGVkX1/r/gqrhkGFNz/qHTbhDA8B7cTEik6O6Fg="
+    local suepwd="LrmPAyabIz6jBrd2uydsuA== nXX9iFJ3Tr6E5gmTZQq4uA== Fw1TIj6Vsk6yVcqM+Sko6w== pB/HxKy+JXr+YUKMCGP02A== \
+    U2FsdGVkX18HRmDRjF+2ed4Z03TnuZy4f0va2Q/mZx0= U2FsdGVkX1/QIGWcL713GA2yS8aEbUybZZJhg4vEoy4= \
+    U2FsdGVkX1/r/gqrhkGFNz/qHTbhDA8B7cTEik6O6Fg= U2FsdGVkX19gD/RWMjEmU/YZL4NQeDtC88bic1dK7yI="
     local rootpwd=
     for epwd in ${suepwd}; do
         local supwd=$(echo "${epwd}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)

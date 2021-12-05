@@ -1713,7 +1713,7 @@ function maprutil_startTraces() {
         if [ -z "$(maprutil_isMapRVersionSameOrNewer "7.0.0")" ]; then
             nohup bash -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" && -e "/opt/mapr/conf/disktab" ]]; do mfspid=$(pidof mfs); if kill -0 ${mfspid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all nfs:all io:all >> $log; rc=$?; [[ "$rc" -eq "1" ]] || [[ "$rc" -eq "134" ]] && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         else
-            nohup bash -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" && -e "/opt/mapr/conf/disktab" ]]; do mfspid=$(pidof mfs); if kill -0 ${mfspid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all nfs:all io:all moss:all >> $log; rc=$?; [[ "$rc" -eq "1" ]] || [[ "$rc" -eq "134" ]] && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+            nohup bash -c 'log="/opt/mapr/logs/guts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" && -e "/opt/mapr/conf/disktab" ]]; do mfspid=$(pidof mfs); if kill -0 ${mfspid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts time:all flush:line cache:all streams:all db:all rpc:all log:all dbrepl:all nfs:all io:all mastgateway:all moss:all >> $log; rc=$?; [[ "$rc" -eq "1" ]] || [[ "$rc" -eq "134" ]] && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         fi
         nohup bash -c 'log="/opt/mapr/logs/dstat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" && -e "/opt/mapr/conf/disktab" ]]; do timeout 14 dstat -tcdnim >> $log; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/iostat.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/fileserver" && -e "/opt/mapr/conf/disktab" ]]; do timeout 14 iostat -dmxt 1 >> $log 2> /dev/null; rc=$?; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
@@ -1729,8 +1729,10 @@ function maprutil_startTraces() {
         nohup bash -c 'log="/opt/mapr/logs/gatewayguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts clientpid:$gwpid time:all gateway:all >> $log; rc=$?; [ "$rc" -eq "1" ] && [ -z "$(grep Printing $log)" ] && truncate -s 0 $log && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/gatewaytop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/gateway" ]]; do gwpid=$(cat /opt/mapr/pid/gateway.pid 2>/dev/null); if kill -0 ${gwpid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $gwpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/nfstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/nfs" ]]; do nfspid=$(cat /opt/mapr/pid/nfsserver.pid 2>/dev/null); if kill -0 ${nfspid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $nfspid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
-        nohup bash -c 'log="/opt/mapr/logs/mossguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/s3server" ]]; do mpid=$(cat /opt/mapr/pid/s3server.pid 2>/dev/null); if kill -0 ${mpid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts clientpid:$mpid time:all >> $log; rc=$?; [ "$rc" -eq "1" ] && [ -z "$(grep Printing $log)" ] && truncate -s 0 $log && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+        nohup bash -c 'log="/opt/mapr/logs/mossguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/s3server" ]]; do mpid=$(cat /opt/mapr/pid/s3server.pid 2>/dev/null); if kill -0 ${mpid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts clientpid:$mpid moss:all time:all >> $log; rc=$?; [ "$rc" -eq "1" ] && [ -z "$(grep Printing $log)" ] && truncate -s 0 $log && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/mosstop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/s3server" ]]; do mpid=$(cat /opt/mapr/pid/s3server.pid 2>/dev/null); if kill -0 ${mpid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        nohup bash -c 'log="/opt/mapr/logs/mastguts.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/mastgateway" ]]; do mpid=$(cat /opt/mapr/pid/mastgateway.pid 2>/dev/null); if kill -0 ${mpid} 2>/dev/null; then timeout 70 stdbuf -o0 /opt/mapr/bin/guts clientpid:$mpid mastgateway:all time:all >> $log; rc=$?; [ "$rc" -eq "1" ] && [ -z "$(grep Printing $log)" ] && truncate -s 0 $log && sleep 5; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "209715200" ] && tail -c 10240 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done'  > /dev/null 2>&1 &
+        nohup bash -c 'log="/opt/mapr/logs/masttop.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/mastgateway" ]]; do mpid=$(cat /opt/mapr/pid/mastgateway.pid 2>/dev/null); if kill -0 ${mpid} 2>/dev/null; then date "+%Y-%m-%d %H:%M:%S" >> $log; timeout 10 top -bH -p $mpid -d 1 >> $log; rc=$?; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
     maprutil_startResourceTraces
     maprutil_startClientResourceTraces
@@ -1767,6 +1769,7 @@ function maprutil_startResourceTraces() {
         nohup bash -c 'log="/opt/mapr/logs/dagresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/data-access-gateway" ]]; do dagpid=$(cat /opt/mapr/pid/data-access-gateway.pid 2>/dev/null); if kill -0 ${dagpid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $dagpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/tsdbresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/opentsdb" ]]; do tsdpid=$(cat /opt/mapr/pid/opentsdb.pid 2>/dev/null); if kill -0 ${tsdpid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $tsdpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/nfsresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/nfs" ]]; do nfspid=$(cat /opt/mapr/pid/nfsserver.pid 2>/dev/null); if kill -0 ${nfspid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $nfspid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
+        nohup bash -c 'log="/opt/mapr/logs/mastresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/mastgateway" ]]; do mastpid=$(cat /opt/mapr/pid/mastgateway.pid 2>/dev/null); if kill -0 ${mastpid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $mastpid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
         nohup bash -c 'log="/opt/mapr/logs/mossresusage.log"; rc=0; while [[ "$rc" -ne 137 && -e "/opt/mapr/roles/s3server" ]]; do mosspid=$(cat /opt/mapr/pid/s3server.pid 2>/dev/null); if kill -0 ${mosspid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $mosspid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
     fi
     nohup bash -c 'log="/opt/mapr/logs/fuseresusage.log"; rc=0; while [[ "$rc" -ne 137 && -s "/opt/mapr/initscripts/mapr-fuse" ]]; do fusepid=$(ps -ef | grep "/opt/mapr/bin/[p]osix-client" | awk '"'"'{if($3 != 1) print $2}'"'"' 2>/dev/null); if kill -0 ${fusepid} 2>/dev/null; then st=$(date +%s%N | cut -b1-13); curtime=$(date "+%Y-%m-%d %H:%M:%S"); topline=$(top -bn 1 -p $fusepid | grep -v "^$" | tail -1 | grep -v "USER" | awk '"'"'{ printf("%s\t%s\t%s\n",$6,$9,$10); }'"'"'); rc=$?; [ -n "$topline" ] && echo -e "$curtime\t$topline" >> $log; et=$(date +%s%N | cut -b1-13); td=$(echo "scale=2;1-(($et-$st)/1000)"| bc); sleep $td; else sleep 10; fi; sz=$(stat -c %s $log); [ "$sz" -gt "1258291200" ] && tail -c 1048576 $log > $log.bkp && rm -rf $log && mv $log.bkp $log; done' > /dev/null 2>&1 &
@@ -4072,8 +4075,16 @@ function maprutil_getClusterSpec(){
 }
 
 function maprutil_applyLicense(){
+    local licurl="http://stage.mapr.com/license/LatestDemoLicense-M7.txt"
+    if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
+        local fipsenabled=$(cat /proc/sys/crypto/fips_enabled 2>/dev/null)
+        [[ "${fipsenabled}" -eq "1" ]] && licurl="http://stage.mapr.com/license/FIPSDemoLicense.fips"
+    fi
+
+    local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
+
+    wget ${licurl} --user=${creds} --password=${creds} -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
     
-    wget http://stage.mapr.com/license/LatestDemoLicense-M7.txt --user=maprqa --password=maprqa -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
     local buildid=$(maprutil_getBuildID)
     local i=0
     local jobs=1
@@ -4880,7 +4891,7 @@ function maprutil_publishMFSCPUUse(){
     [ -n "$stjson" ] && sjson="$sjson\"nfsthreads\":{$stjson}" && stjson=
 
     # add MFS & GW cpu
-    files="mfs.log gw.log client.log qs.log dag.log tsdb.log nfs.log moss.log fuse.log"
+    files="mfs.log gw.log client.log qs.log dag.log tsdb.log nfs.log mast.log moss.log fuse.log"
     tjson=
     for fname in $files
     do
@@ -5054,7 +5065,7 @@ function maprutil_mfsCPUUseOnCluster(){
         [ -n "$filelist" ] && paste $filelist | awk '{for(i=3;i<=NF;i+=4) {rsum+=$i; k=i+1; ssum+=$k; j++} printf("%s %s %.0f %.0f\n",$1,$2,rsum/j,ssum/j); rsum=0; ssum=0; j=0}' > $logdir/$fname 2>&1 &
     done
     # logs from all nodes, NOT just MFS/data nodes
-    files="gw.log qs.log dag.log tsdb.log nfs.log moss.log fuse.log"
+    files="gw.log qs.log dag.log tsdb.log nfs.log mast.log moss.log fuse.log"
     for fname in $files
     do
         local filelist=$(find $alldirlist -name $fname 2>/dev/null)
@@ -5229,6 +5240,7 @@ maprutil_buildResUsage(){
         "/opt/mapr/logs/dagresusage.log:dag.log"
         "/opt/mapr/logs/tsdbresusage.log:tsdb.log"
         "/opt/mapr/logs/nfsresusage.log:nfs.log"
+        "/opt/mapr/logs/mastresusage.log:mast.log"
         "/opt/mapr/logs/mossresusage.log:moss.log"
         "/opt/mapr/logs/fuseresusage.log:fuse.log" )
 
@@ -5494,6 +5506,7 @@ function marutil_getGutsSample(){
     local gutsfile="/opt/mapr/logs/guts.log"
     [ -n "$2" ] && [ "$2" = "gw" ] && gutsfile="/opt/mapr/logs/gatewayguts.log"
     [ -n "$2" ] && [ "$2" = "moss" ] && gutsfile="/opt/mapr/logs/mossguts.log"
+    [ -n "$2" ] && [ "$2" = "mast" ] && gutsfile="/opt/mapr/logs/mastguts.log"
 
     local gutsline=
     # hack for building column list from local guts file
@@ -5736,6 +5749,7 @@ function maprutil_buildGutsStats(){
     local gutslog="/opt/mapr/logs/guts.log"
     [ "$gutstype" = "gw" ] && gutslog="/opt/mapr/logs/gatewayguts.log"
     [ "$gutstype" = "moss" ] && gutslog="/opt/mapr/logs/mossguts.log"
+    [ "$gutstype" = "mast" ] && gutslog="/opt/mapr/logs/mastguts.log"
     [ -s "${localgutsfile}" ] && gutslog=${localgutsfile}
 
     [ ! -s "$gutslog" ] && return

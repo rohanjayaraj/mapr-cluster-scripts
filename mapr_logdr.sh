@@ -178,6 +178,9 @@ function usage () {
     echo -e "\t -mossguts" 
     echo -e "\t\t - When passed with -guts option, build MOSS gateway guts instead of mfs"
 
+    echo -e "\t -mastguts" 
+    echo -e "\t\t - When passed with -guts option, build mast-gateway guts instead of mfs"
+
     echo -e "\t -minfo" 
     echo -e "\t\t - Run 'mrconfig info' commands on all MFS nodes"
 
@@ -358,6 +361,9 @@ while [ "$1" != "" ]; do
         ;;
         -mossguts)
             args=$args"mossguts "
+        ;;
+        -mastguts)
+            args=$args"mastguts "
         ;;
         -minfo)
             args=$args"mrinfo "
