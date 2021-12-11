@@ -758,8 +758,10 @@ function maprutil_unmountNFS(){
         service mapr-posix-client-platinum stop > /dev/null 2>&1
         /etc/init.d/mapr-fuse stop > /dev/null 2>&1
         /etc/init.d/mapr-posix-* stop > /dev/null 2>&1
-        [ -n "$fusemnt" ] && timeout 10 fusermount -uq $fusemnt > /dev/null 2>&1
-        timeout 20 umount -l ${fusemnt} > /dev/null 2>&1
+        if [ -n "$fusemnt" ]; then 
+            timeout 10 fusermount -uq $fusemnt > /dev/null 2>&1
+            timeout 20 umount -l ${fusemnt} > /dev/null 2>&1
+        fi
     fi
 
     if [ -n "$(util_getInstalledBinaries mapr-loopback)" ]; then
@@ -1938,10 +1940,9 @@ function maprutil_fixTempBuildIssues() {
     fi
 
     # Reconfigure objectstore minio.json
-    #/maprminio
     local miniojson=$(find /opt/mapr/objectstore-client -name minio.json 2>/dev/null)
     if [ -n "${miniojson}" ]; then
-        local miniopath="/mapr/${GLB_CLUSTER_NAME}/maprminio"
+        local miniopath="/mapr/${GLB_CLUSTER_NAME}/apps/maprminio"
         sed -i "s#fsPath.*#fsPath\": \"${miniopath}\",#g" ${miniojson}
         sed -i 's/minioadmin/maprs3admin/g' ${miniojson}
     fi
@@ -2255,7 +2256,7 @@ function maprutil_prePostConfigure(){
 }
 
 function maprutil_configureATSCluster(){
-    timeout 10 maprcli volume create -name mapr.qa.ats.results -path /var/mapr/ats > /dev/null 2>&1
+    timeout 10 maprcli volume create -name mapr.qa.ats.results -path /var/mapr/ats -topology /data > /dev/null 2>&1
     timeout 10 maprcli stream create -path /var/mapr/ats/resultstream -ttl 0 -defaultpartitions 10 -adminperm 'u:root|u:mapr' -produceperm p -consumeperm p -autocreate true > /dev/null 2>&1
 
     timeout 10 maprcli config save -values {mfs.db.parallel.copyregions:1024} > /dev/null 2>&1
@@ -2264,7 +2265,7 @@ function maprutil_configureATSCluster(){
 }
 
 function maprutil_createObjectStoreVolume(){
-    timeout 20 maprcli volume create -name mapr.minio.objectstore -path /maprminio > /dev/null 2>&1
+    timeout 20 maprcli volume create -name mapr.apps.minio.objectstore -path /apps/maprminio -topology /data > /dev/null 2>&1
 }
 
 function maprutil_postPostConfigure(){
