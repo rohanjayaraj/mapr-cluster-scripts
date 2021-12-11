@@ -2205,8 +2205,9 @@ function maprutil_postConfigure(){
     # Reconfigure objectstore minio.json
     local miniojson=$(find /opt/mapr/objectstore-client -name minio.json 2>/dev/null)
     if [ -n "${miniojson}" ]; then
-        local miniopath="/mapr/${GLB_CLUSTER_NAME}/apps/maprminio"
-        sed -i "s#fsPath.*#fsPath\": \"${miniopath}\",#g" ${miniojson}
+        local miniopath="/apps/maprminio"
+        sed -i "s#/maprminio##g" ${miniojson}
+        sed -i "s#/apps#${miniopath}#g" ${miniojson}
         sed -i 's/minioadmin/maprs3admin/g' ${miniojson}
         # Start mapr minio objectstore is present
         local objsh=$(find /opt/mapr/objectstore-client -name objectstore.sh 2>/dev/null)
@@ -2264,7 +2265,13 @@ function maprutil_configureATSCluster(){
 }
 
 function maprutil_createObjectStoreVolume(){
-    timeout 20 maprcli volume create -name mapr.apps.minio.objectstore -path /apps/maprminio -topology /data > /dev/null 2>&1
+    local volname="mapr.apps.minio.objectstore"
+    for (( i=1; i<=12; i++ )); do
+        timeout 20 maprcli volume create -name ${volname} -path /apps/maprminio -topology /data > /dev/null 2>&1
+        [[ "$?" -eq "0" ]] && break
+        timeout 20 maprcli volume remove -name ${volname} -force true > /dev/null 2>&1
+        sleep 10
+    done
 }
 
 function maprutil_postPostConfigure(){
