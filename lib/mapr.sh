@@ -1938,14 +1938,6 @@ function maprutil_fixTempBuildIssues() {
             sed -i "s#if mount.*MOUNT_POINT#if mount | awk '{print \$3}' | grep -q ^\$MOUNT_POINT#g" ${fusesh}
         fi
     fi
-
-    # Reconfigure objectstore minio.json
-    local miniojson=$(find /opt/mapr/objectstore-client -name minio.json 2>/dev/null)
-    if [ -n "${miniojson}" ]; then
-        local miniopath="/mapr/${GLB_CLUSTER_NAME}/apps/maprminio"
-        sed -i "s#fsPath.*#fsPath\": \"${miniopath}\",#g" ${miniojson}
-        sed -i 's/minioadmin/maprs3admin/g' ${miniojson}
-    fi
 }
 
 function maprutil_configure(){
@@ -2210,9 +2202,16 @@ function maprutil_postConfigure(){
     #fi
     #maprutil_restartWarden
 
-    # Start mapr minio objectstore is present
-    local objsh=$(find /opt/mapr/objectstore-client -name objectstore.sh 2>/dev/null)
-    [ -n "${objsh}" ] && bash -c "${objsh} start" > /dev/null 2>&1 &
+    # Reconfigure objectstore minio.json
+    local miniojson=$(find /opt/mapr/objectstore-client -name minio.json 2>/dev/null)
+    if [ -n "${miniojson}" ]; then
+        local miniopath="/mapr/${GLB_CLUSTER_NAME}/apps/maprminio"
+        sed -i "s#fsPath.*#fsPath\": \"${miniopath}\",#g" ${miniojson}
+        sed -i 's/minioadmin/maprs3admin/g' ${miniojson}
+        # Start mapr minio objectstore is present
+        local objsh=$(find /opt/mapr/objectstore-client -name objectstore.sh 2>/dev/null)
+        [ -n "${objsh}" ] && bash -c "${objsh} start" > /dev/null 2>&1
+    fi
     
     # Post-setup after calling configure
     maprutil_postPostConfigure
