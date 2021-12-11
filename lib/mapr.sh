@@ -2205,9 +2205,8 @@ function maprutil_postConfigure(){
     # Reconfigure objectstore minio.json
     local miniojson=$(find /opt/mapr/objectstore-client -name minio.json 2>/dev/null)
     if [ -n "${miniojson}" ]; then
-        local miniopath="/apps/maprminio"
-        sed -i "s#/maprminio##g" ${miniojson}
-        sed -i "s#/apps#${miniopath}#g" ${miniojson}
+        sed -i "s#/maprminio#/s3#g" ${miniojson} #for reconfiguration of cluster
+        sed -i "s#/apps/s3#/apps/maprminio#g" ${miniojson}
         sed -i 's/minioadmin/maprs3admin/g' ${miniojson}
         # Start mapr minio objectstore is present
         local objsh=$(find /opt/mapr/objectstore-client -name objectstore.sh 2>/dev/null)
