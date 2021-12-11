@@ -749,6 +749,9 @@ function maprutil_unmountNFS(){
         timeout 20 umount -l $i
     done
 
+    local objsh=$(find /opt/mapr/objectstore-client -name objectstore.sh 2>/dev/null)
+    [ -n "${objsh}" ] && bash -c "${objsh} stop" > /dev/null 2>&1
+
     if [ -n "$(util_getInstalledBinaries mapr-posix)" ]; then
         local fusemnt=$(mount -l | grep posix-client | awk '{print $3}')
         service mapr-posix-client-basic stop > /dev/null 2>&1
@@ -756,6 +759,7 @@ function maprutil_unmountNFS(){
         /etc/init.d/mapr-fuse stop > /dev/null 2>&1
         /etc/init.d/mapr-posix-* stop > /dev/null 2>&1
         [ -n "$fusemnt" ] && timeout 10 fusermount -uq $fusemnt > /dev/null 2>&1
+        timeout 20 umount -l ${fusemnt} > /dev/null 2>&1
     fi
 
     if [ -n "$(util_getInstalledBinaries mapr-loopback)" ]; then
@@ -1935,7 +1939,7 @@ function maprutil_fixTempBuildIssues() {
 
     # Reconfigure objectstore minio.json
     #/maprminio
-    local miniojson=$(find /opt/mapr/objectstore-client -name minio.json)
+    local miniojson=$(find /opt/mapr/objectstore-client -name minio.json 2>/dev/null)
     if [ -n "${miniojson}" ]; then
         local miniopath="/mapr/${GLB_CLUSTER_NAME}/maprminio"
         sed -i "s#fsPath.*#fsPath\": \"${miniopath}\",#g" ${miniojson}
@@ -2206,7 +2210,7 @@ function maprutil_postConfigure(){
     #maprutil_restartWarden
 
     # Start mapr minio objectstore is present
-    local objsh=$(find /opt/mapr/objectstore-client -name objectstore.sh)
+    local objsh=$(find /opt/mapr/objectstore-client -name objectstore.sh 2>/dev/null)
     [ -n "${objsh}" ] && bash -c "${objsh} start" > /dev/null 2>&1 &
     
     # Post-setup after calling configure
