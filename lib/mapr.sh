@@ -1480,9 +1480,9 @@ function maprutil_updateConfigs(){
     done
 
     # Disable 'fuse.ticketfile.location' in fuse.conf 
-    if [ -s "/opt/mapr/conf/fuse.conf" ]; then
-        sed -i 's/^fuse.ticketfile.location/#fuse.ticketfile.location/g' /opt/mapr/conf/fuse.conf
-    fi
+    #if [ -s "/opt/mapr/conf/fuse.conf" ]; then
+    #    sed -i 's/^fuse.ticketfile.location/#fuse.ticketfile.location/g' /opt/mapr/conf/fuse.conf
+    #fi
 
     if [ -n "${GLB_ENABLE_RDMA}" ] && [ -e "/opt/mapr/roles/fileserver" ]; then
         echo "mfs.listen.on.rdma=1" >> /opt/mapr/conf/mfs.conf
@@ -1507,13 +1507,18 @@ function maprutil_copyticketforservices(){
     # Update fuse ticket file ticket 
     if [ -s "/opt/mapr/initscripts/mapr-fuse" ] && [ -e '/tmp/maprticket_0' ]; then
         cp /tmp/maprticket_0 /opt/mapr/conf/maprfuseticket > /dev/null 2>&1
+        #create posix mount point /mapr
+        mkdir -p /mapr > /dev/null 2>&1
+        # stop loopbacknfs if running on the same node
+        [ -s "/usr/local/mapr-loopbacknfs" ] && service mapr-loopbacknfs stop > /dev/null 2>&1
         # Restart posix-client
-        service mapr-posix-client-basic restart > /dev/null 2>&1
         service mapr-posix-client-platinum restart > /dev/null 2>&1
+        service mapr-posix-client-basic restart > /dev/null 2>&1
     fi
     if [ -s "/usr/local/mapr-loopbacknfs" ] && [ -e '/tmp/maprticket_0' ]; then
         scp /tmp/maprticket_0 /usr/local/mapr-loopbacknfs/conf/ > /dev/null 2>&1
-        service mapr-loopbacknfs restart > /dev/null 2>&1
+        # Do not loopbacknfs if posix-client is running, else posix client will not start
+        [ ! -s "/opt/mapr/initscripts/mapr-fuse" ] && service mapr-loopbacknfs restart > /dev/null 2>&1
     fi
 }
 
@@ -2077,8 +2082,8 @@ function maprutil_configure(){
     maprutil_restartWarden > /dev/null 2>&1
 
     # Restart posix-client
-    service mapr-posix-client-basic restart > /dev/null 2>&1
     service mapr-posix-client-platinum restart > /dev/null 2>&1
+    service mapr-posix-client-basic restart > /dev/null 2>&1
     
     if [ "$hostip" = "$cldbnode" ]; then
         maprutil_applyLicense
