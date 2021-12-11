@@ -1501,10 +1501,20 @@ function maprutil_setuploopbacknfs(){
     done
 }
 
-function maprutil_copyticketforloopbacknfs(){
-    [ ! -s "/usr/local/mapr-loopbacknfs" ] && return
-    [ -n "$GLB_SECURE_CLUSTER" ] && scp /tmp/maprticket_0 /usr/local/mapr-loopbacknfs/conf/ > /dev/null 2>&1
-    service mapr-loopbacknfs restart > /dev/null 2>&1
+function maprutil_copyticketforservices(){
+    [ -z "${GLB_SECURE_CLUSTER}" ] && return
+
+    # Update fuse ticket file ticket 
+    if [ -s "/opt/mapr/initscripts/mapr-fuse" ] && [ -e '/tmp/maprticket_0' ]; then
+        cp /tmp/maprticket_0 /opt/mapr/conf/maprfuseticket > /dev/null 2>&1
+        # Restart posix-client
+        service mapr-posix-client-basic restart > /dev/null 2>&1
+        service mapr-posix-client-platinum restart > /dev/null 2>&1
+    fi
+    if [ -s "/usr/local/mapr-loopbacknfs" ] && [ -e '/tmp/maprticket_0' ]; then
+        scp /tmp/maprticket_0 /usr/local/mapr-loopbacknfs/conf/ > /dev/null 2>&1
+        service mapr-loopbacknfs restart > /dev/null 2>&1
+    fi
 }
 
 function maprutil_configureSSD(){
@@ -1909,6 +1919,23 @@ function maprutil_fixTempBuildIssues() {
     if [ -f "${ecosh}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
         [ -z "$(grep "'rhel'|'rocky'" ${ecosh})" ] && sed -i "s#'centos'|'rhel'#'centos'|'rhel'|'rocky'#g" ${ecosh} 
     fi
+
+    # Fix mapr-fuse initscript to look for /mapr mounts only, not all NFS mounts which have /mapr in it
+    local fusesh="/opt/mapr/initscripts/mapr-fuse"
+    if [ -s "${fusesh}" ]; then
+        if [ -z "$(cat ${fusesh} | grep "if mount.*MOUNT_POINT" | grep awk)" ]; then
+            sed -i "s#if mount.*MOUNT_POINT#if mount | awk '{print \$3}' | grep -q ^\$MOUNT_POINT#g" ${fusesh}
+        fi
+    fi
+
+    # Reconfigure objectstore minio.json
+    #/maprminio
+    local miniojson=$(find /opt/mapr/objectstore-client -name minio.json)
+    if [ -n "${miniojson}" ]; then
+        local miniopath="/mapr/${GLB_CLUSTER_NAME}/maprminio"
+        sed -i "s#fsPath.*#fsPath\": \"${miniopath}\",#g" ${miniojson}
+        sed -i 's/minioadmin/maprs3admin/g' ${miniojson}
+    fi
 }
 
 function maprutil_configure(){
@@ -1935,6 +1962,7 @@ function maprutil_configure(){
     local zknodes=$(util_getCommaSeparated "$2")
     local hsnodes=$(maprutil_getNodesForService "historyserver")
     local rmnodes=$(maprutil_getNodesForService "resourcemanager")
+    local objnodes=$(maprutil_getNodesForService "objectstore-client")
     
     if [ "$hostip" != "$cldbnode" ] && [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
         ssh_copyPublicKey "root" "$cldbnode"
@@ -1993,7 +2021,7 @@ function maprutil_configure(){
 
     # Return if configuring client node after this
     if [ "$ISCLIENT" -eq 1 ]; then
-        [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode" && maprutil_copyticketforloopbacknfs
+        [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode" && maprutil_copyticketforservices
         [ -n "$GLB_TRACE_ON" ] && maprutil_startTraces
         [ -n "$GLB_ATS_CLIENTSETUP" ] && maprutil_setupATSClientNode
         log_info "[$hostip] Done configuring client node"
@@ -2068,6 +2096,7 @@ function maprutil_configure(){
             timeout 30 maprcli config save -values {"support.rdma.transport":"0"}
         fi
         [ -n "${GLB_ATS_CLUSTER}" ] && maprutil_configureATSCluster
+        [ -n "${objnodes}" ] && maprutil_createObjectStoreVolume
     else
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
         [ ! -f "/opt/mapr/bin/guts" ] && maprutil_copyGutsFromCLDB
@@ -2076,8 +2105,8 @@ function maprutil_configure(){
         fi
     fi
 
-    # Copy ticket for loopbacknfs & restart process
-    maprutil_copyticketforloopbacknfs
+    # Copy ticket for loopbacknfs/fuse & restart process
+    maprutil_copyticketforservices
 
     if [ -n "$GLB_TRACE_ON" ]; then
         maprutil_startTraces
@@ -2171,6 +2200,10 @@ function maprutil_postConfigure(){
     #fi
     #maprutil_restartWarden
 
+    # Start mapr minio objectstore is present
+    local objsh=$(find /opt/mapr/objectstore-client -name objectstore.sh)
+    [ -n "${objsh}" ] && bash -c "${objsh} start" > /dev/null 2>&1 &
+    
     # Post-setup after calling configure
     maprutil_postPostConfigure
 }
@@ -2219,6 +2252,10 @@ function maprutil_configureATSCluster(){
     timeout 10 maprcli config save -values {mfs.db.parallel.copyregions:1024} > /dev/null 2>&1
     timeout 10 maprcli config save -values {mfs.db.parallel.copytables:512} > /dev/null 2>&1
     timeout 10 maprcli config save -values {mfs.db.parallel.replicasetups:512} > /dev/null 2>&1
+}
+
+function maprutil_createObjectStoreVolume(){
+    timeout 20 maprcli volume create -name mapr.minio.objectstore -path /maprminio > /dev/null 2>&1
 }
 
 function maprutil_postPostConfigure(){
