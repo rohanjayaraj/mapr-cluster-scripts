@@ -959,11 +959,11 @@ function maprutil_uninstall(){
     # Kill YCSB processes
     maprutil_killYCSB
 
-    util_kill "mfs"
-    util_kill "java" "jenkins"
-
     # Unmount NFS
     maprutil_unmountNFS
+
+    util_kill "mfs"
+    util_kill "java" "jenkins"
 
     # Stop warden
     maprutil_restartWarden "stop"
