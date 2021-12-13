@@ -836,7 +836,7 @@ function maprutil_cleanPrevClusterConfig(){
 
     pushd /opt/mapr/conf/ > /dev/null 2>&1
     rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
-    rm -rf tokens/* ca/* mapr*creds.* ssl_*store* *.jceks *.bcfks > /dev/null 2>&1
+    rm -rf tokens/* ca/* mapr*creds.* ssl_*store* *.jceks *.bcfks private.key public.crt > /dev/null 2>&1
     
     popd > /dev/null 2>&1
     
@@ -1985,7 +1985,8 @@ function maprutil_configure(){
     if [ -n "$GLB_SECURE_CLUSTER" ]; then
         extops="-secure"
         pushd /opt/mapr/conf/ > /dev/null 2>&1
-        rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key tokens/* ssl_*store* *.jceks> /dev/null 2>&1
+        rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
+        rm -rf tokens/* ssl_*store* *.jceks private.key public.crt > /dev/null 2>&1
         popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ]; then
             extops=$extops" -genkeys"
@@ -2355,7 +2356,8 @@ function maprutil_copySecureFilesFromCLDB(){
     local cldbhost=$1
     local cldbnodes=$2
     local zknodes=$3
-    
+    local hostip=$(util_getHostIP)
+
     # Check if CLDB is configured & files are available for copy
     local cldbisup="false"
     local keyname="cldb.key"
@@ -2445,6 +2447,12 @@ function maprutil_copySecureFilesFromCLDB(){
             fi
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_usertruststore*" "/opt/mapr/conf/";
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_userkeystore*" "/opt/mapr/conf/";
+            
+            local hasmoss=$(echo $(maprutil_getNodesForService "mapr-s3server") | grep "$hostip")
+            if [ -n "${hasmoss}" ]; then
+                ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/private.key" "/opt/mapr/conf/";
+                ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/public.crt" "/opt/mapr/conf/";
+            fi
         fi
     fi
 }
