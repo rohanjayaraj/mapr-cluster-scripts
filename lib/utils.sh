@@ -283,6 +283,7 @@ function util_installprereq(){
         util_checkAndInstall "iperf3" "iperf3"
         util_checkAndInstall "gdb" "gdb"
         util_checkAndInstall "dlv" "go-toolset"
+        #util_checkAndInstall "ipmitool" "ipmitool"
         if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
             util_checkAndInstall "yum-config-manager" "yum-utils"
             util_checkAndInstall "lstopo" "hwloc-gui"

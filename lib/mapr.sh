@@ -498,7 +498,7 @@ EOF
 
     local i=1
 
-    log_info "[$hostip] Mounting disks to /minio[0-9]"
+    log_info "[$hostip] Mounting disks to /minio[0-n]"
     for disk in ${disklist};do
         [ -n "$(mount | grep "/minio$i")" ] && umount -f /minio$i
         mkdir -p /minio$i
@@ -577,7 +577,7 @@ function minioutil_removeMinio(){
     [ ! -f "/usr/local/bin/minio" ] && return
 
     # Remove MapR Binaries
-    maprutil_uninstall
+    [ -z "$1" ] && maprutil_uninstall
 
     systemctl stop minio.service
     util_kill "minio server"
@@ -862,7 +862,7 @@ function maprutil_coloconfigs() {
     hwclock -w > /dev/null 2>&1
     service chronyd stop > /dev/null 2>&1
     chronyd -q 'server ${GLB_CRY_HOST}' > /dev/null 2>&1 &
-    if [[ "$(getOS)" = "centos" ]] && [[ "$(getOSReleaseVersion)" -lt "8" ]]; then
+    if [[ "$(getOS)" = "centos" ]] && [[ "$(getOSReleaseVersion)" -lt "8" ]] || [[ "$(getOS)" = "ubuntu" ]] && [[ "$(getOSReleaseVersion)" -ge "18" ]]; then
         ntpdate -u ${GLB_CRY_HOST} > /dev/null 2>&1 &
     fi
 
@@ -1023,6 +1023,8 @@ function maprutil_uninstallNode(){
         return
     fi
 
+    
+    echo "minioutil_removeMinio 1 > /dev/null 2>&1" >> $scriptpath
     echo "maprutil_uninstall" >> $scriptpath
 
     ssh_executeScriptasRootInBG "$1" "$scriptpath"
@@ -2253,6 +2255,11 @@ function maprutil_prePostConfigure(){
     if [ -z "$(echo "${corepattern}" | grep "/opt/cores/")" ]; then
         echo "/opt/cores/%e.core.%p.%h" > /proc/sys/kernel/core_pattern
     fi
+
+    local mossinit="/opt/mapr/initscripts/mapr-s3server"
+    if [ -s "${mossinit}" ] && [ -z "$(grep GOTRACEBACK ${mossinit})" ]; then
+        sed -i '/MAPR_USE_ASYNC_DATA_PROCS/a   export GOTRACEBACK=crash' ${mossinit}
+    fi
 }
 
 function maprutil_configureATSCluster(){
@@ -2679,11 +2686,12 @@ function maprutil_buildRepoFile(){
     local repourl=$2
     local node=$3
     local nodeos=$(getOSFromNode $node)
+    local ge70=$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")
     local meprepo=
     repourl=$(echo $repourl | sed 's/oel/redhat/g')
 
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
-        meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
+        meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-8.1.0/redhat/"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node" "${repofile}"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://${GLB_ART_HOST}/artifactory/list/ebf-rpm/"
@@ -2724,6 +2732,8 @@ function maprutil_buildRepoFile(){
         echo >> $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
         meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/ubuntu/"
+        local repotrust="trusty"
+        [ -n "${ge70}" ] && repotrust="bionic"
         [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node" "${repofile}"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://${GLB_ART_HOST}/artifactory/list/ebf-deb/"
@@ -2734,10 +2744,11 @@ function maprutil_buildRepoFile(){
         
         local istrusty=
         [[ "$(getOSReleaseVersionOnNode $node)" -ge "18" ]] && istrusty="[trusted=yes]"
+        [ -z "${ge70}" ] && [ -n "$(echo "${repourl}" | grep master)" ] &&  repotrust="bionic"
 
-        echo "deb $istrusty $meprepo binary trusty" > $repofile
-        echo "deb $istrusty ${repourl} binary trusty" >> $repofile
-        [ -n "$GLB_PATCH_REPOFILE" ] && echo "deb $istrusty ${GLB_PATCH_REPOFILE} binary trusty" >> $repofile
+        echo "deb $istrusty $meprepo binary ${repotrust}" > $repofile
+        echo "deb $istrusty ${repourl} binary ${repotrust}" >> $repofile
+        [ -n "$GLB_PATCH_REPOFILE" ] && echo "deb $istrusty ${GLB_PATCH_REPOFILE} binary ${repotrust}" >> $repofile
     fi
 }
 
@@ -2861,7 +2872,8 @@ function maprutil_addLocalRepo(){
     fi
 
     local repourl=$1
-    local meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-7.0.0/redhat/"
+    local ge70=$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")
+    local meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-8.1.0/redhat/"
     [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
     [ -n "$(echo "$meprepo" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | sed 's/eco-deb/eco-rpm/g')
 
@@ -2889,12 +2901,14 @@ function maprutil_addLocalRepo(){
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
 
     elif [ "$nodeos" = "ubuntu" ]; then
+        local repotrust="trusty"
         [ -n "$(echo "$meprepo" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g' | sed 's/eco-rpm/eco-deb/g')
+        [ -n "${ge70}" ] && repotrust="bionic"
         local istrusty=
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && istrusty="[trusted=yes]" && opts="--allow-unauthenticated"
         echo "deb $istrusty file:$repourl ./" > $repofile
-        echo "deb $istrusty $meprepo binary trusty" >> $repofile
+        echo "deb $istrusty $meprepo binary ${repotrust}" >> $repofile
         rm -rf /etc/apt/sources.list.d/mapr-[0-9]*.list > /dev/null 2>&1
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
         apt-get $opts update > /dev/null 2>&1
