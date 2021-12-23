@@ -6120,9 +6120,9 @@ function maprutil_analyzeCores(){
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
             log_msg "\t\t Core file is truncated"
         elif [ -n "$backtrace" ]; then
-            #if [ -n "$(echo "$backtrace" | head -n 4 |  grep -e "libz.so$" -e "libjvm.so$")" ]; then
-            #    log_msg "\t\t Ignoring JVM only backtrace"
-            #else
+            if [ -n "$(echo "$backtrace" | head -n 4 |  grep -e "libc.so" -e "libz.so$" -e "libjvm.so$")" ] && [ -z "$(echo "$backtrace" | grep -e "ezmeral" -e "at fs/" -e "mapr::fs")" ]; then
+                log_msg "\t\t Ignoring JVM/non-mapr only backtrace"
+            else
                 if [ -z "$GLB_LOG_VERBOSE" ]; then
                     local btlen=$(echo -e "$backtrace" | wc -l)
                     echo -e "$backtrace" | awk -v l=$btlen 'BEGIN{i=0; j=0;}{i++; if(i<40||i>l-10){print $0;}else if(j<3){j++;printf("...\n")}}' | sed 's/^/\t\t/' 
@@ -6130,7 +6130,7 @@ function maprutil_analyzeCores(){
                     cat $tracefile | sed -e '1,/Thread debugging using/d' | sed 's/^/\t\t/'
                 fi
                 [ -n "$GLB_COPY_DIR" ] && cp $tracefile $cpfile > /dev/null 2>&1
-            #fi
+            fi
         else
             log_msg "\t\t Unable to fetch the backtrace"
         fi
@@ -6266,10 +6266,10 @@ function maprutil_dedupCores() {
         local sln=$(echo "$sl" | cut -d':' -f1)
 
         local trace=$(cat ${corefile} | sed -n "${fln},${sln}p" | sed "s/Core #[0-9]* :/Core #${i} : ${currnode}/g" | sed "2s/^/\\t${currbuildid}\n/")
-
         local tfn=$(echo "$trace" | grep -e "mapr::fs" -e "rdkafka" | head -n 1 | awk '{print $NF}')
         [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep "^[[:space:]]*#" | grep -v "??" | awk '{print $4}' | tr '\n' ' ')
-        if [ -z "$(echo "${corefn}" | grep "${tfn}")" ] || [ -z "${tfn}" ]; then
+        [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep "Ignoring JVM")
+        if [ -n "${tfn}" ] && [ -z "$(echo "${corefn}" | grep "${tfn}")" ] || [ -z "${tfn}" ]; then
             corefn="${corefn} ${tfn}"
             corestack="${corestack} $(echo -e "$trace") \n\n"
             let i=i+1
