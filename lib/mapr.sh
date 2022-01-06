@@ -2980,6 +2980,9 @@ function maprutil_setupasanmfs(){
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-posix-client-platinum*${latestbuild}*.rpm" ${asanrepo} > /dev/null 2>&1
             rpm2cpio mapr-posix-client-platinum*.rpm | cpio -idmv > /dev/null 2>&1
             popd  > /dev/null 2>&1
+            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-s3server*${latestbuild}*.rpm" ${asanrepo} > /dev/null 2>&1
+            rpm2cpio mapr-s3server*.rpm | cpio -idmv > /dev/null 2>&1
+            popd  > /dev/null 2>&1
         fi
     else
         wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-core-internal*${latestbuild}*nonstrip*.deb" ${asanrepo} > /dev/null 2>&1
@@ -2995,6 +2998,10 @@ function maprutil_setupasanmfs(){
             tar xJf data.tar.xz > /dev/null 2>&1
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-posix-client-platinum*${latestbuild}*.deb" ${asanrepo} > /dev/null 2>&1
             ar vx mapr-posix-client-platinum*.deb > /dev/null 2>&1
+            tar xJf data.tar.xz > /dev/null 2>&1
+            popd  > /dev/null 2>&1
+            wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-s3server*${latestbuild}*.deb" ${asanrepo} > /dev/null 2>&1
+            ar vx mapr-s3server*.deb > /dev/null 2>&1
             tar xJf data.tar.xz > /dev/null 2>&1
             popd  > /dev/null 2>&1
         fi
@@ -3044,6 +3051,16 @@ function maprutil_setupasanmfs(){
             sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"" /opt/mapr/initscripts/mapr-mastgateway
             sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-mastgateway
             log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
+        fi
+    fi
+    if [ -s "opt/mapr/server/moss" ] && [ -s "/opt/mapr/server/moss" ]; then
+        mv /opt/mapr/server/moss /opt/mapr/server/moss.original > /dev/null 2>&1
+        cp opt/mapr/lib/moss /opt/mapr/lib/moss > /dev/null 2>&1
+        # update moss initscripts w/ LD_PRELOAD
+        if [[ -n "$asanso" ]] && [[ -e "/opt/mapr/initscripts/mapr-s3server" ]]; then
+            sed -i "/\$DAEMON --conffile/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"" /opt/mapr/initscripts/mapr-s3server
+            sed -i "/\$DAEMON --conffile/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-s3server
+            log_info "[$(util_getHostIP)] Replaced moss w/ ASAN binary"
         fi
     fi
 
@@ -6120,7 +6137,7 @@ function maprutil_analyzeCores(){
         if [ -n "$(cat $tracefile | grep "is truncated: expected")" ]; then
             log_msg "\t\t Core file is truncated"
         elif [ -n "$backtrace" ]; then
-            if [ -n "$(echo "$backtrace" | head -n 4 |  grep -e "libc.so" -e "libz.so$" -e "libjvm.so$")" ] && [ -z "$(echo "$backtrace" | grep -e "ezmeral" -e "at fs/" -e "mapr::fs")" ]; then
+            if [ -n "$(echo "$backtrace" | head -n 4 |  grep -e "libc.so" -e "libz.so$" -e "libjvm.so$" -e "in ?? ()")" ] && [ -z "$(echo "$backtrace" | grep -e "ezmeral" -e "at fs/" -e "mapr::fs")" ]; then
                 log_msg "\t\t Ignoring JVM/non-mapr only backtrace"
             else
                 if [ -z "$GLB_LOG_VERBOSE" ]; then
@@ -6271,7 +6288,7 @@ function maprutil_dedupCores() {
         [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep "Ignoring JVM")
         if [ -n "${tfn}" ] && [ -z "$(echo "${corefn}" | grep "${tfn}")" ] || [ -z "${tfn}" ]; then
             corefn="${corefn} ${tfn}"
-            corestack="${corestack} $(echo -e "$trace") \n\n"
+            corestack="${corestack} $(echo -e "$trace" | sed 's/el::base::/el:;base;:/g') \n\n"
             let i=i+1
         fi
     done <<< "$lines"
