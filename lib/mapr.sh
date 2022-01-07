@@ -2979,7 +2979,6 @@ function maprutil_setupasanmfs(){
             rpm2cpio mapr-posix-client-basic*.rpm | cpio -idmv > /dev/null 2>&1
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-posix-client-platinum*${latestbuild}*.rpm" ${asanrepo} > /dev/null 2>&1
             rpm2cpio mapr-posix-client-platinum*.rpm | cpio -idmv > /dev/null 2>&1
-            popd  > /dev/null 2>&1
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-s3server*${latestbuild}*.rpm" ${asanrepo} > /dev/null 2>&1
             rpm2cpio mapr-s3server*.rpm | cpio -idmv > /dev/null 2>&1
             popd  > /dev/null 2>&1
@@ -2999,7 +2998,6 @@ function maprutil_setupasanmfs(){
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-posix-client-platinum*${latestbuild}*.deb" ${asanrepo} > /dev/null 2>&1
             ar vx mapr-posix-client-platinum*.deb > /dev/null 2>&1
             tar xJf data.tar.xz > /dev/null 2>&1
-            popd  > /dev/null 2>&1
             wget -r -np -nH -nd --cut-dirs=1 --accept "mapr-s3server*${latestbuild}*.deb" ${asanrepo} > /dev/null 2>&1
             ar vx mapr-s3server*.deb > /dev/null 2>&1
             tar xJf data.tar.xz > /dev/null 2>&1
