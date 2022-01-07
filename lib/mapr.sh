@@ -155,7 +155,7 @@ function maprutil_getCoreNodeBinaries() {
         local newbinlist=
         for bin in ${binlist[@]}
         do
-            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2|s3server|objectstore ]]; then
+            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2|objectstore ]]; then
                 newbinlist=$newbinlist"$bin "
             fi
         done
@@ -194,7 +194,7 @@ function maprutil_getPostInstallNodes(){
         local binlist=$(echo $line | cut -d',' -f2- | sed 's/,/ /g')
         for bin in ${binlist[@]}
         do
-            if [[ "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2|s3server|objectstore ]]; then
+            if [[ "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2|objectstore ]]; then
                 nodelist="$nodelist $node"
                 break
             fi
