@@ -230,8 +230,8 @@ function maprutil_isClientNode() {
     local roles="$(maprutil_getRolesList)"
     [ -n "$(echo "$roles" | grep $1 | grep mapr-fileserver)" ] && return
     
-    local isclient=$(echo "$roles" | grep $1 | grep -v 'mapr-fileserver' | grep 'mapr-client\|mapr-loopbacknfs\|mapr-posix' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
-    [ -z "$isclient" ] && isclient=$(echo "$(maprutil_getRolesList)" | grep $1 | cut -d',' -f2 | grep -v 'mapr-fileserver' | grep mapr-core)
+    local isclient=$(echo "$roles" | grep $1 | grep -v 'mapr-fileserver' -v 'mapr-s3server' | grep 'mapr-client\|mapr-loopbacknfs\|mapr-posix' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    [ -z "$isclient" ] && isclient=$(echo "$(maprutil_getRolesList)" | grep $1 | cut -d',' -f2 | grep -v 'mapr-fileserver' -v 'mapr-s3server' | grep mapr-core)
     if [ -n "$isclient" ]; then
         echo $isclient
     fi
