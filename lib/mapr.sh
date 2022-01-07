@@ -3053,16 +3053,6 @@ function maprutil_setupasanmfs(){
             log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
         fi
     fi
-    if [ -s "opt/mapr/server/moss" ] && [ -s "/opt/mapr/server/moss" ]; then
-        mv /opt/mapr/server/moss /opt/mapr/server/moss.original > /dev/null 2>&1
-        cp opt/mapr/lib/moss /opt/mapr/lib/moss > /dev/null 2>&1
-        # update moss initscripts w/ LD_PRELOAD
-        if [[ -n "$asanso" ]] && [[ -e "/opt/mapr/initscripts/mapr-s3server" ]]; then
-            sed -i "/\$DAEMON --conffile/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"" /opt/mapr/initscripts/mapr-s3server
-            sed -i "/\$DAEMON --conffile/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-s3server
-            log_info "[$(util_getHostIP)] Replaced moss w/ ASAN binary"
-        fi
-    fi
 
     # Copy client asan libraries
     pushd $ctempdir  > /dev/null 2>&1
@@ -3090,6 +3080,18 @@ function maprutil_setupasanmfs(){
 
             asanoptions="handle_segv=0 handle_sigill=0 detect_leaks=0"
             [ -n "$GLB_ASAN_OPTIONS" ] && asanoptions="${asanoptions} ${GLB_ASAN_OPTIONS}"
+
+            # copy moss binary
+            if [ -s "opt/mapr/server/moss" ] && [ -s "/opt/mapr/server/moss" ]; then
+                mv /opt/mapr/server/moss /opt/mapr/server/moss.original > /dev/null 2>&1
+                cp opt/mapr/server/moss /opt/mapr/server/moss > /dev/null 2>&1
+                # update moss initscripts w/ LD_PRELOAD
+                if [[ -e "/opt/mapr/initscripts/mapr-s3server" ]]; then
+                    sed -i "/\$DAEMON --conffile/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"" /opt/mapr/initscripts/mapr-s3server
+                    sed -i "/\$DAEMON --conffile/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-s3server
+                    log_info "[$(util_getHostIP)] Replaced moss w/ ASAN binary"
+                fi
+            fi
 
             #copy posix bin
             posixbins=$(ls /opt/mapr/bin/posix-client-* 2>/dev/null)
