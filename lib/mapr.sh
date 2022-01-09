@@ -230,8 +230,8 @@ function maprutil_isClientNode() {
     local roles="$(maprutil_getRolesList)"
     [ -n "$(echo "$roles" | grep $1 | grep mapr-fileserver)" ] && return
     
-    local isclient=$(echo "$roles" | grep $1 | grep -v 'mapr-fileserver' -v 'mapr-s3server' | grep 'mapr-client\|mapr-loopbacknfs\|mapr-posix' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
-    [ -z "$isclient" ] && isclient=$(echo "$(maprutil_getRolesList)" | grep $1 | cut -d',' -f2 | grep -v 'mapr-fileserver' -v 'mapr-s3server' | grep mapr-core)
+    local isclient=$(echo "$roles" | grep $1 | grep -v -e 'mapr-fileserver' -e 'mapr-s3server' | grep 'mapr-client\|mapr-loopbacknfs\|mapr-posix' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
+    [ -z "$isclient" ] && isclient=$(echo "$(maprutil_getRolesList)" | grep $1 | cut -d',' -f2 | grep -v -e 'mapr-fileserver' -e 'mapr-s3server' | grep mapr-core)
     if [ -n "$isclient" ]; then
         echo $isclient
     fi
@@ -1492,7 +1492,9 @@ function maprutil_updateConfigs(){
     #    sed -i 's/^fuse.ticketfile.location/#fuse.ticketfile.location/g' /opt/mapr/conf/fuse.conf
     #fi
 
-    if [ -n "${GLB_ENABLE_RDMA}" ] && [ -e "/opt/mapr/roles/fileserver" ]; then
+    if [ -z "${GLB_ENABLE_RDMA}" ]; then
+        sed -i 's/^mfs.listen.on.rdma=1/mfs.listen.on.rdma=0/g' /opt/mapr/conf/mfs.conf
+    else if [ -n "${GLB_ENABLE_RDMA}" ] && [ -e "/opt/mapr/roles/fileserver" ] && [ -z "$(grep "^mfs.listen.on.rdma=1" /opt/mapr/conf/mfs.conf)" ]; then
         echo "mfs.listen.on.rdma=1" >> /opt/mapr/conf/mfs.conf
     fi
 }
@@ -1588,10 +1590,12 @@ function maprutil_customConfigure(){
         fi
     fi
 
+    [ -z "$(grep "MAPR_RDMA_SUPPORT" /opt/mapr/conf/env.sh)" ] && echo "export MAPR_RDMA_SUPPORT=false" >> /opt/mapr/conf/env.sh
+    sed -i 's/#export MAPR_RDMA_SUPPORT/export MAPR_RDMA_SUPPORT/g' /opt/mapr/conf/env.sh
     if [ -n "${GLB_ENABLE_RDMA}" ] && [ -s "/opt/mapr/conf/env.sh" ]; then
-        echo "export MAPR_RDMA_SUPPORT=true" >> /opt/mapr/conf/env.sh
+        sed -i 's/export MAPR_RDMA_SUPPORT=.*/export MAPR_RDMA_SUPPORT=true/g' /opt/mapr/conf/env.sh
     else
-        echo "export MAPR_RDMA_SUPPORT=false" >> /opt/mapr/conf/env.sh
+        sed -i 's/export MAPR_RDMA_SUPPORT=.*/export MAPR_RDMA_SUPPORT=false/g' /opt/mapr/conf/env.sh
     fi
 }
 
