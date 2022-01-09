@@ -1492,9 +1492,9 @@ function maprutil_updateConfigs(){
     #    sed -i 's/^fuse.ticketfile.location/#fuse.ticketfile.location/g' /opt/mapr/conf/fuse.conf
     #fi
 
-    if [ -z "${GLB_ENABLE_RDMA}" ]; then
+    if [ -z "${GLB_ENABLE_RDMA}" ] && [ -e "/opt/mapr/roles/fileserver" ]; then
         sed -i 's/^mfs.listen.on.rdma=1/mfs.listen.on.rdma=0/g' /opt/mapr/conf/mfs.conf
-    else if [ -n "${GLB_ENABLE_RDMA}" ] && [ -e "/opt/mapr/roles/fileserver" ] && [ -z "$(grep "^mfs.listen.on.rdma=1" /opt/mapr/conf/mfs.conf)" ]; then
+    elif [ -n "${GLB_ENABLE_RDMA}" ] && [ -e "/opt/mapr/roles/fileserver" ] && [ -z "$(grep "^mfs.listen.on.rdma=1" /opt/mapr/conf/mfs.conf)" ]; then
         echo "mfs.listen.on.rdma=1" >> /opt/mapr/conf/mfs.conf
     fi
 }
