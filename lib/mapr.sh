@@ -231,7 +231,7 @@ function maprutil_isClientNode() {
     [ -n "$(echo "$roles" | grep $1 | grep mapr-fileserver)" ] && return
     
     local isclient=$(echo "$roles" | grep $1 | grep -v -e 'mapr-fileserver' -e 'mapr-s3server' | grep 'mapr-client\|mapr-loopbacknfs\|mapr-posix' | awk -F, '{print $1}' |sed ':a;N;$!ba;s/\n/ /g')
-    [ -z "$isclient" ] && isclient=$(echo "$(maprutil_getRolesList)" | grep $1 | cut -d',' -f2 | grep -v -e 'mapr-fileserver' -e 'mapr-s3server' | grep mapr-core)
+    [ -z "$isclient" ] && isclient=$(echo "$(maprutil_getRolesList)" | grep $1 | cut -d',' -f2- | grep -v -e 'mapr-fileserver' -e 'mapr-s3server' | grep mapr-core)
     if [ -n "$isclient" ]; then
         echo $isclient
     fi
@@ -1609,7 +1609,7 @@ function maprutil_configureCLDBTopology(){
     while [ "$numdnodes" -ne "$GLB_CLUSTER_SIZE" ]; do
         numdnodes=$(timeout 30 maprcli node list  -columns id,service | awk '{if ($2 ~ /fileserver/) print $4}' | wc -l) 
         let j=j+1
-        if [ "$j" -gt 12 ]; then
+        if [ "$j" -gt 18 ]; then
             log_warn "[$(util_getHostIP)] Timeout reached waiting for nodes to be online"
             [ -n "$1" ] && return 1
             break
@@ -2033,6 +2033,7 @@ function maprutil_configure(){
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode" && maprutil_copyticketforservices
         [ -n "$GLB_TRACE_ON" ] && maprutil_startTraces
         [ -n "$GLB_ATS_CLIENTSETUP" ] && maprutil_setupATSClientNode
+        maprutil_prePostConfigure
         log_info "[$hostip] Done configuring client node"
         return 
     fi
@@ -2116,6 +2117,8 @@ function maprutil_configure(){
 
     # Copy ticket for loopbacknfs/fuse & restart process
     maprutil_copyticketforservices
+
+    maprutil_prePostConfigure
 
     if [ -n "$GLB_TRACE_ON" ]; then
         maprutil_startTraces
@@ -2243,11 +2246,12 @@ function maprutil_prePostConfigure(){
 
         # MFS-10849
         if [ -n "${GLB_ATS_CLUSTER}" ]; then
-            if [ -s "/opt/mapr/apiserver/bin/mapr-apiserver.sh" ]; then
-                sed -i "s/hardmount=true/hardmount=true -Dmaprcli.disable-recentlist=1/" /opt/mapr/apiserver/bin/mapr-apiserver.sh
+            local apish="/opt/mapr/apiserver/bin/mapr-apiserver.sh"
+            if [ -s "${apish}" ] && [ -z "$(grep maprcli.disable-recentlist ${apish})" ]; then
+                sed -i "s/hardmount=true/hardmount=true -Dmaprcli.disable-recentlist=1/" ${apish}
             fi
             local gatewayconf="/opt/mapr/conf/gateway.conf"
-            if [ -e "${gatewayconf}" ] && [ -e "/opt/mapr/roles/gateway" ]; then
+            if [ -e "${gatewayconf}" ] && [ -e "/opt/mapr/roles/gateway" ] && [ -z "$(grep ^gateway.es.logcompaction ${gatewayconf})" ]; then
                 echo "gateway.es.logcompaction.statsupdate.interval.ms=1000" >> ${gatewayconf}
                 echo "gateway.es.logcompaction.topicrefresh.interval.ms=1000" >> ${gatewayconf}
             fi
@@ -2256,7 +2260,7 @@ function maprutil_prePostConfigure(){
     fi
 
     local corepattern=$(cat /proc/sys/kernel/core_pattern)
-    if [ -z "$(echo "${corepattern}" | grep "/opt/cores/")" ]; then
+    if [ -z "$(echo "${corepattern}" | grep "^/opt/cores/")" ]; then
         echo "/opt/cores/%e.core.%p.%h" > /proc/sys/kernel/core_pattern
     fi
 
@@ -5299,7 +5303,7 @@ function maprutil_buildMFSCpuUse(){
         [ -n "$etime" ] && el=$(cat $sysuse | grep -n "$etime" | cut -d':' -f1 | tail -1)
         if [ -n "$el" ] && [ -n "$sl" ]; then
             [ -z "$year" ] && year=$(date +%Y)
-            sed -n ${sl},${el}p $sysuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{ r=$11; s=$12; if(r ~ /M/) {r=r*1;} else if(r ~ /k/) {r=r*1/1024} else if(r ~ /B/) {r=r*1/(1024*1024)} if(r ~ /M/) {s=s*1;} else if(s ~ /k/) {s=s*1/1024} else if(s ~ /B/) {s=s*1/(1024*1024)} split($1,d,"-"); printf("%s-%s-%s %s %.0f %.0f\n",y,d[2],d[1],$2,r,s)}' > $tempdir/net.log 2>&1 &
+            sed -n ${sl},${el}p $sysuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{ r=$10; s=$11; if(r ~ /G/) {r=r*1*1024;} else if(r ~ /M/) {r=r*1;} else if(r ~ /k/) {r=r*1/1024} else if(r ~ /B/) {r=r*1/(1024*1024)} if(s ~ /G/) {s=s*1*1024;} else if(s ~ /M/) {s=s*1;} else if(s ~ /k/) {s=s*1/1024} else if(s ~ /B/) {s=s*1/(1024*1024)} split($1,d,"-"); printf("%s-%s-%s %s %.0f %.0f\n",y,d[2],d[1],$2,r,s)}' > $tempdir/net.log 2>&1 &
             sed -n ${sl},${el}p $sysuse | sed -e '/time/,+1d' | grep "^[0-9]" | tr '|' ' ' | awk -v y="$year" '{c=100-$5; split($1,d,"-"); printf("%s-%s-%s %s %.0f\n",y,d[2],d[1],$2,c)}' > $tempdir/cpu.log 2>&1 &
         fi
     fi
@@ -6226,7 +6230,7 @@ function maprutil_debugCore(){
         fi
     fi
     local btline=$(cat "$tracefile" | grep -B10 -n "mapr::fs::FileServer::CoreHandler" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
-    [ -z "$btline" ] && btline=$(cat "$tracefile" | grep -B10 -n  -e "abort ()" -e "runtime.raise ()" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
+    [ -z "$btline" ] && btline=$(cat "$tracefile" | grep -B10 -n  -e "abort ()" -e "runtime.raise ()" -e "runtime.dieFromSignal" | grep "Thread [0-9]*" | tail -1 | cut -d '-' -f1)
     [ -z "$btline" ] && btline=$(cat $tracefile | grep -n "Thread 1 " | cut -f1 -d:)
     local backtrace=$(cat $tracefile | sed -n "${btline},/^\s*$/p")
     [ -n "$backtrace" ] && btthread=$(echo "$backtrace" | head -1 | awk '{print $2}')
@@ -6305,6 +6309,7 @@ function maprutil_analyzeASAN(){
     /opt/mapr/logs/gatewayinit.log \
     /opt/mapr/logs/mastgateway.err \
     /opt/mapr/logs/cldb.out \
+    /opt/mapr/logs/moss.out \
     /opt/mapr/logs/posix-client-*.log"
 
     local ignoreAllocDealloc=

@@ -44,17 +44,18 @@ if [ -z "$(util_fileExists $rolefile)" ]; then
 			if  [[ $1 =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; then
 				dummyrole=$rolesdir"/mapr_roles.temp"
 				nls=$(echo "$1" | sed 's/],*/]\n/g' | sed 's/[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*,/&\n/g' | sed 's/,*$//g' | sed '/^\s*$/d')
-                :> $dummyrole
-                for nl in $nls; do
-	                if [ -z "$(echo "$nl" | grep "]")" ]; then
-                        for i in $(echo "$nl" | tr ',' ' '); do
-                            echo "$i,dummy" >> $dummyrole
-                        done
-	                else
-                        echo "$nl,dummy" >> $dummyrole
-	                fi
+				nls=$(echo "${nls}" | tr ',' '\n' | cut -d':' -f1 | sort | uniq | tr '\n' ',' | sed 's/\,$//')
+        :> $dummyrole
+        for nl in $nls; do
+          if [ -z "$(echo "$nl" | grep "]")" ]; then
+                for i in $(echo "$nl" | tr ',' ' '); do
+                    echo "$i,dummy" >> $dummyrole
                 done
-                rolefile=$dummyrole
+          else
+                echo "$nl,dummy" >> $dummyrole
+          fi
+        done
+        rolefile=$dummyrole
 			else
 				rolefile="/tmp/$1"
 				maprutil_readClusterRoles "$rolefile" "$1"
