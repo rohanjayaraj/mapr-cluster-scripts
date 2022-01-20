@@ -6092,10 +6092,14 @@ function maprutil_analyzeCores(){
             done
             popd > /dev/null 2>&1
         fi
+        local corepattern=$(cat /proc/sys/kernel/core_pattern)
+        if [ -z "$(echo "${corepattern}" | grep "^/opt/cores/")" ]; then
+            echo "/opt/cores/%e.core.%p.%h" > /proc/sys/kernel/core_pattern
+        fi
     fi
 
     local allcores=
-    local cores=$(ls -ltr /opt/cores/ | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|DBClntPool\|reader\|writer\|collectd\|hoststats\|posix-client\|MAST\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.*core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | grep -v ".lz4$" | awk '{print $9}')
+    local cores=$(ls -ltr /opt/cores/ | grep 'mfs.core\|mfs[A-Za-z0-9.]*.core\|java[A-Za-z0-9]*.core\|core.java\|DBClntPool\|reader\|writer\|collectd\|hoststats\|posix-client\|MAST\|qtp[0-9-]*.core.*\|pool-[0-9]*-thread.*core.*\|maprStreamstest\|Thread-[0-9]*.core.*' | grep -v ".lz4$" | awk '{print $9}')
     if [ -n "$GLB_EXT_ARGS" ]; then
         if [[ "$GLB_EXT_ARGS" = "all" ]]; then
             # analyze all cores on the node
@@ -6176,7 +6180,7 @@ function maprutil_debugCore(){
     local coreidx=$3
     local allcores=$4
     local newcore=
-    local isjava=$(echo $corefile | grep -e "java[A-Za-z0-9]*.core" -e "qtp[0-9-]*.core.*" -e "pool-[0-9]*-thread.*core.*" -e "Thread-[0-9]*.core.*")
+    local isjava=$(echo $corefile | grep -e "java[A-Za-z0-9]*.core" -e "core.java" -e "qtp[0-9-]*.core.*" -e "pool-[0-9]*-thread.*core.*" -e "Thread-[0-9]*.core.*")
     local iscollectd=$(echo $corefile | grep "reader\|writer\|collectd")
     local iscats=$(echo $corefile | grep "maprStreamstest")
     local ismfs=$(echo $corefile | grep -e "mfs.core" -e "mfs[A-Za-z0-9.]*.core")
