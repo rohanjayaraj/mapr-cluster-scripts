@@ -265,7 +265,7 @@ function maprutil_getNodesFromRole() {
         local node=$(echo $i | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | cut -f1 -d",")
         local isvalid=$(util_validip2 $node)
         if [ "$isvalid" = "valid" ]; then
-            [ -n "$(echo "${nodes}" | grep -who "${node}")" ] && echo "Duplicate node [${node}] in the role file. Ignoring" && continue
+            [ -n "$(echo "${nodes}" | grep -who "${node}")" ] && continue
             nodes=$nodes$node" "
         else
             echo "Invalid IP [$node]. Scooting"
