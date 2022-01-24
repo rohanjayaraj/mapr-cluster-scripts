@@ -101,7 +101,7 @@ function maprutil_buildRolesList(){
      if [ -z "$1" ]; then
         return 1
     fi
-    echo "$(cat $1 2>/dev/null| sed 's/^[[:space:]]*//g' | grep '^[^#;/]' | grep '^[0-9]' | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | tr '\n' '#' | sed 's/#$//')"
+    echo "$(cat $1 2>/dev/null| sed 's/^[[:space:]]*//g' | grep '^[^#;/]' | grep '^[0-9]' | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | sort | uniq | tr '\n' '#' | sed 's/#$//')"
 }
 
 function maprutil_getRolesList(){
@@ -265,6 +265,7 @@ function maprutil_getNodesFromRole() {
         local node=$(echo $i | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | cut -f1 -d",")
         local isvalid=$(util_validip2 $node)
         if [ "$isvalid" = "valid" ]; then
+            [ -n "$(echo "${nodes}" | grep -who "${node}")" ] && echo "Duplicate node [${node}] in the role file. Ignoring" && continue
             nodes=$nodes$node" "
         else
             echo "Invalid IP [$node]. Scooting"
@@ -1679,7 +1680,7 @@ function maprutil_buildDiskList() {
     fi
     [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "0" ]] && echo "$(util_getRawDisks "hdd")" > $diskfile
     if [ -s "$ignorefile" ]; then
-        local baddisks=$(cat $ignorefile | sed 's/,/ /g' | tr -s " " | tr ' ' '\n')
+        local baddisks=$(cat $ignorefile | sed 's/,/ /g' | tr -s " " | tr ' ' '\n' | sed 's#/$##g')
         local gooddisks=$(cat $diskfile | grep -v "$baddisks")
         log_warn "[$(util_getHostIP)] Excluding disks [$(echo $baddisks | sed ':a;N;$!ba;s/\n/,/g')] "
         echo "$gooddisks" > $diskfile
@@ -6313,6 +6314,7 @@ function maprutil_analyzeASAN(){
     /opt/mapr/logs/gatewayinit.log \
     /opt/mapr/logs/mastgateway.err \
     /opt/mapr/logs/cldb.out \
+    /opt/mapr/logs/hoststats.err \
     /opt/mapr/logs/moss.out \
     /opt/mapr/logs/posix-client-*.log"
 
@@ -6365,7 +6367,7 @@ function maprutil_analyzeASAN(){
         [ -n "${ignoreLeakSanitizer}" ] && grepcmd="${grepcmd} | grep -v \"LeakSanitizer\""
         
         local asan=$(bash -c "${grepcmd}")
-        local numasan=$(echo $(echo "$asan" | wc -l) | bc)
+        local numasan=$(echo $(echo "$asan" | grep -v SUMMARY | wc -l) | bc)
         local logfilename=
         
         while read -r fline; do
