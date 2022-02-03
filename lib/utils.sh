@@ -339,6 +339,12 @@ function util_installprereq(){
     util_checkAndInstallGO
 
     util_checkAndConfigurePostfix
+
+    if [ -n "$(echo $(getOSWithVersion) | grep -i centos)" ]; then
+        sed -i 's/^mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+        sed -i 's/^#baseurl/baseurl/g' /etc/yum.repos.d/CentOS-*
+        sed -i 's/mirror.centos.org/vault.centos.org/g' /etc/yum.repos.d/CentOS-*
+    fi
 }
 
 function util_checkAndInstallJDK11(){

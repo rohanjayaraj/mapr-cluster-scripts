@@ -759,6 +759,7 @@ function maprutil_unmountNFS(){
         service mapr-posix-client-platinum stop > /dev/null 2>&1
         /etc/init.d/mapr-fuse stop > /dev/null 2>&1
         /etc/init.d/mapr-posix-* stop > /dev/null 2>&1
+        /opt/mapr/initscripts/mapr-posix-client-* stop > /dev/null 2>&1
         if [ -n "$fusemnt" ]; then 
             timeout 10 fusermount -uq $fusemnt > /dev/null 2>&1
             timeout 20 umount -l ${fusemnt} > /dev/null 2>&1
