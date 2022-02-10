@@ -2849,6 +2849,7 @@ function maprutil_disableRepoByURL(){
 function maprutil_enableRepoByURL(){
     local repourl="$1"
     local nodeos=$(getOS)
+    [ -z "$(maprutil_isValidRepoURL "${repourl}")" ] && maprutil_disableRepoByURL "${repourl}" && return
     
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
         local repofiles=$(grep "enabled=1" /etc/yum.repos.d/* | uniq | cut -d':' -f1)
@@ -2869,6 +2870,23 @@ function maprutil_enableRepoByURL(){
         local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
         sed -i "${repoln}s/enabled.*/enabled=1/" $repofile
     fi
+}
+
+function maprutil_isValidRepoURL(){
+    local repourl="$1"
+    local nodeos=$(getOS)
+    local isValid=
+
+    if [ "$nodeos" = "ubuntu" ]; then
+        if wget --spider ${repourl}/dists/binary/Release.gpg  2>/dev/null; then 
+            isValid=1
+        fi
+    else
+        if wget --spider ${repourl}/repodata/repomd.xml  2>/dev/null; then 
+            isValid=1
+        fi
+    fi
+    [ -n "${isValid}" ] && echo "yes"
 }
 
 # @param local repo path
