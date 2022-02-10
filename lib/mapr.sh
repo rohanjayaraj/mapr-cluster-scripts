@@ -863,6 +863,7 @@ function maprutil_cleanPrevClusterConfig(){
 function maprutil_coloconfigs() {
     hwclock -w > /dev/null 2>&1
     service chronyd stop > /dev/null 2>&1
+    killall chronyd > /dev/null 2>&1
     chronyd -q 'server ${GLB_CRY_HOST}' > /dev/null 2>&1 &
     if [[ "$(getOS)" = "centos" ]] && [[ "$(getOSReleaseVersion)" -lt "8" ]] || [[ "$(getOS)" = "ubuntu" ]] && [[ "$(getOSReleaseVersion)" -ge "18" ]]; then
         ntpdate -u ${GLB_CRY_HOST} > /dev/null 2>&1 &
@@ -1065,9 +1066,9 @@ function maprutil_upgrade(){
 
     local nodeos=$(getOS)
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
-        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/ebf-deb/ebf-rpm/g')
     else
-        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g' | sed 's/core-rpm/core-deb/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g' | sed 's/ebf-rpm/ebf-deb/g')
     fi    
         
     [ -n "$GLB_PATCH_REPOFILE" ] && maprutil_disableRepoByURL "$GLB_PATCH_REPOFILE"
@@ -1128,7 +1129,7 @@ function maprutil_upgradeNode(){
         return
     fi
 
-    if [ -n "$GLB_BUILD_VERSION" ]; then
+    if [ -n "$GLB_BUILD_VERSION" ] || [ -n "$GLB_PATCH_VERSION" ]; then
         echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
     echo "maprutil_upgrade \""$GLB_BUILD_VERSION"\" \""${hostnode}"\"|| exit 1" >> $scriptpath
@@ -1192,8 +1193,8 @@ function maprutil_installBinariesOnNode(){
         return
     fi
 
-    if [ -n "$GLB_BUILD_VERSION" ] && [ -z "$4" ]; then
-        echo "maprutil_setupLocalRepo" >> $scriptpath
+    if [ -z "$4" ]; then
+        [ -n "$GLB_BUILD_VERSION" ] || [ -n "$GLB_PATCH_VERSION" ] && echo "maprutil_setupLocalRepo" >> $scriptpath
     fi
     #echo "keyexists=\$(util_fileExists \"/root/.ssh/id_rsa\")" >> $scriptpath
     #echo "[ -z \"\$keyexists\" ] && ssh_createkey \"/root/.ssh\"" >> $scriptpath
@@ -1224,7 +1225,7 @@ function maprutil_installBinariesOnNode(){
             bins=$(echo "${bins}" | sed 's/mapr-collectd//g')
             [ -z "$bins" ] && return
         fi
-        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/ebf-deb/ebf-rpm/g')
         [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
         echo "util_installBinaries \""$bins"\" \""$GLB_BUILD_VERSION"\" \""-${GLB_MAPR_VERSION}"\"" >> $scriptpath
         if [ -n "$maprpatch" ]; then
@@ -1235,7 +1236,7 @@ function maprutil_installBinariesOnNode(){
             echo "maprutil_installApiserverIfAbsent" >> $scriptpath
         fi
     else
-        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g' | sed 's/core-rpm/core-deb/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g' | sed 's/ebf-rpm/ebf-deb/g')
         [ -n "$GLB_PATCH_REPOFILE" ] && echo "maprutil_disableRepoByURL \"$GLB_PATCH_REPOFILE\"" >> $scriptpath
         echo "util_installBinaries \""$bins"\" \""${GLB_BUILD_VERSION}"\" \""${GLB_MAPR_VERSION}"\"" >> $scriptpath
         if [ -n "$maprpatch" ]; then
@@ -2708,7 +2709,7 @@ function maprutil_buildRepoFile(){
         
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | | sed 's/eco-deb/eco-rpm/g')
         [ -n "$(echo "$repourl" | grep ubuntu)" ] && repourl=$(echo $repourl | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
-        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/ebf-deb/ebf-rpm/g')
         [ "$nodeos" = "oracle" ] && repourl=$(echo $repourl | sed 's/redhat/oel/g')
 
         echo "[QA-CustomOpensource]" > $repofile
@@ -2750,7 +2751,7 @@ function maprutil_buildRepoFile(){
 
         [ -n "$(echo "$GLB_MEP_REPOURL" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g' | sed 's/eco-rpm/eco-deb/g')
         [ -n "$(echo "$repourl" | grep redhat)" ] && repourl=$(echo $repourl | sed 's/redhat/ubuntu/g' | sed 's/core-rpm/core-deb/g')
-        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g' | sed 's/core-rpm/core-deb/g')
+        [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep redhat)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/redhat/ubuntu/g' | sed 's/ebf-rpm/ebf-deb/g')
         
         local istrusty=
         [[ "$(getOSReleaseVersionOnNode $node)" -ge "18" ]] && istrusty="[trusted=yes]"
@@ -2882,23 +2883,10 @@ function maprutil_addLocalRepo(){
     fi
 
     local repourl=$1
-    local ge70=$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")
-    local meprepo="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/MEP/MEP-8.1.0/redhat/"
-    [ -n "$GLB_MEP_REPOURL" ] && meprepo=$GLB_MEP_REPOURL
-    [ -n "$(echo "$meprepo" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | sed 's/eco-deb/eco-rpm/g')
-
     log_info "[$(util_getHostIP)] Adding local repo $repourl for installing the binaries"
-    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
-        echo "[QA-CustomOpensource-$GLB_BUILD_VERSION]" > $repofile
-        echo "name=MapR Latest Build QA Repository" >> $repofile
-        echo "baseurl=$meprepo" >> $repofile
-        echo "enabled=1" >> $repofile
-        echo "gpgcheck=0" >> $repofile
-        echo "protect=1" >> $repofile
-        echo "proxy=_none_" >> $repofile
-        echo >> $repofile
 
-        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" >> $repofile
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
+        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
         echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
         echo "baseurl=file://$repourl" >> $repofile
         echo "enabled=1" >> $repofile
@@ -2911,29 +2899,17 @@ function maprutil_addLocalRepo(){
         yum-config-manager --enable MapR-LocalRepo-$GLB_BUILD_VERSION > /dev/null 2>&1
 
     elif [ "$nodeos" = "ubuntu" ]; then
-        local repotrust="trusty"
-        [ -n "$(echo "$meprepo" | grep redhat)" ] && meprepo=$(echo $meprepo | sed 's/redhat/ubuntu/g' | sed 's/eco-rpm/eco-deb/g')
-        [ -n "${ge70}" ] && repotrust="bionic"
         local istrusty=
         local opts="--force-yes"
         [[ "$(getOSReleaseVersion)" -ge "18" ]] && istrusty="[trusted=yes]" && opts="--allow-unauthenticated"
         echo "deb $istrusty file:$repourl ./" > $repofile
-        echo "deb $istrusty $meprepo binary ${repotrust}" >> $repofile
         rm -rf /etc/apt/sources.list.d/mapr-[0-9]*.list > /dev/null 2>&1
         cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
         apt-get $opts update > /dev/null 2>&1
 
     elif [ "$nodeos" = "suse" ]; then
 
-        echo "[QA-CustomOpensource-$GLB_BUILD_VERSION]" > $repofile
-        echo "name=MapR Latest Build QA Repository" >> $repofile
-        echo "baseurl=$meprepo" >> $repofile
-        echo "enabled=1" >> $repofile
-        echo "gpgcheck=0" >> $repofile
-        echo "type=rpm-md" >> $repofile
-        echo >> $repofile
-
-        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" >> $repofile
+        echo "[MapR-LocalRepo-$GLB_BUILD_VERSION]" > $repofile
         echo "name=MapR $GLB_BUILD_VERSION Repository" >> $repofile
         echo "baseurl=file://$repourl" >> $repofile
         echo "enabled=1" >> $repofile
@@ -2944,6 +2920,61 @@ function maprutil_addLocalRepo(){
         cp $repofile /etc/zypp/repos.d/ > /dev/null 2>&1
         zypper clean > /dev/null 2>&1
         zypper refresh > /dev/null 2>&1
+    fi
+}
+
+# @param local patch repo path
+function maprutil_addLocalPatchRepo(){
+    if [ -z "$1" ]; then
+        return
+    fi
+    local nodeos=$(getOS)
+    local repofile="/tmp/maprbuilds/mapr-patch-$GLB_PATCH_VERSION.repo"
+    if [ "$nodeos" = "ubuntu" ]; then
+        repofile="/tmp/maprbuilds/mapr-patch-$GLB_PATCH_VERSION.list"
+    fi
+
+    local repourl=$1
+    log_info "[$(util_getHostIP)] Adding local patch repo $repourl for installing patch binaries"
+
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "oracle" ]; then
+
+        echo "[MapR-LocalPatchRepo-$GLB_PATCH_VERSION]" > $repofile
+        echo "name=MapR $GLB_PATCH_VERSION Patch Repository" >> $repofile
+        echo "baseurl=file://$repourl" >> $repofile
+        echo "enabled=1" >> $repofile
+        echo "gpgcheck=0" >> $repofile
+        echo "protect=1" >> $repofile
+        echo "proxy=_none_" >> $repofile
+
+        rm -rf /etc/yum.repos.d/mapr-patch-[0-9]*.repo > /dev/null 2>&1
+        cp $repofile /etc/yum.repos.d/ > /dev/null 2>&1
+        yum-config-manager --enable MapR-LocalPatchRepo-$GLB_PATCH_VERSION > /dev/null 2>&1
+
+    elif [ "$nodeos" = "ubuntu" ]; then
+
+        local istrusty=
+        local opts="--force-yes"
+        [[ "$(getOSReleaseVersion)" -ge "18" ]] && istrusty="[trusted=yes]" && opts="--allow-unauthenticated"
+        echo "deb $istrusty file:$repourl ./" > $repofile
+        rm -rf /etc/apt/sources.list.d/mapr-patch-[0-9]*.list > /dev/null 2>&1
+        cp $repofile /etc/apt/sources.list.d/ > /dev/null 2>&1
+        apt-get $opts update > /dev/null 2>&1
+
+    elif [ "$nodeos" = "suse" ]; then
+
+        echo "[MapR-LocalPatchRepo-$GLB_PATCH_VERSION]" > $repofile
+        echo "name=MapR $GLB_PATCH_VERSION Patch Repository" >> $repofile
+        echo "baseurl=file://$repourl" >> $repofile
+        echo "enabled=1" >> $repofile
+        echo "gpgcheck=0" >> $repofile
+        echo "type=rpm-md" >> $repofile
+
+        rm -rf /etc/zypp/repos.d/mapr-patch-[0-9]*.repo > /dev/null 2>&1
+        cp $repofile /etc/zypp/repos.d/ > /dev/null 2>&1
+        zypper clean > /dev/null 2>&1
+        zypper refresh > /dev/null 2>&1
+
     fi
 }
 
@@ -3274,27 +3305,39 @@ function maprutil_getLatestBuildID(){
 function maprutil_setupLocalRepo(){
     # Perform repo update
     local repourl=$(maprutil_getRepoURL)
-
-    if [ -z "${GLB_FORCE_DOWNLOAD}" ]; then
-        local repoexists=$(util_checkPackageExists "mapr-core" "${GLB_BUILD_VERSION}")
-        [ -n "${repoexists}" ] && return
-    fi
     
-    local patchrepo=$(maprutil_getPatchRepoURL)
-    local repodir="/tmp/maprbuilds/$GLB_BUILD_VERSION"
-    maprutil_disableAllRepo
-    maprutil_downloadBinaries "$repodir" "$repourl" "$GLB_BUILD_VERSION"
-    if [ -n "$patchrepo" ]; then
-        local patchkey=
-        if [ -z "$GLB_PATCH_VERSION" ]; then
-            patchkey=$(lynx -dump -listonly ${patchrepo} | grep mapr-patch-[0-9] | tail -n 1 | awk '{print $2}' | rev | cut -d'/' -f1 | cut -d'.' -f2- | rev)
-        else
-            patchkey="mapr-patch*$GLB_BUILD_VERSION*$GLB_PATCH_VERSION"
+    if [ -n "${repourl}" ] && [ -n "${GLB_BUILD_VERSION}" ]; then
+        local repoexists=$(util_checkPackageExists "mapr-core" "${GLB_BUILD_VERSION}")
+        [ -n "${repoexists}" ] && [ -n "${GLB_FORCE_DOWNLOAD}" ] && repoexists=
+        
+        if [ -z "${repoexists}" ] ; then
+            local repodir="/tmp/maprbuilds/$GLB_BUILD_VERSION"
+            maprutil_disableRepoByURL "${repourl}"
+            maprutil_downloadBinaries "$repodir" "$repourl" "$GLB_BUILD_VERSION"
+            maprutil_addLocalRepo "$repodir"
+            [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(ls ${repodir} | grep mapr-core-internal | grep -o "[0-9.]*.GA" | cut -d'.' -f1-3 | head -1)
         fi
-        maprutil_downloadBinaries "$repodir" "$patchrepo" "$patchkey"
     fi
-    maprutil_addLocalRepo "$repodir"
-    [ -z "$GLB_MAPR_VERSION" ] && GLB_MAPR_VERSION=$(ls ${repodir} | grep mapr-core-internal | grep -o "[0-9.]*.GA" | cut -d'.' -f1-3 | head -1)
+
+    local patchrepo=$(maprutil_getPatchRepoURL)
+    if [ -n "${patchrepo}" ] && [ -n "${GLB_PATCH_VERSION}" ]; then
+        local repoexists=$(util_checkPackageExists "mapr-patch" "${GLB_PATCH_VERSION}")
+        [ -n "${repoexists}" ] && [ -n "${GLB_FORCE_DOWNLOAD}" ] && repoexists=
+
+        if [ -z "${repoexists}" ]; then
+            maprutil_disableRepoByURL "${patchrepo}"
+            local prepodir="/tmp/maprbuilds/$GLB_PATCH_VERSION"
+            local patchkey="${GLB_PATCH_VERSION}"
+            if [ -z "$patchkey" ]; then
+                #patchkey=$(lynx -dump -listonly ${patchrepo} | grep mapr-patch-[0-9] | tail -n 1 | awk '{print $2}' | rev | cut -d'/' -f1 | cut -d'.' -f2- | rev)
+                patchkey=$(wget -qO- ${patchrepo} | grep -o "href=\"[0-9]*" | cut -d '"' -f2 | sort -n -r | head -1)
+            fi
+            patchkey="mapr-patch*${GLB_MAPR_VERSION}*${patchkey}"
+            
+            maprutil_downloadBinaries "$prepodir" "$patchrepo" "$patchkey"
+            maprutil_addLocalPatchRepo "$prepodir"
+        fi
+    fi
 }
 
 function maprutil_runCommandsOnNodesInParallel(){
