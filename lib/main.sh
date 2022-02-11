@@ -135,6 +135,7 @@ GLB_MAPR_VERSION=
 GLB_BUILD_VERSION=
 GLB_FORCE_DOWNLOAD=
 GLB_MAPR_PATCH=
+GLB_MAPR_REPOURL=
 GLB_MEP_REPOURL=
 GLB_PATCH_VERSION=
 GLB_PATCH_REPOFILE=
@@ -1380,6 +1381,8 @@ function main_getRepoFile(){
 		sed -i "s/artifactory.devops.lab/${GLB_ART_HOST}/g" ${maprrepo}
 		echo "$maprrepo"
 		return
+	else
+		GLB_MAPR_REPOURL=${useRepoURL}
 	fi
 	#local cldbnodes=$(maprutil_getCLDBNodes)
 	#local cldbnode=$(util_getFirstElement)

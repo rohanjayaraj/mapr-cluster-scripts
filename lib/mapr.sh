@@ -3323,6 +3323,7 @@ function maprutil_getLatestBuildID(){
 function maprutil_setupLocalRepo(){
     # Perform repo update
     local repourl=$(maprutil_getRepoURL)
+    [ -z "${repourl}" ] && [ -n "${GLB_MAPR_REPOURL}" ] && repourl=${GLB_MAPR_REPOURL}
     
     if [ -n "${repourl}" ] && [ -n "${GLB_BUILD_VERSION}" ]; then
         local repoexists=$(util_checkPackageExists "mapr-core" "${GLB_BUILD_VERSION}")
