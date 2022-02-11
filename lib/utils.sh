@@ -518,11 +518,11 @@ function util_checkPackageExists(){
     fi
     local retval=
     if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
-        retval=$(yum --showduplicates list $1 | grep "^$1" | awk '{print $2}' | grep -who "[0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
+        retval=$(yum --showduplicates list $1 2> /dev/null | grep "^$1" | awk '{print $2}' | grep -who "[0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
     elif [[ "$(getOS)" = "ubuntu" ]]; then
-        retval=$(apt-cache policy $1 | grep -v "file://" | grep -who " [0-9.]*${2}[0-9.GA-]*" | sed '/^[[:space:]]$/d' | head -n 1 | tr -d ' ')
+        retval=$(apt-cache policy $1 2> /dev/null| grep -v "file://" | grep -who " [0-9.]*${2}[0-9.GA-]*" | sed '/^[[:space:]]$/d' | head -n 1 | tr -d ' ')
     elif [[ "$(getOS)" = "suse" ]]; then
-        retval=$(zypper search -s $1 | grep -who " [0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
+        retval=$(zypper search -s $1 2> /dev/null| grep -who " [0-9.]*${2}[0-9.GA-]*" | head -n 1 | tr -d ' ')
     fi
     [ -n "$retval" ] && echo "$retval"
 }
