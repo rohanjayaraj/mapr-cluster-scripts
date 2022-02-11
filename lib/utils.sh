@@ -253,10 +253,18 @@ function util_installepel(){
     fi
 }
 
+function util_hasmaprprereq(){
+    local hasprereq=1
+    [ -z "$(getent passwd mapr)" ] && hasprereq=
+    [ -z "$(util_isJavaVersionInstalled "11")" ] || [ -z "$(util_isJavaVersionInstalled "8")" ] && hasprereq=
+    
+    [ -n "${hasprereq}" ] && echo "has"
+}
+
 function util_installprereq(){
     util_installepel
 
-    [ -z "$(getent passwd mapr)" ] && [ -n "$(util_isBareMetal)" ] && util_maprprereq
+    [ -n "$(util_isBareMetal)" ] && [ -z "$(util_hasmaprprereq)" ] && util_maprprereq
 
     util_checkAndInstall "ifconfig" "net-tools"
     util_checkAndInstall "bzip2" "bzip2"
