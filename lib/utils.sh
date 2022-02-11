@@ -557,13 +557,21 @@ function util_appendVersionToPackage(){
             [ -z "${prefix}" ] && prefix="-$(echo "${binexists}" | cut -d'.' -f1-3 )"
             if [ -z "$newbins" ]; then
                 if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [ "$(getOS)" = "oracle" ]; then
-                    newbins="$bin$prefix*$version*"
+                    if [ -n "$(echo ${binexists} | grep "^${prefix}")" ]; then
+                        newbins="$bin$prefix*$version*"
+                    else
+                        newbins="$bin*$version*"
+                    fi
                 elif [[ "$(getOS)" = "ubuntu" ]]; then
                     newbins="$bin=${binexists}"
                 fi
             else
                 if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "suse" ] || [ "$(getOS)" = "oracle" ]; then
-                    newbins=$newbins" $bin$prefix*$version*"
+                    if [ -n "$(echo ${binexists} | grep "^${prefix}")" ]; then
+                        newbins=$newbins" $bin$prefix*$version*"
+                    else
+                        newbins="$bin*$version*"
+                    fi
                 elif [[ "$(getOS)" = "ubuntu" ]]; then
                     newbins=$newbins" $bin=${binexists}"
                 fi
