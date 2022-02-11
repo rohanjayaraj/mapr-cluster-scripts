@@ -3285,7 +3285,7 @@ function maprutil_downloadBinaries(){
     fi
 
     local mversion=$(ls ${dlddir} | grep mapr-core-internal | grep -o "[0-9.]*.GA" | cut -d'.' -f1-3 | head -1)
-    if [[ -z "$(ls ${dlddir} | grep mapr-apiserver)" ]] || [[ -z "$(ls ${dlddir} | grep mapr-webserver)" ]]; then
+    if [[ -n "${mversion}" ]] && [[ -z "$(ls ${dlddir} | grep mapr-apiserver)" ]] || [[ -z "$(ls ${dlddir} | grep mapr-webserver)" ]]; then
         rm -rf mapr-apiserver* mapr-webserver* > /dev/null 2>&1
 
         local relrepo=http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/v${mversion}/redhat/
@@ -3338,6 +3338,7 @@ function maprutil_setupLocalRepo(){
     fi
 
     local patchrepo=$(maprutil_getPatchRepoURL)
+    [ -z "${patchrepo}" ] && [ -n "${GLB_PATCH_REPOFILE}" ] && patchrepo=${GLB_PATCH_REPOFILE}
     if [ -n "${patchrepo}" ] && [ -n "${GLB_PATCH_VERSION}" ]; then
         local repoexists=$(util_checkPackageExists "mapr-patch" "${GLB_PATCH_VERSION}")
         [ -n "${repoexists}" ] && [ -n "${GLB_FORCE_DOWNLOAD}" ] && repoexists=
