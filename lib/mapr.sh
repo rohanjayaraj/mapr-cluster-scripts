@@ -2555,13 +2555,15 @@ function maprutil_checkBuildExists(){
 }
 
 function maprutil_checkBuildExists2(){
-    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+    if [ -z "$1" ] || [ -z "$2" ]; then
         return
     fi
 
     local node=$1
     local buildid=$2
     local repourl=$3
+    [ -z "${repourl}" ] && repourl=${GLB_MAPR_REPOURL}
+    [ -z "${repourl}" ] && return
     local retval=
 
     local searchkey="mapr-fileserver*${buildid}*"

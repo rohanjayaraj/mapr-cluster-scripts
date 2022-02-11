@@ -1355,6 +1355,7 @@ function main_buildServiceHostNames(){
   [ -n "${hostname}" ] && GLB_DKR_HOST=${hostname} || return
   
   [ -n "${useRepoURL}" ] && useRepoURL=$(echo "${useRepoURL}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
+  [ -n "${useRepoURL}" ] && GLB_MAPR_REPOURL=${useRepoURL}
 	[ -n "${GLB_PATCH_REPOFILE}" ] && GLB_PATCH_REPOFILE=$(echo "${GLB_PATCH_REPOFILE}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
 	[ -n "${GLB_MEP_REPOURL}" ] && GLB_MEP_REPOURL=$(echo "${GLB_MEP_REPOURL}" | sed "s/artifactory.devops.lab/${GLB_ART_HOST}/g")
 
@@ -1381,8 +1382,6 @@ function main_getRepoFile(){
 		sed -i "s/artifactory.devops.lab/${GLB_ART_HOST}/g" ${maprrepo}
 		echo "$maprrepo"
 		return
-	else
-		GLB_MAPR_REPOURL=${useRepoURL}
 	fi
 	#local cldbnodes=$(maprutil_getCLDBNodes)
 	#local cldbnode=$(util_getFirstElement)
