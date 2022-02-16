@@ -353,6 +353,8 @@ function util_installprereq(){
         sed -i 's/^#baseurl/baseurl/g' /etc/yum.repos.d/CentOS-*
         sed -i 's/mirror.centos.org/vault.centos.org/g' /etc/yum.repos.d/CentOS-*
     fi
+
+    util_fixKernelIssues
 }
 
 function util_checkAndInstallJDK11(){
@@ -482,6 +484,14 @@ function util_checkAndConfigurePostfix() {
     fi
 
     [ -n "${restart}" ] && service postfix restart
+}
+
+function util_fixKernelIssues(){
+    # Fix Bug: soft lockup - https://www.suse.com/support/kb/doc/?id=000018705
+    if [[ "$(cat /proc/sys/kernel/watchdog_thresh)" -lt "50" ]]; then
+        echo "kernel.watchdog_thresh=50" > /etc/sysctl.d/99-watchdog_thresh.conf
+        sysctl -p  /etc/sysctl.d/99-watchdog_thresh.conf
+    fi
 }
 
 # @param ip_address_string
