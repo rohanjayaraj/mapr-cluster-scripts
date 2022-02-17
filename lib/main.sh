@@ -277,10 +277,10 @@ function main_install(){
 
 	if [ -n "$doASAN" ]; then 
 		if [[ "$doASAN" = "1" ]]; then 
-			log_info "Installing ASAN/UBSAN MFS & Gateway binaries on all the MFS nodes"
+			log_info "Installing ASAN/UBSAN/MSAN MFS & Gateway binaries on all the MFS nodes"
 			maprutil_runCommandsOnNodesInParallel "$nodes" "asanmfs"
 		else
-			log_info "Installing ASAN/UBSAN MFS, Gateway & Client binaries on all the MFS nodes"
+			log_info "Installing ASAN/UBSAN/MSAN MFS, Gateway & Client binaries on all the MFS nodes"
 			maprutil_runCommandsOnNodesInParallel "$nodes" "asanclient"
 		fi
 	else

@@ -3002,7 +3002,7 @@ function maprutil_setupasanmfs(){
     local setupclient="$1"
     local nodeos=$(getOS)
     if [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
-        log_warn "[$(util_getHostIP)] ASAN/UBSAN is currently NOT supported on SUSE"
+        log_warn "[$(util_getHostIP)] ASAN/UBSAN/MSAN is currently NOT supported on SUSE"
         return
     fi
 
@@ -6498,12 +6498,12 @@ function maprutil_analyzeASAN(){
             if [ -z "$isnew" ] && [ -n "${trace}" ]; then
                 asanstack="$asanstack \n $trace"
                 if [ -z "${logheader}" ]; then
-                    log_msghead "[$(util_getHostIP)] Analyzing ASAN log messages"
+                    log_msghead "[$(util_getHostIP)] Analyzing SANITIZER log messages"
                     log_msg "\tBuild: ${buildid}"
                     logheader=1
                 fi
                 if [ -z "${logfilename}" ]; then
-                    log_msg "\tAnalyzing $numasan ASAN msgs in ${errlog}"
+                    log_msg "\tAnalyzing $numasan SANITIZER msgs in ${errlog}"
                     logfilename=1
                 fi
                 log_msg "\n\t Issue #${i} : "
@@ -6551,7 +6551,7 @@ function maprutil_dedupASANErrors() {
         fi
         let j=j+1
     done <<< "$lines"
-    [ -n "${asanstack}" ] && asanstack="Analyzed ${j} ASAN/UBSAN errors. Found $(echo "${i}-1"|bc) distinct errors \n\n  ${asanstack}"
+    [ -n "${asanstack}" ] && asanstack="Analyzed ${j} Sanitizer errors. Found $(echo "${i}-1"|bc) distinct errors \n\n  ${asanstack}"
     [ -n "${asanstack}" ] && truncate -s 0 ${asanfile} && echo -e "${asanstack}" > ${asanfile}
 }
 

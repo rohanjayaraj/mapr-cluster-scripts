@@ -352,16 +352,16 @@ while [ "$1" != "" ]; do
             fi
         ;;
         -ubsan | --ubsanmfs)
-            extraarg=$extraarg"asan ubsan "
+            extraarg=$extraarg"ubsan asan "
         ;;
         -ubsanall | --ubsanclient)
-            extraarg=$extraarg"asanall ubsan "
+            extraarg=$extraarg"ubsan asanall "
         ;;
         -msan | --msanmfs)
-            extraarg=$extraarg"asan ubsan msan"
+            extraarg=$extraarg"msan asan "
         ;;
         -msanall | --msanclient)
-            extraarg=$extraarg"asanall ubsan msan"
+            extraarg=$extraarg"msan asanall "
         ;;
         -mp | --minioport)
             [ -n "$VALUE" ] && minioport="$VALUE"

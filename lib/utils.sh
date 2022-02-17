@@ -170,14 +170,31 @@ function util_checkAndInstall2(){
     fi
 }
 
+# @param command
+# @param package
+function util_checkAndInstall3(){
+    [ -z "$1" ] && return
+    local exists=$(util_getInstalledBinaries "$1")
+    [ -n "${exists}" ] && return
+
+    local opts=$(util_getInstallerOptions)
+    if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
+        yum install $1 -y -q ${opts} 2>/dev/null
+    elif [[ "$(getOS)" = "ubuntu" ]]; then
+        apt-get install ${opts} -y $1  2>/dev/null
+    elif [[ "$(getOS)" = "suse" ]]; then
+        zypper ${opts} -q install $1  2>/dev/null
+    fi
+}
+
 function util_maprprereq(){
     local DEPENDENCY_BASE_DEB="apt-utils curl dnsutils file iputils-ping libssl1.0.0 \
     net-tools nfs-common openssl sudo syslinux sysv-rc-conf tzdata wget clustershell"
-    local DEPENDENCY_BASE_RPM="curl file net-tools openssl sudo syslinux wget which clustershell"
+    local DEPENDENCY_BASE_RPM="curl file net-tools openssl sudo syslinux wget which clustershell libatomic"
     local DEPENDENCY_BASE_SUSE="aaa_base curl net-tools sudo timezone wget which"
     local DEPENDENCY_DEB="$DEPENDENCY_BASE_DEB debianutils libnss3 libsysfs2 netcat ntp \
     ntpdate openssh-client openssh-server python-dev python-pycurl sdparm sshpass \
-    syslinux sysstat libasan libubsan"
+    syslinux sysstat libasan libubsan libatomic1"
     local DEPENDENCY_RPM="$DEPENDENCY_BASE_RPM device-mapper iputils \
     libsysfs lvm2 nc nfs-utils nss ntp openssh-clients openssh-server \
     python-devel python-pycurl rpcbind sdparm sshpass sysstat libasan libubsan"
@@ -301,6 +318,7 @@ function util_installprereq(){
             util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
             util_checkAndInstall "sendmail" "sendmail sendmail-cf m4"
             util_checkAndInstall "llvm-symbolizer" "llvm-toolset"
+            util_checkAndInstall3 "libatomic"
         elif [[ "$(getOS)" = "ubuntu" ]]; then
             util_checkAndInstall "add-apt-repository" "python-software-properties"
             util_checkAndInstall "add-apt-repository" "software-properties-common"
@@ -312,11 +330,13 @@ function util_installprereq(){
             util_checkAndInstall "llvm-symbolizer" "llvm"
             util_checkAndInstall "dlv" "golang-go.tools"
             util_checkAndInstall "dlv" "delve"
+            util_checkAndInstall3 "libatomic1"
         elif [ "$(getOS)" = "suse" ]; then
             util_checkAndInstall "createrepo" "createrepo"
             util_checkAndInstall "perf" "perf"
             util_checkAndInstall2 "/usr/lib64/libtcmalloc.so" "gperftools"
             util_checkAndInstall "llvm-symbolizer" "llvm-toolset"
+            util_checkAndInstall3 "libatomic"
         fi
         #util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf-c"
         #util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf"
