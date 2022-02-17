@@ -6440,6 +6440,14 @@ function maprutil_analyzeASAN(){
         local numasan=$(echo $(echo "$asan" | grep -v SUMMARY | wc -l) | bc)
         local logfilename=
         
+        # Try to deduplicate early for non-leak sanitizer errors
+        if [ -n "$(echo "${asan}" | grep "SUMMARY:")" ]; then
+            local tmpgrepfile=$(mktemp)
+            echo "${asan}" | grep "SUMMARY:" | sort -u -k4 | sort -t':' -k1 -n | awk '{print $1}' > ${tmpgrepfile}
+            asan="$(echo "${asan}" | grep -B1 -w -f ${tmpgrepfile}  | grep -v "^--")"
+            rm -rf ${tmpgrepfile} > /dev/null 2>&1
+        fi
+        
         while read -r fline; do
             [ -n "$(echo "$fline" | grep SUMMARY)" ] && continue
             read -r sline
