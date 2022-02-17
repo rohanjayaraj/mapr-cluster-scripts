@@ -3086,6 +3086,17 @@ function maprutil_setupasanmfs(){
             sed -i "/daemon \$USER_ARG/i export MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-mfs
             [ -n "${mfsasanso}" ] && sed -i "/daemon \$USER_ARG/i export LD_PRELOAD=${mfsasanso}" /opt/mapr/initscripts/mapr-mfs
         fi
+
+        if [ "$nodeos" = "centos" ] && [ -n "$(echo ${isAsan} | grep "MSAN")" ]; then
+            if [ -s "opt/mapr/lib/libc++.so.1" ] && [ ! -s "/opt/mapr/lib/libc++.so.1" ]; then
+                if [ -s "opt/mapr/lib/libaio.so" ]; then
+                    cp /opt/mapr/lib/libaio.so /opt/mapr/lib/libaio.so.original > /dev/null 2>&1
+                    cp opt/mapr/lib/libaio.so /opt/mapr/lib/libaio.so > /dev/null 2>&1
+                fi
+                cp opt/mapr/lib/libc++.so.1 /opt/mapr/lib/ > /dev/null 2>&1
+                cp opt/mapr/lib/libc++abi.so.1 /opt/mapr/lib/ > /dev/null 2>&1
+            fi
+        fi
         
         log_info "[$(util_getHostIP)] Replaced MFS w/ ${isAsan} MFS binary"
     fi
@@ -3141,6 +3152,16 @@ function maprutil_setupasanmfs(){
                 cp /opt/mapr/lib/${asanfsjar} /opt/mapr/lib/${fsjar} > /dev/null 2>&1
             fi
 
+            if [ "$nodeos" = "centos" ] && [ -n "$(echo ${isAsan} | grep "MSAN")" ]; then
+                if [ -s "opt/mapr/lib/libc++.so.1" ] && [ ! -s "/opt/mapr/lib/libc++.so.1" ]; then
+                    if [ -s "opt/mapr/lib/libaio.so" ]; then
+                        cp /opt/mapr/lib/libaio.so /opt/mapr/lib/libaio.so.original > /dev/null 2>&1
+                        cp opt/mapr/lib/libaio.so /opt/mapr/lib/libaio.so > /dev/null 2>&1
+                    fi
+                    cp opt/mapr/lib/libc++.so.1 /opt/mapr/lib/ > /dev/null 2>&1
+                    cp opt/mapr/lib/libc++abi.so.1 /opt/mapr/lib/ > /dev/null 2>&1
+                fi
+            fi
             asanoptions="handle_segv=0 handle_sigill=0 detect_leaks=0"
             [ -n "$GLB_ASAN_OPTIONS" ] && asanoptions="${asanoptions} ${GLB_ASAN_OPTIONS}"
 
@@ -6439,7 +6460,7 @@ function maprutil_analyzeASAN(){
         local asan=$(bash -c "${grepcmd}")
         local numasan=$(echo $(echo "$asan" | grep -v SUMMARY | wc -l) | bc)
         local logfilename=
-        
+
         # Try to deduplicate early for non-leak sanitizer errors
         if [ -n "$(echo "${asan}" | grep "SUMMARY:")" ]; then
             local tmpgrepfile=$(mktemp)
