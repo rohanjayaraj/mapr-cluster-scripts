@@ -3110,9 +3110,9 @@ function maprutil_setupasanmfs(){
         mv /opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so.original > /dev/null 2>&1
         cp opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so > /dev/null 2>&1
         # update gateway initscripts w/ LD_PRELOAD
-        if [ -n "$asanso" ] && [ -e "/opt/mapr/roles/gateway" ]; then
+        if [ -e "/opt/mapr/roles/gateway" ]; then
             sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-gateway
-            sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-gateway
+            [ -n "$asanso" ] && sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-gateway
             log_info "[$(util_getHostIP)] Replaced libGatewayNative w/ ASAN binary"
         fi
         
@@ -3121,9 +3121,9 @@ function maprutil_setupasanmfs(){
         mv /opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so.original > /dev/null 2>&1
         cp opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
         # update gateway initscripts w/ LD_PRELOAD
-        if [[ -n "$asanso" ]] && [[ -e "/opt/mapr/roles/mastgateway" ]]; then
+        if [[ -e "/opt/mapr/roles/mastgateway" ]]; then
             sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-mastgateway
-            sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-mastgateway
+            [ -n "$asanso" ] && sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-mastgateway
             log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
         fi
     fi
@@ -3140,7 +3140,7 @@ function maprutil_setupasanmfs(){
         [ -n "$fsjar" ] && fsjar=$(basename ${fsjar}) && cp opt/mapr/lib/${fsjar} /opt/mapr/lib/${fsjar}.asan > /dev/null 2>&1
 
         # Replace client libraries 
-        if [ -n "$asanso" ] && [ -n "$setupclient" ]; then
+        if [ -n "$setupclient" ]; then
             for asanbin in $asanbinlist; do
                 cp /opt/mapr/lib/${asanbin} /opt/mapr/lib/${asanbin}.original > /dev/null 2>&1
                 cp /opt/mapr/lib/${asanbin}.asan /opt/mapr/lib/${asanbin} > /dev/null 2>&1
@@ -3172,7 +3172,7 @@ function maprutil_setupasanmfs(){
                 # update moss initscripts w/ LD_PRELOAD
                 if [[ -e "/opt/mapr/initscripts/mapr-s3server" ]]; then
                     sed -i "/\$DAEMON --conffile/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-s3server
-                    sed -i "/\$DAEMON --conffile/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-s3server
+                    [ -n "$asanso" ] && sed -i "/\$DAEMON --conffile/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-s3server
                     log_info "[$(util_getHostIP)] Replaced moss w/ ASAN binary"
                 fi
             fi
@@ -3185,7 +3185,8 @@ function maprutil_setupasanmfs(){
                   cp /opt/mapr/bin/${posix} /opt/mapr/bin/${posix}.original
                   cp opt/mapr/bin/${posix} /opt/mapr/bin/${posix}
               done
-              sed -i "s#Start mapr-fuse daemon#Start mapr-fuse daemon \n export UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"\nexport ASAN_OPTIONS=\"${asanoptions}\"\nLD_PRELOAD=\"${asanso}\" \n#g" /opt/mapr/initscripts/mapr-fuse
+              sed -i "s#Start mapr-fuse daemon#Start mapr-fuse daemon \n export UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"\nexport ASAN_OPTIONS=\"${asanoptions}\"\n#g" /opt/mapr/initscripts/mapr-fuse
+              [ -n "$asanso" ] && sed -i "s#Start mapr-fuse daemon#Start mapr-fuse daemon \n LD_PRELOAD=\"${asanso}\" \n#g" /opt/mapr/initscripts/mapr-fuse
               log_info "[$(util_getHostIP)] Replaced ${posix} and updated mapr-fuse"
             fi
 
@@ -3193,37 +3194,37 @@ function maprutil_setupasanmfs(){
             local files=$(find /opt/mapr/ -type f -exec grep -H " \"\$JAVA\"" {} \; | grep -v "if \[" | cut -d':' -f1 | sort -u)
             for file in $files; do
                 sed -i "/ \"\$JAVA\"/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
-                sed -i "/ \"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
+                [ -n "$asanso" ] && sed -i "/ \"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -H "^[[:space:]]*\$JAVA " {} \; | grep -v -e "-version" | cut -d':' -f1 | sort -u)
             for file in $files; do
                 [ -n "$(grep -B2 "^[[:space:]]*\$JAVA " $file | grep ASAN_OPTIONS)" ] && continue
                 sed -i "/^[[:space:]]*\$JAVA /i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" $file
-                sed -i "/^[[:space:]]*\$JAVA /i  export LD_PRELOAD=${asanso}" $file
+                [ -n "$asanso" ] && sed -i "/^[[:space:]]*\$JAVA /i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -Hl "^[[:space:]]*\"\$JAVA\" -D" {} \;)
             for file in $files; do
                 [ -n "$(grep -B2 "^[[:space:]]*\"\$JAVA\"" $file | grep ASAN_OPTIONS)" ] && continue
                 sed -i "/^[[:space:]]*\"\$JAVA\"/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" $file
-                sed -i "/^[[:space:]]*\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
+                [ -n "$asanso" ] && sed -i "/^[[:space:]]*\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -Hl "^java -" {} \; | grep -v -e README -e roles-controller)
             for file in $files; do
                 [ -n "$(grep -B2 "^java -" $file | grep ASAN_OPTIONS)" ] && continue
                 sed -i "/^java -/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" $file
-                sed -i "/^java -/i  export LD_PRELOAD=${asanso}" $file
+                [ -n "$asanso" ] && sed -i "/^java -/i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -Hl "\`\"\$JAVA\"" {} \;)
             for file in $files; do
                 [ -n "$(grep -B2 "\`\"\$JAVA\"" $file | grep ASAN_OPTIONS)" ] && continue
                 sed -i "/\`\"\$JAVA\"/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" $file
-                sed -i "/\`\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
+                [ -n "$asanso" ] && sed -i "/\`\"\$JAVA\"/i  export LD_PRELOAD=${asanso}" $file
             done
             files=$(find /opt/mapr/ -type f -exec grep -Hl "=\"\$JAVA " {} \;)
             for file in $files; do
                 [ -n "$(grep -B2 "=\"\$JAVA " $file | grep ASAN_OPTIONS)" ] && continue
                 sed -i "/=\"\$JAVA /i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" $file
-                sed -i "/=\"\$JAVA /i  export LD_PRELOAD=${asanso}" $file
+                [ -n "$asanso" ] && sed -i "/=\"\$JAVA /i  export LD_PRELOAD=${asanso}" $file
             done
             # explicit add
             files="/opt/mapr/initscripts/mapr-hoststats /opt/mapr/initscripts/mapr-nfsserver"
@@ -3232,10 +3233,10 @@ function maprutil_setupasanmfs(){
                 [ -n "$(grep -B2 "\/daemon" $file | grep LD_PRELOAD)" ] && continue
                 if [ "$nodeos" = "ubuntu" ]; then
                     sed -i "/start-stop-daemon --start/i export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" ${file}
-                    sed -i "/start-stop-daemon --start/i export LD_PRELOAD=${asanso}" $file
+                    [ -n "$asanso" ] && sed -i "/start-stop-daemon --start/i export LD_PRELOAD=${asanso}" $file
                 else
                     sed -i "/daemon \$USER_ARG/i export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" ${file}
-                    sed -i "/daemon \$USER_ARG/i export LD_PRELOAD=${asanso}" $file
+                    [ -n "$asanso" ] && sed -i "/daemon \$USER_ARG/i export LD_PRELOAD=${asanso}" $file
                 fi
             done
             # do no preload asan binary for scripts & mrconfig
@@ -3256,10 +3257,10 @@ function maprutil_setupasanmfs(){
             for file in $files; do
                 [ -n "$(grep -B2 "java " $file | grep ASAN_OPTIONS)" ] && continue
                 sed -i "/^[[:space:]]*[nohup]*[[:space:]]*java /i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" $file
-                sed -i "/^[[:space:]]*[nohup]*[[:space:]]*java /i  export LD_PRELOAD=${asanso}" $file
+                [ -n "$asanso" ] && sed -i "/^[[:space:]]*[nohup]*[[:space:]]*java /i  export LD_PRELOAD=${asanso}" $file
 
                 sed -i "/bin\/java /i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" $file
-                sed -i "/bin\/java /i  export LD_PRELOAD=${asanso}" $file
+                [ -n "$asanso" ] && sed -i "/bin\/java /i  export LD_PRELOAD=${asanso}" $file
             done
         fi
     fi
@@ -3267,9 +3268,9 @@ function maprutil_setupasanmfs(){
 
     # Export ASAN_OPTIONs to /opt/mapr/conf/env.sh
     #local envfile="/opt/mapr/conf/env.sh"
-    #if [ -n "$asanso" ] && [ -s "${envfile}" ] && [ -z "$(grep ASAN_OPTIONS ${envfile})" ]; then
+    #if [ -s "${envfile}" ] && [ -z "$(grep ASAN_OPTIONS ${envfile})" ]; then
         #echo "export ASAN_OPTIONS=\"handle_segv=0 handle_sigill=0 detect_leaks=0\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"" >> $envfile
-        #echo "export LD_PRELOAD=${asanso}" >> $envfile
+        #[ -n "$asanso" ] && echo "export LD_PRELOAD=${asanso}" >> $envfile
     #fi
 
     popd  > /dev/null 2>&1
