@@ -168,8 +168,6 @@ GLB_CUSTOM_SLACK=
 GLB_PERF_OPTION=
 GLB_PERF_INTERVAL=
 GLB_ASAN_OPTIONS=
-GLB_ENABLE_UBSAN=
-GLB_ENABLE_MSAN=
 GLB_SSLKEY_COPY=1
 GLB_ENABLE_HSM=1
 GLB_MINIO_PORT=9000
@@ -275,14 +273,36 @@ function main_install(){
 		[ -n "$GLB_TSDB_TOPO" ] && main_runCommandExec "tsdbtopo"
 	fi
 
-	if [ -n "$doASAN" ]; then 
-		if [[ "$doASAN" = "1" ]]; then 
-			log_info "Installing ASAN/UBSAN/MSAN MFS & Gateway binaries on all the MFS nodes"
-			maprutil_runCommandsOnNodesInParallel "$nodes" "asanmfs"
-		else
-			log_info "Installing ASAN/UBSAN/MSAN MFS, Gateway & Client binaries on all the MFS nodes"
-			maprutil_runCommandsOnNodesInParallel "$nodes" "asanclient"
-		fi
+	if [ -n "$doASAN" ]; then
+		local santypes=(${doASAN})
+		local numsantypes=${#santypes[@]}
+		declare -A santypemap
+		local k=0
+		for node in ${nodes[@]}; do
+			local santype=${santypes[${k}]}
+			local santypenodes=${santypemap[${santype}]}
+			if [ -n "${santypenodes}" ]; then 
+				santypenodes="${santypenodes} ${node}"
+			else
+				santypenodes="${node}"
+			fi
+			santypemap[${santype}]="${santypenodes}"
+			let k=k+1
+			[[ "${k}" -eq "${numsantypes}" ]] && k=0
+		done
+		for k in "${!santypemap[@]}"; do
+			if [[ -z "$(echo ${k} | grep client)" ]]; then 
+				log_info "Installing ${k^^}-ed MFS & Gateway binaries on all the MFS nodes [${santypemap[$k]}]"
+			else
+				log_info "Installing $(echo ${k^^} | sed 's/CLIENT//')-ed MFS, Gateway & Client binaries on all the MFS nodes [${santypemap[$k]}]"
+			fi
+			for l in ${santypemap[$k]}; do
+				maprutil_runCommandsOnNode "$l" "$k" &
+				maprutil_addToPIDList "$!" 
+			done
+			#maprutil_runCommandsOnNodesInParallel "${santypemap[$k]}" "${k}" &
+		done
+		maprutil_wait
 	else
 		# Configure all nodes
 		for node in ${nodes[@]}
@@ -1615,15 +1635,21 @@ while [ "$2" != "" ]; do
     			elif [[ "$i" = "nvmeonly" ]]; then
     				GLB_DISK_TYPE="nvme"
     			elif [[ "$i" = "asan" ]]; then
-    				doASAN=1
+    				doASAN="asan"
     			elif [[ "$i" = "asanall" ]]; then
-    				doASAN=2
+    				doASAN="asanclient"
     			elif [[ "$i" = "ubsan" ]]; then
-    				doASAN=1
-    				GLB_ENABLE_UBSAN=1
+    				doASAN="ubsan"
+    			elif [[ "$i" = "ubsanall" ]]; then
+    				doASAN="ubsanclient"
     			elif [[ "$i" = "msan" ]]; then
-    				doASAN=1
-    				GLB_ENABLE_MSAN=1
+    				doASAN="msan"
+    			elif [[ "$i" = "msanall" ]]; then
+    				doASAN="msanclient"
+    			elif [[ "$i" = "asanmix" ]]; then
+    				doASAN="asan ubsan msan"
+    			elif [[ "$i" = "asanmixall" ]]; then
+    				doASAN="asanclient ubsanclient msanclient"
     			elif [[ "$i" = "downloadbins" ]]; then
     				GLB_FORCE_DOWNLOAD=1
     			elif [[ "$i" = "nominiooncldb" ]]; then
