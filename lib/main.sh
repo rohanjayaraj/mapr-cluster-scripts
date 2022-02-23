@@ -292,9 +292,9 @@ function main_install(){
 		done
 		for k in "${!santypemap[@]}"; do
 			if [[ -z "$(echo ${k} | grep client)" ]]; then 
-				log_info "Installing ${k^^}-ed MFS & Gateway binaries on all the MFS nodes [${santypemap[$k]}]"
+				log_info "Installing ${k^^}-ed MFS & Gateway binaries on the nodes [${santypemap[$k]}]"
 			else
-				log_info "Installing $(echo ${k^^} | sed 's/CLIENT//')-ed MFS, Gateway & Client binaries on all the MFS nodes [${santypemap[$k]}]"
+				log_info "Installing $(echo ${k^^} | sed 's/CLIENT//')-ed MFS, Gateway & Client binaries on the nodes [${santypemap[$k]}]"
 			fi
 			for l in ${santypemap[$k]}; do
 				maprutil_runCommandsOnNode "$l" "$k" &

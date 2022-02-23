@@ -3115,7 +3115,7 @@ function maprutil_setupasanmfs(){
         if [ -e "/opt/mapr/roles/gateway" ]; then
             sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-gateway
             [ -n "$asanso" ] && sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-gateway
-            log_info "[$(util_getHostIP)] Replaced libGatewayNative w/ ASAN binary"
+            log_info "[$(util_getHostIP)] Replaced libGatewayNative w/ ${isAsan} binary"
         fi
         
     fi
@@ -3126,7 +3126,7 @@ function maprutil_setupasanmfs(){
         if [[ -e "/opt/mapr/roles/mastgateway" ]]; then
             sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-mastgateway
             [ -n "$asanso" ] && sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-mastgateway
-            log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ASAN binary"    
+            log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ${isAsan} binary"
         fi
     fi
 
@@ -3175,7 +3175,7 @@ function maprutil_setupasanmfs(){
                 if [[ -e "/opt/mapr/initscripts/mapr-s3server" ]]; then
                     sed -i "/\$DAEMON --conffile/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-s3server
                     [ -n "$asanso" ] && sed -i "/\$DAEMON --conffile/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-s3server
-                    log_info "[$(util_getHostIP)] Replaced moss w/ ASAN binary"
+                    log_info "[$(util_getHostIP)] Replaced moss w/ ${isAsan} binary"
                 fi
             fi
 
@@ -3189,7 +3189,7 @@ function maprutil_setupasanmfs(){
               done
               sed -i "s#Start mapr-fuse daemon#Start mapr-fuse daemon \n export UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"\nexport ASAN_OPTIONS=\"${asanoptions}\"\n#g" /opt/mapr/initscripts/mapr-fuse
               [ -n "$asanso" ] && sed -i "s#Start mapr-fuse daemon#Start mapr-fuse daemon \n LD_PRELOAD=\"${asanso}\" \n#g" /opt/mapr/initscripts/mapr-fuse
-              log_info "[$(util_getHostIP)] Replaced ${posix} and updated mapr-fuse"
+              log_info "[$(util_getHostIP)] Replaced ${posix} w/ ${isAsan} binary and updated mapr-fuse"
             fi
 
             # Update all start scripts to have asan options
