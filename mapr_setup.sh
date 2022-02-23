@@ -183,6 +183,10 @@ function usage () {
     echo -e "\t\t - Replace MFS & Gateway binaries w/ MSAN binaries"
     echo -e "\t -msanall | --msanclient" 
     echo -e "\t\t - Replace MSAN binaries of MFS,Gateway, Client & maprfs jar"
+    echo -e "\t -asanmix | --asanmixmfs" 
+    echo -e "\t\t - Replace mix of ASAN,MSAN & UBSAN binaries of MFS on cluster nodes"
+    echo -e "\t -asanmixall | --asanmixclient" 
+    echo -e "\t\t - Replace mix of ASAN,MSAN & UBSAN binaries of MFS,Gateway, Client & maprfs jar on cluster nodes"
     echo -e "\t -mp=<PORTNUM> | --minioport=<PORTNUM>" 
     echo -e "\t\t - Specify a PORTNUM for running minio servers (when run with -im option)"
     echo -e "\t -igcldb | --ignorecldbforminio" 
@@ -352,16 +356,22 @@ while [ "$1" != "" ]; do
             fi
         ;;
         -ubsan | --ubsanmfs)
-            extraarg=$extraarg"ubsan asan "
+            extraarg=$extraarg"ubsan "
         ;;
         -ubsanall | --ubsanclient)
-            extraarg=$extraarg"ubsan asanall "
+            extraarg=$extraarg"ubsanall "
         ;;
         -msan | --msanmfs)
-            extraarg=$extraarg"msan asan "
+            extraarg=$extraarg"msan "
         ;;
         -msanall | --msanclient)
-            extraarg=$extraarg"msan asanall "
+            extraarg=$extraarg"msanall"
+        ;;
+        -asanmix | --asanmixmfs)
+            extraarg=$extraarg"asanmix "
+        ;;
+        -asanmixall | --asanmixclient)
+            extraarg=$extraarg"asanmixall "
         ;;
         -mp | --minioport)
             [ -n "$VALUE" ] && minioport="$VALUE"

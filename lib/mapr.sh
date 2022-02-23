@@ -2999,7 +2999,9 @@ function maprutil_addLocalPatchRepo(){
 }
 
 function maprutil_setupasanmfs(){
-    local setupclient="$1"
+    local santype="$1"
+    local setupclient="$2"
+    
     local nodeos=$(getOS)
     if [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
         log_warn "[$(util_getHostIP)] ASAN/UBSAN/MSAN is currently NOT supported on SUSE"
@@ -3017,8 +3019,8 @@ function maprutil_setupasanmfs(){
         asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos7-asan/"
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
             asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos8-asan/"
-            [[ -n "${GLB_ENABLE_UBSAN}" ]] && asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos8-ubsan/" && isAsan="UBSAN"
-            [[ -n "${GLB_ENABLE_MSAN}" ]] && asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos8-msan/" && isAsan="MSAN"
+            [[ -n "$(echo "${santype}" | grep ubsan)" ]] && asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos8-ubsan/" && isAsan="UBSAN"
+            [[ -n "$(echo "${santype}" | grep msan)" ]] && asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos8-msan/" && isAsan="MSAN"
         fi
     fi
 
@@ -3570,10 +3572,19 @@ function maprutil_runCommands(){
                 maprutil_queryservice
             ;;
             asanmfs)
-                maprutil_setupasanmfs
+                maprutil_setupasanmfs "asan"
             ;;
             asanclient)
-                maprutil_setupasanmfs "client"
+                maprutil_setupasanmfs "asan" "client"
+            ;;
+            ubsanmfs)
+                maprutil_setupasanmfs "ubsan"
+            ;;
+            ubsanclient)
+                maprutil_setupasanmfs "ubsan" "client"
+            ;;
+            msanmfs | msanclient)
+                maprutil_setupasanmfs "msan"
             ;;
             *)
             echo "Nothing to do!!"
