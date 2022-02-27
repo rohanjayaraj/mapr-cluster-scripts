@@ -3108,25 +3108,26 @@ function maprutil_setupasanmfs(){
     local asanoptions="handle_segv=0"
     [ -n "$GLB_ASAN_OPTIONS" ] && asanoptions="${asanoptions} ${GLB_ASAN_OPTIONS}"
 
-    if [ -s "opt/mapr/lib/libGatewayNative.so" ] && [ -s "/opt/mapr/lib/libGatewayNative.so" ]; then
-        mv /opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so.original > /dev/null 2>&1
-        cp opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so > /dev/null 2>&1
-        # update gateway initscripts w/ LD_PRELOAD
-        if [ -e "/opt/mapr/roles/gateway" ]; then
-            sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-gateway
-            [ -n "$asanso" ] && sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-gateway
-            log_info "[$(util_getHostIP)] Replaced libGatewayNative w/ ${isAsan} binary"
+    if [ -z "$(echo ${isAsan} | grep "MSAN")" ]; then # MSAN is not supported by java, hence cannot replace binaries used by JVM process
+        if [ -s "opt/mapr/lib/libGatewayNative.so" ] && [ -s "/opt/mapr/lib/libGatewayNative.so" ]; then
+            mv /opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so.original > /dev/null 2>&1
+            cp opt/mapr/lib/libGatewayNative.so /opt/mapr/lib/libGatewayNative.so > /dev/null 2>&1
+            # update gateway initscripts w/ LD_PRELOAD
+            if [ -e "/opt/mapr/roles/gateway" ]; then
+                sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-gateway
+                [ -n "$asanso" ] && sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-gateway
+                log_info "[$(util_getHostIP)] Replaced libGatewayNative w/ ${isAsan} binary"
+            fi
         fi
-        
-    fi
-    if [ -s "opt/mapr/lib/libMASTGatewayNative.so" ] && [ -s "/opt/mapr/lib/libMASTGatewayNative.so" ]; then
-        mv /opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so.original > /dev/null 2>&1
-        cp opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
-        # update gateway initscripts w/ LD_PRELOAD
-        if [[ -e "/opt/mapr/roles/mastgateway" ]]; then
-            sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-mastgateway
-            [ -n "$asanso" ] && sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-mastgateway
-            log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ${isAsan} binary"
+        if [ -s "opt/mapr/lib/libMASTGatewayNative.so" ] && [ -s "/opt/mapr/lib/libMASTGatewayNative.so" ]; then
+            mv /opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so.original > /dev/null 2>&1
+            cp opt/mapr/lib/libMASTGatewayNative.so /opt/mapr/lib/libMASTGatewayNative.so > /dev/null 2>&1
+            # update gateway initscripts w/ LD_PRELOAD
+            if [[ -e "/opt/mapr/roles/mastgateway" ]]; then
+                sed -i "/\$JAVA \\\/i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" /opt/mapr/initscripts/mapr-mastgateway
+                [ -n "$asanso" ] && sed -i "/\$JAVA \\\/i  export LD_PRELOAD=${asanso}" /opt/mapr/initscripts/mapr-mastgateway
+                log_info "[$(util_getHostIP)] Replaced libMASTGatewayNative w/ ${isAsan} binary"
+            fi
         fi
     fi
 
