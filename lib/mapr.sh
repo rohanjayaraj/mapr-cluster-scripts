@@ -3233,13 +3233,13 @@ function maprutil_setupasanmfs(){
             files="/opt/mapr/initscripts/mapr-hoststats /opt/mapr/initscripts/mapr-nfsserver"
             for file in $files; do
                 [ ! -s "$file" ] && continue
-                [ -n "$(grep -B2 "\/daemon" $file | grep LD_PRELOAD)" ] && continue
+                [ -n "$(grep -B2 -e "daemon \$USER_ARG" -e "daemon \--pidfile" -e "start-stop-daemon \--start" $file | grep LD_PRELOAD)" ] && continue
                 if [ "$nodeos" = "ubuntu" ]; then
                     sed -i "/start-stop-daemon --start/i export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" ${file}
                     [ -n "$asanso" ] && sed -i "/start-stop-daemon --start/i export LD_PRELOAD=${asanso}" $file
                 else
-                    sed -i "/daemon \$USER_ARG/i export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" ${file}
-                    [ -n "$asanso" ] && sed -i "/daemon \$USER_ARG/i export LD_PRELOAD=${asanso}" $file
+                    sed -i "/daemon.*--pidfile/i export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" ${file}
+                    [ -n "$asanso" ] && sed -i "/daemon.*--pidfile/i export LD_PRELOAD=${asanso}" $file
                 fi
             done
             # do no preload asan binary for scripts & mrconfig
@@ -3254,6 +3254,8 @@ function maprutil_setupasanmfs(){
                 [ ! -s "$file" ] && continue
                 [ -n "$(grep -B2 "^BASEMAPR=" $file | grep LD_PRELOAD)" ] && continue
                 sed -i "/^BASEMAPR=/i  export ASAN_OPTIONS=\"${asanoptions}\"" $file
+                sed -i "/^BASEMAPR=/i  export UBSAN_OPTIONS=\"${ubsanoptions}\"" $file
+                sed -i "/^BASEMAPR=/i  export MSAN_OPTIONS=\"${msanoptions}\"" $file
                 sed -i "/^BASEMAPR=/i  export LD_PRELOAD=" $file
             done
             files=$(find /opt/mapr/bin -type f -executable -exec grep -HIl -e '^[[:space:]]*[nohup]*[[:space:]]*java ' -e 'bin/java ' {} \;)
