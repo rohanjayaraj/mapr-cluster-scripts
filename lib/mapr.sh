@@ -742,6 +742,17 @@ function maprutil_isMapRVersionSameOrNewer(){
     
 }
 
+function maprutil_restartPosixClients(){
+    local action=$1
+    [ -z "$(echo "${action}" | grep -e start -e stop)" ] && return
+    [ -s "/opt/mapr/initscripts/mapr-posix-client-basic" ] && service mapr-posix-client-basic ${action} > /dev/null 2>&1
+    [ -s "/opt/mapr/initscripts/mapr-posix-client-platinum" ] && service mapr-posix-client-platinum ${action} > /dev/null 2>&1
+    if [[ "${action}" = "stop" ]]; then
+        /etc/init.d/mapr-fuse ${action} > /dev/null 2>&1
+        /opt/mapr/initscripts/mapr-posix-client-* ${action} > /dev/null 2>&1
+    fi
+}
+
 function maprutil_unmountNFS(){
     local selfhostvip2=$(maprutil_getSelfHostIP)
     local nfslist=$(mount | grep nfs | grep mapr | grep -v -e '10.10.10.20' -e '${selfhostvip2}' | cut -d' ' -f3)
@@ -755,11 +766,7 @@ function maprutil_unmountNFS(){
 
     if [ -n "$(util_getInstalledBinaries mapr-posix)" ]; then
         local fusemnt=$(mount -l | grep posix-client | awk '{print $3}')
-        service mapr-posix-client-basic stop > /dev/null 2>&1
-        service mapr-posix-client-platinum stop > /dev/null 2>&1
-        /etc/init.d/mapr-fuse stop > /dev/null 2>&1
-        /etc/init.d/mapr-posix-* stop > /dev/null 2>&1
-        /opt/mapr/initscripts/mapr-posix-client-* stop > /dev/null 2>&1
+        maprutil_restartPosixClients "stop"
         if [ -n "$fusemnt" ]; then 
             timeout 10 fusermount -uq $fusemnt > /dev/null 2>&1
             timeout 20 umount -l ${fusemnt} > /dev/null 2>&1
@@ -811,8 +818,7 @@ function maprutil_cleanPrevClusterConfig(){
     maprutil_unmountNFS
 
     # Stop fuse clients
-    service mapr-posix-client-basic stop > /dev/null 2>&1
-    service mapr-posix-client-platinum stop > /dev/null 2>&1
+    maprutil_restartPosixClients "stop" > /dev/null 2>&1
     service mapr-loopbacknfs stop > /dev/null 2>&1
 
     # Stop warden
@@ -1525,8 +1531,7 @@ function maprutil_copyticketforservices(){
         # stop loopbacknfs if running on the same node
         [ -s "/usr/local/mapr-loopbacknfs" ] && service mapr-loopbacknfs stop > /dev/null 2>&1
         # Restart posix-client
-        service mapr-posix-client-platinum restart > /dev/null 2>&1
-        service mapr-posix-client-basic restart > /dev/null 2>&1
+        maprutil_restartPosixClients "restart" > /dev/null 2>&1
     fi
     if [ -s "/usr/local/mapr-loopbacknfs" ] && [ -e '/tmp/maprticket_0' ]; then
         scp /tmp/maprticket_0 /usr/local/mapr-loopbacknfs/conf/ > /dev/null 2>&1
@@ -2090,8 +2095,7 @@ function maprutil_configure(){
     maprutil_restartWarden > /dev/null 2>&1
 
     # Restart posix-client
-    service mapr-posix-client-platinum restart > /dev/null 2>&1
-    service mapr-posix-client-basic restart > /dev/null 2>&1
+    maprutil_restartPosixClients "restart" > /dev/null 2>&1
     
     if [ "$hostip" = "$cldbnode" ]; then
         maprutil_applyLicense
@@ -2224,6 +2228,11 @@ function maprutil_postConfigure(){
         # Start mapr minio objectstore is present
         local objsh=$(find /opt/mapr/objectstore-client -name objectstore.sh 2>/dev/null)
         [ -n "${objsh}" ] && bash -c "${objsh} start" > /dev/null 2>&1
+    fi
+
+    # Workaround for fuse process failing to stop - add lazy unmount
+    if [ -s "/opt/mapr/initscripts/mapr-fuse" ] && [ -z "$(grep "umount -l" /opt/mapr/initscripts/mapr-fuse)" ]; then
+        sed -i 's/umount/umount -l/g' /opt/mapr/initscripts/mapr-fuse
     fi
     
     # Post-setup after calling configure
@@ -3010,6 +3019,7 @@ function maprutil_setupasanmfs(){
 
     local isAsan="ASAN"
     # stop warden
+    maprutil_restartPosixClients "stop" 2>/dev/null
     service mapr-zookeeper stop 2>/dev/null
     maprutil_restartWarden "stop" 2>/dev/null
     [ -n "$GLB_ASAN_OPTIONS" ] && GLB_ASAN_OPTIONS="$(echo "$GLB_ASAN_OPTIONS" | tr ',' ' ' | tr ':' '=')"
@@ -3285,6 +3295,7 @@ function maprutil_setupasanmfs(){
     # start warden
     service mapr-zookeeper start 2>/dev/null
     maprutil_restartWarden "start" 2>/dev/null
+    maprutil_restartPosixClients "start" 2>/dev/null
 }
 
 # @param directory to download
@@ -4731,7 +4742,7 @@ function maprutil_restartWardenOnNode() {
     fi
     
     echo "maprutil_restartWarden \"$stopstart\"" >> $scriptpath
-    echo "service mapr-posix-client-platinum \"$stopstart\" > /dev/null 2>&1" >> $scriptpath
+    echo "maprutil_restartPosixClients \"$stopstart\" > /dev/null 2>&1" >> $scriptpath
    
     ssh_executeScriptasRootInBG "$node" "$scriptpath"
     maprutil_addToPIDList "$!"   
@@ -6407,7 +6418,7 @@ function maprutil_dedupCores() {
         [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep "Ignoring JVM")
         if [ -n "${tfn}" ] && [ -z "$(echo "${corefn}" | grep "${tfn}")" ] || [ -z "${tfn}" ]; then
             corefn="${corefn} ${tfn}"
-            corestack="${corestack} $(echo -e "$trace" | sed 's/el::base::/el:;base;:/g') \n\n"
+            corestack="${corestack} $(echo -e "$trace" | sed 's/el::base::/el=base=/g') \n\n"
             let i=i+1
         fi
     done <<< "$lines"
