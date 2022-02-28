@@ -766,6 +766,10 @@ function maprutil_unmountNFS(){
 
     if [ -n "$(util_getInstalledBinaries mapr-posix)" ]; then
         local fusemnt=$(mount -l | grep posix-client | awk '{print $3}')
+        # Workaround for fuse process failing to stop - add lazy unmount
+        if [ -s "/opt/mapr/initscripts/mapr-fuse" ] && [ -z "$(grep "umount -l" /opt/mapr/initscripts/mapr-fuse)" ]; then
+            sed -i 's/umount/umount -l/g' /opt/mapr/initscripts/mapr-fuse
+        fi
         maprutil_restartPosixClients "stop"
         if [ -n "$fusemnt" ]; then 
             timeout 10 fusermount -uq $fusemnt > /dev/null 2>&1
