@@ -3181,8 +3181,8 @@ function maprutil_setupasanmfs(){
             fi
 
             #copy posix bin
-            posixbins=$(ls /opt/mapr/bin/posix-client-* 2>/dev/null)
-            if [ -n "${posix}" ]; then
+            local posixbins=$(ls /opt/mapr/bin/posix-client-* 2>/dev/null)
+            if [ -n "${posixbins}" ]; then
               for posix in ${posixbins}; do
                   posix=$(basename ${posix})
                   cp /opt/mapr/bin/${posix} /opt/mapr/bin/${posix}.original
