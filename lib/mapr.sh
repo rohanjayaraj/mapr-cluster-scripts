@@ -3024,8 +3024,8 @@ function maprutil_setupasanmfs(){
     local isAsan="ASAN"
     # stop warden
     maprutil_restartPosixClients "stop" 2>/dev/null
-    service mapr-zookeeper stop 2>/dev/null
     maprutil_restartWarden "stop" 2>/dev/null
+    service mapr-zookeeper stop 2>/dev/null
     [ -n "$GLB_ASAN_OPTIONS" ] && GLB_ASAN_OPTIONS="$(echo "$GLB_ASAN_OPTIONS" | tr ',' ' ' | tr ':' '=')"
     # download latest asan mfs binary
     local asanrepo="http://${GLB_ART_HOST}/artifactory/core-deb/master-asan/"
