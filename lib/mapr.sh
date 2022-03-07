@@ -3014,6 +3014,9 @@ function maprutil_addLocalPatchRepo(){
 function maprutil_setupasanmfs(){
     local santype="$1"
     local setupclient="$2"
+    local sanitizerfile="/opt/mapr/conf/sanitizer.sh"
+    echo -e '#!/bin/bash \n' > ${sanitizerfile}
+    chmod +x ${sanitizerfile}
     
     local nodeos=$(getOS)
     if [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
@@ -3206,6 +3209,11 @@ function maprutil_setupasanmfs(){
               [ -n "$asanso" ] && sed -i "s#Start mapr-fuse daemon#Start mapr-fuse daemon \n LD_PRELOAD=\"${asanso}\" \n#g" /opt/mapr/initscripts/mapr-fuse
               log_info "[$(util_getHostIP)] Replaced ${posix} w/ ${isAsan} binary and updated mapr-fuse"
             fi
+
+            echo -e "export ASAN_OPTIONS=\"${asanoptions}\" \n" >> ${sanitizerfile}
+            echo -e "export UBSAN_OPTIONS=\"${ubsanoptions}\" \n" >> ${sanitizerfile}
+            echo -e "export MSAN_OPTIONS=\"${msanoptions}\" \n" >> ${sanitizerfile}
+            echo -e "export LD_PRELOAD=\"${asanso}\"" >> ${sanitizerfile}
 
             # Update all start scripts to have asan options
             local files=$(find /opt/mapr/ -type f -exec grep -H " \"\$JAVA\"" {} \; | grep -v "if \[" | cut -d':' -f1 | sort -u)
