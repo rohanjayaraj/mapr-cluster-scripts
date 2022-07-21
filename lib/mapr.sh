@@ -171,7 +171,7 @@ function maprutil_getCoreNodeBinaries() {
         if [ -n "$GLB_MAPR_PATCH" ]; then
             if [ -z "$(maprutil_isClientNode $1)" ]; then
                 [ -z "$(echo $newbinlist | grep mapr-patch)" ] && newbinlist=$newbinlist" mapr-patch"
-            elif [ -n "$(echo $newbinlist | grep mapr-core)" ]; then
+            elif [ -n "$(echo $newbinlist | grep mapr-core)" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
                 newbinlist=$newbinlist" mapr-patch"
             else
                 newbinlist=$newbinlist" mapr-patch-client"
@@ -382,6 +382,12 @@ function maprutil_tempdirs() {
     echo  "${dirlist[*]}"
 }  
 
+function maprutil_oscachedirs() {
+    local dirslist=()
+    dirlist+=("/var/cache/apt/archives/mapr-*.deb")
+    echo  "${dirlist[*]}"
+}
+
 function maprutil_removedirs(){
     if [ -z "$1" ]; then
         return
@@ -391,6 +397,7 @@ function maprutil_removedirs(){
         all)
             rm -rfv $(maprutil_knowndirs) > /dev/null 2>&1
             rm -rfv $(maprutil_tempdirs)  > /dev/null 2>&1
+            rm -rfv $(maprutil_oscachedirs) > /dev/null 2>&1
             rm -rfv $(maprutil_coresdirs) > /dev/null 2>&1
             rm -rfv $(maprutil_ycsbdirs) > /dev/null 2>&1
             rm -rfv $(maprutil_rubixdirs) > /dev/null 2>&1
@@ -402,6 +409,9 @@ function maprutil_removedirs(){
          temp)
             rm -rfv $(maprutil_tempdirs)
            ;;
+         cache)
+            rm -rfv $(maprutil_oscachedirs)
+            ;;
          cores)
             rm -rfv $(maprutil_coresdirs)
            ;;
@@ -976,6 +986,7 @@ function maprutil_uninstall(){
     maprutil_unmountNFS
 
     util_kill "mfs"
+    util_kill "maprStreamstestBinary"
     util_kill "java" "jenkins"
 
     # Stop warden
@@ -2019,6 +2030,8 @@ function maprutil_configure(){
 
     if [ "$ISCLIENT" -eq 1 ]; then
         configurecmd="$configurecmd -c"
+    elif [ -n "$GLB_ENABLE_DARE" ]; then 
+        maprutil_waitForCLDBonNode "${cldbnode}" "60"
     fi
     #[ -n "$rmnodes" ] && configurecmd="$configurecmd -RM $(util_getCommaSeparated "$rmnodes")"
     [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS $(util_getFirstElement "$hsnodes")"
@@ -2244,6 +2257,14 @@ function maprutil_postConfigure(){
 }
 
 function maprutil_prePostConfigure(){
+
+    # temp workaround for MON-8136
+    #if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.1.0" "$GLB_MAPR_VERSION")" ]; then
+    #    local apihazel="/opt/mapr/apiserver/conf/hazelcast.xml"
+    #    if [ -s "${apihazel}" ]; then
+    #        sed -i 's/multicast enabled="true"/multicast enabled="false"/g' ${apihazel}
+    #    fi
+    #fi
 
     if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
         #if [ -n "${GLB_SSLKEY_COPY}" ]; then
@@ -4451,18 +4472,17 @@ function maprutil_setupATSClientNode() {
         
         # Install maven
         if ! command -v mvn > /dev/null 2>&1; then 
-            cd /tmp && wget https://dlcdn.apache.org/maven/maven-3/3.8.4/binaries/apache-maven-3.8.4-bin.tar.gz --no-check-certificate && tar -zxvf apache-maven-3.8.4-bin.tar.gz 
+            cd /tmp && wget https://archive.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz --no-check-certificate && tar -zxvf apache-maven-3.6.3-bin.tar.gz
         
-            mv /tmp/apache-maven-3.8.4 /opt/apache-maven > /dev/null 2>&1
+            mv /tmp/apache-maven-3.6.3 /opt/apache-maven > /dev/null 2>&1
 
         cat <<EOF > /etc/profile.d/maven.sh
 export M2_HOME=/opt/apache-maven
 export PATH=\${M2_HOME}/bin:${PATH}
 EOF
         fi
-        mkdir -p ~/.m2 > /dev/null 2>&1
+        mkdir -p ~/.m2 /etc/docker /etc/sysconfig /etc/systemd/system/docker.service.d > /dev/null 2>&1
         
-
         if [ ! -s "/etc/docker/daemon.json" ]; then
         cat <<EOF > /etc/docker/daemon.json
 {
@@ -4470,6 +4490,58 @@ EOF
 }
 EOF
         systemctl restart docker > /dev/null 2>&1
+        fi
+
+        # Refer - https://github.com/mapr/private-qa/blob/master/new-cats/README.md
+        # Install cmake
+        if [ ! -d "/usr/local/share/cmake-3.9" ]; then
+            cd /tmp
+            wget -c https://cmake.org/files/v3.9/cmake-3.9.1.tar.gz 
+            tar -xzvf cmake-3.9.1.tar.gz && cd cmake-3.9.1
+            ./bootstrap 
+            make
+            make install
+            rm -rf /tmp/cmake-3.9.1 > /dev/null 2>&1
+        fi
+
+        # Install boost
+        if [ ! -d "/usr/local/boostLib_RootDir" ]; then
+            #yum install bzip2-devel python36-devel
+            cd /tmp
+            wget -c https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.gz
+            tar -xzvf boost_1_61_0.tar.gz
+            cd boost_1_61_0
+            mkdir -p /usr/local/boostLib_RootDir/
+            ./bootstrap.sh --prefix=/usr/local/boostLib_RootDir/
+            export CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/usr/include/python3.6m/"
+            ./b2 install
+            rm -rf /tmp/boost_1_61_0 > /dev/null 2>&1
+        fi
+
+        # Install PCRE
+        if [ ! -s "/usr/local/share/man/man3/pcre16_compile.3" ]; then
+            cd /tmp
+            wget -c "https://osdn.net/frs/g_redir.php?m=nchc&f=pcre%2Fpcre%2F8.43%2Fpcre-8.43.tar.gz"
+            mv "g_redir.php\?m\=nchc\&f\=pcre%2Fpcre%2F8.43%2Fpcre-8.43.tar.gz" pcre-8.43.tar.gz
+            tar -xzvf pcre-8.43.tar.gz
+            cd pcre-8.43
+            ./configure
+            make
+            make install
+            rm -rf /tmp/pcre-8.43 > /dev/null 2>&1
+        fi
+
+        # Install Openssl
+        if [ ! -s "/usr/local/ssl/lib/pkgconfig/libcrypto.pc" ]; then
+            cd /tmp
+            wget -c https://www.openssl.org/source/openssl-1.0.2p.tar.gz
+            tar -xzvf openssl-1.0.2p.tar.gz
+            cd openssl-1.0.2p/
+            ./config
+            make
+            make test
+            make install
+            rm -rf /tmp/openssl-1.0.2p > /dev/null 2>&1
         fi
 
     elif [ "$nodeos" = "ubuntu" ]; then
@@ -4498,7 +4570,7 @@ EOF
             apt-get install $opts -y maven 2>/dev/null
         fi
         
-         mkdir -p ~/.m2 > /dev/null 2>&1
+        mkdir -p ~/.m2 /etc/docker /etc/sysconfig /etc/systemd/system/docker.service.d > /dev/null 2>&1
 
         if [ ! -s "/etc/docker/daemon.json" ]; then
             cat <<EOF > /etc/docker/daemon.json
@@ -4515,7 +4587,8 @@ EOF
 
 function maprutil_waitForCLDBonNode(){
     local node=$1
-    
+    local iterlimit=$2
+
     local scriptpath="$RUNTEMPDIR/waitforcldb_${node}.sh"
     maprutil_buildSingleScript "$scriptpath" "$node"
     local retval=$?
@@ -4523,7 +4596,7 @@ function maprutil_waitForCLDBonNode(){
         return
     fi
 
-    echo "maprutil_waitForCLDB" >> $scriptpath
+    echo "maprutil_waitForCLDB \"${iterlimit}\"" >> $scriptpath
    
     local result=$(ssh_executeScriptasRoot "$node" "$scriptpath")
     
@@ -4533,9 +4606,12 @@ function maprutil_waitForCLDBonNode(){
 }
 
 function maprutil_waitForCLDB() {
+    local itlimit=$1
     local rc=1;
     local iter=0;
     local iterlimit=9
+    [ -n "${itlimit}" ] && iterlimit=${itlimit}
+
     while [ "$rc" -gt 0 ] && [ "$iter" -lt "$iterlimit" ]; do
         rc=0;
         timeout 10 maprcli node cldbmaster -json > /dev/null 2>&1
