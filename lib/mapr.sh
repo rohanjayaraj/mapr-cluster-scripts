@@ -1561,8 +1561,8 @@ function maprutil_configureSSD(){
 
     sed -i '/mfs.disk.is.ssd.*/d' $mfsconf
     sed -i '/mfs.ssd.trim.enabled.*/d' $mfsconf
-    echo "mfs.disk.is.ssd=true" >> $mfsconf
-    echo "mfs.ssd.trim.enabled=true" >> $mfsconf
+    echo "mfs.disk.is.ssd=1" >> $mfsconf
+    echo "mfs.ssd.trim.enabled=1" >> $mfsconf
 }
 
 function maprutil_customConfigure(){
@@ -2445,7 +2445,7 @@ function maprutil_copySecureFilesFromCLDB(){
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/cldb.key" "/opt/mapr/conf/";
         fi
     fi
-    [ -n "$GLB_ENABLE_DARE" ] && ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/dare.master.key" "/opt/mapr/conf/";
+    [ -n "$GLB_ENABLE_DARE" ] && [ -z "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ] && ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/dare.master.key" "/opt/mapr/conf/";
     
     if [ "$ISCLIENT" -eq 0 ]; then
         if [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
