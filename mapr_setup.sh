@@ -105,6 +105,8 @@ function usage () {
     echo -e "\t\t - Specify a PATCHREPOURL to use to download & install binaries. (Optional if using internal repositories)"
     echo -e "\t -meprepo=<MEPREPOURL> | --meprepository=<MEPREPOURL>" 
     echo -e "\t\t - Specify a MEPREPOURL to use to download & install opensource binaries. (Optional if using internal repositories)"
+    echo -e "\t -jdk17 | --java17" 
+    echo -e "\t\t - For 7.2 or above, use Java17"
     
     # Patch replated parameters
     echo -e "\t -patch | --applypatch"
@@ -410,6 +412,9 @@ while [ "$1" != "" ]; do
         ;;
         -dbins | --downloadbins)
             extraarg=$extraarg"downloadbins "
+        ;;
+        -jdk17 | --java17)
+            extraarg=$extraarg"jdk17 "
         ;;
         -b | --backuplogs)
             if [ -z "$VALUE" ]; then

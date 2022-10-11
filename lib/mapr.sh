@@ -854,7 +854,7 @@ function maprutil_cleanPrevClusterConfig(){
     
     maprutil_killTraces
 
-    rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.conf /opt/mapr/logs/* 2>/dev/null
+    rm -rf /opt/mapr/conf/disktab /opt/mapr/conf/mapr-clusters.conf /opt/mapr/logs/* /home/mapr/.moss 2>/dev/null
 
     pushd /opt/mapr/conf/ > /dev/null 2>&1
     rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
@@ -1074,7 +1074,9 @@ function maprutil_upgrade(){
         util_removeBinaries $removebins
     fi
 
-    if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+    if [ -n "${GLB_USE_JDK17}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.2.0" "$GLB_MAPR_VERSION")" ]; then
+        util_switchJavaVersion "17" > /dev/null 2>&1
+    elif [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
         util_switchJavaVersion "11" > /dev/null 2>&1
     else
         util_switchJavaVersion "1.8" > /dev/null 2>&1
@@ -1223,7 +1225,9 @@ function maprutil_installBinariesOnNode(){
     #echo "maprutil_checkIsBareMetal" >> $scriptpath
     echo "util_installprereq > /dev/null 2>&1" >> $scriptpath
     if [ -n "$GLB_MAPR_VERSION" ]; then
-        if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
+        if [ -n "${GLB_USE_JDK17}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.2.0" "$GLB_MAPR_VERSION")" ]; then
+            echo "util_switchJavaVersion \"17\" > /dev/null 2>&1" >> $scriptpath
+        elif [ -n "$(maprutil_isMapRVersionSameOrNewer "6.2.0" "$GLB_MAPR_VERSION")" ]; then
             echo "util_switchJavaVersion \"11\" > /dev/null 2>&1" >> $scriptpath
         else
             echo "util_switchJavaVersion \"1.8\" > /dev/null 2>&1" >> $scriptpath
@@ -2501,7 +2505,7 @@ function maprutil_copySecureFilesFromCLDB(){
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_userkeystore*" "/opt/mapr/conf/";
             
             local hasmoss=$(echo $(maprutil_getNodesForService "mapr-s3server") | grep "$hostip")
-            if [ -n "${hasmoss}" ]; then
+            if [ -n "${hasmoss}" ] && [ -z "$(maprutil_isMapRVersionSameOrNewer "7.1.0" "$GLB_MAPR_VERSION")" ]; then
                 ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/private.key" "/opt/mapr/conf/";
                 ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/public.crt" "/opt/mapr/conf/";
             fi

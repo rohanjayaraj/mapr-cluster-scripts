@@ -273,7 +273,7 @@ function util_installepel(){
 function util_hasmaprprereq(){
     local hasprereq=1
     [ -z "$(getent passwd mapr)" ] && hasprereq=
-    [ -z "$(util_isJavaVersionInstalled "11")" ] || [ -z "$(util_isJavaVersionInstalled "8")" ] && hasprereq=
+    [ -z "$(util_isJavaVersionInstalled "17")" ] || [ -z "$(util_isJavaVersionInstalled "11")" ] || [ -z "$(util_isJavaVersionInstalled "8")" ] && hasprereq=
     
     [ -n "${hasprereq}" ] && echo "has"
 }
@@ -364,6 +364,8 @@ function util_installprereq(){
 
     util_checkAndInstallJDK11
 
+    util_checkAndInstallJDK17
+
     util_checkAndInstallGO
 
     util_checkAndConfigurePostfix
@@ -391,6 +393,28 @@ function util_checkAndInstallJDK11(){
             zypper ${opts}-q install -n java-11-openjdk
         fi
         isInstalled=$(util_isJavaVersionInstalled "11")
+    fi
+    # Workarounds to make MapR work on JDK11
+    local securityfile=$(find -L ${isInstalled} -name "java.security" | head -n 1)
+    if [[ -s "${securityfile}" ]] && [[ -z "$(grep "^keystore.type=jks" ${securityfile})" ]]; then
+         sed -i "s/^keystore.type=.*/keystore.type=jks/g" $securityfile
+    fi
+}
+
+function util_checkAndInstallJDK17(){
+    local nodeos="$(getOS)"
+
+    local isInstalled=$(util_isJavaVersionInstalled "17")
+    local opts=$(util_getInstallerOptions)
+    if [ -z "${isInstalled}" ]; then
+        if [[ "${nodeos}" = "centos" ]] || [[ "$(getOS)" = "oracle" ]]; then
+            [[ "$(getOSReleaseVersion)" -ge "7" ]] && yum -q -y install java-17-openjdk-devel ${opts}
+        elif [[ "${nodeos}" = "ubuntu" ]] && [[ "$(getOSReleaseVersion)" -ge "16" ]]; then
+            apt-get -qq -y $opts install openjdk-17-jdk
+        elif [[ "${nodeos}" = "suse" ]] && [[ "$(getOSReleaseVersion)" -ge "15" ]]; then
+            zypper ${opts}-q install -n java-17-openjdk
+        fi
+        isInstalled=$(util_isJavaVersionInstalled "17")
     fi
     # Workarounds to make MapR work on JDK11
     local securityfile=$(find -L ${isInstalled} -name "java.security" | head -n 1)
