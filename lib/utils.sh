@@ -340,6 +340,7 @@ function util_installprereq(){
         fi
         #util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf-c"
         #util_checkAndInstall2 "/usr/lib64/libprotobuf.so.8" "protobuf"
+        util_checkAndInstall2 "/usr/bin/python3.9" "python39"
         util_checkAndInstall2 "/usr/bin/python3" "python3"
         util_checkAndInstall2 "/usr/bin/python2" "python2"
     fi
@@ -483,7 +484,7 @@ function util_checkAndInstallGO(){
 function util_getPythonVersion(){
     command -v python >/dev/null 2>&1 || return
 
-    local pyver=$(python --version  2>&1 | awk '{print $2}' | cut -d'.' -f1)
+    local pyver=$(python --version  2>&1 | awk '{print $2}' | cut -d'.' -f1-2)
     echo "$pyver"
 }
 
@@ -493,9 +494,9 @@ function util_switchPythonVersion(){
     local changeto="$1"
     local pyver=$(util_getPythonVersion)
     # Check if python version is already on the requested version
-    [[ -n "$(echo "$pyver" | grep "^${changeto}")" ]] && return
+    #[[ -n "$(echo "$pyver" | grep "^${changeto}$")" ]] && return
 
-    local switchidx=$(echo "-1" | update-alternatives --config python 2>/dev/null | grep "python${changeto}" | tr -d '*' | tr -d '+' | sort -u -k3 | uniq | awk '{print $1}' | tail -n 1)
+    local switchidx=$(echo "-1" | update-alternatives --config python 2>/dev/null | grep "python${changeto}$" | tr -d '*' | tr -d '+' | sort -u -k3 | uniq | awk '{print $1}' | tail -n 1)
     echo "${switchidx}" | update-alternatives --config python > /dev/null 2>&1
     pyver=$(util_getPythonVersion)
 

@@ -107,6 +107,8 @@ function usage () {
     echo -e "\t\t - Specify a MEPREPOURL to use to download & install opensource binaries. (Optional if using internal repositories)"
     echo -e "\t -jdk17 | --java17" 
     echo -e "\t\t - For 7.2 or above, use Java17"
+    echo -e "\t -py39 | --python39" 
+    echo -e "\t\t - For 7.1 or above, use Python3.9"
     
     # Patch replated parameters
     echo -e "\t -patch | --applypatch"
@@ -415,6 +417,9 @@ while [ "$1" != "" ]; do
         ;;
         -jdk17 | --java17)
             extraarg=$extraarg"jdk17 "
+        ;;
+        -py39 | --python39)
+            extraarg=$extraarg"python39 "
         ;;
         -b | --backuplogs)
             if [ -z "$VALUE" ]; then

@@ -1082,7 +1082,11 @@ function maprutil_upgrade(){
         util_switchJavaVersion "1.8" > /dev/null 2>&1
     fi
     if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.1.0" "$GLB_MAPR_VERSION")" ]; then
-        util_switchPythonVersion "3" > /dev/null 2>&1
+        if [ -n "${GLB_USE_PYTHON39}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.1.0" "$GLB_MAPR_VERSION")" ]; then
+            util_switchPythonVersion "3.9" > /dev/null 2>&1
+        else
+            util_switchPythonVersion "3" > /dev/null 2>&1
+        fi
     else
         util_switchPythonVersion "2" > /dev/null 2>&1
     fi
@@ -1233,7 +1237,11 @@ function maprutil_installBinariesOnNode(){
             echo "util_switchJavaVersion \"1.8\" > /dev/null 2>&1" >> $scriptpath
         fi
         if [ -n "$(maprutil_isMapRVersionSameOrNewer "6.1.0" "$GLB_MAPR_VERSION")" ]; then
-            echo "util_switchPythonVersion \"3\" > /dev/null 2>&1" >> $scriptpath
+            if [ -n "${GLB_USE_PYTHON39}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.1.0" "$GLB_MAPR_VERSION")" ]; then
+                echo "util_switchPythonVersion \"3.9\" > /dev/null 2>&1" >> $scriptpath
+            else 
+                echo "util_switchPythonVersion \"3\" > /dev/null 2>&1" >> $scriptpath
+            fi
         else
             echo "util_switchPythonVersion \"2\" > /dev/null 2>&1" >> $scriptpath
         fi
