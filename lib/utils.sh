@@ -828,7 +828,7 @@ function util_getRawDisks(){
     local cmd="sfdisk -l 2> /dev/null| grep Disk | tr -d ':' | cut -d' ' -f2"
     for disk in $defdisks
     do
-        cmd="$cmd | grep -v \"$disk\""
+        cmd="$cmd | grep -wv \"$disk\""
     done
     local fdisks=$(fdisk -l 2>/dev/null)
     for disk in $(bash -c  "$cmd")
