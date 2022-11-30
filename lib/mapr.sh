@@ -2006,6 +2006,7 @@ function maprutil_configure(){
     local hsnodes=$(maprutil_getNodesForService "historyserver")
     local rmnodes=$(maprutil_getNodesForService "resourcemanager")
     local objnodes=$(maprutil_getNodesForService "objectstore-client")
+    local dagnodes="$(maprutil_getNodesForService "data-access-gateway")"
     
     if [ "$hostip" != "$cldbnode" ] && [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
         ssh_copyPublicKey "root" "$cldbnode"
@@ -2143,6 +2144,7 @@ function maprutil_configure(){
         fi
         [ -n "${GLB_ATS_CLUSTER}" ] && maprutil_configureATSCluster
         [ -n "${objnodes}" ] && maprutil_createObjectStoreVolume
+        [ -n "${dagnodes}" ] && maprutil_createDAGKafkaDefaultStream "${dagnodes}"
     else
         [ -n "$GLB_SECURE_CLUSTER" ] &&  maprutil_copyMapRTicketsFromCLDB "$cldbnode"
         [ ! -f "/opt/mapr/bin/guts" ] && maprutil_copyGutsFromCLDB
@@ -2336,6 +2338,17 @@ function maprutil_createObjectStoreVolume(){
         timeout 20 maprcli volume remove -name ${volname} -force true > /dev/null 2>&1
         sleep 10
     done
+}
+
+function maprutil_createDAGKafkaDefaultStream(){
+    # Create default stream for DAG 5.0
+    local dagnode=$(util_getFirstElement "${1}")
+    local dagexists=$(ssh $dagnode "[ -s "/opt/mapr/data-access-gateway/bin/dag" ] && echo 1")
+    if [ -n "${dagexists}" ]; then
+        ssh ${dagnode} "/opt/mapr/data-access-gateway/bin/dag kwps upload-cluster-conf" > /dev/null 2>&1
+        #ssh ${dagnode} "/opt/mapr/data-access-gateway/bin/dag kwps create-streams --defaultpartitions 10" > /dev/null 2>&1
+        ssh ${dagnode} "/opt/mapr/data-access-gateway/bin/dag kwps create-streams" > /dev/null 2>&1
+    fi
 }
 
 function maprutil_postPostConfigure(){
