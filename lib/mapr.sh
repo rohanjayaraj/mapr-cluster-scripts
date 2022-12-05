@@ -2818,9 +2818,14 @@ function maprutil_buildRepoFile(){
         [[ "$(getOSReleaseVersionOnNode $node)" -ge "18" ]] && istrusty="[trusted=yes]"
         [ -z "${ge70}" ] && [ -n "$(echo "${repourl}" | grep master)" ] &&  repotrust="bionic"
 
-        echo "deb $istrusty $meprepo binary ${repotrust}" > $repofile
-        echo "deb $istrusty ${repourl} binary ${repotrust}" >> $repofile
+        echo "deb $istrusty ${repourl} binary ${repotrust}" > $repofile
         [ -n "$GLB_PATCH_REPOFILE" ] && echo "deb $istrusty ${GLB_PATCH_REPOFILE} binary ${repotrust}" >> $repofile
+
+        repotrust="trusty"
+        local eepVer=$(echo "${meprepo}" | grep -o [0-9].[0-9.]*)
+        local isMEPge810=$(maprutil_isMapRVersionSameOrNewer "${eepVer}" "8.1.0")
+        [ -n "${isMEPge810}" ] && repotrust="bionic"
+        echo "deb $istrusty $meprepo binary ${repotrust}" >> $repofile
     fi
 }
 
