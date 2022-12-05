@@ -2893,7 +2893,7 @@ function maprutil_disableRepoByURL(){
         local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
         sed -i "${repoln}s/enabled.*/enabled=0/" $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        local repoline=$(grep -n "^deb.*${repourl}" /etc/apt/sources.list.d/*)
+        local repoline=$(grep -Hn "^deb.*${repourl}" /etc/apt/sources.list.d/*)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
         local repoln=$(echo "$repoline" | cut -d':' -f2)
         sed -i "${repoln}s/^/#/" $repofile
@@ -2919,7 +2919,7 @@ function maprutil_enableRepoByURL(){
         local repoln=$(grep -A2 -B2 -n "^baseurl=${repourl}" $repofile | grep "enabled" | cut -d'-' -f1)
         sed -i "${repoln}s/enabled.*/enabled=1/" $repofile
     elif [ "$nodeos" = "ubuntu" ]; then
-        local repoline=$(grep -n "deb.*${repourl}" /etc/apt/sources.list.d/*)
+        local repoline=$(grep -Hn "deb.*${repourl}" /etc/apt/sources.list.d/*)
         local repofile=$(echo "$repoline" | cut -d':' -f1)
         local repoln=$(echo "$repoline" | cut -d':' -f2)
         sed -i "${repoln}s/^#//" $repofile
