@@ -1533,6 +1533,14 @@ function maprutil_updateConfigs(){
     elif [ -n "${GLB_ENABLE_RDMA}" ] && [ -e "/opt/mapr/roles/fileserver" ] && [ -z "$(grep "^mfs.listen.on.rdma=1" /opt/mapr/conf/mfs.conf)" ]; then
         echo "mfs.listen.on.rdma=1" >> /opt/mapr/conf/mfs.conf
     fi
+
+    # If ATS run, update DAG5.0 topic mapping
+    local kafkafile="/opt/mapr/data-access-gateway/conf/kafka-cluster.conf.src"
+    if [ -n "${GLB_ATS_CLUSTER}" ] && [ -s "${kafkafile}" ] && [ -z "$(grep resultstream ${kafkafile})" ]; then
+        sed -i 's#default-rules.*=.*\[#&"ctest*:/var/mapr/ats/resultstream",#g' ${kafkafile}
+        sed -i 's#default-rules.*=.*\[#&"com.mapr.qa*:/var/mapr/ats/resultstream",#g' ${kafkafile}
+        sed -i 's#default-rules.*=.*\[#&"ResultMetaTopic*:/var/mapr/ats/resultstream",#g' ${kafkafile}
+    fi
 }
 
 function maprutil_setuploopbacknfs(){
@@ -2323,7 +2331,7 @@ function maprutil_prePostConfigure(){
 
 function maprutil_configureATSCluster(){
     timeout 10 maprcli volume create -name mapr.qa.ats.results -path /var/mapr/ats -topology /data > /dev/null 2>&1
-    timeout 10 maprcli stream create -path /var/mapr/ats/resultstream -ttl 0 -defaultpartitions 10 -adminperm 'u:root|u:mapr' -produceperm p -consumeperm p -autocreate true > /dev/null 2>&1
+    timeout 10 maprcli stream create -path /var/mapr/ats/resultstream -ttl 0 -defaultpartitions 10 -adminperm 'u:root|u:mapr' -topicperm p -produceperm p -consumeperm p -autocreate true > /dev/null 2>&1
 
     timeout 10 maprcli config save -values {mfs.db.parallel.copyregions:1024} > /dev/null 2>&1
     timeout 10 maprcli config save -values {mfs.db.parallel.copytables:512} > /dev/null 2>&1
@@ -2823,7 +2831,7 @@ function maprutil_buildRepoFile(){
 
         repotrust="trusty"
         local eepVer=$(echo "${meprepo}" | grep -o [0-9].[0-9.]*)
-        local isMEPge810=$(maprutil_isMapRVersionSameOrNewer "${eepVer}" "8.1.0")
+        local isMEPge810=$(maprutil_isMapRVersionSameOrNewer "8.1.0" "${eepVer}")
         [ -n "${isMEPge810}" ] && repotrust="bionic"
         echo "deb $istrusty $meprepo binary ${repotrust}" >> $repofile
     fi
