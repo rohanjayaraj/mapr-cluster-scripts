@@ -2273,7 +2273,7 @@ function maprutil_postConfigure(){
     if [ -s "/opt/mapr/initscripts/mapr-fuse" ] && [ -z "$(grep "umount -l" /opt/mapr/initscripts/mapr-fuse)" ]; then
         sed -i 's/umount/umount -l/g' /opt/mapr/initscripts/mapr-fuse
     fi
-    
+
     # Post-setup after calling configure
     maprutil_postPostConfigure
 }
@@ -2534,9 +2534,13 @@ function maprutil_copySecureFilesFromCLDB(){
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_userkeystore*" "/opt/mapr/conf/";
             
             local hasmoss=$(echo $(maprutil_getNodesForService "mapr-s3server") | grep "$hostip")
-            if [ -n "${hasmoss}" ] && [ -z "$(maprutil_isMapRVersionSameOrNewer "7.1.0" "$GLB_MAPR_VERSION")" ]; then
-                ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/private.key" "/opt/mapr/conf/";
-                ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/public.crt" "/opt/mapr/conf/";
+            if [ -n "${hasmoss}" ]; then
+                if [ -z "$(maprutil_isMapRVersionSameOrNewer "7.1.0" "$GLB_MAPR_VERSION")" ]; then
+                    ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/private.key" "/opt/mapr/conf/";
+                    ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/public.crt" "/opt/mapr/conf/";
+                else
+                    ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ca" "/opt/mapr/conf/"
+                fi
             fi
         fi
     fi
@@ -4400,7 +4404,8 @@ function maprutil_applyLicense(){
 
     local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
 
-    wget ${licurl} --user=${creds} --password=${creds} -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
+    [ -s "/etc/profile.d/proxy.sh" ] && . /etc/profile.d/proxy.sh;
+    timeout 90 wget ${licurl} --user=${creds} --password=${creds} -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
     
     local buildid=$(maprutil_getBuildID)
     local i=0
