@@ -889,6 +889,9 @@ function maprutil_coloconfigs() {
         ntpdate -u ${GLB_CRY_HOST} > /dev/null 2>&1 &
     fi
 
+    local wp=$(util_getDecryptStr "5JesBPi57peBTnRuc1CIVJmAzhub+lF2RabsQilxFQA=" "U2FsdGVkX1+XiqEuv9kmmf/0KIyGII6SMQM6JeIk5zMjduQ7tRuHVOrx/3ePqxxM")
+    local np=$(util_getDecryptStr "hVOhqTvqG28VPHludtEPqyBSqN+BdEibOUaDjq4Vs2k=" "U2FsdGVkX19fiZpMgtnQJ39/4TQNiJmFq7wEstdI3bUNjUEuqHGsEf/5iCrovCKW")
+
     local confs="/etc/profile.d/proxy.sh /root/.m2/settings.xml /etc/systemd/system/docker.service.d/http-proxy.conf /etc/sysconfig/docker /etc/docker/daemon.json"
     for file in $confs;
     do
@@ -896,6 +899,7 @@ function maprutil_coloconfigs() {
             [ -n "$(grep "docker.artifactory.lab" ${file} 2>/dev/null)" ] && sed -i "s/docker.artifactory.lab/${GLB_DKR_HOST}/g" ${file}
             [ -n "$(grep "maven.corp.maprtech.com" ${file} 2>/dev/null)" ] && sed -i "s/maven.corp.maprtech.com/${GLB_MVN_HOST}/g" ${file}
             [ -n "$(grep "artifactory.devops.lab" ${file} 2>/dev/null)" ] && sed -i "s/artifactory.devops.lab/${GLB_ART_HOST}/g" ${file}
+            [ -n "$(grep "${wp}" ${file} 2>/dev/null)" ] && sed -i "s/${wp}/${np}/g" ${file}
         fi
     done
     [ -s "/etc/docker/daemon.json" ] && systemctl daemon-reload && service docker restart > /dev/null 2>&1 &
