@@ -728,7 +728,7 @@ function main_isMapRInstalled(){
 			exit 1
 		else
 			log_warn "MapR not installed on the node(s) [ $notlist]."
-			[ "$(echo $nodes | wc -w)" -eq "$(echo $notlist | wc -w)" ] && log_msg "No MapR installed on the cluster. Scooting!" && exit 1
+			[ "$(echo $nodes | wc -w)" -eq "$(echo $notlist | wc -w)" ] && [ "$doForce" -lt 2 ] && log_msg "No MapR installed on the cluster. Scooting!" && exit 1
 		fi
 	fi
 }
@@ -1601,7 +1601,7 @@ while [ "$2" != "" ]; do
     					doCmdExec=$doCmdExec" "$i
     				fi
     			elif [[ "$i" = "force" ]]; then
-    				doForce=1
+    				let doForce+=1
     			elif [[ "$i" = "rolling" ]]; then
     				doRolling=1
     			elif [[ "$i" = "pontis" ]]; then
