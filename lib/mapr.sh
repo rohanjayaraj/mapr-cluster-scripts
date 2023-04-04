@@ -155,7 +155,7 @@ function maprutil_getCoreNodeBinaries() {
         local newbinlist=
         for bin in ${binlist[@]}
         do
-            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2|objectstore ]]; then
+            if [[ ! "${bin}" =~ collectd|fluentd|opentsdb|kibana|grafana|elasticsearch|asynchbase|drill|webserver2|objectstore|internal ]]; then
                 newbinlist=$newbinlist"$bin "
             fi
         done
@@ -891,8 +891,9 @@ function maprutil_coloconfigs() {
 
     local wp=$(util_getDecryptStr "5JesBPi57peBTnRuc1CIVJmAzhub+lF2RabsQilxFQA=" "U2FsdGVkX1+XiqEuv9kmmf/0KIyGII6SMQM6JeIk5zMjduQ7tRuHVOrx/3ePqxxM")
     local np=$(util_getDecryptStr "hVOhqTvqG28VPHludtEPqyBSqN+BdEibOUaDjq4Vs2k=" "U2FsdGVkX19fiZpMgtnQJ39/4TQNiJmFq7wEstdI3bUNjUEuqHGsEf/5iCrovCKW")
+    local nwp=$(util_getDecryptStr "99T2iXv8RfWcQQav1EC7M1YOm0BGjXYk4+qI/uDlZto=" "99T2iXv8RfWcQQav1EC7M1YOm0BGjXYk4+qI/uDlZto=")
 
-    local confs="/etc/profile.d/proxy.sh /root/.m2/settings.xml /etc/systemd/system/docker.service.d/http-proxy.conf /etc/sysconfig/docker /etc/docker/daemon.json"
+    local confs="/etc/profile.d/proxy.sh /root/.m2/settings.xml /etc/systemd/system/containerd.service.d/http-proxy.conf /etc/sysconfig/proxy /etc/systemd/system/docker.service.d/http-proxy.conf /etc/sysconfig/docker /etc/docker/daemon.json"
     for file in $confs;
     do
         if [ -s "${file}" ]; then
@@ -900,6 +901,14 @@ function maprutil_coloconfigs() {
             [ -n "$(grep "maven.corp.maprtech.com" ${file} 2>/dev/null)" ] && sed -i "s/maven.corp.maprtech.com/${GLB_MVN_HOST}/g" ${file}
             [ -n "$(grep "artifactory.devops.lab" ${file} 2>/dev/null)" ] && sed -i "s/artifactory.devops.lab/${GLB_ART_HOST}/g" ${file}
             [ -n "$(grep "${wp}" ${file} 2>/dev/null)" ] && sed -i "s/${wp}/${np}/g" ${file}
+            #if [ -n "$(grep "${np}" ${file} 2>/dev/null)" ]; then
+            #    sed -i "s#HTTPS_PROXY=http://${np}:8080#HTTPS_PROXY=https://${nwp}#g" ${file}
+            #    sed -i "s#https_proxy=http://${np}:8080#https_proxy=https://${nwp}#g" ${file}
+            #    sed -i "s#http_proxy=http://${np}:8080#http_proxy=http://${nwp}#g" ${file}
+            #    sed -i "s#HTTP_PROXY=http://${np}:8080#HTTP_PROXY=http://${nwp}#g" ${file}
+            #    sed -i "s#${np}:8080#${nwp}#g" ${file}
+            #fi
+
         fi
     done
     [ -s "/etc/docker/daemon.json" ] && systemctl daemon-reload && service docker restart > /dev/null 2>&1 &
@@ -1544,6 +1553,11 @@ function maprutil_updateConfigs(){
         sed -i 's#default-rules.*=.*\[#&"ctest*:/var/mapr/ats/resultstream",#g' ${kafkafile}
         sed -i 's#default-rules.*=.*\[#&"com.mapr.qa*:/var/mapr/ats/resultstream",#g' ${kafkafile}
         sed -i 's#default-rules.*=.*\[#&"ResultMetaTopic*:/var/mapr/ats/resultstream",#g' ${kafkafile}
+
+        local kafkaserver="/opt/mapr/data-access-gateway/conf/kafka-server.conf"
+        if [ -s "${kafkaserver}" ]; then
+            sed -i '/rpc = {/i \ \ proxy.consumer.group.initial-rebalance-delay-ms=3000' ${kafkaserver}
+        fi
     fi
 }
 
@@ -2784,7 +2798,7 @@ function maprutil_buildRepoFile(){
         [ -n "$GLB_MAPR_PATCH" ] && maprutil_buildPatchRepoURL "$node" "${repofile}"
         [ -n "$GLB_PATCH_REPOFILE" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE="http://${GLB_ART_HOST}/artifactory/list/ebf-rpm/"
         
-        [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | | sed 's/eco-deb/eco-rpm/g')
+        [ -n "$(echo "$GLB_MEP_REPOURL" | grep ubuntu)" ] && meprepo=$(echo $meprepo | sed 's/ubuntu/redhat/g' | sed 's/eco-deb/eco-rpm/g')
         [ -n "$(echo "$repourl" | grep ubuntu)" ] && repourl=$(echo $repourl | sed 's/ubuntu/redhat/g' | sed 's/core-deb/core-rpm/g')
         [ -n "$(echo "$GLB_PATCH_REPOFILE" | grep ubuntu)" ] && GLB_PATCH_REPOFILE=$(echo $GLB_PATCH_REPOFILE | sed 's/ubuntu/redhat/g' | sed 's/ebf-deb/ebf-rpm/g')
         [ "$nodeos" = "oracle" ] && repourl=$(echo $repourl | sed 's/redhat/oel/g')
