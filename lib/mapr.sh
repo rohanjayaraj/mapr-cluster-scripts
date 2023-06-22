@@ -2790,6 +2790,9 @@ function maprutil_buildRepoFile(){
     local nodeos=$(getOSFromNode $node)
     local ge70=$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")
     local meprepo=
+    local sr=$(util_getDecryptStr "asrDJAFmCTZUvhpN/GQxHg==" "U2FsdGVkX18uuyqjagEX+/ebbo3JsPKLMZu7Fv6SieU=")
+    local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
+
     repourl=$(echo $repourl | sed 's/oel/redhat/g')
 
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
@@ -2810,6 +2813,10 @@ function maprutil_buildRepoFile(){
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
         echo "proxy=_none_" >> $repofile
+        if grep -q "${sr}" <<< "${meprepo}"; then
+            echo "username=${creds}" >> $repofile
+            echo "password=${creds}" >> $repofile
+        fi
 
         echo >> $repofile
         echo "[QA-CustomRepo]" >> $repofile
@@ -2819,6 +2826,10 @@ function maprutil_buildRepoFile(){
         echo "gpgcheck=0" >> $repofile
         echo "protect=1" >> $repofile
         echo "proxy=_none_" >> $repofile
+        if grep -q "${sr}" <<< "${repourl}"; then
+            echo "username=${creds}" >> $repofile
+            echo "password=${creds}" >> $repofile
+        fi
 
         # Add patch if specified
         if [ -n "$GLB_PATCH_REPOFILE" ]; then
@@ -2856,6 +2867,15 @@ function maprutil_buildRepoFile(){
         local isMEPge810=$(maprutil_isMapRVersionSameOrNewer "8.1.0" "${eepVer}")
         [ -n "${isMEPge810}" ] && repotrust="bionic"
         echo "deb $istrusty $meprepo binary ${repotrust}" >> $repofile
+
+        if grep -q "${sr}" <<< "${repourl}"; then
+            local crefile="/etc/apt/auth.conf.d/${sr}.conf"
+            if [ ! -s "${crefile}" ]; then
+                echo "machine ${sr}" > ${crefile}
+                echo "login ${creds}" >> ${crefile}
+                echo "password ${creds}" >> ${crefile}
+            fi
+        fi
     fi
 }
 
@@ -6593,7 +6613,7 @@ function maprutil_dedupCores() {
         local trace=$(cat ${corefile} | sed -n "${fln},${sln}p" | sed "s/Core #[0-9]* :/Core #${i} : ${currnode}/g" | sed "2s/^/\\t${currbuildid}\n/")
         local tfn=$(echo "$trace" | grep -e "mapr::fs" -e "rdkafka" | head -n 1 | awk '{print $NF}')
         [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep "^[[:space:]]*#" | grep -v "??" | awk '{print $4}' | tr '\n' ' ')
-        [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep "Ignoring JVM")
+        [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep -e "Ignoring JVM" -e "Unable to fetch the backtrace")
         if [ -n "${tfn}" ] && [ -z "$(echo "${corefn}" | grep "${tfn}")" ] || [ -z "${tfn}" ]; then
             corefn="${corefn} ${tfn}"
             corestack="${corestack} $(echo -e "$trace" | sed 's/el::base::/el=base=/g') \n\n"

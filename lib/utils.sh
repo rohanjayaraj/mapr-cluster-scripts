@@ -1687,16 +1687,18 @@ function util_getSUPwd(){
     [ -z "${hasopenssl}" ] && return
 
     local passwd=$(util_getDecryptPwd)
-    local suepwd="LrmPAyabIz6jBrd2uydsuA== nXX9iFJ3Tr6E5gmTZQq4uA== Fw1TIj6Vsk6yVcqM+Sko6w== pB/HxKy+JXr+YUKMCGP02A== \
+    local suepwd="LrmPAyabIz6jBrd2uydsuA== nXX9iFJ3Tr6E5gmTZQq4uA== Fw1TIj6Vsk6yVcqM+Sko6w== \
+    pB/HxKy+JXr+YUKMCGP02A== +VIKwXtH+ySnsyIdIkLPSg== \
     U2FsdGVkX18HRmDRjF+2ed4Z03TnuZy4f0va2Q/mZx0= U2FsdGVkX1/QIGWcL713GA2yS8aEbUybZZJhg4vEoy4= \
-    U2FsdGVkX1/r/gqrhkGFNz/qHTbhDA8B7cTEik6O6Fg= U2FsdGVkX19gD/RWMjEmU/YZL4NQeDtC88bic1dK7yI="
+    U2FsdGVkX1/r/gqrhkGFNz/qHTbhDA8B7cTEik6O6Fg= U2FsdGVkX19gD/RWMjEmU/YZL4NQeDtC88bic1dK7yI= \
+    U2FsdGVkX1++8Hs0+FtSL3SekS5gunKA2ejXBEuJZCc="
     local rootpwd=
     for epwd in ${suepwd}; do
         local supwd=$(echo "${epwd}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
         [ -z "${supwd}" ] && supwd=$(echo "${epwd}" | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>/dev/null)
         [ -z "${rootpwd}" ] && [ -n "${supwd}" ] && rootpwd="${supwd}" || [ -n "${supwd}" ] && rootpwd="${rootpwd} ${supwd}"
     done
-    echo "${rootpwd} mapr ssmssm"
+    echo "${GLB_ROOT_PWD} ${rootpwd} mapr ssmssm"
 }
 
 # @param values in new lines

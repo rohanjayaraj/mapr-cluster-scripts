@@ -19,6 +19,7 @@ volcreate=
 tblcreate=
 
 # Declare Variables
+rootpwd=
 rolefile="rolefile"
 restartnodes=
 clustername=
@@ -96,6 +97,8 @@ function usage () {
     
     echo 
     echo " Install/Uninstall Options : "
+    echo -e "\t -rp=<PASSWORD> | --rootpwd=<PASSWORD>" 
+    echo -e "\t\t - root user password to setup passwordless access b/w the nodes (needed for first time use)"
     # Build replated parameters
     echo -e "\t -bld=<BUILDID> | --buildid=<BUILDID>" 
     echo -e "\t\t - Specify a BUILDID if the repository has more than one version of same binaries (default: install the latest binaries)"
@@ -432,6 +435,9 @@ while [ "$1" != "" ]; do
                 buildid=$VALUE
             fi
         ;;
+        -rp | --rootpwd)
+            [ -n "$VALUE" ] && rootpwd="$VALUE"
+        ;;
         -pb | --putbuffer)
             if [ -n "$VALUE" ]; then
                 putbuffer=$VALUE
@@ -498,6 +504,7 @@ else
     [ -n "${numsps}" ] && params="${params} \"-sp=${numsps}\""
     [ -n "${tablens}" ] && params="${params} \"-ns=${tablens}\""
     [ -n "${maxdisks}" ] && params="${params} \"-d=${maxdisks}\""
+    [ -n "${rootpwd}" ] && params="${params} \"-rp=${rootpwd}\""
 
     [ -n "${backupdir}" ] && params="${params} \"-b=${backupdir}\""
     [ -n "${buildid}" ] && params="${params} \"-bld=${buildid}\""
