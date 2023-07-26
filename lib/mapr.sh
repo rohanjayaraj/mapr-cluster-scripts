@@ -2791,7 +2791,11 @@ function maprutil_buildRepoFile(){
     local ge70=$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")
     local meprepo=
     local sr=$(util_getDecryptStr "asrDJAFmCTZUvhpN/GQxHg==" "U2FsdGVkX18uuyqjagEX+/ebbo3JsPKLMZu7Fv6SieU=")
+    local smhr=$(util_getDecryptStr "TV5msdE6eKb61BTCODfZ2kDpNX0l8CDQuEFTutQLQvQ=" "U2FsdGVkX1+1sLLuFJK9RUSOiI5AMgEMSOH4GPhfGpcmAz+QGBkuAgFzDh1xYPaA")
+    local sehr=$(util_getDecryptStr "8QlOWjA6r6trkP8ZzvEV0HgiYaMRLIqigunn22aFy5M=" "U2FsdGVkX1/AwUpMoYTGUGHWwnLL3jI9XJ4g1ZqrtG/BTFJuE3UICVBW9737KBr1")
     local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
+    local creduser=$(util_getDecryptStr "wk733/mYD+DhiAuJBi44iIHlH1QviVrpcXyEs3Wcjus=" "U2FsdGVkX1+2CB0MiBcA1pY8oll673lOzHgoT5m5r+Wn2D7FHzZN1Dgz/lMbUgYU")
+    local credpwd$(util_getDecryptStr "Uzkt+FyKsSHw5rfb68fkdA==" "U2FsdGVkX18dsH2sGltUlu8DRQFFpgd6ZTAeoI/YwFM=")
 
     repourl=$(echo $repourl | sed 's/oel/redhat/g')
 
@@ -2816,6 +2820,9 @@ function maprutil_buildRepoFile(){
         if grep -q "${sr}" <<< "${meprepo}"; then
             echo "username=${creds}" >> $repofile
             echo "password=${creds}" >> $repofile
+        elif grep -q -e "${smhr}" -e "${sehr}" <<< "${meprepo}"; then
+            echo "username=${creduser}" >> $repofile
+            echo "password=${credpwd}" >> $repofile
         fi
 
         echo >> $repofile
@@ -2829,6 +2836,9 @@ function maprutil_buildRepoFile(){
         if grep -q "${sr}" <<< "${repourl}"; then
             echo "username=${creds}" >> $repofile
             echo "password=${creds}" >> $repofile
+        elif grep -q -e "${smhr}" -e "${sehr}" <<< "${repourl}"; then
+            echo "username=${creduser}" >> $repofile
+            echo "password=${credpwd}" >> $repofile
         fi
 
         # Add patch if specified
@@ -2874,6 +2884,20 @@ function maprutil_buildRepoFile(){
                 echo "machine ${sr}" > ${crefile}
                 echo "login ${creds}" >> ${crefile}
                 echo "password ${creds}" >> ${crefile}
+            fi
+        elif grep -q "${smhr}" <<< "${repourl}"; then
+            local crefile="/etc/apt/auth.conf.d/${smhr}.conf"
+            if [ ! -s "${crefile}" ]; then
+                echo "machine ${smhr}" > ${crefile}
+                echo "login ${creduser}" >> ${crefile}
+                echo "password ${credpwd}" >> ${crefile}
+            fi
+        elif grep -q "${sehr}" <<< "${repourl}"; then
+            local crefile="/etc/apt/auth.conf.d/${sehr}.conf"
+            if [ ! -s "${crefile}" ]; then
+                echo "machine ${sehr}" > ${crefile}
+                echo "login ${creduser}" >> ${crefile}
+                echo "password ${credpwd}" >> ${crefile}
             fi
         fi
     fi
@@ -4434,16 +4458,19 @@ function maprutil_getClusterSpec(){
 }
 
 function maprutil_applyLicense(){
-    local licurl="http://stage.mapr.com/license/LatestDemoLicense-M7.txt"
+    local licurl="https://stage.mapr.hpe.com/license/LatestDemoLicense-M7.txt"
     if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
         local fipsenabled=$(cat /proc/sys/crypto/fips_enabled 2>/dev/null)
-        [[ "${fipsenabled}" -eq "1" ]] && licurl="http://stage.mapr.com/license/FIPSDemoLicense.fips"
+        [[ "${fipsenabled}" -eq "1" ]] && licurl="https://stage.mapr.hpe.com/license/FIPSDemoLicense.fips"
     fi
 
-    local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
+    #local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
+    local creduser=$(util_getDecryptStr "wk733/mYD+DhiAuJBi44iIHlH1QviVrpcXyEs3Wcjus=" "U2FsdGVkX1+2CB0MiBcA1pY8oll673lOzHgoT5m5r+Wn2D7FHzZN1Dgz/lMbUgYU")
+    local credpwd$(util_getDecryptStr "Uzkt+FyKsSHw5rfb68fkdA==" "U2FsdGVkX18dsH2sGltUlu8DRQFFpgd6ZTAeoI/YwFM=")
+
 
     [ -s "/etc/profile.d/proxy.sh" ] && . /etc/profile.d/proxy.sh;
-    timeout 90 wget ${licurl} --user=${creds} --password=${creds} -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
+    timeout 90 wget --no-check-certificate ${licurl} --user=${creduser} --password=${credpwd} -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
     
     local buildid=$(maprutil_getBuildID)
     local i=0
@@ -6613,7 +6640,7 @@ function maprutil_dedupCores() {
         local trace=$(cat ${corefile} | sed -n "${fln},${sln}p" | sed "s/Core #[0-9]* :/Core #${i} : ${currnode}/g" | sed "2s/^/\\t${currbuildid}\n/")
         local tfn=$(echo "$trace" | grep -e "mapr::fs" -e "rdkafka" | head -n 1 | awk '{print $NF}')
         [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep "^[[:space:]]*#" | grep -v "??" | awk '{print $4}' | tr '\n' ' ')
-        [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep -e "Ignoring JVM" -e "Unable to fetch the backtrace")
+        [ -z "${tfn}" ] && tfn=$(echo "$trace" | grep -e "Ignoring JVM" -e "Unable to fetch the backtrace" -e "Core file is truncated")
         if [ -n "${tfn}" ] && [ -z "$(echo "${corefn}" | grep "${tfn}")" ] || [ -z "${tfn}" ]; then
             corefn="${corefn} ${tfn}"
             corestack="${corestack} $(echo -e "$trace" | sed 's/el::base::/el=base=/g') \n\n"
