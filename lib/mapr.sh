@@ -2795,7 +2795,7 @@ function maprutil_buildRepoFile(){
     local sehr=$(util_getDecryptStr "8QlOWjA6r6trkP8ZzvEV0HgiYaMRLIqigunn22aFy5M=" "U2FsdGVkX1/AwUpMoYTGUGHWwnLL3jI9XJ4g1ZqrtG/BTFJuE3UICVBW9737KBr1")
     local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
     local creduser=$(util_getDecryptStr "wk733/mYD+DhiAuJBi44iIHlH1QviVrpcXyEs3Wcjus=" "U2FsdGVkX1+2CB0MiBcA1pY8oll673lOzHgoT5m5r+Wn2D7FHzZN1Dgz/lMbUgYU")
-    local credpwd$(util_getDecryptStr "Uzkt+FyKsSHw5rfb68fkdA==" "U2FsdGVkX18dsH2sGltUlu8DRQFFpgd6ZTAeoI/YwFM=")
+    local credpwd=$(util_getDecryptStr "Uzkt+FyKsSHw5rfb68fkdA==" "U2FsdGVkX18dsH2sGltUlu8DRQFFpgd6ZTAeoI/YwFM=")
 
     repourl=$(echo $repourl | sed 's/oel/redhat/g')
 
