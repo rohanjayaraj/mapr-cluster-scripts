@@ -867,7 +867,7 @@ function maprutil_cleanPrevClusterConfig(){
     maprutil_removedirs "temp" > /dev/null 2>&1
 
     if [ -e "/opt/mapr/roles/zookeeper" ]; then
-        zkentries="$(/opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 ls / | grep datacenter | tr -d '[' | tr -d ']' | tr -d ',')"
+        zkentries="$(/opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 ls / 2> /dev/null | grep datacenter | tr -d '[' | tr -d ']' | tr -d ',')"
         [ -z  "${zkentries}" ] && zkentries="datacenter services services_config servers queryservice drill"
         for i in ${zkentries} ; do 
             /opt/mapr/zookeeper/zookeeper-*/bin/zkCli.sh -server localhost:5181 rmr /$i > /dev/null 2>&1
@@ -2793,9 +2793,11 @@ function maprutil_buildRepoFile(){
     local sr=$(util_getDecryptStr "asrDJAFmCTZUvhpN/GQxHg==" "U2FsdGVkX18uuyqjagEX+/ebbo3JsPKLMZu7Fv6SieU=")
     local smhr=$(util_getDecryptStr "TV5msdE6eKb61BTCODfZ2kDpNX0l8CDQuEFTutQLQvQ=" "U2FsdGVkX1+1sLLuFJK9RUSOiI5AMgEMSOH4GPhfGpcmAz+QGBkuAgFzDh1xYPaA")
     local sehr=$(util_getDecryptStr "8QlOWjA6r6trkP8ZzvEV0HgiYaMRLIqigunn22aFy5M=" "U2FsdGVkX1/AwUpMoYTGUGHWwnLL3jI9XJ4g1ZqrtG/BTFJuE3UICVBW9737KBr1")
+    local pehr=$(util_getDecryptStr "2yElmg1XcafBMIJd3UR1+q/p2Mz9EKb+KbrY1BM6whQ=" "U2FsdGVkX1+uxZvVf/Ec7pV2WBV10ZOBU9tOrHLk5pGVe622HhZJoBs86FgetMa5")
     local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
     local creduser=$(util_getDecryptStr "wk733/mYD+DhiAuJBi44iIHlH1QviVrpcXyEs3Wcjus=" "U2FsdGVkX1+2CB0MiBcA1pY8oll673lOzHgoT5m5r+Wn2D7FHzZN1Dgz/lMbUgYU")
     local credpwd=$(util_getDecryptStr "Uzkt+FyKsSHw5rfb68fkdA==" "U2FsdGVkX18dsH2sGltUlu8DRQFFpgd6ZTAeoI/YwFM=")
+    local pehr_creduser=$(util_getDecryptStr "lL9MpNxhG4l7qLjFtaR4cj7wyMnUrDVrjrgX8JYBejU=" "U2FsdGVkX19LiliGNkRDI0rG0XCjIk4VL+B280hq3f00nYwdd8iEIjDQPMmDzAEb")
 
     repourl=$(echo $repourl | sed 's/oel/redhat/g')
 
@@ -2823,6 +2825,9 @@ function maprutil_buildRepoFile(){
         elif grep -q -e "${smhr}" -e "${sehr}" <<< "${meprepo}"; then
             echo "username=${creduser}" >> $repofile
             echo "password=${credpwd}" >> $repofile
+        elif grep -q "${pehr}" <<< "${meprepo}"; then
+            echo "username=${pehr_creduser}" >> $repofile
+            echo "password=${credpwd}" >> $repofile
         fi
 
         echo >> $repofile
@@ -2838,6 +2843,9 @@ function maprutil_buildRepoFile(){
             echo "password=${creds}" >> $repofile
         elif grep -q -e "${smhr}" -e "${sehr}" <<< "${repourl}"; then
             echo "username=${creduser}" >> $repofile
+            echo "password=${credpwd}" >> $repofile
+        elif grep -q "${pehr}" <<< "${repourl}"; then
+            echo "username=${pehr_creduser}" >> $repofile
             echo "password=${credpwd}" >> $repofile
         fi
 
@@ -2897,6 +2905,13 @@ function maprutil_buildRepoFile(){
             if [ ! -s "${crefile}" ]; then
                 echo "machine ${sehr}" > ${crefile}
                 echo "login ${creduser}" >> ${crefile}
+                echo "password ${credpwd}" >> ${crefile}
+            fi
+        elif grep -q "${pehr}" <<< "${repourl}"; then
+            local crefile="/etc/apt/auth.conf.d/${pehr}.conf"
+            if [ ! -s "${crefile}" ]; then
+                echo "machine ${pehr}" > ${crefile}
+                echo "login ${pehr_creduser}" >> ${crefile}
                 echo "password ${credpwd}" >> ${crefile}
             fi
         fi
