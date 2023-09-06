@@ -884,7 +884,7 @@ function maprutil_coloconfigs() {
     hwclock -w > /dev/null 2>&1
     service chronyd stop > /dev/null 2>&1
     killall chronyd > /dev/null 2>&1
-    chronyd -q 'server ${GLB_CRY_HOST}' > /dev/null 2>&1 &
+    chronyd -q 'server ${GLB_CRY_HOST} iburst' > /dev/null 2>&1 &
     if [[ "$(getOS)" = "centos" ]] && [[ "$(getOSReleaseVersion)" -lt "8" ]] || [[ "$(getOS)" = "ubuntu" ]] && [[ "$(getOSReleaseVersion)" -ge "18" ]]; then
         ntpdate -u ${GLB_CRY_HOST} > /dev/null 2>&1 &
     fi
@@ -2797,6 +2797,8 @@ function maprutil_buildRepoFile(){
     local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
     local creduser=$(util_getDecryptStr "wk733/mYD+DhiAuJBi44iIHlH1QviVrpcXyEs3Wcjus=" "U2FsdGVkX1+2CB0MiBcA1pY8oll673lOzHgoT5m5r+Wn2D7FHzZN1Dgz/lMbUgYU")
     local credpwd=$(util_getDecryptStr "Uzkt+FyKsSHw5rfb68fkdA==" "U2FsdGVkX18dsH2sGltUlu8DRQFFpgd6ZTAeoI/YwFM=")
+    local credpwd2=$(util_getDecryptStr "t3vQNtOwNrHVdBLoTUnqGgxIrWlSLJwDAWyfj6Velisx4YQFjic7VZ/ZUbEzFOwUp5PxKeiXQNWTBhSbnzeAjgfA9c2R9kuHJEVixD6B4g7sQkrx/YxcUV8FT/8nF35J" \
+        "U2FsdGVkX19VTmZAksYdAHIX2PRCdR5b+Uz9mCi4lnAPHg0uUBTNdPHKjHu6ICQv0vF4DGTVX/ph4rHelPrHNAyZp1QoBorjSCVldjYdIapx28dTya1LXhzOxIiChzTOwNijqmzaM1k9gUFND1w+cA==")
     local pehr_creduser=$(util_getDecryptStr "lL9MpNxhG4l7qLjFtaR4cj7wyMnUrDVrjrgX8JYBejU=" "U2FsdGVkX19LiliGNkRDI0rG0XCjIk4VL+B280hq3f00nYwdd8iEIjDQPMmDzAEb")
 
     repourl=$(echo $repourl | sed 's/oel/redhat/g')
@@ -2824,10 +2826,10 @@ function maprutil_buildRepoFile(){
             echo "password=${creds}" >> $repofile
         elif grep -q -e "${smhr}" -e "${sehr}" <<< "${meprepo}"; then
             echo "username=${creduser}" >> $repofile
-            echo "password=${credpwd}" >> $repofile
+            echo "password=${credpwd2}" >> $repofile
         elif grep -q "${pehr}" <<< "${meprepo}"; then
             echo "username=${pehr_creduser}" >> $repofile
-            echo "password=${credpwd}" >> $repofile
+            echo "password=${credpwd2}" >> $repofile
         fi
 
         echo >> $repofile
@@ -2843,10 +2845,10 @@ function maprutil_buildRepoFile(){
             echo "password=${creds}" >> $repofile
         elif grep -q -e "${smhr}" -e "${sehr}" <<< "${repourl}"; then
             echo "username=${creduser}" >> $repofile
-            echo "password=${credpwd}" >> $repofile
+            echo "password=${credpwd2}" >> $repofile
         elif grep -q "${pehr}" <<< "${repourl}"; then
             echo "username=${pehr_creduser}" >> $repofile
-            echo "password=${credpwd}" >> $repofile
+            echo "password=${credpwd2}" >> $repofile
         fi
 
         # Add patch if specified
@@ -2898,21 +2900,21 @@ function maprutil_buildRepoFile(){
             if [ ! -s "${crefile}" ]; then
                 echo "machine ${smhr}" > ${crefile}
                 echo "login ${creduser}" >> ${crefile}
-                echo "password ${credpwd}" >> ${crefile}
+                echo "password ${credpwd2}" >> ${crefile}
             fi
         elif grep -q "${sehr}" <<< "${repourl}"; then
             local crefile="/etc/apt/auth.conf.d/${sehr}.conf"
             if [ ! -s "${crefile}" ]; then
                 echo "machine ${sehr}" > ${crefile}
                 echo "login ${creduser}" >> ${crefile}
-                echo "password ${credpwd}" >> ${crefile}
+                echo "password ${credpwd2}" >> ${crefile}
             fi
         elif grep -q "${pehr}" <<< "${repourl}"; then
             local crefile="/etc/apt/auth.conf.d/${pehr}.conf"
             if [ ! -s "${crefile}" ]; then
                 echo "machine ${pehr}" > ${crefile}
                 echo "login ${pehr_creduser}" >> ${crefile}
-                echo "password ${credpwd}" >> ${crefile}
+                echo "password ${credpwd2}" >> ${crefile}
             fi
         fi
     fi
@@ -3405,11 +3407,12 @@ function maprutil_setupasanmfs(){
                 fi
             done
             # do no preload asan binary for scripts & mrconfig
-            files="/opt/mapr/server/createsystemvolumes.sh /opt/mapr/server/initaudit.sh /opt/mapr/server/createTTVolume.sh /opt/mapr/server/mrdiagnostics"
+            files="/opt/mapr/server/createsystemvolumes.sh /opt/mapr/server/initaudit.sh /opt/mapr/server/createLocalVolumes.sh /opt/mapr/server/createTTVolume.sh /opt/mapr/server/mrdiagnostics"
             for file in $files; do
                 [ ! -s "$file" ] && continue
                 [ -n "$(grep -B2 "\/mrconfig" $file | grep LD_PRELOAD)" ] && continue
                 sed -i "/\/mrconfig/i  export LD_PRELOAD=" $file
+                sed -i "/\/mrconfig/a  export LD_PRELOAD=${asanso}" $file
             done
             files=$(grep "start$" /opt/mapr/conf/warden.conf 2>/dev/null| awk '{print $(NF-1)}' | cut -d'=' -f2 | sort | uniq)
             for file in $files; do
@@ -3428,6 +3431,11 @@ function maprutil_setupasanmfs(){
 
                 sed -i "/bin\/java /i  export ASAN_OPTIONS=\"${asanoptions}\"\nexport UBSAN_OPTIONS=\"${ubsanoptions}\"\nexport MSAN_OPTIONS=\"${msanoptions}\"" $file
                 [ -n "$asanso" ] && sed -i "/bin\/java /i  export LD_PRELOAD=${asanso}" $file
+            done
+            files=$(find /opt/mapr/hadoop/hadoop-*/etc/hadoop/ -name hadoop-env.sh -o -name yarn-env.sh -o -name mapred-env.sh)
+            for file in $files; do
+                [ -n "$(grep "sanitizer.sh" $file)" ] && continue
+                echo "source /opt/mapr/conf/sanitizer.sh" >> $file
             done
         fi
     fi
@@ -4482,10 +4490,11 @@ function maprutil_applyLicense(){
     #local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
     local creduser=$(util_getDecryptStr "wk733/mYD+DhiAuJBi44iIHlH1QviVrpcXyEs3Wcjus=" "U2FsdGVkX1+2CB0MiBcA1pY8oll673lOzHgoT5m5r+Wn2D7FHzZN1Dgz/lMbUgYU")
     local credpwd=$(util_getDecryptStr "Uzkt+FyKsSHw5rfb68fkdA==" "U2FsdGVkX18dsH2sGltUlu8DRQFFpgd6ZTAeoI/YwFM=")
-
+    local credpwd2=$(util_getDecryptStr "t3vQNtOwNrHVdBLoTUnqGgxIrWlSLJwDAWyfj6Velisx4YQFjic7VZ/ZUbEzFOwUp5PxKeiXQNWTBhSbnzeAjgfA9c2R9kuHJEVixD6B4g7sQkrx/YxcUV8FT/8nF35J" \
+        "U2FsdGVkX19VTmZAksYdAHIX2PRCdR5b+Uz9mCi4lnAPHg0uUBTNdPHKjHu6ICQv0vF4DGTVX/ph4rHelPrHNAyZp1QoBorjSCVldjYdIapx28dTya1LXhzOxIiChzTOwNijqmzaM1k9gUFND1w+cA==")
 
     [ -s "/etc/profile.d/proxy.sh" ] && . /etc/profile.d/proxy.sh;
-    timeout 90 wget --no-check-certificate ${licurl} --user=${creduser} --password=${credpwd} -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
+    timeout 90 wget --no-check-certificate ${licurl} --user=${creduser} --password=${credpwd2} -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
     
     local buildid=$(maprutil_getBuildID)
     local i=0
