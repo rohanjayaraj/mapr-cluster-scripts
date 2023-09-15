@@ -2830,7 +2830,7 @@ function maprutil_buildRepoFile(){
             echo "username=${creduser}" >> $repofile
             echo "password=${sehrcredpwd}" >> $repofile
         elif grep -q "${pehr}" <<< "${meprepo}"; then
-            echo "username=${pehr_creduser}" >> $repofile
+            echo "username=${creduser}" >> $repofile
             echo "password=${pehrcredpwd}" >> $repofile
         fi
 
@@ -4492,7 +4492,7 @@ function maprutil_applyLicense(){
     #local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
     local creduser=$(util_getDecryptStr "wk733/mYD+DhiAuJBi44iIHlH1QviVrpcXyEs3Wcjus=" "U2FsdGVkX1+2CB0MiBcA1pY8oll673lOzHgoT5m5r+Wn2D7FHzZN1Dgz/lMbUgYU")
     local credpwd=$(util_getDecryptStr "Uzkt+FyKsSHw5rfb68fkdA==" "U2FsdGVkX18dsH2sGltUlu8DRQFFpgd6ZTAeoI/YwFM=")
-    local credpwd2=$(util_getDecryptStr "t3vQNtOwNrHVdBLoTUnqGgxIrWlSLJwDAWyfj6Velisx4YQFjic7VZ/ZUbEzFOwUp5PxKeiXQNWTBhSbnzeAjgfA9c2R9kuHJEVixD6B4g7sQkrx/YxcUV8FT/8nF35J" \
+    local credpwd2=$(util_getDecryptStr "t3vQNtOwNrHVdBLoTUnqGgxIrWlSLJwDAWyfj6Velisx4YQFjic7VZ/ZUbEzFOwU\np5PxKeiXQNWTBhSbnzeAjgfA9c2R9kuHJEVixD6B4g7sQkrx/YxcUV8FT/8nF35J" \
         "U2FsdGVkX19VTmZAksYdAHIX2PRCdR5b+Uz9mCi4lnAPHg0uUBTNdPHKjHu6ICQv0vF4DGTVX/ph4rHelPrHNAyZp1QoBorjSCVldjYdIapx28dTya1LXhzOxIiChzTOwNijqmzaM1k9gUFND1w+cA==")
 
     [ -s "/etc/profile.d/proxy.sh" ] && . /etc/profile.d/proxy.sh;
