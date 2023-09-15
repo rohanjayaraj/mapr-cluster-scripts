@@ -1672,10 +1672,10 @@ function util_getDecryptStr(){
 
     local decstr=
     if [ -n "${node}" ]; then
-        decstr=$(ssh root@${node} "echo '${encmd5str}' | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null")
+        decstr=$(ssh root@${node} "echo -e '${encmd5str}' | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null")
         [ -z "${decstr}" ] && decstr=$(ssh root@${node} "echo '${encshastr}' | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1")
     else
-        decstr=$(echo "${encmd5str}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
+        decstr=$(echo -e "${encmd5str}" | openssl enc -aes-256-cbc -a -nosalt -md md5 -pass pass:${passwd} -d 2>/dev/null)
         [ -z "${decstr}" ] && decstr=$(echo "${encshastr}" | openssl enc -aes-256-cbc -pass pass:${passwd} -a -A -iter 5 -d 2>&1)
     fi
     [ -n "$(echo "${decstr}" | grep -e "bad decrypt" -e "error reading input file")" ] && decstr=

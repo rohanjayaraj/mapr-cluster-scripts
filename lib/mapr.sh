@@ -2797,9 +2797,9 @@ function maprutil_buildRepoFile(){
     local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
     local creduser=$(util_getDecryptStr "PRIxmUBnulUm87/mxAN1oUE2dubkb2nqEHZpIaYEIhw=" "U2FsdGVkX18kkmjSEIN5dPfWSqtk02DXrd8PQH81th+DStf+xivcgV3lRORI3+3r")
     local credpwd=$(util_getDecryptStr "Uzkt+FyKsSHw5rfb68fkdA==" "U2FsdGVkX18dsH2sGltUlu8DRQFFpgd6ZTAeoI/YwFM=")
-    local sehrcredpwd=$(util_getDecryptStr "t3vQNtOwNrHVdBLoTUnqGgxIrWlSLJwDAWyfj6Velisx4YQFjic7VZ/ZUbEzFOwUp5PxKeiXQNWTBhSbnzeAjgfA9c2R9kuHJEVixD6B4g7sQkrx/YxcUV8FT/8nF35J" \
+    local sehrcredpwd=$(util_getDecryptStr "t3vQNtOwNrHVdBLoTUnqGgxIrWlSLJwDAWyfj6Velisx4YQFjic7VZ/ZUbEzFOwU\np5PxKeiXQNWTBhSbnzeAjgfA9c2R9kuHJEVixD6B4g7sQkrx/YxcUV8FT/8nF35J" \
         "U2FsdGVkX19VTmZAksYdAHIX2PRCdR5b+Uz9mCi4lnAPHg0uUBTNdPHKjHu6ICQv0vF4DGTVX/ph4rHelPrHNAyZp1QoBorjSCVldjYdIapx28dTya1LXhzOxIiChzTOwNijqmzaM1k9gUFND1w+cA==")
-    local pehrcredpwd=$(util_getDecryptStr "FE5GNzVWQ5PM8n6qOKry6OTL//WnhfXUAn1rWNHOlnH2iNv+rFXRKa1jSm2E5e1zIRBeQQs18pg4Gv45GcM1Scy30w3TaTTt55oI4UWwDm05cyIn1wGNFwxrTWAfhmzm" \
+    local pehrcredpwd=$(util_getDecryptStr "FE5GNzVWQ5PM8n6qOKry6OTL//WnhfXUAn1rWNHOlnH2iNv+rFXRKa1jSm2E5e1z\nIRBeQQs18pg4Gv45GcM1Scy30w3TaTTt55oI4UWwDm05cyIn1wGNFwxrTWAfhmzm" \
         "U2FsdGVkX18agRJlSfQVxw7yz2ly5wOZetQn4TDdhSwqGfIpNNUYGGYzD5UbmPuwjf2NukBW7LdXi/lJDTP7uuVmLg2kADELJsxa6zC0UdXBJq8Y5t4yASiQN9nqDQcNcT3TSjxcgz5rpK/cwozMOg==")
     #local pehr_creduser=$(util_getDecryptStr "lL9MpNxhG4l7qLjFtaR4cj7wyMnUrDVrjrgX8JYBejU=" "U2FsdGVkX19LiliGNkRDI0rG0XCjIk4VL+B280hq3f00nYwdd8iEIjDQPMmDzAEb")
 
