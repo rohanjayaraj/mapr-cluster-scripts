@@ -4516,7 +4516,7 @@ function maprutil_applyLicense(){
             jobs=$(timeout 30 /opt/mapr/bin/maprcli license add -license /tmp/LatestDemoLicense-M7.txt -is_file true > /dev/null;echo $?);
         fi
         let i=i+1
-        if [[ "$i" -gt "12" ]] && [[ "${jobs}" -ne "0" ]]; then
+        if [[ "$i" -gt "24" ]] && [[ "${jobs}" -ne "0" ]]; then
             log_error "Failed to apply license. Node may not be configured correctly"
             exit 1
         fi
