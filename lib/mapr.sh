@@ -4500,15 +4500,19 @@ function maprutil_applyLicense(){
     
     local buildid=$(maprutil_getBuildID)
     local i=0
+    local sleeptime=10
+    if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ]; then
+        sleeptime=25
+    fi
     local jobs=1
     while [ "${jobs}" -ne "0" ]; do
-        log_info "[$(util_getHostIP)] Waiting for CLDB to come up to apply license.... sleeping 10s"
+        log_info "[$(util_getHostIP)] Waiting for CLDB to come up to apply license.... sleeping ${sleeptime}s"
         if [ "$jobs" -ne 0 ]; then
             local licenseExists=`timeout 30 /opt/mapr/bin/maprcli license list 2>/dev/null | grep -e M7 -e Demo | wc -l`
             if [[ "$licenseExists" -ne "0" ]]; then
                 jobs=0
             else
-                sleep 10
+                sleep ${sleeptime}
             fi
         fi
         ### Attempt using Downloaded License
@@ -4516,7 +4520,7 @@ function maprutil_applyLicense(){
             jobs=$(timeout 30 /opt/mapr/bin/maprcli license add -license /tmp/LatestDemoLicense-M7.txt -is_file true > /dev/null;echo $?);
         fi
         let i=i+1
-        if [[ "$i" -gt "24" ]] && [[ "${jobs}" -ne "0" ]]; then
+        if [[ "$i" -gt "12" ]] && [[ "${jobs}" -ne "0" ]]; then
             log_error "Failed to apply license. Node may not be configured correctly"
             exit 1
         fi
