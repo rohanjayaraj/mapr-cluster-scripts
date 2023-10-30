@@ -3835,9 +3835,9 @@ function maprutil_runDiskTest(){
     do  
         local disklog="$disktestdir/${disk////_}.log"
         if [ -n "${direct}" ]; then
-            hdparm -tT --direct $disk > $disklog &
+            hdparm -tT --direct $disk > $disklog 2>&1 &
         else
-            hdparm -tT $disk > $disklog &
+            hdparm -tT $disk > $disklog 2>&1 &
         fi
     done
     wait
@@ -3855,11 +3855,16 @@ function maprutil_runDiskTest(){
         local midMB=$(echo "${highMB}" | awk '{printf("%d",$1/2)}')
         local goodDisks=
         local slowDisks=
+        local badDisks=
 
         for file in $(find $disktestdir -type f | sort); 
         do
             local isSlow=
             local disk=$(basename ${file} | tr '_' '/' | sed 's/.log//g')
+            if [ -n "$(cat ${file} | grep -i -e "failed" -e "No data available")" ]; then
+                badDisks="${badDisks} ${disk}"
+                continue
+            fi
             local diskMB=$(cat ${file} | grep "cached reads" | awk '{print $5}')
             local diskMBps=$(cat ${file} | grep "cached reads" | awk '{print $11}')
             [[ "${diskMB}" -lt "${midMB}" ]] && isSlow=1
@@ -3870,6 +3875,7 @@ function maprutil_runDiskTest(){
             fi
         done
         if [ -n "${slowDisks}" ]; then
+            [ -n "${badDisks}" ] && echo -e "\t FATAL! Bad Disks => ${badDisks}"
             echo -e "\t ALERT! Slow Disks(<$(echo "${midMB}" | awk '{printf("%d",$1/2)}') MB/s) => ${slowDisks}"
         fi
     fi 
