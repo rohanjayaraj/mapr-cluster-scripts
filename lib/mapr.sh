@@ -1740,7 +1740,7 @@ function maprutil_buildDiskList() {
     fi
     [[ -z "$GLB_DISK_TYPE" ]] && [[ "$diskratio" -eq "0" ]] && echo "$(util_getRawDisks "hdd")" > $diskfile
     if [ -s "$ignorefile" ]; then
-        local baddisks=$(cat $ignorefile | sed 's/,/ /g' | tr -s " " | tr ' ' '\n' | sed 's#/$##g')
+        local baddisks=$(cat $ignorefile | grep -v -e "^#" -e "^$" | sed 's/,/ /g' | tr -s " " | tr ' ' '\n' | sort | sed 's#/$##g')
         local gooddisks=$(cat $diskfile | grep -v "$baddisks")
         log_warn "[$(util_getHostIP)] Excluding disks [$(echo $baddisks | sed ':a;N;$!ba;s/\n/,/g')] "
         echo "$gooddisks" > $diskfile
@@ -3835,9 +3835,9 @@ function maprutil_runDiskTest(){
     do  
         local disklog="$disktestdir/${disk////_}.log"
         if [ -n "${direct}" ]; then
-            hdparm -tT --direct $disk > $disklog 2>&1 &
+            stdbuf -i0 -o0 -e0 hdparm -tT --direct $disk > $disklog 2>&1 &
         else
-            hdparm -tT $disk > $disklog 2>&1 &
+            stdbuf -i0 -o0 -e0 hdparm -tT $disk > $disklog 2>&1 &
         fi
     done
     wait
@@ -3874,8 +3874,8 @@ function maprutil_runDiskTest(){
                 slowDisks="${slowDisks} ${disk}(${diskMBps} MB/s)"
             fi
         done
+        [ -n "${badDisks}" ] && echo -e "\t FATAL! Bad Disks => ${badDisks}"
         if [ -n "${slowDisks}" ]; then
-            [ -n "${badDisks}" ] && echo -e "\t FATAL! Bad Disks => ${badDisks}"
             echo -e "\t ALERT! Slow Disks(<$(echo "${midMB}" | awk '{printf("%d",$1/2)}') MB/s) => ${slowDisks}"
         fi
     fi 
