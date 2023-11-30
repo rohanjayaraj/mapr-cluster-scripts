@@ -308,6 +308,7 @@ function util_installprereq(){
         util_checkAndInstall "iperf3" "iperf3"
         util_checkAndInstall "gdb" "gdb"
         util_checkAndInstall "dlv" "go-toolset"
+        util_checkAndInstall "smartctl" "smartmontools"
         #util_checkAndInstall "ipmitool" "ipmitool"
         if [ "$(getOS)" = "centos" ] || [ "$(getOS)" = "oracle" ]; then
             util_checkAndInstall "yum-config-manager" "yum-utils"
@@ -927,6 +928,7 @@ function util_buildSingleScript(){
     echo >> $script
     echo >> $script
     echo "HOSTIP=$3" >> $script
+    echo "[ -s /etc/profile.d/proxy.sh ] && source /etc/profile.d/proxy.sh;" >> $script
     return 0
 }
 
@@ -1545,7 +1547,8 @@ function util_postToSlack(){
     util_sourceProxy
 
     local SLACK_URL=$(timeout 5 wget https://bit.ly/37JEaaV 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
-    [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  https://bit.ly/37JEaaV  | grep -i Location | awk '{print $2}' | tr -d '"\r\n')
+    [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 30 curl -sLI  https://bit.ly/37JEaaV  | grep -i Location | awk '{print $2}' | tr -d '"\r\n')
+    rm -f wget-log* > /dev/null 2>&1
     [ -z "${SLACK_URL}" ] && return
 
     local roles="$1"
@@ -1577,7 +1580,7 @@ function util_postToSlack2(){
     local SLACK_URL=$2
     if [ -z "${isHookURL}" ]; then
         SLACK_URL=$(timeout 5 wget $2 2>&1 | grep Location | awk '{print $2}' | tr -d '"\r\n')
-        [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 5 curl -sLI  $2  | grep -i Location | awk '{print $2}' | tr -d '"\r\n')
+        [ -z "${SLACK_URL}" ] && SLACK_URL=$(timeout 30 curl -sLI  $2  | grep -i Location | awk '{print $2}' | tr -d '"\r\n')
         [ -z "${SLACK_URL}" ] && return
     fi
 

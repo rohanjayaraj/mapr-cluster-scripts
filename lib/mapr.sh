@@ -182,6 +182,10 @@ function maprutil_getCoreNodeBinaries() {
             [ -n "$(echo $newbinlist | grep mapr-posix-client-basic)" ] && newbinlist="$newbinlist mapr-patch-posix-client-basic"
             [ -n "$(echo $newbinlist | grep mapr-posix-client-platinum)" ] && newbinlist="$newbinlist mapr-patch-posix-client-platinum"
         fi
+        # Add keycloak package on 7.5.0+, if requested
+        if [ -n "${GLB_ENABLE_KEYCLOAK}" ] && [ -z "$(maprutil_isClientNode $1)" ] && [ -z "$(echo ${newbinlist} | grep mapr-keycloak )" ]; then
+            [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ] && newbinlist=$newbinlist" mapr-keycloak"
+        fi
         echo $newbinlist
     fi
 }
@@ -2058,6 +2062,7 @@ function maprutil_configure(){
         popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ]; then
             extops=$extops" -genkeys"
+            [ -n "${GLB_ENABLE_KEYCLOAK}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ] && extops=$extops" -keycloak"
         else
             maprutil_copySecureFilesFromCLDB "$cldbnode" "$cldbnodes" "$zknodes"
         fi
@@ -2770,7 +2775,7 @@ function maprutil_buildPatchRepoURL(){
             [ -n "$GLB_MAPR_VERSION" ] && GLB_PATCH_REPOFILE="http://${GLB_ART_HOST}/artifactory/prestage/releases-dev/patches/v${GLB_MAPR_VERSION}/redhat/"
         fi
     elif [ "$nodeos" = "ubuntu" ]; then
-        repopatch=$(cat $repofile 2>/dev/null | grep -v "^#" | grep patch | awk '{print $2}')
+        repopatch=$(cat $repofile 2>/dev/null | grep -v "^#" | grep patch | tr ' ' '\n' | grep patch | awk '{print $1}')
         if [ -n "$repopatch" ]; then
             GLB_PATCH_REPOFILE=${repopatch}
         else
@@ -3169,19 +3174,21 @@ function maprutil_setupasanmfs(){
     fi
 
     local isAsan="ASAN"
+    local sanBuildName="master"
+    [ -n "${GLB_SANITIZER_BUILDNAME}" ] && sanBuildName=${GLB_SANITIZER_BUILDNAME}
     # stop warden
     maprutil_restartPosixClients "stop" 2>/dev/null
     maprutil_restartWarden "stop" 2>/dev/null
     service mapr-zookeeper stop 2>/dev/null
     [ -n "$GLB_ASAN_OPTIONS" ] && GLB_ASAN_OPTIONS="$(echo "$GLB_ASAN_OPTIONS" | tr ',' ' ' | tr ':' '=')"
     # download latest asan mfs binary
-    local asanrepo="http://${GLB_ART_HOST}/artifactory/core-deb/master-asan/"
+    local asanrepo="http://${GLB_ART_HOST}/artifactory/core-deb/${sanBuildName}-asan/"
     if [ "$nodeos" = "centos" ]; then 
-        asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos7-asan/"
+        asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/${sanBuildName}-centos7-asan/"
         if [[ "$(getOSReleaseVersion)" -ge "8" ]]; then 
-            asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos8-asan/"
-            [[ -n "$(echo "${santype}" | grep ubsan)" ]] && asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos8-ubsan/" && isAsan="UBSAN"
-            [[ -n "$(echo "${santype}" | grep msan)" ]] && asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/master-centos8-msan/" && isAsan="MSAN"
+            asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/${sanBuildName}-centos8-asan/"
+            [[ -n "$(echo "${santype}" | grep ubsan)" ]] && asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/${sanBuildName}-centos8-ubsan/" && isAsan="UBSAN"
+            [[ -n "$(echo "${santype}" | grep msan)" ]] && asanrepo="http://${GLB_ART_HOST}/artifactory/core-rpm/${sanBuildName}-centos8-msan/" && isAsan="MSAN"
         fi
     fi
 
@@ -3437,6 +3444,8 @@ function maprutil_setupasanmfs(){
             files=$(find /opt/mapr/hadoop/hadoop-*/etc/hadoop/ -name hadoop-env.sh -o -name yarn-env.sh -o -name mapred-env.sh)
             for file in $files; do
                 [ -n "$(grep "sanitizer.sh" $file)" ] && continue
+                echo >> $file
+                echo "#Source ASAN env variables" >> $file
                 echo "source /opt/mapr/conf/sanitizer.sh" >> $file
             done
         fi
@@ -4501,7 +4510,7 @@ function maprutil_applyLicense(){
     local credpwd2=$(util_getDecryptStr "t3vQNtOwNrHVdBLoTUnqGgxIrWlSLJwDAWyfj6Velisx4YQFjic7VZ/ZUbEzFOwU\np5PxKeiXQNWTBhSbnzeAjgfA9c2R9kuHJEVixD6B4g7sQkrx/YxcUV8FT/8nF35J" \
         "U2FsdGVkX19VTmZAksYdAHIX2PRCdR5b+Uz9mCi4lnAPHg0uUBTNdPHKjHu6ICQv0vF4DGTVX/ph4rHelPrHNAyZp1QoBorjSCVldjYdIapx28dTya1LXhzOxIiChzTOwNijqmzaM1k9gUFND1w+cA==")
 
-    [ -s "/etc/profile.d/proxy.sh" ] && . /etc/profile.d/proxy.sh;
+    util_sourceProxy
     timeout 90 wget --no-check-certificate ${licurl} --user=${creduser} --password=${credpwd2} -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
     
     local buildid=$(maprutil_getBuildID)

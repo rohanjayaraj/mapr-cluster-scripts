@@ -40,6 +40,7 @@ meprepourl=
 patchrepourl=
 patchid=
 asanoptions=
+asanbldname=
 minioport=
 
 trap handleInterrupt SIGHUP SIGINT SIGTERM
@@ -123,6 +124,8 @@ function usage () {
     echo -e "\t\t - Install SpyGlass (only opentsdb,collectd,grafana)"
     echo -e "\t -spy2 | --spyglass2"
     echo -e "\t\t - Install SpyGlass (only opentsdb,collectd,grafana,kibana,elasticsearch,fluentd)"
+    echo -e "\t -kc | --keycloak"
+    echo -e "\t\t - Install & configure mapr-keycloak service"
     echo -e "\t -ns | -ns=TABLENS | --tablens=TABLENS" 
     echo -e "\t\t - Add table namespace to core-site.xml as part of the install process (default : /tables)"
     echo -e "\t -n=CLUSTER_NAME | --name=CLUSTER_NAME (default : archerx)" 
@@ -194,6 +197,8 @@ function usage () {
     echo -e "\t\t - Replace mix of ASAN,MSAN & UBSAN binaries of MFS on cluster nodes"
     echo -e "\t -asanmixall | --asanmixclient" 
     echo -e "\t\t - Replace mix of ASAN,MSAN & UBSAN binaries of MFS,Gateway, Client & maprfs jar on cluster nodes"
+    echo -e "\t -asanname=<BUILDNAME> | --asanbuildname=<BUILDNAME>" 
+    echo -e "\t\t - Specify the sanitizer build name. ex:ipv6-support (default: master)"
     echo -e "\t -mp=<PORTNUM> | --minioport=<PORTNUM>" 
     echo -e "\t\t - Specify a PORTNUM for running minio servers (when run with -im option)"
     echo -e "\t -igcldb | --ignorecldbforminio" 
@@ -339,6 +344,9 @@ while [ "$1" != "" ]; do
         -spy2 | --spyglass2)
             extraarg=$extraarg"spy2 "
         ;;
+        -kc | --keycloak)
+            extraarg=$extraarg"keycloak "
+        ;;
         -qs | --queryservice)
             extraarg=$extraarg"queryservice "
         ;;
@@ -379,6 +387,9 @@ while [ "$1" != "" ]; do
         ;;
         -asanmixall | --asanmixclient)
             extraarg=$extraarg"asanmixall "
+        ;;
+        -asanname | --asanbuildname)
+            [ -n "$VALUE" ] && asanbldname="$VALUE"
         ;;
         -mp | --minioport)
             [ -n "$VALUE" ] && minioport="$VALUE"
@@ -521,6 +532,7 @@ else
     [ -n "${maxmfsmem}" ] && params="${params} \"-maxm=${maxmfsmem}\""
     [ -n "${volname}" ] && params="${params} \"-vol=${volname}\""
     [ -n "${minioport}" ] && params="${params} \"-mp=${minioport}\""
+    [ -n "${asanubldname}" ] && params="${params} \"-srepo=${asanbldname}\""
 
     bash -c "$params"
     

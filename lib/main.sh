@@ -140,6 +140,7 @@ GLB_MAPR_REPOURL=
 GLB_MEP_REPOURL=
 GLB_PATCH_VERSION=
 GLB_PATCH_REPOFILE=
+GLB_SANITIZER_BUILDNAME=
 GLB_PUT_BUFFER=
 GLB_TABLET_DIST=
 GLB_INDEX_NAME=
@@ -147,6 +148,7 @@ GLB_TRACE_PNAME=
 GLB_SECURE_CLUSTER=
 GLB_ENABLE_RDMA=
 GLB_ENABLE_DARE=
+GLB_ENABLE_KEYCLOAK=
 GLB_ENABLE_QS=
 GLB_ATS_USERTICKETS=
 GLB_ATS_CLIENTSETUP=
@@ -240,6 +242,9 @@ function main_install(){
 			elif [[ "$GLB_BUILD_VERSION" = "latest" ]]; then
 				GLB_BUILD_VERSION="${buildexists}"
 			fi
+		fi
+		if [ -n "$GLB_MAPR_VERSION" ] && [ -n "${GLB_ENABLE_KEYCLOAK}" ] && [ -z "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ]; then
+			GLB_ENABLE_KEYCLOAK=
 		fi
 		local nodebins=$(maprutil_getCoreNodeBinaries "$node")
 		log_info "****** Installing binaries on node -> $node ****** "
@@ -1446,8 +1451,8 @@ function main_addSpyglass(){
 	for node in ${nodes[@]}
 	do	
     	if [ -n "$(maprutil_isClientNode $node)" ]; then
-			continue
-		elif [ "$node" = "$cldbnode" ]; then
+				continue
+			elif [ "$node" = "$cldbnode" ]; then
     		sed -i "/$node/ s/$/,mapr-opentsdb,mapr-grafana,mapr-collectd/" $newrolefile
     		[ -n "$addkibana" ] && sed -i "/$node/ s/$/,mapr-elasticsearch,mapr-kibana,mapr-fluentd/" $newrolefile
     	else
@@ -1480,6 +1485,8 @@ function main_printURLs(){
 }
 
 function main_preSetup(){
+	# source proxy if it exists
+	util_sourceProxy
 	# build roles list
 	[ -z "$GLB_ROLE_LIST" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
 	if [[ "$addSpy" = "1" ]]; then 
@@ -1495,7 +1502,7 @@ function main_preSetup(){
 	[ -z "$GLB_MAPR_PATCH" ] && [ -n "$(echo "$roles" | grep mapr-patch)" ] && GLB_MAPR_PATCH=1
 	GLB_CLUSTER_SIZE=$(echo "$roles" |  grep "^[^#;]" | grep 'mapr-fileserver' | wc -l)
 
-	[ -n "${GLB_PATCH_REPOFILE}" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -t 1 -T 5 -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE=
+	[ -n "${GLB_PATCH_REPOFILE}" ] && [ -z "${expPatchRepo}" ] && [ -z "$(wget $GLB_PATCH_REPOFILE -t 1 -T 5 -O- 2>/dev/null)" ] && GLB_PATCH_REPOFILE=
 }
 
 function main_extractMapRVersion(){
@@ -1536,6 +1543,7 @@ doSkip=
 noMinioOnCLDB=
 addSpy=
 doASAN=
+expPatchRepo=
 startstr=
 endstr=
 copydir=
@@ -1623,6 +1631,8 @@ while [ "$2" != "" ]; do
     				addSpy=1
     			elif [[ "$i" = "spy2" ]]; then
     				addSpy=2
+					elif [[ "$i" = "keycloak" ]]; then
+						GLB_ENABLE_KEYCLOAK=1
     			elif [[ "$i" = "queryservice" ]]; then
     				GLB_ENABLE_QS=1
     			elif [[ "$i" = "atstickets" ]]; then
@@ -1868,6 +1878,7 @@ while [ "$2" != "" ]; do
 		-prepo)
 			if [ -n "$VALUE" ]; then
 				GLB_PATCH_REPOFILE="$VALUE"
+				expPatchRepo=1
 			fi
 		;;
 		-meprepo)
@@ -1900,6 +1911,9 @@ while [ "$2" != "" ]; do
 			if [ -n "$VALUE" ]; then
  				GLB_ASAN_OPTIONS="$VALUE"
  			fi
+		;;
+		-srepo)
+			[ -n "$VALUE" ] && GLB_SANITIZER_BUILDNAME="$VALUE"
 		;;
 		-mp)
 			[ -n "$VALUE" ] && GLB_MINIO_PORT="$VALUE"
