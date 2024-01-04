@@ -17,12 +17,12 @@ source "$lib_dir/logger.sh"
 ## @param optional hostip
 function maprutil_getCLDBMasterNode() {
     local master=
-    local hostname=$(util_getHostname)
+    local hostip=$(util_getHostIP)
     local usemaprcli=$2
     if [ -n "$2" ] && [ -n "$1" ]; then
         master=$(ssh_executeCommandWithTimeout "root" "$1" "timeout 30 maprcli node cldbmaster 2>/dev/null | grep HostName | cut -d' ' -f4" "10")
         master=$(util_getIPfromHostName $master)
-    elif [ -n "$1" ] && [ "$hostname" != "$(maprutil_getHostFromIP $1)" ]; then
+    elif [ -n "$1" ] && [ "$hostip" != "$1" ]; then
         #master=$(ssh_executeCommandWithTimeout "root" "$1" "timeout 30 maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
         master=$(ssh_executeCommandasRoot "$1" "[ -e '/opt/mapr/conf/mapr-clusters.conf' ] && cat /opt/mapr/conf/mapr-clusters.conf | cut -d' ' -f3 | cut -d':' -f1")
     else
