@@ -2131,12 +2131,12 @@ function maprutil_configure(){
     local zkhostlist=${zknodes}
     if [ -n "${GLB_USE_HOSTNAME}" ]; then
         cldbhostlist=
-        for cldbnodeip in $cldbnodes; do
+        for cldbnodeip in $1; do
             [ -n "${cldbhostlist}" ] && cldbhostlist="${cldbhostlist},"
             cldbhostlist="${cldbhostlist}$(maprutil_getHostFromIP ${cldbnodeip})"
         done
         zkhostlist=
-        for zknodeip in $zknodes; do
+        for zknodeip in $2; do
             [ -n "${zkhostlist}" ] && zkhostlist="${zkhostlist},"
             zkhostlist="${zkhostlist}$(maprutil_getHostFromIP ${zknodeip})"
         done
@@ -2510,7 +2510,7 @@ function maprutil_copyMapRTicketsFromCLDB(){
     local i=0
     local sleeptime=10
     if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ]; then
-        sleeptime=25
+        sleeptime=35
     fi
     local waitcount=18
     [ "$ISCLIENT" -eq 1 ] && waitcount=27
