@@ -139,7 +139,7 @@ function maprutil_getIPFromHost(){
     if [ "$isvalid" = "valid" ]; then 
         echo $1
     else
-        echo "$(echo "$GLB_HOSTIP_MAP" | tr '#' '\n' | grep "^$1" | cut -d':' -f2)"
+        echo "$(echo "$GLB_HOSTIP_MAP" | tr '#' '\n' | grep "^$1" | cut -d':' -f1)"
     fi
 }
 
@@ -149,7 +149,7 @@ function maprutil_getHostFromIP(){
     if [ "$isvalid" = "invalid" ]; then
         echo $1
     else 
-        echo "$(echo "$GLB_HOSTIP_MAP" | tr '#' '\n' | grep "^$1" | cut -d':' -f1)"
+        echo "$(echo "$GLB_HOSTIP_MAP" | tr '#' '\n' | grep "^$1" | cut -d':' -f2)"
     fi
 }
 
