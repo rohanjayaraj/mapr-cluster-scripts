@@ -2127,7 +2127,21 @@ function maprutil_configure(){
         [ -n "$GLB_ENABLE_DARE" ] && extops="$extops -dare"
     fi
 
-    local configurecmd="/opt/mapr/server/configure.sh -C ${cldbnodes} -Z ${zknodes} -L /opt/mapr/logs/install_config.log -N $3"
+    local cldbhostlist=${cldbnodes}
+    local zkhostlist=${zknodes}
+    if [ -n "${GLB_USE_HOSTNAME}" ]; then
+        cldbhostlist=
+        for cldbnodeip in $cldbnodes; do
+            [ -n "${cldbhostlist}" ] && cldbhostlist="${cldbhostlist},"
+            cldbhostlist="${cldbhostlist}$(maprutil_getHostFromIP ${cldbnodeip})"
+        done
+        zkhostlist=
+        for zknodeip in $zknodes; do
+            [ -n "${zkhostlist}" ] && zkhostlist="${zkhostlist},"
+            zkhostlist="${zkhostlist}$(maprutil_getHostFromIP ${zknodeip})"
+        done
+    fi
+    local configurecmd="/opt/mapr/server/configure.sh -C ${cldbhostlist} -Z ${zkhostlist} -L /opt/mapr/logs/install_config.log -N $3"
     [ -n "$extops" ] && configurecmd="$configurecmd $extops"
 
     if [ "$ISCLIENT" -eq 1 ]; then
@@ -2137,7 +2151,7 @@ function maprutil_configure(){
     fi
     #[ -n "$rmnodes" ] && configurecmd="$configurecmd -RM $(util_getCommaSeparated "$rmnodes")"
     [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS $(util_getFirstElement "$hsnodes")"
-    
+    [ -n "${GLB_USE_IPV6}" ] && configurecmd="$configurecmd --ipv6-support"
 
     # Run configure.sh on the node
     log_info "[$hostip] $configurecmd"
