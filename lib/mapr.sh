@@ -17,12 +17,12 @@ source "$lib_dir/logger.sh"
 ## @param optional hostip
 function maprutil_getCLDBMasterNode() {
     local master=
-    local hostip=$(util_getHostIP)
+    local hostname=$(util_getHostname)
     local usemaprcli=$2
     if [ -n "$2" ] && [ -n "$1" ]; then
         master=$(ssh_executeCommandWithTimeout "root" "$1" "timeout 30 maprcli node cldbmaster 2>/dev/null | grep HostName | cut -d' ' -f4" "10")
         master=$(util_getIPfromHostName $master)
-    elif [ -n "$1" ] && [ "$hostip" != "$1" ]; then
+    elif [ -n "$1" ] && [ "$hostname" != "$(maprutil_getHostFromIP $1)" ]; then
         #master=$(ssh_executeCommandWithTimeout "root" "$1" "timeout 30 maprcli node cldbmaster | grep HostName | cut -d' ' -f4" "10")
         master=$(ssh_executeCommandasRoot "$1" "[ -e '/opt/mapr/conf/mapr-clusters.conf' ] && cat /opt/mapr/conf/mapr-clusters.conf | cut -d' ' -f3 | cut -d':' -f1")
     else
@@ -98,10 +98,10 @@ function maprutil_getNodesForService() {
 
 ## @param path to config
 function maprutil_buildRolesList(){
-     if [ -z "$1" ]; then
+    if [ -z "$1" ]; then
         return 1
     fi
-    echo "$(cat $1 2>/dev/null| sed 's/^[[:space:]]*//g' | grep '^[^#;/]' | grep '^[0-9]' | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | sort | uniq | tr '\n' '#' | sed 's/#$//')"
+    echo "$(cat $1 2>/dev/null| sed 's/^[[:space:]]*//g' | grep '^[^#;/]' | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | sort | uniq | tr '\n' '#' | sed 's/#$//')"
 }
 
 function maprutil_getRolesList(){
@@ -109,6 +109,58 @@ function maprutil_getRolesList(){
         return 1
     fi
     echo "$(echo "$GLB_ROLE_LIST" | tr '#' '\n')"
+}
+
+function maprutil_buildIPHostMap(){
+    [ -z "$GLB_ROLE_LIST" ] && return
+    local rolelist="$(maprutil_getRolesList)"
+    local servicenodes=$(echo "$rolelist" | awk -F, '{print $1}' | sed ':a;N;$!ba;s/\n/ /g')
+    local iphostmap=
+    for snode in ${servicenodes}; do
+        local nodeip=
+        local nodehn=
+        local isvalid=$(util_validip2 ${snode})
+        if [ "$isvalid" = "valid" ]; then 
+            nodeip=${snode}
+            nodehn=$(util_getHostnameFromIPs ${snode})
+        else
+            nodeip=$(util_getIPfromHostName ${snode})
+            nodehn=${snode}
+        fi
+        [ -n "${iphostmap}" ] && iphostmap="${iphostmap}#"
+        iphostmap="${iphostmap}${nodeip}:${nodehn}"
+    done
+    [ -n "${iphostmap}" ] && echo "${iphostmap}"
+}
+
+function maprutil_getIPFromHost(){
+    [ -z "$1" ] || [ -z "$GLB_HOSTIP_MAP" ] && return
+    local isvalid=$(util_validip2 $1)
+    if [ "$isvalid" = "valid" ]; then 
+        return $1
+    else
+        echo "$(echo "$GLB_HOSTIP_MAP" | tr '#' '\n' | grep "^$1" | cut -d':' -f2)"
+    fi
+}
+
+function maprutil_getHostFromIP(){
+    [ -z "$1" ] || [ -z "$GLB_HOSTIP_MAP" ] && return
+    local isvalid=$(util_validip2 $1)
+    if [ "$isvalid" = "invalid" ]; then
+        return $1
+    else 
+        echo "$(echo "$GLB_HOSTIP_MAP" | tr '#' '\n' | grep "^$1" | cut -d':' -f1)"
+    fi
+}
+
+function maprutil_getIPHostOther(){
+    [ -z "$1" ] || [ -z "$GLB_HOSTIP_MAP" ] && return
+    local isvalid=$(util_validip2 $1)
+    if [ "$isvalid" = "valid" ]; then 
+        echo "$(echo "$GLB_HOSTIP_MAP" | tr '#' '\n' | grep "^$1" | cut -d':' -f2)"
+    else
+        echo "$(echo "$GLB_HOSTIP_MAP" | tr '#' '\n' | grep "^$1" | cut -d':' -f1)"
+    fi
 }
 
 ## @param path to config
@@ -247,10 +299,10 @@ function maprutil_isClusterNode(){
     if [ -z "$1" ] || [ -z "$2" ]; then
         return 1
     fi
-    local hostip=$(util_getHostIP)
+    local hostname=$(util_getHostname)
     local mcldb=$2
     local retval=
-    if [ "$hostip" = "$1" ]; then
+    if [ "$hostname" = "$(maprutil_getHostFromIP $1)" ]; then
         retval=$(grep $mcldb /opt/mapr/conf/mapr-clusters.conf)
     else
         retval=$(ssh_executeCommand "root" "$1" "grep $mcldb /opt/mapr/conf/mapr-clusters.conf")
@@ -268,6 +320,7 @@ function maprutil_getNodesFromRole() {
     while read -r i; do
         local node=$(echo $i | sed 's/,[[:space:]]*/,/g' | tr ' ' ',' | cut -f1 -d",")
         local isvalid=$(util_validip2 $node)
+        [ "$isvalid" = "invalid" ] && [ -n "$(util_getIPfromHostName ${node})" ] && isvalid="valid"
         if [ "$isvalid" = "valid" ]; then
             [ -n "$(echo "${nodes}" | grep -who "${node}")" ] && continue
             nodes=$nodes$node" "
@@ -275,7 +328,7 @@ function maprutil_getNodesFromRole() {
             echo "Invalid IP [$node]. Scooting"
             exit 1
         fi
-    done <<< "$(cat $1 | sed 's/^[[:space:]]*//g' | grep '^[^#;/]' | grep '^[0-9]')"
+    done <<< "$(cat $1 | sed 's/^[[:space:]]*//g' | grep '^[^#;/]')"
     echo $nodes | tr ' ' '\n' | sort -t . -k 3,3n -k 4,4n | tr '\n' ' ' | sed 's/[[:space:]]*$//'
 }
 
@@ -626,7 +679,7 @@ function maprutil_isMapRInstalledOnNode(){
         return
     fi
     
-    local hostnode=$1
+    local host=$1
     local scriptpath="$RUNTEMPDIR/isinstalled_${hostnode}.sh"
 
     # build full script for node
@@ -638,9 +691,9 @@ function maprutil_isMapRInstalledOnNode(){
     echo "util_getInstalledBinaries 'mapr-'" >> $scriptpath
 
     local bins=
-    local hostip=$(util_getHostIP)
-    if [ "$hostip" != "$hostnode" ]; then
-        bins=$(ssh_executeScriptasRoot "$hostnode" "$scriptpath")
+    local hostname=$(util_getHostname)
+    if [ "$hostname" != "$(maprutil_getHostFromIP $host)" ]; then
+        bins=$(ssh_executeScriptasRoot "$host" "$scriptpath")
     else
         bins=$(util_getInstalledBinaries "mapr-")
     fi
@@ -1075,6 +1128,7 @@ function maprutil_uninstallNode(){
 function maprutil_upgrade(){
     #local upbins="mapr-cldb mapr-core mapr-core-internal mapr-fileserver mapr-hadoop-core mapr-historyserver mapr-jobtracker mapr-mapreduce1 mapr-mapreduce2 mapr-metrics mapr-nfs mapr-nodemanager mapr-resourcemanager mapr-tasktracker mapr-webserver mapr-zookeeper mapr-zk-internal mapr-drill"
     local hostip=$(util_getHostIP)
+    local hostname=$(util_getHostname)
     local upbins=$(util_getInstalledBinaries "mapr-")
     upbins=$(echo "$upbins"| sed 's/ /\n/g' | grep -v "patch")
     upbins=$(echo "$upbins" | tr '-' ' ' | tr '_' ' ' | awk '{for(i=1;i<=NF;i++) {if($i ~ /^[[:digit:]]/) break; printf("%s ",$i)} printf("\n")}' | sed 's/ /-/g' | sed 's/-$//g')
@@ -1140,7 +1194,7 @@ function maprutil_upgrade(){
         fi
     fi
 
-    local queryservice=$(echo $(maprutil_getNodesForService "drill") | grep "$hostip")
+    local queryservice=$(echo $(maprutil_getNodesForService "drill") | grep -e "$hostip" -e "${hostname}")
 
     local cmd="/opt/mapr/server/configure.sh -R"
     if [ -n "$queryservice" ] && [ -n "$GLB_ENABLE_QS" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
@@ -1307,8 +1361,9 @@ function maprutil_installBinariesOnNode(){
 
 function maprutil_installApiserverIfAbsent(){
     local hostip=$(util_getHostIP)
-    local hasapi=$(echo $(maprutil_getNodesForService "mapr-apiserver") | grep "$hostip")
-    local hasweb=$(echo $(maprutil_getNodesForService "mapr-webserver") | grep "$hostip")
+    local hostname=$(util_getHostname)
+    local hasapi=$(echo $(maprutil_getNodesForService "mapr-apiserver") | grep -e "$hostip" -e "$hostname")
+    local hasweb=$(echo $(maprutil_getNodesForService "mapr-webserver") | grep -e "$hostip" -e "$hostname")
 
     local webinst=$(util_getInstalledBinaries "mapr-webserver")
     local apiinst=$(util_getInstalledBinaries "mapr-apiserver")
@@ -1321,8 +1376,9 @@ function maprutil_installApiserverIfAbsent(){
 
 function maprutil_reinstallApiserver(){
     local hostip=$(util_getHostIP)
-    local hasapi=$(echo $(maprutil_getNodesForService "mapr-apiserver") | grep "$hostip")
-    local haswebserver=$(echo $(maprutil_getNodesForService "mapr-webserver") | grep "$hostip")
+    local hostname=$(util_getHostname)
+    local hasapi=$(echo $(maprutil_getNodesForService "mapr-apiserver") | grep -e "$hostip" -e "$hostname")
+    local haswebserver=$(echo $(maprutil_getNodesForService "mapr-webserver") | grep -e "$hostip" -e "$hostname")
     [ -z "$hasapi" ] && [ -z "$haswebserver" ] && return
     local nodeos=$(getOS)
     [ "$nodeos" = "oracle" ] && return
@@ -1959,7 +2015,7 @@ function maprutil_configureSSH(){
     local nodehn=
     for node in ${nodes[@]}
     do
-        local hostname=$(ssh $node "echo \$(hostname -f)")
+        local hostname=$(maprutil_getIPHostOther $node)
         nodehn="$nodehn $hostname"
     done
 
@@ -2016,6 +2072,7 @@ function maprutil_configure(){
         return
     fi
     local hostip=$(util_getHostIP)
+    local hostname=$(util_getHostname)
 
     # SSH session exits after running for few seconds with error "Write failed: Broken pipe"
     #util_restartSSHD
@@ -2032,13 +2089,14 @@ function maprutil_configure(){
     
     local cldbnodes=$(util_getCommaSeparated "$1")
     local cldbnode=$(util_getFirstElement "$1")
+    local cldbhostnode=$(maprutil_getHostFromIP $cldbnode)
     local zknodes=$(util_getCommaSeparated "$2")
     local hsnodes=$(maprutil_getNodesForService "historyserver")
     local rmnodes=$(maprutil_getNodesForService "resourcemanager")
     local objnodes=$(maprutil_getNodesForService "objectstore-client")
     local dagnodes="$(maprutil_getNodesForService "data-access-gateway")"
     
-    if [ "$hostip" != "$cldbnode" ] && [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
+    if [ "$hostip" != "$cldbnode" ] && [ "$hostname" != "$cldbhostnode" ] && [ "$(ssh_check root $cldbnode)" != "enabled" ]; then
         ssh_copyPublicKey "root" "$cldbnode"
     fi
 
@@ -2060,7 +2118,7 @@ function maprutil_configure(){
         rm -rf cldb.key ssl_truststore* ssl_keystore* mapruserticket maprserverticket /tmp/maprticket_* dare.master.key > /dev/null 2>&1
         rm -rf tokens/* ssl_*store* *.jceks private.key public.crt > /dev/null 2>&1
         popd > /dev/null 2>&1
-        if [ "$hostip" = "$cldbnode" ]; then
+        if [ "$hostip" = "$cldbnode" ] || [ "$hostname" = "$cldbhostnode" ]; then
             extops=$extops" -genkeys"
             [ -n "${GLB_ENABLE_KEYCLOAK}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ] && extops=$extops" -keycloak"
         else
@@ -2158,7 +2216,7 @@ function maprutil_configure(){
     # Restart posix-client
     maprutil_restartPosixClients "restart" > /dev/null 2>&1
     
-    if [ "$hostip" = "$cldbnode" ]; then
+    if [ "$hostip" = "$cldbnode" ] || [ "$hostname" = "$cldbhostnode" ]; then
         maprutil_applyLicense
         if [ -n "$multimfs" ] && [ "$multimfs" -gt 0 ]; then
             maprutil_configureMultiMFS "$multimfs" "$numsps"
@@ -2436,15 +2494,19 @@ function maprutil_copyMapRTicketsFromCLDB(){
     # Check if CLDB is configured & files are available for copy
     local cldbisup="false"
     local i=0
+    local sleeptime=10
+    if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ]; then
+        sleeptime=25
+    fi
     local waitcount=18
     [ "$ISCLIENT" -eq 1 ] && waitcount=27
     while [ "$cldbisup" = "false" ]; do
         cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/tmp/maprticket_0' ] && echo true || echo false")
         if [ "$cldbisup" = "false" ]; then
-            sleep 10
+            sleep ${sleeptime}
         else
             cldbisup="true"
-            sleep 10
+            sleep ${sleeptime}
             break
         fi
         let i=i+1
@@ -2469,6 +2531,10 @@ function maprutil_copySecureFilesFromCLDB(){
     # Check if CLDB is configured & files are available for copy
     local cldbisup="false"
     local keyname="cldb.key"
+    local sleeptime=10
+    if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ]; then
+        sleeptime=25
+    fi
     local i=0
     while [ "$cldbisup" = "false" ]; do
         if [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
@@ -2478,7 +2544,7 @@ function maprutil_copySecureFilesFromCLDB(){
             cldbisup=$(ssh_executeCommandasRoot "$cldbhost" "[ -e '/opt/mapr/conf/cldb.key' ] && [ -e '/opt/mapr/conf/maprserverticket' ] && [ -e '/opt/mapr/conf/ssl_keystore' ] && [ -e '/opt/mapr/conf/ssl_truststore' ] && echo true || echo false")
         fi
         if [ "$cldbisup" = "false" ]; then
-            sleep 10
+            sleep ${sleeptime}
         else
             [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ] && sleep 60
             break
@@ -4511,8 +4577,34 @@ function maprutil_applyLicense(){
         "U2FsdGVkX19VTmZAksYdAHIX2PRCdR5b+Uz9mCi4lnAPHg0uUBTNdPHKjHu6ICQv0vF4DGTVX/ph4rHelPrHNAyZp1QoBorjSCVldjYdIapx28dTya1LXhzOxIiChzTOwNijqmzaM1k9gUFND1w+cA==")
 
     util_sourceProxy
-    timeout 90 wget --no-check-certificate ${licurl} --user=${creduser} --password=${credpwd2} -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
-    
+    local k=0
+    local bkplicfile="/home/PERFSELFHOST/License/LatestDemoLicense-M7.txt"
+    while [ "${k}" -lt "5" ]; do
+        rm -f /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
+        timeout 60 wget --no-check-certificate ${licurl} --user=${creduser} --password=${credpwd2} -O /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
+        if [ -s "/tmp/LatestDemoLicense-M7.txt" ]; then 
+            log_info "[$(util_getHostIP)] Successfully downloaded the demo license"
+            if [ -d "/home/PERFSELFHOST/License" ] && [ -s "${bkplicfile}" ]; then
+                local expdate=$(cat ${bkplicfile}  | grep expdateStr | head -n 1 | cut -d':' -f2- | tr -d '"')
+                expdate=$(date -d "$licexpdate" "+%s")
+                local nextweek=$(date -d "+7 days" +%s)
+                [[ "${nextweek}" -gt "${expdate}" ]] && scp /tmp/LatestDemoLicense-M7.txt ${bkplicfile} > /dev/null 2>&1
+            fi
+        elif [ ! -s "/tmp/LatestDemoLicense-M7.txt" ] && [ -s "${bkplicfile}" ]; then
+            rm -f /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
+            local tomorrow=$(date -d "+1 days" +%s)
+            local licexpdate=$(cat ${bkplicfile}  | grep expdateStr | head -n 1 | cut -d':' -f2- | tr -d '"')
+            licexpdate=$(date -d "$licexpdate" "+%s")
+            if [[ "${licexpdate}" -gt "${tomorrow}" ]]; then 
+                log_warn "[$(util_getHostIP)] Failed to download demo license. Using backup license from selfhosting"
+                scp ${bkplicfile} /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
+            fi
+        fi
+        [ -s "/tmp/LatestDemoLicense-M7.txt" ] && break
+        let k=k+1
+    done
+    [ ! -s "/tmp/LatestDemoLicense-M7.txt" ] && log_error "[$(util_getHostIP)] Failed to download demo license file!" && exit 1
+
     local buildid=$(maprutil_getBuildID)
     local i=0
     local sleeptime=10

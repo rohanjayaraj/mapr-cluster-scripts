@@ -20,6 +20,7 @@ tblcreate=
 
 # Declare Variables
 rootpwd=
+decryptpwd=
 rolefile="rolefile"
 restartnodes=
 clustername=
@@ -100,6 +101,8 @@ function usage () {
     echo " Install/Uninstall Options : "
     echo -e "\t -rp=<PASSWORD> | --rootpwd=<PASSWORD>" 
     echo -e "\t\t - root user password to setup passwordless access b/w the nodes (needed for first time use)"
+    echo -e "\t -dpwd=<PASSWORD> | --decryptpwd=<PASSWORD>"
+    echo -e "\t\t - Specify decrypt password for all encrypted internal resources used in these scripts"
     # Build replated parameters
     echo -e "\t -bld=<BUILDID> | --buildid=<BUILDID>" 
     echo -e "\t\t - Specify a BUILDID if the repository has more than one version of same binaries (default: install the latest binaries)"
@@ -144,6 +147,8 @@ function usage () {
     echo -e "\t\t - Use only NVMe disks if the node(s) have mix of SSD & NVMe"
     echo -e "\t -s | --secure" 
     echo -e "\t\t - Enable wire-level security on the cluster nodes"
+    echo -e "\t -hn | --hostname"
+    echo -e "\t\t - Use hostnames instead of IPs while configuring the cluster"
     echo -e "\t -dbins | --downloadbins" 
     echo -e "\t\t - When passed with '-bld' option, download the binaries and install"
     echo -e "\t -dare" 
@@ -417,6 +422,9 @@ while [ "$1" != "" ]; do
         -yes)
            extraarg=$extraarg"confirm "
         ;;
+        -hn | --hostname)
+           extraarg=$extraarg"usehostname "
+        ;;
         -s | --secure)
             extraarg=$extraarg"secure "
         ;;
@@ -448,6 +456,9 @@ while [ "$1" != "" ]; do
         ;;
         -rp | --rootpwd)
             [ -n "$VALUE" ] && rootpwd="$VALUE"
+        ;;
+        -dpwd | --decryptpwd)
+            [ -n "$VALUE" ] && decryptpwd="$VALUE"
         ;;
         -pb | --putbuffer)
             if [ -n "$VALUE" ]; then
@@ -516,6 +527,7 @@ else
     [ -n "${tablens}" ] && params="${params} \"-ns=${tablens}\""
     [ -n "${maxdisks}" ] && params="${params} \"-d=${maxdisks}\""
     [ -n "${rootpwd}" ] && params="${params} \"-rp=${rootpwd}\""
+    [ -n "${decryptpwd}" ] && params="${params} \"-dpwd=${decryptpwd}\""
 
     [ -n "${backupdir}" ] && params="${params} \"-b=${backupdir}\""
     [ -n "${buildid}" ] && params="${params} \"-bld=${buildid}\""

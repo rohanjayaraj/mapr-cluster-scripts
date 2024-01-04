@@ -18,6 +18,7 @@ returncode=0
 rolefile=
 args=
 rootpwd=
+decryptpwd=
 backupdir=
 copydir=
 extarg=
@@ -82,6 +83,9 @@ function usage () {
 
     echo -e "\t -rp=<PASSWORD> | --rootpwd=<PASSWORD>" 
     echo -e "\t\t - root user password to setup passwordless access b/w the nodes (needed for first time use)"
+
+    echo -e "\t -dpwd=<PASSWORD> | --decryptpwd=<PASSWORD>"
+    echo -e "\t\t - Specify decrypt password for all encrypted internal resources used in these scripts"
 
     echo -e "\t -fl | --noformat" 
     echo -e "\t\t - Remove output formatting (ANSI color)"
@@ -385,6 +389,9 @@ while [ "$1" != "" ]; do
         -rp | --rootpwd)
             [ -n "$VALUE" ] && rootpwd="$VALUE"
         ;;
+        -dpwd | --decryptpwd)
+            [ -n "$VALUE" ] && decryptpwd="$VALUE"
+        ;;
         -si | --systeminfo)
             sysinfo="$VALUE"
             if [ -z "$sysinfo" ]; then
@@ -454,6 +461,7 @@ else
     [ -n "${mailsub}" ] && params="${params} \"-sub=${mailsub}\""
     [ -n "${slackhook}" ] && params="${params} \"-slhk=${slackhook}\""
     [ -n "${rootpwd}" ] && params="${params} \"-rp=${rootpwd}\""
+    [ -n "${decryptpwd}" ] && params="${params} \"-dpwd=${decryptpwd}\""
 
     [ -n "${pname}" ] && params="${params} \"-pn=${pname}\""
     [ -n "${perftool}" ] && params="${params} \"-pt=${perftool}\""

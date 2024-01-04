@@ -102,6 +102,10 @@ function util_getHostIP(){
     echo "$ipadd"
 }
 
+function util_getHostname(){
+    echo $(hostname -f)
+}
+
 function util_getCurDate(){
     echo "$(date +'%Y-%m-%d %H:%M:%S')"
 }
@@ -806,7 +810,7 @@ function util_removeBinaries(){
         rpm -ef $rembins > /dev/null 2>&1
     elif [[ "$(getOS)" = "ubuntu" ]]; then
         apt-get -y remove --purge $rembins
-        dpkg --purge $rembins > /dev/null 2>&1
+        dpkg --purge --force-all $rembins > /dev/null 2>&1
     fi
 }
 
@@ -1648,6 +1652,19 @@ function util_getIPfromHostName(){
     fi
 }
 
+function util_getHostnameFromIPs(){
+    [ -z "$1" ] && return
+    local ips=$(echo "$1" | sed 's/,/ /g')
+    local hostnames=
+    for ip in ${ips}; do
+        local hostname=$(ssh ${ip} "hostname -f")
+        [ -z "${hostname}" ] && continue
+        [ -n "${hostnames}" ] && hostnames="${hostnames},"
+        hostnames="${hostnames}${hostname}"
+    done
+    [ -n "${hostnames}" ] && echo ${hostnames}
+}
+
 # @param node ip
 function util_getDecryptPwd(){
     local node=$1
@@ -1658,6 +1675,7 @@ function util_getDecryptPwd(){
         passwd=$(cat /etc/resolv.conf 2>/dev/null | grep '^search' | head -n 1 | awk '{print $2}')
     fi
     [ -n "${passwd}" ] && echo ${passwd}
+    [ -z "${passwd}" ] && [ -n "${GLB_DECRYPT_PWD}" ] && echo "${GLB_DECRYPT_PWD}"
 }
 
 # @param node ip

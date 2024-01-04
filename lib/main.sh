@@ -174,6 +174,10 @@ GLB_ASAN_OPTIONS=
 GLB_SSLKEY_COPY=1
 GLB_USE_JDK17=
 GLB_USE_PYTHON39=
+GLB_DECRYPT_PWD=
+GLB_USE_HOSTNAME=
+GLB_USE_IPV6=
+GLB_HOSTIP_MAP=
 GLB_ENABLE_HSM=1
 GLB_MINIO_PORT=9000
 GLB_MVN_HOST=maven.foo.org
@@ -1406,7 +1410,6 @@ function main_getRepoFile(){
        maprrepo=$repodir"/mapr.list"
 	   repofile="$repodir/mapr2.list"
     fi
-
 	if [ -z "$useRepoURL" ]; then
 		sed -i "s/artifactory.devops.lab/${GLB_ART_HOST}/g" ${maprrepo}
 		echo "$maprrepo"
@@ -1489,6 +1492,7 @@ function main_preSetup(){
 	util_sourceProxy
 	# build roles list
 	[ -z "$GLB_ROLE_LIST" ] && GLB_ROLE_LIST="$(maprutil_buildRolesList $rolefile)"
+	[ -z "${GLB_HOSTIP_MAP}" ] && GLB_HOSTIP_MAP="$(maprutil_buildIPHostMap)"
 	if [[ "$addSpy" = "1" ]]; then 
 		main_addSpyglass
 	elif [[ "$addSpy" = "2" ]]; then
@@ -1617,6 +1621,11 @@ while [ "$2" != "" ]; do
     				GLB_PONTIS=1
     			elif [[ "$i" = "confirm" ]]; then
     				doSilent=1
+					elif [[ "$i" = "usehostname" ]]; then
+						GLB_USE_HOSTNAME=1
+					elif [[ "$i" = "ipv6" ]]; then
+						GLB_USE_IPV6=1
+						GLB_USE_HOSTNAME=1
     			elif [[ "$i" = "secure" ]]; then
     				GLB_SECURE_CLUSTER=1
     			elif [[ "$i" = "dare" ]]; then
@@ -1911,6 +1920,9 @@ while [ "$2" != "" ]; do
 			if [ -n "$VALUE" ]; then
  				GLB_ASAN_OPTIONS="$VALUE"
  			fi
+		;;
+		-dpwd)
+			[ -n "$VALUE" ] && GLB_DECRYPT_PWD="$VALUE"
 		;;
 		-srepo)
 			[ -n "$VALUE" ] && GLB_SANITIZER_BUILDNAME="$VALUE"
