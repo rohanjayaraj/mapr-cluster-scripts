@@ -103,7 +103,9 @@ function util_getHostIP(){
 }
 
 function util_getHostname(){
-    echo $(hostname -f)
+    local hn=$(hostname -f 2>/dev/null)
+    [ -z "${hn}" ] && hn=$(hostname 2>/dev/null)
+    [ -n "${hn}" ] && echo ${hn}
 }
 
 function util_getCurDate(){
@@ -676,7 +678,7 @@ function util_checkInstallAndRetry(){
 function util_isEDFNode(){
     [ -z "$1" ] && return
     local nodeip="$1"
-    if [ -n "$(echo "$nodeip" | grep "^10.163")" ]; then
+    if [ -n "$(echo "$nodeip" | grep -e "^10.163" -e )" ]; then
         echo "yes"
     fi
 }

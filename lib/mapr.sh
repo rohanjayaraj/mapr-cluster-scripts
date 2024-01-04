@@ -153,6 +153,16 @@ function maprutil_getHostFromIP(){
     fi
 }
 
+function maprutil_getHostsFromIPs(){
+    [ -z "$1" ] && return
+    local nodelist=
+    for nodeip in $1; do
+        [ -n "${nodelist}" ] && nodelist="${nodelist},"
+        nodelist="${nodelist}$(maprutil_getHostFromIP ${nodeip})"
+    done
+    [ -n "${nodelist}" ] && echo "${nodelist}"
+}
+
 function maprutil_getIPHostOther(){
     [ -z "$1" ] || [ -z "$GLB_HOSTIP_MAP" ] && return
     local isvalid=$(util_validip2 $1)
@@ -679,7 +689,7 @@ function maprutil_isMapRInstalledOnNode(){
         return
     fi
     
-    local host=$1
+    local hostnode=$1
     local scriptpath="$RUNTEMPDIR/isinstalled_${hostnode}.sh"
 
     # build full script for node
@@ -691,9 +701,9 @@ function maprutil_isMapRInstalledOnNode(){
     echo "util_getInstalledBinaries 'mapr-'" >> $scriptpath
 
     local bins=
-    local hostname=$(util_getHostname)
-    if [ "$hostname" != "$(maprutil_getHostFromIP $host)" ]; then
-        bins=$(ssh_executeScriptasRoot "$host" "$scriptpath")
+    local hostip=$(util_getHostIP)
+    if [ "$hostip" != "$hostnode" ]; then
+        bins=$(ssh_executeScriptasRoot "$hostnode" "$scriptpath")
     else
         bins=$(util_getInstalledBinaries "mapr-")
     fi
@@ -2129,17 +2139,11 @@ function maprutil_configure(){
 
     local cldbhostlist=${cldbnodes}
     local zkhostlist=${zknodes}
+    local hsnodeslist=$hsnodes
     if [ -n "${GLB_USE_HOSTNAME}" ]; then
-        cldbhostlist=
-        for cldbnodeip in $1; do
-            [ -n "${cldbhostlist}" ] && cldbhostlist="${cldbhostlist},"
-            cldbhostlist="${cldbhostlist}$(maprutil_getHostFromIP ${cldbnodeip})"
-        done
-        zkhostlist=
-        for zknodeip in $2; do
-            [ -n "${zkhostlist}" ] && zkhostlist="${zkhostlist},"
-            zkhostlist="${zkhostlist}$(maprutil_getHostFromIP ${zknodeip})"
-        done
+        cldbhostlist=$(maprutil_getHostsFromIPs "$1")
+        zkhostlist=$(maprutil_getHostsFromIPs "$2")
+        hsnodeslist=$(maprutil_getHostsFromIPs "$hsnodes")
     fi
     local configurecmd="/opt/mapr/server/configure.sh -C ${cldbhostlist} -Z ${zkhostlist} -L /opt/mapr/logs/install_config.log -N $3"
     [ -n "$extops" ] && configurecmd="$configurecmd $extops"
@@ -2150,7 +2154,7 @@ function maprutil_configure(){
         maprutil_waitForCLDBonNode "${cldbnode}" "60"
     fi
     #[ -n "$rmnodes" ] && configurecmd="$configurecmd -RM $(util_getCommaSeparated "$rmnodes")"
-    [ -n "$hsnodes" ] && configurecmd="$configurecmd -HS $(util_getFirstElement "$hsnodes")"
+    [ -n "$hsnodeslist" ] && configurecmd="$configurecmd -HS $(util_getFirstElement "$hsnodeslist")"
     [ -n "${GLB_USE_IPV6}" ] && configurecmd="$configurecmd --ipv6-support"
 
     # Run configure.sh on the node
@@ -2158,7 +2162,7 @@ function maprutil_configure(){
     stdbuf -i0 -o0 -e0 bash -c "$configurecmd" 2>&1 |  stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     
     # Perform series of custom configuration based on selected options
-    maprutil_customConfigure "$hsnodes"
+    maprutil_customConfigure "$hsnodeslist"
 
     # Create ATS Users
     [[ -n "$GLB_ATS_USERTICKETS" ]] && maprutil_createATSUsers 2>/dev/null
@@ -2314,18 +2318,33 @@ function maprutil_configureNode(){
 
 function maprutil_postConfigure(){
     local hostip=$(util_getHostIP)
+    local hostname=$(util_getHostname)
 
     # Pre-setup before calling configure
     maprutil_prePostConfigure
 
     local client=$(maprutil_isClientNode "$hostip")
     [ -n "${client}" ] && return
+    client=$(maprutil_isClientNode "$hostname")
+    [ -n "${client}" ] && return
     
     local esnodes="$(maprutil_getNodesForService "elastic")"
     local otnodes="$(maprutil_getNodesForService "opentsdb")"
-    [ -n "$esnodes" ] && esnodes="$(util_getCommaSeparated "$esnodes")"
-    [ -n "$otnodes" ] && otnodes="$(util_getCommaSeparated "$otnodes")"
-    local queryservice=$(echo $(maprutil_getNodesForService "drill") | grep "$hostip")
+    if [ -n "$esnodes" ]; then
+        if [ -n "${GLB_USE_HOSTNAME}" ]; then
+            esnodes=$(maprutil_getHostsFromIPs "$esnodes")
+        else
+            esnodes="$(util_getCommaSeparated "$esnodes")"
+        fi
+    fi
+    if [ -n "$otnodes" ]; then
+        if [ -n "${GLB_USE_HOSTNAME}" ]; then
+            otnodes=$(maprutil_getHostsFromIPs "$otnodes")
+        else
+            otnodes="$(util_getCommaSeparated "$otnodes")"
+        fi
+    fi
+    local queryservice=$(echo $(maprutil_getNodesForService "drill") | grep -e "$hostip" -e "$hostname")
     
     local cmd="/opt/mapr/server/configure.sh -R"
     if [ -n "$esnodes" ]; then
@@ -2541,6 +2560,7 @@ function maprutil_copySecureFilesFromCLDB(){
     local cldbnodes=$2
     local zknodes=$3
     local hostip=$(util_getHostIP)
+    local hostname=$(util_getHostname)
 
     # Check if CLDB is configured & files are available for copy
     local cldbisup="false"
@@ -2572,7 +2592,7 @@ function maprutil_copySecureFilesFromCLDB(){
     
     sleep 30
 
-    if [[ -n "$(echo $cldbnodes | grep $hostip)" ]] || [[ -n "$(echo $zknodes | grep $hostip)" ]]; then
+    if [[ -n "$(echo $cldbnodes | grep -e $hostip -e $hostname)" ]] || [[ -n "$(echo $zknodes | grep -e $hostip -e $hostname)" ]]; then
         if [ -n "${GLB_ENABLE_HSM}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.0.0" "$GLB_MAPR_VERSION")" ]; then
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/tokens/*" "/opt/mapr/conf/tokens/"
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ca" "/opt/mapr/conf/"
@@ -2636,7 +2656,7 @@ function maprutil_copySecureFilesFromCLDB(){
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_usertruststore*" "/opt/mapr/conf/";
             ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/ssl_userkeystore*" "/opt/mapr/conf/";
             
-            local hasmoss=$(echo $(maprutil_getNodesForService "mapr-s3server") | grep "$hostip")
+            local hasmoss=$(echo $(maprutil_getNodesForService "mapr-s3server") | grep -e "$hostip" -e "$hostname")
             if [ -n "${hasmoss}" ]; then
                 if [ -z "$(maprutil_isMapRVersionSameOrNewer "7.1.0" "$GLB_MAPR_VERSION")" ]; then
                     ssh_copyFromCommand "root" "$cldbhost" "/opt/mapr/conf/private.key" "/opt/mapr/conf/";
