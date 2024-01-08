@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 
@@ -2130,7 +2131,6 @@ function maprutil_configure(){
         popd > /dev/null 2>&1
         if [ "$hostip" = "$cldbnode" ] || [ "$hostname" = "$cldbhostnode" ]; then
             extops=$extops" -genkeys"
-            [ -n "${GLB_ENABLE_KEYCLOAK}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ] && extops=$extops" -keycloak"
         else
             maprutil_copySecureFilesFromCLDB "$cldbnode" "$cldbnodes" "$zknodes"
         fi
@@ -2356,6 +2356,8 @@ function maprutil_postConfigure(){
     if [ -n "$queryservice" ] && [ -n "$GLB_ENABLE_QS" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
         cmd=$cmd" -QS"
     fi
+    [ -n "${GLB_ENABLE_KEYCLOAK}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ] && cmd=$cmd" -keycloak"
+
     log_info "[$hostip] $cmd"
     timeout 300 stdbuf -i0 -o0 -e0 bash -c "$cmd" 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
     
@@ -4643,7 +4645,7 @@ function maprutil_applyLicense(){
     local i=0
     local sleeptime=10
     if [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ]; then
-        sleeptime=25
+        sleeptime=45
     fi
     local jobs=1
     while [ "${jobs}" -ne "0" ]; do
