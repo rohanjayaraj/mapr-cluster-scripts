@@ -1309,6 +1309,7 @@ function maprutil_installBinariesOnNode(){
     #echo "[ -z \"\$keyexists\" ] && ssh_createkey \"/root/.ssh\"" >> $scriptpath
     echo "ssh_createkey \"/root/.ssh\"" >> $scriptpath
     #echo "maprutil_checkIsBareMetal" >> $scriptpath
+    echo "maprutil_installRepoKeys" >> $scriptpath
     echo "util_installprereq > /dev/null 2>&1" >> $scriptpath
     if [ -n "$GLB_MAPR_VERSION" ]; then
         if [ -n "${GLB_USE_JDK17}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.2.0" "$GLB_MAPR_VERSION")" ]; then
@@ -2887,6 +2888,28 @@ function maprutil_buildPatchRepoURL(){
     #echo "$GLB_PATCH_REPOFILE"
 }
 
+function maprutil_installRepoKeys(){
+    local pehr=$(util_getDecryptStr "2yElmg1XcafBMIJd3UR1+q/p2Mz9EKb+KbrY1BM6whQ=" "U2FsdGVkX1+uxZvVf/Ec7pV2WBV10ZOBU9tOrHLk5pGVe622HhZJoBs86FgetMa5")
+    local sehr=$(util_getDecryptStr "8QlOWjA6r6trkP8ZzvEV0HgiYaMRLIqigunn22aFy5M=" "U2FsdGVkX1/AwUpMoYTGUGHWwnLL3jI9XJ4g1ZqrtG/BTFJuE3UICVBW9737KBr1")
+    local pehr_credpwd=$(util_getDecryptStr "FE5GNzVWQ5PM8n6qOKry6OTL//WnhfXUAn1rWNHOlnH2iNv+rFXRKa1jSm2E5e1z\nIRBeQQs18pg4Gv45GcM1Scy30w3TaTTt55oI4UWwDm05cyIn1wGNFwxrTWAfhmzm" \
+        "U2FsdGVkX18agRJlSfQVxw7yz2ly5wOZetQn4TDdhSwqGfIpNNUYGGYzD5UbmPuwjf2NukBW7LdXi/lJDTP7uuVmLg2kADELJsxa6zC0UdXBJq8Y5t4yASiQN9nqDQcNcT3TSjxcgz5rpK/cwozMOg==")
+    local pehr_creduser=$(util_getDecryptStr "g+hdbl92v2mrk+NnH34cUrC3swyVufp7xznqJPWBKuU=" "U2FsdGVkX18q/voLyjwzWcPGwhOFBZVI3R+OdPigNY6KF3T27ODe2RrFcEsgcnjc")
+    local addkey=
+    if grep -q -e "${sehr}" -e "${pehr}" <<< "${GLB_MAPR_REPOURL}" || grep -q -e "${sehr}" -e "${pehr}" <<< "${GLB_MEP_REPOURL}"; then
+        addkey=1
+    fi
+    [ -z "${addkey}" ] && return
+    wget --user=${pehr_creduser} --password=${pehr_credpwd} \
+        -O /tmp/pehr_public_key.pub -q "https://${pehr}/releases/pub/hpeezdf.pub";
+    [ ! -s "/tmp/pehr_public_key.pub" ] && log_warn "[$(util_getHostIP)] Failed to download the public key" && return
+    local nodeos=$(getOS)
+    if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
+        rpm --import /tmp/pehr_public_key.pub 2>/dev/null
+    elif [ "$nodeos" = "ubuntu" ]; then
+        apt-key add /tmp/pehr_public_key.pub 2>/dev/null
+    fi
+}
+
 function maprutil_buildRepoFile(){
     if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
         return
@@ -2902,13 +2925,13 @@ function maprutil_buildRepoFile(){
     local sehr=$(util_getDecryptStr "8QlOWjA6r6trkP8ZzvEV0HgiYaMRLIqigunn22aFy5M=" "U2FsdGVkX1/AwUpMoYTGUGHWwnLL3jI9XJ4g1ZqrtG/BTFJuE3UICVBW9737KBr1")
     local pehr=$(util_getDecryptStr "2yElmg1XcafBMIJd3UR1+q/p2Mz9EKb+KbrY1BM6whQ=" "U2FsdGVkX1+uxZvVf/Ec7pV2WBV10ZOBU9tOrHLk5pGVe622HhZJoBs86FgetMa5")
     local creds=$(util_getDecryptStr "Cm/G5RoUEMGYKcV2Ec8l2w==" "U2FsdGVkX19zFqSvt8rjIWbNuwybi0zFEeSF5uVw318=")
-    local creduser=$(util_getDecryptStr "PRIxmUBnulUm87/mxAN1oUE2dubkb2nqEHZpIaYEIhw=" "U2FsdGVkX18kkmjSEIN5dPfWSqtk02DXrd8PQH81th+DStf+xivcgV3lRORI3+3r")
+    local sehr_creduser=$(util_getDecryptStr "PRIxmUBnulUm87/mxAN1oUE2dubkb2nqEHZpIaYEIhw=" "U2FsdGVkX18kkmjSEIN5dPfWSqtk02DXrd8PQH81th+DStf+xivcgV3lRORI3+3r")
     local credpwd=$(util_getDecryptStr "Uzkt+FyKsSHw5rfb68fkdA==" "U2FsdGVkX18dsH2sGltUlu8DRQFFpgd6ZTAeoI/YwFM=")
     local sehrcredpwd=$(util_getDecryptStr "t3vQNtOwNrHVdBLoTUnqGgxIrWlSLJwDAWyfj6Velisx4YQFjic7VZ/ZUbEzFOwU\np5PxKeiXQNWTBhSbnzeAjgfA9c2R9kuHJEVixD6B4g7sQkrx/YxcUV8FT/8nF35J" \
         "U2FsdGVkX19VTmZAksYdAHIX2PRCdR5b+Uz9mCi4lnAPHg0uUBTNdPHKjHu6ICQv0vF4DGTVX/ph4rHelPrHNAyZp1QoBorjSCVldjYdIapx28dTya1LXhzOxIiChzTOwNijqmzaM1k9gUFND1w+cA==")
     local pehrcredpwd=$(util_getDecryptStr "FE5GNzVWQ5PM8n6qOKry6OTL//WnhfXUAn1rWNHOlnH2iNv+rFXRKa1jSm2E5e1z\nIRBeQQs18pg4Gv45GcM1Scy30w3TaTTt55oI4UWwDm05cyIn1wGNFwxrTWAfhmzm" \
         "U2FsdGVkX18agRJlSfQVxw7yz2ly5wOZetQn4TDdhSwqGfIpNNUYGGYzD5UbmPuwjf2NukBW7LdXi/lJDTP7uuVmLg2kADELJsxa6zC0UdXBJq8Y5t4yASiQN9nqDQcNcT3TSjxcgz5rpK/cwozMOg==")
-    #local pehr_creduser=$(util_getDecryptStr "lL9MpNxhG4l7qLjFtaR4cj7wyMnUrDVrjrgX8JYBejU=" "U2FsdGVkX19LiliGNkRDI0rG0XCjIk4VL+B280hq3f00nYwdd8iEIjDQPMmDzAEb")
+    local pehr_creduser=$(util_getDecryptStr "g+hdbl92v2mrk+NnH34cUrC3swyVufp7xznqJPWBKuU=" "U2FsdGVkX18q/voLyjwzWcPGwhOFBZVI3R+OdPigNY6KF3T27ODe2RrFcEsgcnjc")
 
     repourl=$(echo $repourl | sed 's/oel/redhat/g')
 
@@ -2934,10 +2957,10 @@ function maprutil_buildRepoFile(){
             echo "username=${creds}" >> $repofile
             echo "password=${creds}" >> $repofile
         elif grep -q -e "${smhr}" -e "${sehr}" <<< "${meprepo}"; then
-            echo "username=${creduser}" >> $repofile
+            echo "username=${sehr_creduser}" >> $repofile
             echo "password=${sehrcredpwd}" >> $repofile
         elif grep -q "${pehr}" <<< "${meprepo}"; then
-            echo "username=${creduser}" >> $repofile
+            echo "username=${pehr_creduser}" >> $repofile
             echo "password=${pehrcredpwd}" >> $repofile
         fi
 
@@ -2953,10 +2976,10 @@ function maprutil_buildRepoFile(){
             echo "username=${creds}" >> $repofile
             echo "password=${creds}" >> $repofile
         elif grep -q -e "${smhr}" -e "${sehr}" <<< "${repourl}"; then
-            echo "username=${creduser}" >> $repofile
+            echo "username=${sehr_creduser}" >> $repofile
             echo "password=${sehrcredpwd}" >> $repofile
         elif grep -q "${pehr}" <<< "${repourl}"; then
-            echo "username=${creduser}" >> $repofile
+            echo "username=${pehr_creduser}" >> $repofile
             echo "password=${pehrcredpwd}" >> $repofile
         fi
 
@@ -3008,21 +3031,21 @@ function maprutil_buildRepoFile(){
             local crefile="/etc/apt/auth.conf.d/${smhr}.conf"
             if [ ! -s "${crefile}" ]; then
                 echo "machine ${smhr}" > ${crefile}
-                echo "login ${creduser}" >> ${crefile}
+                echo "login ${sehr_creduser}" >> ${crefile}
                 echo "password ${sehrcredpwd}" >> ${crefile}
             fi
         elif grep -q "${sehr}" <<< "${repourl}"; then
             local crefile="/etc/apt/auth.conf.d/${sehr}.conf"
             if [ ! -s "${crefile}" ]; then
                 echo "machine ${sehr}" > ${crefile}
-                echo "login ${creduser}" >> ${crefile}
+                echo "login ${sehr_creduser}" >> ${crefile}
                 echo "password ${sehrcredpwd}" >> ${crefile}
             fi
         elif grep -q "${pehr}" <<< "${repourl}"; then
             local crefile="/etc/apt/auth.conf.d/${pehr}.conf"
             if [ ! -s "${crefile}" ]; then
                 echo "machine ${pehr}" > ${crefile}
-                echo "login ${creduser}" >> ${crefile}
+                echo "login ${pehr_creduser}" >> ${crefile}
                 echo "password ${pehrcredpwd}" >> ${crefile}
             fi
         fi
