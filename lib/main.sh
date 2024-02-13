@@ -1516,6 +1516,7 @@ function main_extractMapRVersion(){
 	local ver=$(echo $url | tr '/' '\n' | grep -wo "^v[0-9]*.[0-9]*.[0-9]*")
 	[ -z "$(echo $ver | grep -wo 'v[0-9]*.[0-9]*.[0-9]*')" ] && return
 	GLB_MAPR_VERSION=$(echo $ver | cut -d'_' -f1 | cut -d 'v' -f2)
+	[ -n "${GLB_MAPR_VERSION}" ] && [ -z "${GLB_SECURE_CLUSTER}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ] && GLB_SECURE_CLUSTER=1
 	#echo $GLB_MAPR_VERSION
 }
 

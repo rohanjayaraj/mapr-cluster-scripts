@@ -678,7 +678,7 @@ function util_checkInstallAndRetry(){
 function util_isEDFNode(){
     [ -z "$1" ] && return
     local nodeip="$1"
-    if [ -n "$(echo "$nodeip" | grep -e "^10.163" -e )" ]; then
+    if [ -n "$(echo "$nodeip" | grep -e "^10.163")" ]; then
         echo "yes"
     fi
 }
