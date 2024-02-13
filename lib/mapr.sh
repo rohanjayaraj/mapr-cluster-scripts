@@ -2329,6 +2329,9 @@ function maprutil_postConfigure(){
     client=$(maprutil_isClientNode "$hostname")
     [ -n "${client}" ] && return
     
+    local cldbnodes=$(maprutil_getCLDBNodes)
+    local cldbnode=$(util_getFirstElement "$cldbnodes")
+    local cldbhostnode=$(maprutil_getHostFromIP $cldbnode)
     local esnodes="$(maprutil_getNodesForService "elastic")"
     local otnodes="$(maprutil_getNodesForService "opentsdb")"
     if [ -n "$esnodes" ]; then
@@ -2357,7 +2360,9 @@ function maprutil_postConfigure(){
     if [ -n "$queryservice" ] && [ -n "$GLB_ENABLE_QS" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "6.0.0")" ]; then
         cmd=$cmd" -QS"
     fi
-    [ -n "${GLB_ENABLE_KEYCLOAK}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ] && cmd=$cmd" -keycloak"
+    if [ "$hostip" = "$cldbnode" ] || [ "$hostname" = "$cldbhostnode" ]; then
+        [ -n "${GLB_ENABLE_KEYCLOAK}" ] && [ -n "$(maprutil_isMapRVersionSameOrNewer "7.5.0" "$GLB_MAPR_VERSION")" ] && cmd=$cmd" -keycloak"
+    fi
 
     log_info "[$hostip] $cmd"
     timeout 300 stdbuf -i0 -o0 -e0 bash -c "$cmd" 2>&1 | stdbuf -o0 -e0 awk -v host=$hostip '{printf("[%s] %s\n",host,$0)}'
@@ -2904,9 +2909,9 @@ function maprutil_installRepoKeys(){
     [ ! -s "/tmp/pehr_public_key.pub" ] && log_warn "[$(util_getHostIP)] Failed to download the public key" && return
     local nodeos=$(getOS)
     if [ "$nodeos" = "centos" ] || [ "$nodeos" = "suse" ] || [ "$nodeos" = "oracle" ]; then
-        rpm --import /tmp/pehr_public_key.pub 2>/dev/null
+        rpm --import /tmp/pehr_public_key.pub > /dev/null 2>&1
     elif [ "$nodeos" = "ubuntu" ]; then
-        apt-key add /tmp/pehr_public_key.pub 2>/dev/null
+        apt-key add /tmp/pehr_public_key.pub > /dev/null 2>&1
     fi
 }
 
@@ -3020,34 +3025,31 @@ function maprutil_buildRepoFile(){
         [ -n "${isMEPge810}" ] && repotrust="bionic"
         echo "deb $istrusty $meprepo binary ${repotrust}" >> $repofile
 
+        local crefile=
         if grep -q "${sr}" <<< "${repourl}"; then
-            local crefile="/etc/apt/auth.conf.d/${sr}.conf"
-            if [ ! -s "${crefile}" ]; then
-                echo "machine ${sr}" > ${crefile}
-                echo "login ${creds}" >> ${crefile}
-                echo "password ${creds}" >> ${crefile}
-            fi
+            crefile="/tmp/${sr}.conf"
+            echo "machine ${sr}" > ${crefile}
+            echo "login ${creds}" >> ${crefile}
+            echo "password ${creds}" >> ${crefile}
         elif grep -q "${smhr}" <<< "${repourl}"; then
-            local crefile="/etc/apt/auth.conf.d/${smhr}.conf"
-            if [ ! -s "${crefile}" ]; then
-                echo "machine ${smhr}" > ${crefile}
-                echo "login ${sehr_creduser}" >> ${crefile}
-                echo "password ${sehrcredpwd}" >> ${crefile}
-            fi
+            crefile="/tmp/${smhr}.conf"
+            echo "machine ${smhr}" > ${crefile}
+            echo "login ${sehr_creduser}" >> ${crefile}
+            echo "password ${sehrcredpwd}" >> ${crefile}
         elif grep -q "${sehr}" <<< "${repourl}"; then
-            local crefile="/etc/apt/auth.conf.d/${sehr}.conf"
-            if [ ! -s "${crefile}" ]; then
-                echo "machine ${sehr}" > ${crefile}
-                echo "login ${sehr_creduser}" >> ${crefile}
-                echo "password ${sehrcredpwd}" >> ${crefile}
-            fi
+            crefile="/tmp/${sehr}.conf"
+            echo "machine ${sehr}" > ${crefile}
+            echo "login ${sehr_creduser}" >> ${crefile}
+            echo "password ${sehrcredpwd}" >> ${crefile}
         elif grep -q "${pehr}" <<< "${repourl}"; then
-            local crefile="/etc/apt/auth.conf.d/${pehr}.conf"
-            if [ ! -s "${crefile}" ]; then
-                echo "machine ${pehr}" > ${crefile}
-                echo "login ${pehr_creduser}" >> ${crefile}
-                echo "password ${pehrcredpwd}" >> ${crefile}
-            fi
+            crefile="/tmp/${pehr}.conf"
+            echo "machine ${pehr}" > ${crefile}
+            echo "login ${pehr_creduser}" >> ${crefile}
+            echo "password ${pehrcredpwd}" >> ${crefile}
+        fi
+        if [ -s "${crefile}" ]; then
+            ssh_copyCommandasRoot "$node" "${crefile}" "/etc/apt/auth.conf.d/" > /dev/null 2>&1
+            rm -rf ${crefile} > /dev/null 2>&1
         fi
     fi
 }
