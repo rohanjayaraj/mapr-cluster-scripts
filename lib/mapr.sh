@@ -1108,6 +1108,9 @@ function maprutil_uninstall(){
     # Remove all directories
     maprutil_removedirs "all"
 
+    # Restart chronyd service
+    service chronyd start > /dev/null 2>&1
+
     echo 1 > /proc/sys/vm/drop_caches
 
     log_info "[$(util_getHostIP)] Uninstall complete"
