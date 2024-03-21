@@ -204,7 +204,7 @@ function ssh_copyPublicKey(){
 	local isdone=
 	for pwd in $rootpwd
 	do
-		sshpass -p${pwd} ssh -o StrictHostKeyChecking=no -l $1 $2 exit >/dev/null 2>&1
+		timeout 10 sshpass -p${pwd} ssh -o StrictHostKeyChecking=no -l $1 $2 exit >/dev/null 2>&1
 		local sshpassret=$?
 		local idfile=
 		[ "$(ls /root/.ssh/id_rsa*.pub | wc -l)" -gt "1" ] && [ -e "/root/.ssh/id_rsa.pub" ] && idfile="-i"

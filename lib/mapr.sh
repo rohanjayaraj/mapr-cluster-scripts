@@ -1773,6 +1773,7 @@ function maprutil_configureCLDBTopology(){
         local numcldbs=$(echo "$cldbnodes" | tr ',' '\n' | wc -l)
         [[ -z "$1" ]] && [[ "$numcldbs" -gt "1" ]] && log_info "[$(util_getHostIP)] Multiple CLDBs found; Not moving them to /cldb topology" && return
         log_info "[$(util_getHostIP)] Moving CLDB node(s) & cldb internal volume to /cldb topology"
+        [[ "$numcldbs" -eq "1" ]] && maprcli volume modify -name mapr.cldb.internal -minreplication 1 -replication 1 2>/dev/null && sleep 30
         timeout 30 maprcli node move -serverids "$cldbnodes" -topology /cldb 2>/dev/null
         ### Moving CLDB Volume as well
         timeout 30 maprcli volume move -name mapr.cldb.internal -topology /cldb 2>/dev/null
@@ -3290,6 +3291,25 @@ function maprutil_addLocalPatchRepo(){
     fi
 }
 
+function maprutil_findeeprepo(){
+    [ -z "$1" ] && return
+    local inputcv="$(echo "$1" | tr -d '.')"
+    local tempdir=$(mktemp -d)
+    local docfile="${tempdir}/docmatrix"
+    wget https://docs.ezmeral.hpe.com/datafabric-customer-managed/home/InteropMatrix/r_MEP_lifecycle_status.html -O ${docfile} > /dev/null 2>&1
+    if [ -s "${docfile}" ]; then
+        local vmatrix=$(cat ${docfile} | sed ':a;N;$!ba;s/Core Release*\n/Core Release/g' | grep -B1 -e "Core Release" -e "Active" -e "In Maintenance" -e "End of Maintenance" |  tr -s ' ')
+        vmatrix=$(echo "${vmatrix}" | grep -who -e ">Core Release [a-z0-9.*]*<" -e ">[0-9].[0-9.*]*<" | grep -A1 "Core Release" | tr -d '>' | tr -d '<' | tr -d '*')
+        while read -r i; do
+            local corev=$(echo $i | grep "Core Release" | awk '{print $3}')
+            [ -n "${corev}" ] && read -r eepv && [ -n "$(echo "${eepv}" | grep "Core Release")" ] && continue
+            corev=$(echo "${corev}" | sed 's/x/0/g' | tr -d '.')
+            [[ "${inputcv}" -eq "${corev}" ]] || [[ "${inputcv}" -gt "${corev}" ]] && echo "${eepv}" && return
+        done <<< "$(echo "${vmatrix}" | grep "^[C0-9]" )"
+    fi
+    rm -rf $tempdir > /dev/null 2>&1
+}
+
 function maprutil_setupasanmfs(){
     local santype="$1"
     local setupclient="$2"
@@ -4667,7 +4687,10 @@ function maprutil_applyLicense(){
         [ -s "/tmp/LatestDemoLicense-M7.txt" ] && break
         let k=k+1
     done
-    [ ! -s "/tmp/LatestDemoLicense-M7.txt" ] && log_error "[$(util_getHostIP)] Failed to download demo license file!" && exit 1
+    if [ ! -s "/tmp/LatestDemoLicense-M7.txt" ]; then 
+        [ -s "/root/LatestDemoLicense-M7.txt" ] && scp /root/LatestDemoLicense-M7.txt /tmp/LatestDemoLicense-M7.txt > /dev/null 2>&1
+        [ ! -s "/tmp/LatestDemoLicense-M7.txt" ] && log_error "[$(util_getHostIP)] Failed to download demo license file!" && exit 1
+    fi
 
     local buildid=$(maprutil_getBuildID)
     local i=0

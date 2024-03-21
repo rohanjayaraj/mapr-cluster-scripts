@@ -338,6 +338,7 @@ function util_installprereq(){
             util_checkAndInstall "dlv" "golang-go.tools"
             util_checkAndInstall "dlv" "delve"
             util_checkAndInstall3 "libatomic1"
+            util_checkAndInstall2 "/usr/share/dict/words" "wamerican"
         elif [ "$(getOS)" = "suse" ]; then
             util_checkAndInstall "createrepo" "createrepo"
             util_checkAndInstall "perf" "perf"
@@ -821,18 +822,29 @@ function util_getDefaultDisks(){
     disks=$(blkid -o list | grep -v 'not mounted' | grep '/' | cut -d' ' -f1 | tr -d '[0-9]' | uniq | sort)
     local tmpfs="$(timeout 3 df -x tmpfs -x fuse.posix-client-platinum -x fuse.posix-client-basic 2>/dev/null)"
     [ -z "$tmpfs" ] && tmpfs="$(df -x fuse.posix-client-platinum -x fuse.posix-client-basic -l 2>/dev/null)"
+    # Temporary file systems
     disks="${disks}\n$(echo "$tmpfs" | grep -v : | cut -d' ' -f1 | sed -e /Filesystem/d |  sed '/^$/d' |  tr -d '[0-9]' | sort | uniq)"
-    disks="${disks}\n$(lsblk -nl 2>/dev/null| grep -v disk | cut -d' ' -f1)"
-    disks=$(echo -e "$disks" | sort | uniq)
+    # Partitions
+    local partdisks=$(lsblk -nl 2>/dev/null| grep -v disk | cut -d' ' -f1)
+    local procmounts=$(cat /proc/mounts)
+    for part in ${partdisks}; do
+        local disk="$(echo "${procmounts}" | awk '{print $1}' | sort | grep  "$part$")"
+        if [ -n "$disk" ]; then
+            disks="${disks}\n${disk}"
+        elif [ -n "$(lsblk 2>/dev/null| grep -A1 -w ${part} | awk '{if(NF>6) print $0}')" ]; then
+            disks="${disks}\n/dev/${part}"
+        fi
+    done
+    disks="$(echo -e "$disks" | sort | uniq)"
     echo -e "$disks"
 }
 
 # returns space separated list of raw disks
 function util_getRawDisks(){
     local disktype="$1"
-    local defdisks=$(util_getDefaultDisks)
+    local defdisks="$(util_getDefaultDisks)"
     local nvmedisks=$(nvme list 2>/dev/null | grep "^/" | awk '{print $1}' | sed ':a;N;$!ba;s/\n/ /g')
-    local cmd="sfdisk -l 2> /dev/null| grep Disk | tr -d ':' | cut -d' ' -f2"
+    local cmd="sfdisk -l 2> /dev/null| grep '/dev/' | sed 's/Disk//g' | awk '{print \$1}' | tr -d ':' | grep -v 'mapper\|docker'"
     for disk in $defdisks
     do
         cmd="$cmd | grep -wv \"$disk\""
@@ -840,13 +852,15 @@ function util_getRawDisks(){
     local fdisks=$(fdisk -l 2>/dev/null)
     for disk in $(bash -c  "$cmd")
     do
-        local sizestr=$(echo "$fdisks" | grep "Disk \/" | grep "$disk" | awk '{print $3, $4}' | tr -d ',')
+        # if the disk has partitions, ignore it
+        [ -n "$(sfdisk -d ${disk} 2>/dev/null)" ] && cmd="$cmd | grep -wv \"$disk\"" && continue
+        local sizestr=$(echo "$fdisks" | grep '/dev/' | grep -w "$disk" | awk '{if($1 ~ /^Disk/) print $3,$4; else {printf("%.1f",$5); if($5 ~/T/) printf(" TB"); else if($5 ~/G/) printf(" GB"); else  printf(" MB")}}' | tr -d ',')
         # If no disk found in fdisk, ignore that disk
-        [ -z "$sizestr" ] && cmd="$cmd | grep -v \"$disk\"" && continue
+        [ -z "$sizestr" ] && cmd="$cmd | grep -wv \"$disk\"" && continue
         local size=$(printf "%.0f" $(echo "$sizestr" | awk '{print $1}'))
         local rep=$(echo "$sizestr" | awk '{print $2}')
-        [ "$rep" = "MB" ] && [ "$size" -lt "200000" ] && cmd="$cmd | grep -v \"$disk\""
-        [ "$rep" = "GB" ] && [ "$size" -lt "200" ] &&  cmd="$cmd | grep -v \"$disk\""
+        [ "$rep" = "M" ] && [ "$size" -lt "200000" ] && cmd="$cmd | grep -wv \"$disk\""
+        [ "$rep" = "G" ] && [ "$size" -lt "200" ] &&  cmd="$cmd | grep -wv \"$disk\""
     done
     local disks=
     local alldisks=$(bash -c  "$cmd | sort")
@@ -854,9 +868,12 @@ function util_getRawDisks(){
         local ssddisks=
         for disk in ${alldisks}
         do
-            local blk=$(echo $disk | cut -d'/' -f3)
+            local blk=$(echo $disk | rev | cut -d'/' -f1 | rev)
+            if [ ! -s "/sys/block/$blk/queue/rotational" ]; then
+                blk=$(sfdisk -l | grep -e "^Disk /dev/" -e $disk | grep -wB1 ${disk} | grep ^Disk | tail -n 1 | awk '{print $2}' | tr -d ':' | rev | cut -d'/' -f1 | rev)
+            fi
             if [ "$(cat /sys/block/$blk/queue/rotational)" -eq 0 ]; then 
-                [ "$disktype" = "nvme" ] && [ -n "$(echo "${nvmedisks}" | grep -who "${disk}")" ] && ssddisks="${ssddisks}${disk} "
+                [ "$disktype" = "nvme" ] && [ -n "$(echo "${nvmedisks}" | grep -who "/dev/${blk}")" ] && ssddisks="${ssddisks}${disk} "
                 [ "$disktype" = "ssd" ] && ssddisks="${ssddisks}${disk} "
             fi
             [ "$(cat /sys/block/$blk/queue/rotational)" -eq 1 ] && [ "$disktype" = "hdd" ] && ssddisks="${ssddisks}${disk} "
@@ -1262,6 +1279,9 @@ function util_isSSDDrive(){
 
     local disk="$1"
     disk=$(echo "$disk"| grep -v -e '^$' | cut -d' ' -f1 | cut -d'/' -f3)
+    if [ ! -s "/sys/block/$disk/queue/rotational" ]; then
+        disk=$(sfdisk -l | grep -e "^Disk /dev/" -e $1 | grep -wB1 ${1} | grep ^Disk | tail -n 1 | awk '{print $2}' | tr -d ':' | cut -d'/' -f3)
+    fi
     [ "$(cat /sys/block/$disk/queue/rotational)" -eq 0 ] && echo "yes" || echo "no"
 }
 
@@ -1358,6 +1378,9 @@ function util_getDiskInfo(){
     do
         local blk=$(echo $disk | cut -d'/' -f3)
         local size=$(echo "$fd" | grep "Disk \/" | grep -w "$disk" | tr -d ':' | awk '{if($4 ~ /^G/) {print $3} else if($4 ~ /^T/) {print $3*1024} else if($4 ~ /^M/) {print $3/1024}}')
+        if [ ! -s "/sys/block/$blk/queue/rotational" ]; then
+            blk=$(sfdisk -l | grep -e "^Disk /dev/" -e $disk | grep -wB1 ${disk} | grep ^Disk | tail -n 1 | awk '{print $2}' | tr -d ':' | cut -d'/' -f3)
+        fi
         local dtype=$(cat /sys/block/$blk/queue/rotational)
         local isos=$(echo "$fd" |  grep -wA6 "$disk" | grep "Disk identifier" | awk '{print $3}')
         local used=$(echo "$defdisks" | grep -w "$disk")
