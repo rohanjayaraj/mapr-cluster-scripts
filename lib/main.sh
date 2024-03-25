@@ -635,7 +635,12 @@ function main_uninstall(){
 	        return 1
 	    fi
 	fi
-    echo && main_isMapRInstalled
+   echo && main_isMapRInstalled
+
+   # resolve hosts
+	for node in ${nodes[@]}; do
+		main_buildServiceHostNames "${node}"
+	done
 
 	local cldbnode=
 	local nocldblist=
